@@ -57,9 +57,23 @@ var almReferences = nameTable{
 	// The Againrom script record: the frame finds it by its typeId, its
 	// trigger row measures and writes through the record's one trigger
 	// decoder and encoder, and the two form moves frame and decode it.
-	"editor.go/(*Editor).locate":                 {"alm.PayloadExtent", "alm.ScriptRecordTypeID"},
-	"editor.go/(frame).at":                       {"alm.ScriptRecordTypeID"},
-	"section.go/sectionFor":                      {"alm.ScriptRecordTypeID"},
+	"editor.go/(*Editor).locate": {"alm.PayloadExtent", "alm.ScriptRecordTypeID"},
+	"editor.go/(frame).at":       {"alm.ScriptRecordTypeID"},
+	"section.go/sectionFor":      {"alm.ScriptRecordTypeID", "alm.SecondFormat"},
+	// The second game's placed-element rows read its record layout from the
+	// format's exported constants.
+	"section.go/(*Editor).insertSectionParts":    {"alm.SecondFormat"},
+	"second.go/(*Editor).secondIDs":              {"alm.SecondUnitTag"},
+	"second.go/(*Editor).secondLists":            {"alm.SecondMeta11Count", "alm.SecondTypeLists"},
+	"second.go/(*Editor).secondMarkers":          {"alm.SecondMarkerCount", "alm.SecondMarkerEntry", "alm.SecondMarkerHead", "alm.SecondMarkerKey", "alm.SecondMarkerMode"},
+	"second.go/" + fileScope:                     {"alm.SecondType11A", "alm.SecondType11B", "alm.SecondType11C", "alm.SecondUnitOwner"},
+	"second.go/init":                             {"alm.SecondUnitSize"},
+	"second.go/secondCloneUnitParts":             {"alm.SecondUnitSack", "alm.SecondUnitTag"},
+	"second.go/secondMoveUnitParts":              {"alm.SecondUnitTag"},
+	"second.go/secondRenumberUnit":               {"alm.SecondUnitTag"},
+	"second.go/secondStructureLength":            {"alm.SecondObjectExtBit"},
+	"secondremove.go/(*Editor).secondCutLists":   {"alm.SecondMeta11Count"},
+	"secondremove.go/secondRemoveParts":          {"alm.SecondUnitSack", "alm.SecondUnitTag"},
 	"scriptform.go/" + fileScope:                 {"alm.ScriptRecordTypeID"},
 	"scriptform.go/recordTriggerLayout":          {"alm.ScriptRecordHeadSize", "alm.ScriptRecordTriggerCount"},
 	"scriptform.go/recordTriggerLength":          {"alm.DecodeScriptRecordTrigger"},
@@ -110,6 +124,11 @@ var payloadLengthReferences = nameTable{
 	// consume it exactly; the count it walks is the type-0 word.
 	"section.go/(*Editor).walkRow":            {"payloadSize"},
 	"section.go/(*Editor).insertSectionParts": {"RecordPayloadSize", "payloadSize"},
+	// The second game's element rows address the records they edit by header.
+	"second.go/(*Editor).markerAppendParts": {"payloadSize"},
+	"second.go/(*Editor).secondLists":       {"payloadSize"},
+	"second.go/(*Editor).secondMarkers":     {"payloadSize"},
+	"secondremove.go/(*secondEdit).finish":  {"RecordPayloadSize"},
 	// The Againrom script record's head, trigger rows and the two form moves
 	// address the record's own payload; none reads the type-6 length.
 	"scriptform.go/recordTriggerLayout":       {"payloadSize"},

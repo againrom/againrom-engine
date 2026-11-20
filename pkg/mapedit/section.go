@@ -58,6 +58,13 @@ type section struct {
 	fields        func(e *Editor, rec []byte) []Field
 	validatePlace func(e *Editor, w walk, rec []byte) error
 	deleteParts   func(e *Editor, w walk, i int) ([]part, error)
+	// removeParts, when set, builds the whole edit that removes record i in
+	// place of the plain removal: the record, the section's size and count
+	// words and what its removal carries with it.
+	removeParts func(e *Editor, w walk, i int) (edit, error)
+	// moveParts are the parts a move to x and y adds to the two coordinate
+	// words.
+	moveParts func(e *Editor, w walk, i int, x, y uint32) []part
 }
 
 var sections map[Kind]*section
@@ -78,10 +85,11 @@ func init() {
 			renumber: renumberStructure,
 		},
 		KindLoot: {name: "sack", typeID: alm.TypeLoot, count: alm.MetaLootCount, x: alm.LootX, y: alm.LootY, create: true, insertAfter: alm.TypeTileMarkers,
-			length:     lootLength,
-			cellless:   func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[alm.LootOwner:]) != 0 },
-			fields:     lootFields,
-			cloneParts: cloneSackRecipeParts,
+			length:      lootLength,
+			cellless:    func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[alm.LootOwner:]) != 0 },
+			fields:      lootFields,
+			cloneParts:  cloneSackRecipeParts,
+			removeParts: func(e *Editor, w walk, i int) (edit, error) { return e.lootRemovalParts(w, []int{i}, -1), nil },
 		},
 		KindAction:    scriptSection("action", 0),
 		KindCondition: scriptSection("condition", 1),
@@ -117,6 +125,9 @@ func sectionOf(k Kind) (*section, error) {
 // sectionFor is k's row in frame f. A map carrying the Againrom script
 // record holds its triggers there, so KindTrigger is that record's row.
 func sectionFor(k Kind, f frame) (*section, error) {
+	if s, ok := secondSections[k]; ok && f.format == alm.SecondFormat {
+		return s, nil
+	}
 	if k == KindTrigger && f.carries(alm.ScriptRecordTypeID) {
 		return recordTriggers, nil
 	}
@@ -315,6 +326,12 @@ func (e *Editor) insertSectionParts(w walk, record []byte, count int) edit {
 	binary.LittleEndian.PutUint32(framed[alm.RecordPayloadSize:], uint32(len(record)))
 	binary.LittleEndian.PutUint32(framed[alm.RecordTypeID:], w.sec.typeID)
 	copy(framed[alm.RecordHeaderSize:], record)
+	if w.frame.format == alm.SecondFormat {
+		// The second game's records share one tag and one word at +0x10.
+		anchor = e.secondAnchor(w.frame, w.sec.typeID)
+		copy(framed[alm.RecordTag:alm.RecordTag+4], e.data[meta.headerOff+alm.RecordTag:])
+		copy(framed[alm.RecordWord10:alm.RecordWord10+4], e.data[meta.headerOff+alm.RecordWord10:])
+	}
 	var word [4]byte
 	binary.LittleEndian.PutUint32(word[:], uint32(count))
 	return edit{
@@ -412,13 +429,17 @@ func (e *Editor) Move(k Kind, i int, x, y uint32) error {
 	var img [8]byte
 	binary.LittleEndian.PutUint32(img[0:], x)
 	binary.LittleEndian.PutUint32(img[4:], y)
+	var extra []part
+	if w.sec.moveParts != nil {
+		extra = w.sec.moveParts(e, w, i, x, y)
+	}
 	if w.sec.y == w.sec.x+4 {
 		p := at + w.sec.x
-		e.apply(edit{replace(p, e.data[p:p+8], img[:])})
+		e.apply(append(edit{replace(p, e.data[p:p+8], img[:])}, extra...))
 		return nil
 	}
 	px, py := at+w.sec.x, at+w.sec.y
-	e.apply(edit{replace(px, e.data[px:px+4], img[:4]), replace(py, e.data[py:py+4], img[4:])})
+	e.apply(append(edit{replace(px, e.data[px:px+4], img[:4]), replace(py, e.data[py:py+4], img[4:])}, extra...))
 	return nil
 }
 
@@ -430,8 +451,10 @@ func (e *Editor) Delete(k Kind, i int) error {
 		return err
 	}
 	var ed edit
-	if k == KindLoot {
-		ed = e.lootRemovalParts(w, []int{i}, -1)
+	if w.sec.removeParts != nil {
+		if ed, err = w.sec.removeParts(e, w, i); err != nil {
+			return err
+		}
 	} else {
 		at, l := w.at(i)
 		ed = edit{

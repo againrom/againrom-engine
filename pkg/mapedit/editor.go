@@ -27,6 +27,9 @@ type Editor struct {
 	keysAt  []map[int]recordIdentity
 	nextKey *uint64
 	noSave  string // why the map is not saved; empty: it is
+	// idNext is the second game's next element id, one above the highest id
+	// the session has given; an undo or a delete never lowers it.
+	idNext uint32
 }
 
 // New loads an ALM byte stream into a fresh edit model.
@@ -107,7 +110,7 @@ func (e *Editor) onlySpellEdits() bool {
 func (e *Editor) Clone() *Editor {
 	keys := slices.Clone(e.keysAt)
 	keys[e.cursor] = maps.Clone(keys[e.cursor])
-	return &Editor{format: e.format, data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt), keysAt: keys, nextKey: e.nextKey, noSave: e.noSave}
+	return &Editor{format: e.format, data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt), keysAt: keys, nextKey: e.nextKey, noSave: e.noSave, idNext: e.idNext}
 }
 
 // Map reads a fresh byte copy in the map's format.
@@ -295,6 +298,7 @@ type frame struct {
 	// ten this model addresses; scripted says the stream carries it.
 	script   span
 	scripted bool
+	format   alm.Format
 }
 
 // at is the record carrying tid and whether the stream carries it.
@@ -351,7 +355,7 @@ func (f frame) carries(tid uint32) bool {
 // The walk reads no byte it has not bounds-checked, so a frame this package
 // somehow broke would yield a short walk rather than a panic.
 func (e *Editor) locate() frame {
-	var f frame
+	f := frame{format: e.format}
 	// An absent record is located ONE BYTE PAST EOF rather than left at the
 	// array's zero value. Offset zero is the file header's first byte, and
 	// resolving an absent section's payload-relative offsets against it is

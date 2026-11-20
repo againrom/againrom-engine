@@ -118,8 +118,8 @@ func TestReleaseSecondMapTerrainEditSavesAndReloads(t *testing.T) {
 		}
 		tried++
 		line := x.word("editor.map.secondtool")
-		_, moveErr := host.Move(ui.KindUnit, 0, cell)
-		_, deleteErr := host.Delete(ui.KindStructure, 0)
+		_, moveErr := host.Move(ui.KindEnchantment, 0, cell)
+		_, deleteErr := host.Delete(ui.KindScenery, 0)
 		_, heightErr := host.Paint(ui.BrushStroke{Plane: ui.BrushPlaneHeight, Value: 1, Cells: []image.Point{cell}})
 		for _, err := range []error{moveErr, deleteErr, heightErr} {
 			if err == nil || err.Error() != line {

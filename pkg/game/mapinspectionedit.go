@@ -223,6 +223,15 @@ func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
 	return uint32(cell.X)<<8 | x&255, uint32(cell.Y)<<8 | y&255
 }
 
+// placeWords is the words of a record put on cell of m. The second game's sit
+// at the cell's centre; the first game's keep the given fraction.
+func placeWords(m *mapedit.Editor, cell image.Point, x, y uint32) (uint32, uint32) {
+	if m.NarrowTools() {
+		return uint32(cell.X)<<8 | 0x80, uint32(cell.Y)<<8 | 0x80
+	}
+	return cellWords(cell, x, y)
+}
+
 // Move moves the record onto cell, keeping its fraction within the cell, as
 // one edit. A Scenery record, a map object, moves as moveScenery moves it.
 func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Point) (_ *ui.InspectionDocument, said error) {
@@ -244,7 +253,7 @@ func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Poin
 		if err != nil {
 			return false, err
 		}
-		nx, ny := cellWords(cell, x, y)
+		nx, ny := placeWords(m, cell, x, y)
 		if x == nx && y == ny {
 			return false, nil // a record left on its own cell, even one in the border ring
 		}
@@ -254,7 +263,7 @@ func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Poin
 		if err := m.Move(k, index, nx, ny); err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(admissionOf(kind, admitMove), k, m, index, image.Rectangle{})
+		return true, s.checkPlacement(admissionFor(m, kind, admitMove), k, m, index, image.Rectangle{})
 	})
 }
 
@@ -279,12 +288,12 @@ func (s *mapInspectionEdits) Clone(kind ui.RecordKind, index int, cell image.Poi
 		if err != nil {
 			return false, err
 		}
-		nx, ny := cellWords(cell, x, y)
+		nx, ny := placeWords(m, cell, x, y)
 		i, err := m.CloneRecord(k, index, nx, ny)
 		if err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(admissionOf(kind, admitMove), k, m, i, image.Rectangle{})
+		return true, s.checkPlacement(admissionFor(m, kind, admitMove), k, m, i, image.Rectangle{})
 	})
 }
 
@@ -334,7 +343,7 @@ func (s *mapInspectionEdits) AddSack(cell image.Point, item int64) (_ *ui.Inspec
 		if err := s.inspector.checkItem(item); err != nil {
 			return false, err
 		}
-		x, y := cellWords(cell, newSackFraction, newSackFraction)
+		x, y := placeWords(m, cell, newSackFraction, newSackFraction)
 		_, err := m.Place(mapedit.KindLoot, m.GroundSack(x, y, uint16(item)))
 		return err == nil, err
 	})

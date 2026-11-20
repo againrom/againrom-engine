@@ -225,3 +225,34 @@ func (m *Map) MusicAreas() (head MusicArea, areas []MusicArea, ok bool) {
 	}
 	return head, areas, true
 }
+
+// The second game's record layout the map editor addresses, relative to the
+// record (R2-ASSET-253 to R2-ASSET-255).
+const (
+	SecondUnitSize  = rom2UnitSize
+	SecondUnitOwner = 0x18 // owner slot, low word only
+	SecondUnitSack  = 0x1c // 1-based type-8 index, 0 for none
+	SecondUnitTag   = 0x28 // low word the unit id, high word the low word of x
+	SecondUnitGroup = 0x2c
+
+	// SecondObjectExtBit is the kind bit that gives a type-4 element its
+	// 8-byte extension besides kind 0x21.
+	SecondObjectExtBit = rom2ObjectExt
+
+	// SecondMarkerHead is the fixed part of a type-9 element before its
+	// entries of SecondMarkerEntry bytes; the entry count ends the head.
+	SecondMarkerHead  = 26
+	SecondMarkerEntry = 6
+	SecondMarkerMode  = 12 // u16
+	SecondMarkerKey   = 14 // u32
+	SecondMarkerCount = 22 // u32
+
+	// SecondTypeLists is the id of the record that holds the 11a, 11b and
+	// 11c lists, whose entry widths follow; SecondMeta11Count is the first
+	// of the three type-0 words that count them.
+	SecondTypeLists   = 11
+	SecondType11A     = rom2Type11A
+	SecondType11B     = rom2Type11B
+	SecondType11C     = rom2Type11C
+	SecondMeta11Count = 0x34
+)

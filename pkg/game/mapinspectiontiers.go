@@ -89,6 +89,10 @@ func (s *mapInspectionEdits) AddUnitIdentity(cell image.Point, value int64) (_ *
 		if !ok {
 			return false, wordErr("editor.err.identity")
 		}
+		if m.NarrowTools() {
+			_, err := s.secondUnitFrom(m, cell, id)
+			return err == nil, err
+		}
 		keys, ok := mapload.Place(alm.Unit{}, id, s.inspector.table, s.mission())
 		if !ok {
 			return false, wordErr("editor.err.identitykey")

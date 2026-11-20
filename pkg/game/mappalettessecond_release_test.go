@@ -69,8 +69,8 @@ func TestReleaseSecondPalettesListTheCatalogAndNameEveryPlacement(t *testing.T) 
 		if !second {
 			t.Fatal("a second-game map's edit host is the terrain-brush host")
 		}
-		if _, err := d.Edits.Delete(ui.KindUnit, 0); err == nil {
-			t.Fatal("a second-game map must refuse a record delete")
+		if _, err := d.Edits.Delete(ui.KindScenery, 0); err == nil {
+			t.Fatal("a second-game map must refuse a scenery delete")
 		}
 		if _, err := pal.AddRecord(ui.InspectionNewRecord{Kind: ui.KindUnit}); err == nil {
 			t.Fatal("a second-game map must refuse an add")

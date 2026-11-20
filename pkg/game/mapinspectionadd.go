@@ -258,8 +258,10 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 	if err != nil {
 		return err
 	}
-	if err := playableAreaError(view, r.Kind, admitAdd); err != nil {
-		return err
+	if !s.model.NarrowTools() {
+		if err := playableAreaError(view, r.Kind, admitAdd); err != nil {
+			return err
+		}
 	}
 	for _, v := range recordValues(r, key) {
 		switch key {
@@ -275,7 +277,11 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 				return err
 			}
 		case "kind":
-			if err := s.inspector.checkStructureKind(v); err != nil {
+			if s.model.NarrowTools() {
+				if _, _, ok := mapload.BuildingName(s.inspector.table, uint32(v)); !ok || v > math.MaxUint8 {
+					return wordErr("editor.err.structurekind", v)
+				}
+			} else if err := s.inspector.checkStructureKind(v); err != nil {
 				return err
 			}
 		case "item":

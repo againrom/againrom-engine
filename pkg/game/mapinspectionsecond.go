@@ -27,16 +27,27 @@ func (c secondEdits) Dirty() bool   { return c.s.Dirty() }
 func (c secondEdits) CanUndo() bool { return c.s.CanUndo() }
 func (c secondEdits) CanRedo() bool { return c.s.CanRedo() }
 
-func (c secondEdits) Move(ui.RecordKind, int, image.Point) (*ui.InspectionDocument, error) {
-	return nil, c.refusal()
+// Move, Clone and Delete take units, structures and ground sacks; the other
+// kinds are refused.
+func (c secondEdits) Move(kind ui.RecordKind, index int, cell image.Point) (*ui.InspectionDocument, error) {
+	if !c.addable(kind) {
+		return nil, c.refusal()
+	}
+	return c.s.Move(kind, index, cell)
 }
 
-func (c secondEdits) Clone(ui.RecordKind, int, image.Point) (*ui.InspectionDocument, error) {
-	return nil, c.refusal()
+func (c secondEdits) Clone(kind ui.RecordKind, index int, cell image.Point) (*ui.InspectionDocument, error) {
+	if !c.addable(kind) {
+		return nil, c.refusal()
+	}
+	return c.s.Clone(kind, index, cell)
 }
 
-func (c secondEdits) Delete(ui.RecordKind, int) (*ui.InspectionDocument, error) {
-	return nil, c.refusal()
+func (c secondEdits) Delete(kind ui.RecordKind, index int) (*ui.InspectionDocument, error) {
+	if !c.addable(kind) {
+		return nil, c.refusal()
+	}
+	return c.s.Delete(kind, index)
 }
 
 func (c secondEdits) Fields(ui.RecordKind, int) []ui.InspectionField { return nil }
@@ -68,13 +79,17 @@ func (c secondEdits) Paint(op ui.BrushStroke) (*ui.InspectionDocument, error) {
 	return c.s.Paint(op)
 }
 
-// The palettes list the catalog and every add is refused.
+// The palettes list the catalog; a unit, structure or sack is added, every
+// other add is refused.
 func (c secondEdits) NewRecordStep(r ui.InspectionNewRecord, key string) ui.InspectionNewStep {
 	return viewPalettes{c.s}.NewRecordStep(r, key)
 }
 
 func (c secondEdits) CheckNewRecord(r ui.InspectionNewRecord, key string) error {
-	return viewPalettes{c.s}.CheckNewRecord(r, key)
+	if !c.addable(r.Kind) {
+		return c.refusal()
+	}
+	return c.s.CheckNewRecord(r, key)
 }
 
 func (c secondEdits) NewRecordPreview(kind ui.RecordKind, key string, value int64) *image.RGBA {
@@ -82,7 +97,10 @@ func (c secondEdits) NewRecordPreview(kind ui.RecordKind, key string, value int6
 }
 
 func (c secondEdits) AddRecord(r ui.InspectionNewRecord) (*ui.InspectionDocument, error) {
-	return viewPalettes{c.s}.AddRecord(r)
+	if !c.addable(r.Kind) || len(r.Values) > 1 && r.Kind != ui.KindSack || len(recordValues(r, "item")) > 1 {
+		return nil, c.refusal()
+	}
+	return c.s.AddRecord(r)
 }
 
 // secondRegisterOps are the second game's operations whose first parameter

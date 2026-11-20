@@ -271,6 +271,9 @@ func objectSpells(m *mapedit.Editor, k mapedit.Kind, index int) ([]int, error) {
 // (ALM-EDITLINK-298), so one Undo restores every byte. A refused part
 // leaves m as it was.
 func deleteObject(m *mapedit.Editor, k mapedit.Kind, index int) error {
+	if m.NarrowTools() {
+		return m.Delete(k, index)
+	}
 	spells, err := objectSpells(m, k, index)
 	if err != nil {
 		return err

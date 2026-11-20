@@ -34,6 +34,9 @@ type cellAdmission struct {
 	arms         mapload.GroundArm
 	domain       bool
 	footprint    bool
+	// edge refuses a cell this many cells or fewer from the map's edge: the
+	// second game's structure rule (R2-ASSET-259).
+	edge int
 }
 
 type admissionKey struct {
@@ -79,6 +82,25 @@ func admissionOf(kind ui.RecordKind, route cellRoute) cellAdmission {
 	return defaultAdmissions[route]
 }
 
+// secondAdmissions are the second game's rows: a cell in the map, and for a
+// structure, more than 8 cells from every edge. The ring, the ground arms and
+// the footprint tables are the first game's and are not read for it.
+var secondAdmissions = map[admissionKey]cellAdmission{
+	{ui.KindStructure, admitAdd}:  {bounds: true, edge: 8},
+	{ui.KindStructure, admitMove}: {bounds: true, edge: 8},
+}
+
+// admissionFor is the row of m's format.
+func admissionFor(m *mapedit.Editor, kind ui.RecordKind, route cellRoute) cellAdmission {
+	if m != nil && m.NarrowTools() {
+		if a, ok := secondAdmissions[admissionKey{kind, route}]; ok {
+			return a
+		}
+		return defaultAdmissions[route]
+	}
+	return admissionOf(kind, route)
+}
+
 // cellVerdict is an admission's judgement of a cell's bounds and ring.
 type cellVerdict uint8
 
@@ -86,11 +108,18 @@ const (
 	cellOpen cellVerdict = iota
 	cellOutside
 	cellInRing
+	cellAtEdge
 )
 
 func (a cellAdmission) verdict(view *alm.Map, cell image.Point) cellVerdict {
 	if a.bounds && !cell.In(image.Rect(0, 0, int(view.Width), int(view.Height))) {
 		return cellOutside
+	}
+	if a.edge > 0 {
+		w, h := int(view.Width), int(view.Height)
+		if cell.X < a.edge || cell.Y < a.edge || cell.X+1 >= w-a.edge || cell.Y+1 >= h-a.edge {
+			return cellAtEdge
+		}
 	}
 	if a.ring && mapload.InBorderRing(view, cell.X, cell.Y) {
 		return cellInRing
@@ -103,6 +132,8 @@ func (a cellAdmission) refusal(view *alm.Map, cell image.Point, what string) err
 	switch a.verdict(view, cell) {
 	case cellOutside:
 		return fmt.Errorf("%s %d,%d is outside the map", what, cell.X, cell.Y)
+	case cellAtEdge:
+		return fmt.Errorf("%s %d,%d is within %d cells of the map edge", what, cell.X, cell.Y, a.edge)
 	case cellInRing:
 		return fmt.Errorf("%s %d,%d is in the border ring; the playable area is %s", what, cell.X, cell.Y, ui.PlayableText(mapload.Playable(view)))
 	}
@@ -137,7 +168,7 @@ func (s *mapInspectionEdits) admitCell(m *mapedit.Editor, cell image.Point, what
 	if err != nil {
 		return err
 	}
-	a := admissionOf(kind, route)
+	a := admissionFor(m, kind, route)
 	if err := a.refusal(view, cell, what); err != nil {
 		return err
 	}
