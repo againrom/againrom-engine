@@ -296,6 +296,34 @@ func rewritePair(line, value string) (string, error) {
 	return line[:start] + value + line[end:], nil
 }
 
+// ValueEdit is the string value that the pair at Line of a row file takes.
+type ValueEdit struct {
+	Line  int
+	Value string
+}
+
+// RewriteValues is source with the string value of the pair at each edit's
+// line made the edit's value, by the row writer's own pair rewrite; every
+// other byte stays. The result is read back as a row file.
+func RewriteValues(source []byte, edits []ValueEdit) ([]byte, error) {
+	lines := strings.SplitAfter(string(source), "\n")
+	for _, e := range edits {
+		if e.Line < 1 || e.Line > len(lines) {
+			return nil, fmt.Errorf("line %d is not in the file", e.Line)
+		}
+		line, err := rewritePair(lines[e.Line-1], writeString(e.Value))
+		if err != nil {
+			return nil, fmt.Errorf("line %d: %w", e.Line, err)
+		}
+		lines[e.Line-1] = line
+	}
+	out := []byte(strings.Join(lines, ""))
+	if _, err := parseTOMLWith(out, tomlOptions{arrays: true, quotedKeys: true}); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func WriteManifestTitle(source []byte, title string) ([]byte, error) {
 	out, err := WriteManifest(source, map[string]any{"title": title})
 	if err == nil {

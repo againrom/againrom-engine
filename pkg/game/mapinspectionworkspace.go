@@ -530,7 +530,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (_ *ui.
 	if r, ok := pageScope(scope); ok {
 		return r.set(s, scope, key, value)
 	}
-	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != "output" && key != "folder" && key != missionTitleKey && key != missionBriefKey && !isModAssetKey(key)) {
+	if s.model == nil && (scope != "package" || !isManifestField(key) && !campaignFieldKey(key) && key != "source" && key != "map" && key != "makemission" && key != "makerow" && key != "addmaps" && key != "save" && key != modMoveOldKey && key != "output" && key != "folder" && key != missionTitleKey && key != missionBriefKey && !isModAssetKey(key)) {
 		if scope != "package" || !opensMod(scope, key, value) {
 			return nil, errors.New(s.inspector.word("editor.mod.nomap"))
 		}

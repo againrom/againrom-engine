@@ -29,6 +29,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The mod window has a "Move old paths" button that carries every file a row names on an old path into the mod's `assets` and `maps` folders and rewrites the rows; it refuses, naming both files, when a target holds a different file.
 - [BASE] A mod whose numbered map files replace no mission of the install marks no save again, and the override line of a mission replaced by a map file names the file without a line number.
 - [ROM1] On the mod window's Towns page, "Switch on" gives a town back the table its towns file holds, with every key written by hand, and emptying only one number of a map point leaves the point as written and says why.
 - [BASE] A mod town's tavern page now takes its buttons and seat appearance from that town's own tavern room, each button acting by its name (hire, talk, exit, sleep); a button with another name does nothing, and what the room does not name stays the game's.

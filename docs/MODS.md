@@ -59,6 +59,9 @@ held file loading.
 
 Old paths named by rows remain readable and packed. Old mission map and page paths,
 and the second weapon bodies name, produce check warnings naming the fixed place.
+The mod window's "Move old paths" button moves each file such a row names into
+that place and rewrites the row, and refuses, naming both files, when a target
+holds a different file.
 A title or briefing key with a page produces a warning because
 the key wins. A map file that no mission names and whose file name replaces no
 mission produces the warning "no mission names this map; the game does not play

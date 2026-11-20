@@ -53,6 +53,10 @@ func (s *mapInspectionEdits) setModControl(key, value string) (*ui.InspectionDoc
 	if key == "output" {
 		return nil, true, s.inspector.setPublishFolder(value)
 	}
+	if key == modMoveOldKey {
+		d, err := s.moveOldPaths()
+		return d, true, err
+	}
 	if key == "save" {
 		if s.inspector.mod == nil {
 			// A mod with no folder is saved into the proposed working folder,

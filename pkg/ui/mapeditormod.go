@@ -20,6 +20,7 @@ var modButtons = []struct{ action, word string }{
 	{action: "open", word: "editor.mod.openmod"},
 	{action: "save", word: "editor.mod.save"},
 	{action: "publish", word: "editor.mod.publish"},
+	{action: "moveold", word: "editor.mod.moveold"},
 	{action: "close", word: "editor.mod.close"},
 }
 

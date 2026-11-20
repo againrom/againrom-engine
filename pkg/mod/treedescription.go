@@ -34,6 +34,17 @@ type TreeFile struct {
 type TreeDescription struct {
 	Files    []TreeFile
 	Warnings []string
+	// OldPaths are the data rows whose file value carries an old-path
+	// warning, one each; a mission row's old map and pages are moved by
+	// TreeLayout.
+	OldPaths []OldPath
+}
+
+// OldPath is the value of Key at Line of data file File that names the file
+// Rel outside the folder under assets that holds the kind's files.
+type OldPath struct {
+	File, Key, Rel, Folder string
+	Line                   int
 }
 
 func (d TreeDescription) Admits(rel string) bool {
@@ -148,6 +159,8 @@ func (t Tree) Describe() (TreeDescription, error) {
 							}
 							if (ref.role == referenceFile || ref.role == referenceTown) && !k.inPlace(rel) {
 								warn(file, pair.line, "%s %s uses an old path; use %s", pair.key, rel, k.placeAdvice(rel))
+								place, _ := k.AssetPlace()
+								out.OldPaths = append(out.OldPaths, OldPath{File: file, Line: pair.line, Key: pair.key, Rel: rel, Folder: path.Base(place)})
 							}
 							switch ref.role {
 							case referenceMap:
