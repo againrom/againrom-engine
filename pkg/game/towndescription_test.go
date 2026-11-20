@@ -60,6 +60,11 @@ func checkDescriptionCites(t *testing.T, data []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	closed, err := divledger.ParseFile(filepath.Join("..", "..", "docs", "DIVERGENCES-CLOSED.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows = append(rows, closed...)
 	divs := map[string]bool{}
 	for _, r := range rows {
 		divs[r.ID()] = true
