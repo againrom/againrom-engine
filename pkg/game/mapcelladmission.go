@@ -92,8 +92,8 @@ var secondAdmissions = map[admissionKey]cellAdmission{
 
 // admissionFor is the row of m's format.
 func admissionFor(m *mapedit.Editor, kind ui.RecordKind, route cellRoute) cellAdmission {
-	if m != nil && m.NarrowTools() {
-		if a, ok := secondAdmissions[admissionKey{kind, route}]; ok {
+	if rows := rowFor(m).admissions; rows != nil {
+		if a, ok := rows[admissionKey{kind, route}]; ok {
 			return a
 		}
 		return defaultAdmissions[route]

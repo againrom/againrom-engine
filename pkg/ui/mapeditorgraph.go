@@ -199,7 +199,7 @@ func (e *MapEditor) graphLegend(page CampaignGraphPage) []canvasMark {
 
 // modGraph is the campaign graph the host draws, and whether W has the page.
 func (e *MapEditor) modGraph() (CampaignGraphPage, bool) {
-	host, ok := e.modEdits().(ModCampaignGraph)
+	host, ok := Seam[ModCampaignGraph](e.modEdits())
 	if !ok {
 		return CampaignGraphPage{}, false
 	}

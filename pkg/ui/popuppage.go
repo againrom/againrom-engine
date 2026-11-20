@@ -263,7 +263,7 @@ func (e *MapEditor) messagePicture(name string) *image.RGBA {
 	if _, err := fmt.Sscanf(name, "message:%d:%d", &page, &part); err != nil || e.doc == nil {
 		return nil
 	}
-	host, ok := e.doc.Edits.(InspectionMessages)
+	host, ok := Seam[InspectionMessages](e.doc.Edits)
 	if !ok {
 		return nil
 	}
@@ -832,7 +832,7 @@ func (e *MapEditor) mockupPicture(name string) *image.RGBA {
 	case kind == "message":
 		return e.messagePicture(name)
 	case kind == "object" && err == nil:
-		if h, ok := e.brushHost().(InspectionBrushIcons); ok {
+		if h, ok := Seam[InspectionBrushIcons](e.brushHost()); ok {
 			return h.BrushObjectIcon(n)
 		}
 	case kind == "structure" && err == nil:

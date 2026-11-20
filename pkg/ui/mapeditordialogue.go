@@ -118,7 +118,7 @@ func (e *MapEditor) dialogueHost() (InspectionDialogues, bool) {
 	if e.doc == nil {
 		return nil, false
 	}
-	h, ok := e.doc.Edits.(InspectionDialogues)
+	h, ok := Seam[InspectionDialogues](e.doc.Edits)
 	return h, ok
 }
 

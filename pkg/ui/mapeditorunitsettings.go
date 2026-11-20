@@ -66,7 +66,7 @@ func (e *MapEditor) unitSettingsFor(commit bool) (*PanelSubject, []InspectionFie
 		return nil, nil
 	}
 	kind, index := e.selectedRecord()
-	host, ok := e.doc.Edits.(InspectionUnitSettings)
+	host, ok := Seam[InspectionUnitSettings](e.doc.Edits)
 	if kind != KindUnit || !ok {
 		return nil, nil
 	}

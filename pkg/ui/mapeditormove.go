@@ -408,7 +408,7 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 // movesObjects reports a host that moves and deletes a map object, a Scenery
 // record, as its area move moves the object plane.
 func (e *MapEditor) movesObjects() bool {
-	_, ok := e.doc.Edits.(InspectionAreaCopy)
+	_, ok := Seam[InspectionAreaCopy](e.doc.Edits)
 	return ok
 }
 

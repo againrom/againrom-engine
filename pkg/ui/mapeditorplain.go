@@ -464,7 +464,7 @@ type InspectionItemLook interface {
 // plainItemRow shows an item field's row as the item's name and picture;
 // an empty or inherited slot keeps its choice's words.
 func (e *MapEditor) plainItemRow(row *popupRow, i int) {
-	host, ok := e.doc.Edits.(InspectionItemLook)
+	host, ok := Seam[InspectionItemLook](e.doc.Edits)
 	code, err := strconv.ParseInt(strings.TrimSpace(e.obj.buf[i]), 10, 64)
 	if !ok || err != nil || code <= 0 {
 		return

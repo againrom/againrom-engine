@@ -47,7 +47,7 @@ func (e *MapEditor) keyTestPlay(string) error {
 		return err
 	}
 	e.leave(leaveDrag | leavePick | leavePrompt)
-	if g, ok := e.doc.Edits.(InspectionTestPlayGate); ok && g.TestPlayRefusal() != nil {
+	if g, ok := Seam[InspectionTestPlayGate](e.doc.Edits); ok && g.TestPlayRefusal() != nil {
 		return e.testPlay()
 	}
 	if e.askTestParty() || e.askNotice(noticeTestPlay) {
@@ -58,7 +58,7 @@ func (e *MapEditor) keyTestPlay(string) error {
 
 // testPlay starts the test play; a refusal shows the report.
 func (e *MapEditor) testPlay() error {
-	p, ok := e.doc.Edits.(InspectionTestPlay)
+	p, ok := Seam[InspectionTestPlay](e.doc.Edits)
 	if !ok {
 		e.message = e.plainWord("editor.testplay.unavailable")
 		return nil

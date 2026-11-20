@@ -684,7 +684,7 @@ func (e *MapEditor) keySaveAs(string) error {
 	if !e.editable() {
 		return nil
 	}
-	if p, ok := e.doc.Edits.(InspectionInPlace); ok {
+	if p, ok := Seam[InspectionInPlace](e.doc.Edits); ok {
 		if _, own := p.OwnFile(); own {
 			return e.saveWith(p.SaveInPlace)
 		}

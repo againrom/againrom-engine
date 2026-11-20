@@ -1017,7 +1017,7 @@ func (e *MapEditor) copyHost() bool {
 	if !e.editable() {
 		return false
 	}
-	_, ok := e.doc.Edits.(InspectionTriggerCopy)
+	_, ok := Seam[InspectionTriggerCopy](e.doc.Edits)
 	return ok
 }
 

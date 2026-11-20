@@ -240,7 +240,7 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 	for _, id := range hits {
 		r := e.doc.Records[id]
 		if target == targetSpeaker {
-			if host, ok := e.doc.Edits.(InspectionMessages); ok {
+			if host, ok := Seam[InspectionMessages](e.doc.Edits); ok {
 				n, why := host.UnitSpeaker(r.Index)
 				if why.Cause == SpeakerShown {
 					return pickedValue{number: n}, true

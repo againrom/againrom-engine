@@ -52,7 +52,7 @@ func TestReleaseSecondMapSavesEveryInstalledMapUnchanged(t *testing.T) {
 		if err != nil {
 			t.Fatal(source, err)
 		}
-		host, ok := d.Edits.(secondEdits)
+		host, ok := d.Edits.(*mapInspectionEdits)
 		if !ok {
 			t.Fatalf("%s: no second-game edit host", source)
 		}
@@ -102,7 +102,7 @@ func TestReleaseSecondMapTerrainEditSavesAndReloads(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		host := d.Edits.(secondEdits)
+		host := d.Edits.(*mapInspectionEdits)
 		cell := image.Pt(int(was.Width)/2, int(was.Height)/2)
 		var edited *ui.InspectionDocument
 		for _, class := range []uint8{mapedit.ClassMountain, mapedit.ClassWater, mapedit.ClassLand} {

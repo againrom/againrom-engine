@@ -62,7 +62,7 @@ func TestReleaseSecondMapEditorViewsEveryInstalledMap(t *testing.T) {
 			if d.Width != want.Width || d.Height != want.Height || counts[ui.KindScenery] != objects || counts[ui.KindUnit] != len(want.Units) || counts[ui.KindStructure] != len(want.Objects) || counts[ui.KindSection] != len(want.Records) {
 				t.Fatalf("size or counts differ: %dx%d, %v", d.Width, d.Height, counts)
 			}
-			if _, ok := d.Edits.(secondEdits); !ok || d.ReadOnly != "" || !bytes.Equal(raw, d.SourceBytes) {
+			if _, ok := d.Edits.(*mapInspectionEdits); !ok || d.ReadOnly != "" || !bytes.Equal(raw, d.SourceBytes) {
 				t.Fatal("a second-game map lacks its edit host or changes bytes")
 			}
 			after, err := read(entry.Source)

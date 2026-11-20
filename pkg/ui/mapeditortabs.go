@@ -57,7 +57,7 @@ func (e *MapEditor) mapSet() (InspectionMapSet, bool) {
 	if !e.editable() {
 		return nil, false
 	}
-	h, ok := e.doc.Edits.(InspectionMapSet)
+	h, ok := Seam[InspectionMapSet](e.doc.Edits)
 	return h, ok && h.InMod()
 }
 
@@ -97,7 +97,7 @@ type OpenMapRow struct {
 // host saves it at, so a map the mod's save moved keeps its one tab.
 func (e *MapEditor) followMapSources() {
 	for _, d := range e.openDocs() {
-		if h, ok := d.Edits.(InspectionMapSet); ok && d != e.doc && h.MapSource() != "" {
+		if h, ok := Seam[InspectionMapSet](d.Edits); ok && d != e.doc && h.MapSource() != "" {
 			d.Source = h.MapSource()
 		}
 	}
@@ -109,7 +109,7 @@ func (e *MapEditor) OpenMapRows() []OpenMapRow {
 	var rows []OpenMapRow
 	for _, d := range e.openDocs() {
 		r := OpenMapRow{Caption: e.mcpDisplay(e.mapTabCaption(d)), Path: d.Source, Dirty: mapDirty(d), Shown: d == e.doc}
-		if h, ok := d.Edits.(InspectionMapSet); ok {
+		if h, ok := Seam[InspectionMapSet](d.Edits); ok {
 			r.Mission = h.MissionNumber()
 		}
 		rows = append(rows, r)
@@ -157,7 +157,7 @@ func (e *MapEditor) nameOpenMaps(left *InspectionDocument) {
 	if !e.editable() {
 		return
 	}
-	h, ok := e.doc.Edits.(InspectionMapSet)
+	h, ok := Seam[InspectionMapSet](e.doc.Edits)
 	if !ok {
 		return
 	}
@@ -331,7 +331,7 @@ func mapDirty(d *InspectionDocument) bool {
 	if d == nil || d.Edits == nil {
 		return false
 	}
-	if h, ok := d.Edits.(InspectionMapSet); ok && h.InMod() {
+	if h, ok := Seam[InspectionMapSet](d.Edits); ok && h.InMod() {
 		return h.MapDirty()
 	}
 	return d.Edits.Dirty()
@@ -379,7 +379,7 @@ func (e *MapEditor) mapTabCaption(d *InspectionDocument) string {
 	if strings.TrimSpace(name) == "" {
 		name = e.leaveName(d.Source)
 	}
-	if h, ok := d.Edits.(InspectionMapSet); ok {
+	if h, ok := Seam[InspectionMapSet](d.Edits); ok {
 		if n := h.MissionNumber(); n > 0 {
 			name = fmt.Sprintf("%d. %s", n, name)
 		}

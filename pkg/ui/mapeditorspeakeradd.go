@@ -39,7 +39,7 @@ func (e *MapEditor) speakerAddHost() (InspectionSpeakerRecords, bool) {
 	if e.doc == nil {
 		return nil, false
 	}
-	host, ok := e.doc.Edits.(InspectionSpeakerRecords)
+	host, ok := Seam[InspectionSpeakerRecords](e.doc.Edits)
 	return host, ok
 }
 
@@ -111,7 +111,7 @@ func (e *MapEditor) speakerPictureFailed(back func(), err error) {
 // message's cards, so a record just added is listed by name as an installed
 // record is. Each card keeps the value it holds.
 func (e *MapEditor) refreshSpeakerChoices() {
-	host, ok := e.doc.Edits.(InspectionMessages)
+	host, ok := Seam[InspectionMessages](e.doc.Edits)
 	if !ok {
 		return
 	}

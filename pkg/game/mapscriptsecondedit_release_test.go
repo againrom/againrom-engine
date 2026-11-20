@@ -69,9 +69,9 @@ func TestReleaseSecondMapParameterEditSavesAndReloads(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				host := d.Edits.(secondEdits)
+				host := d.Edits.(*mapInspectionEdits)
 				key, want := "value"+string(rune('0'+slot)), int64(n.Value[slot])+1
-				if registerOp := secondRegisterOps[[2]uint32{map[bool]uint32{false: 0, true: 1}[condition], n.Opcode}]; registerOp && slot == 0 {
+				if scriptAddressesVariable(condition, n.Opcode) && slot == 0 {
 					if _, err := host.SetField(kind, index, key, scriptprofile.SecondRegisters); err == nil {
 						t.Fatalf("%s node %d: register 1000 accepted", source, index)
 					}
@@ -127,7 +127,7 @@ func TestReleaseSecondMapOtherScriptEditsAreRefused(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		host := d.Edits.(secondEdits)
+		host := d.Edits.(*mapInspectionEdits)
 		if len(sc.Triggers) > 0 {
 			if _, err := host.SetFields(ui.KindTrigger, 0, []ui.InspectionFieldValue{{Key: "name", Text: true, TextValue: "x"}}); err == nil || err.Error() != x.word("editor.map.secondscript") {
 				t.Fatalf("%s: rename not refused with its line: %v", source, err)

@@ -103,7 +103,7 @@ func (e *MapEditor) modOverCatalog() bool { return e.modWindow && e.catalog && e
 
 // modOverview is the overview page of the mod W has open, false with none.
 func (e *MapEditor) modOverview() (ModOverviewPage, bool) {
-	host, ok := e.modEdits().(ModOverview)
+	host, ok := Seam[ModOverview](e.modEdits())
 	if !ok {
 		return ModOverviewPage{}, false
 	}
@@ -305,13 +305,13 @@ func (e *MapEditor) openModPage() {
 
 func (e *MapEditor) workspace() (InspectionWorkspace, bool) {
 	if e.doc == nil && e.modWindow {
-		host, ok := e.modEdits().(InspectionWorkspace)
+		host, ok := Seam[InspectionWorkspace](e.modEdits())
 		return host, ok
 	}
 	if !e.editable() {
 		return nil, false
 	}
-	host, ok := e.doc.Edits.(InspectionWorkspace)
+	host, ok := Seam[InspectionWorkspace](e.doc.Edits)
 	return host, ok
 }
 
@@ -319,7 +319,7 @@ func (e *MapEditor) keyWorkspace(key string) error {
 	host, ok := e.workspace()
 	noMap := e.doc == nil && key == "package"
 	if noMap {
-		host, ok = e.modEdits().(InspectionWorkspace)
+		host, ok = Seam[InspectionWorkspace](e.modEdits())
 	}
 	if !ok || e.catalog && !noMap {
 		e.message = e.plainWord("editor.workspace.openfirst")

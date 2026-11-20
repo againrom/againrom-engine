@@ -72,11 +72,11 @@ func recordTriggerFields(rec []byte) []Field {
 // Extended reports that the map carries the Againrom script record.
 func (e *Editor) Extended() bool { return e.locate().carries(alm.ScriptRecordTypeID) }
 
-// Profile is the script limits and operation vocabulary of the map's game;
-// the only format the editor holds view-only is the second game's.
+// Profile is the script limits and operation vocabulary of the map's game:
+// the profile its format's row holds, else the one the script record chooses.
 func (e *Editor) Profile() scriptprofile.Profile {
-	if e.NarrowTools() {
-		return scriptprofile.Second
+	if p := formatRows[e.format].profile; p != nil {
+		return *p
 	}
 	return scriptprofile.Of(e.Extended())
 }

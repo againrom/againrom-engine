@@ -493,7 +493,7 @@ func (e *MapEditor) keyDrawArea(string) error {
 	if e.doc == nil {
 		return nil
 	}
-	if _, ok := e.doc.Edits.(InspectionAreaAuthor); !ok || !e.editable() || e.doc.Script == nil {
+	if _, ok := Seam[InspectionAreaAuthor](e.doc.Edits); !ok || !e.editable() || e.doc.Script == nil {
 		e.message = e.plainWord("editor.area.noscript")
 		return nil
 	}
@@ -585,7 +585,7 @@ func (e *MapEditor) areaStep(delta int) {
 // refused in the prompt.
 func (e *MapEditor) areaCreate() {
 	a := e.prompt.area
-	if _, ok := e.doc.Edits.(InspectionAreaAuthor); !ok {
+	if _, ok := Seam[InspectionAreaAuthor](e.doc.Edits); !ok {
 		return
 	}
 	trigger := a.choice.Selection() - 1

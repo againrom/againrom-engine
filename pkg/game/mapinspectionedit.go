@@ -97,10 +97,10 @@ func (s *mapInspectionEdits) CanRedo() bool {
 }
 
 func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument, error) {
-	if m != nil && m.NarrowTools() {
+	if m != nil && !rowFor(m).workspace {
 		d, err := s.inspector.inspectModel(m, s.source, nil)
 		if err == nil {
-			d.Edits = secondEdits{s}
+			d.Edits = s
 		}
 		return d, err
 	}
@@ -157,7 +157,7 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	d, err := s.project(next)
 	s.workspace = old
 	if err == nil {
-		if !next.NarrowTools() {
+		if rowFor(next).workspace {
 			s.rememberWorkspace(true)
 		}
 		s.model = next
@@ -223,10 +223,11 @@ func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
 	return uint32(cell.X)<<8 | x&255, uint32(cell.Y)<<8 | y&255
 }
 
-// placeWords is the words of a record put on cell of m. The second game's sit
-// at the cell's centre; the first game's keep the given fraction.
+// placeWords is the words of a record put on cell of m. A format whose row
+// centres its cells puts the record at the cell's centre; the others keep the
+// given fraction.
 func placeWords(m *mapedit.Editor, cell image.Point, x, y uint32) (uint32, uint32) {
-	if m.NarrowTools() {
+	if rowFor(m).centredCells {
 		return uint32(cell.X)<<8 | 0x80, uint32(cell.Y)<<8 | 0x80
 	}
 	return cellWords(cell, x, y)
@@ -235,6 +236,9 @@ func placeWords(m *mapedit.Editor, cell image.Point, x, y uint32) (uint32, uint3
 // Move moves the record onto cell, keeping its fraction within the cell, as
 // one edit. A Scenery record, a map object, moves as moveScenery moves it.
 func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Point) (_ *ui.InspectionDocument, said error) {
+	if !s.row().moves.has(kind) {
+		return nil, s.refuse()
+	}
 	defer s.worded(&said)
 	if kind == ui.KindEnchantment {
 		return s.SetFields(kind, index, []ui.InspectionFieldValue{
@@ -270,6 +274,9 @@ func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Poin
 // Clone copies the record onto cell, keeping the source's fraction within
 // the cell, as one edit. The model's section row chooses the copy's identity.
 func (s *mapInspectionEdits) Clone(kind ui.RecordKind, index int, cell image.Point) (_ *ui.InspectionDocument, said error) {
+	if !s.row().adds.has(kind) {
+		return nil, s.refuse()
+	}
 	defer s.worded(&said)
 	k, err := editKind(kind)
 	if err != nil {
@@ -300,6 +307,9 @@ func (s *mapInspectionEdits) Clone(kind ui.RecordKind, index int, cell image.Poi
 // Delete removes the record as one edit; a Scenery record, a map object, goes
 // as deleteScenery clears it.
 func (s *mapInspectionEdits) Delete(kind ui.RecordKind, index int) (_ *ui.InspectionDocument, said error) {
+	if !s.row().deletes.has(kind) {
+		return nil, s.refuse()
+	}
 	defer s.worded(&said)
 	if kind == ui.KindScenery {
 		return s.deleteScenery(index)
@@ -355,6 +365,9 @@ const newSackFraction = 128
 // Fields lists the settable fields of the record with their current values,
 // in the order of its section's field table.
 func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.InspectionField {
+	if !s.row().fields {
+		return nil
+	}
 	k, err := editKind(kind)
 	if err != nil {
 		return nil
@@ -496,6 +509,9 @@ func unitSections(out []ui.InspectionField) []ui.InspectionField {
 // range, its reference check and the record's placement check pass on the
 // edited map.
 func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string, value int64) (_ *ui.InspectionDocument, said error) {
+	if !s.row().wholeScripts {
+		return s.SetFields(kind, index, []ui.InspectionFieldValue{{Key: key, Value: value}})
+	}
 	defer s.worded(&said)
 	if value == ui.NewMessageChoice && kind == ui.KindAction && key == "value0" {
 		if view, err := s.model.Map(); err == nil {
@@ -521,6 +537,9 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 // refused field refuses the set and the model is unchanged.
 func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (_ *ui.InspectionDocument, said error) {
 	defer s.worded(&said)
+	if !s.row().wholeScripts {
+		return s.setScriptWords(kind, index, values)
+	}
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err
@@ -964,8 +983,8 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	if err := s.scriptSaveForm(path); err != nil {
 		return "", err
 	}
-	second := s.model.NarrowTools()
-	if !second {
+	bare := !s.row().workspace
+	if !bare {
 		if err := s.gate(true); err != nil {
 			return "", err
 		}
@@ -978,8 +997,8 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	if s.inspector.archives != nil {
 		root = s.inspector.archives.Root
 	}
-	if second {
-		// The second game's map has no pages or labels beside it.
+	if bare {
+		// A map whose row holds no workspace has no pages or labels beside it.
 		maps, grant := s.inspector.mapsFolder()
 		target, err := writeEditedMap(root, s.source, path, b, overwrite, grant)
 		if err != nil {

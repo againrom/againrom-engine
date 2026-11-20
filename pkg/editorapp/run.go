@@ -291,7 +291,7 @@ func runAs(self string, args []string, out io.Writer) error {
 // reportFindings prints the map report the window shows, one line per finding
 // and a count line, and fails when the map holds an error.
 func reportFindings(out io.Writer, d *ui.InspectionDocument) error {
-	c, ok := d.Edits.(ui.InspectionChecker)
+	c, ok := ui.Seam[ui.InspectionChecker](d.Edits)
 	if !ok {
 		return nil
 	}

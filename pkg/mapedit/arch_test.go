@@ -32,8 +32,9 @@ type nameTable map[string][]string
 var almReferences = nameTable{
 	"editor.go/New":                         {"alm.FormatOf", "alm.OpenDocument"},
 	"editor.go/" + fileScope:                {"alm.Format"},
-	"editor.go/(*Editor).NarrowTools":       {"alm.SecondFormat"},
 	"editor.go/(*Editor).Document":          {"alm.Document", "alm.OpenDocument"},
+	"editor.go/(*Editor).Format":            {"alm.Format"},
+	"section.go/" + fileScope:               {"alm.Format"},
 	"editor.go/(*Editor).SaveBytes":         {"alm.SaveForm"},
 	"editor.go/(*Editor).Map":               {"alm.Map", "alm.Open", "alm.OpenROM2", "alm.SecondFormat"},
 	"unit.go/(*Editor).highestScriptTarget": {"alm.ScriptNode"},
@@ -59,7 +60,7 @@ var almReferences = nameTable{
 	// decoder and encoder, and the two form moves frame and decode it.
 	"editor.go/(*Editor).locate": {"alm.PayloadExtent", "alm.ScriptRecordTypeID"},
 	"editor.go/(frame).at":       {"alm.ScriptRecordTypeID"},
-	"section.go/sectionFor":      {"alm.ScriptRecordTypeID", "alm.SecondFormat"},
+	"section.go/sectionFor":      {"alm.ScriptRecordTypeID"},
 	// The second game's placed-element rows read its record layout from the
 	// format's exported constants.
 	"section.go/(*Editor).insertSectionParts":    {"alm.SecondFormat"},
@@ -67,7 +68,7 @@ var almReferences = nameTable{
 	"second.go/(*Editor).secondLists":            {"alm.SecondMeta11Count", "alm.SecondTypeLists"},
 	"second.go/(*Editor).secondMarkers":          {"alm.SecondMarkerCount", "alm.SecondMarkerEntry", "alm.SecondMarkerHead", "alm.SecondMarkerKey", "alm.SecondMarkerMode"},
 	"second.go/" + fileScope:                     {"alm.SecondType11A", "alm.SecondType11B", "alm.SecondType11C", "alm.SecondUnitOwner"},
-	"second.go/init":                             {"alm.SecondUnitSize"},
+	"second.go/init":                             {"alm.SecondFormat", "alm.SecondUnitSize"},
 	"second.go/secondCloneUnitParts":             {"alm.SecondUnitSack", "alm.SecondUnitTag"},
 	"second.go/secondMoveUnitParts":              {"alm.SecondUnitTag"},
 	"second.go/secondRenumberUnit":               {"alm.SecondUnitTag"},

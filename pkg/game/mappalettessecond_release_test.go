@@ -65,7 +65,7 @@ func TestReleaseSecondPalettesListTheCatalogAndNameEveryPlacement(t *testing.T) 
 			t.Fatal(entry.Source, err)
 		}
 		// The map takes the terrain brush; every other tool is refused.
-		pal, second := d.Edits.(secondEdits)
+		pal, second := d.Edits.(*mapInspectionEdits)
 		if !second {
 			t.Fatal("a second-game map's edit host is the terrain-brush host")
 		}
@@ -111,7 +111,7 @@ func TestReleaseSecondPalettesListTheCatalogAndNameEveryPlacement(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	pal, _ := d.Edits.(secondEdits)
+	pal, _ := d.Edits.(*mapInspectionEdits)
 	identity := pal.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindUnit}, "identity")
 	creatures, persons := 0, 0
 	for _, c := range realChoices(identity.Choices) {

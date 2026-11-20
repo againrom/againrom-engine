@@ -339,7 +339,7 @@ func (e *MapEditor) refreshMessagePage() {
 	if e.messagePage == 0 {
 		return
 	}
-	if host, ok := e.doc.Edits.(InspectionMessages); ok && len(host.MessageFields(e.messagePage)) != 0 {
+	if host, ok := Seam[InspectionMessages](e.doc.Edits); ok && len(host.MessageFields(e.messagePage)) != 0 {
 		return
 	}
 	e.messagePage = 0
@@ -777,7 +777,7 @@ func (e *MapEditor) liveMessageParts() []InspectionMessagePart {
 }
 
 func (e *MapEditor) applyMessage() {
-	if _, ok := e.doc.Edits.(InspectionMessages); !ok || !e.captureMessageParts() {
+	if _, ok := Seam[InspectionMessages](e.doc.Edits); !ok || !e.captureMessageParts() {
 		return
 	}
 	if e.dialogToFile() {
@@ -856,7 +856,7 @@ func (e *MapEditor) createMessage(parts []InspectionMessagePart) {
 }
 
 func (e *MapEditor) loadMessageFields(parts []InspectionMessagePart) {
-	host, ok := e.doc.Edits.(InspectionMessages)
+	host, ok := Seam[InspectionMessages](e.doc.Edits)
 	if !ok {
 		return
 	}
@@ -1153,7 +1153,7 @@ func (e *MapEditor) CardRects(c int) (card, grip image.Rectangle, ok bool) {
 // newMessage opens the message popup for a new message the field will
 // name; nothing is made until its Apply.
 func (e *MapEditor) newMessage(field int) {
-	if _, ok := e.doc.Edits.(InspectionMessages); !ok || field < 0 || field >= len(e.obj.fields) {
+	if _, ok := Seam[InspectionMessages](e.doc.Edits); !ok || field < 0 || field >= len(e.obj.fields) {
 		return
 	}
 	if e.obj.buf[field] == strconv.FormatInt(NewMessageChoice, 10) {

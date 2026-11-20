@@ -139,6 +139,9 @@ func newRecordKindOf(kind ui.RecordKind) (newRecordKind, error) {
 // AddRecord adds the new record r as one edit: its kind's add call, then
 // every value the call does not take as a field of the new record.
 func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (_ *ui.InspectionDocument, said error) {
+	if row := s.row(); !row.adds.has(r.Kind) || !row.manyValues && (len(r.Values) > 1 && r.Kind != ui.KindSack || len(recordValues(r, "item")) > 1) {
+		return nil, s.refuse()
+	}
 	defer s.worded(&said)
 	if r.Kind == ui.KindMessage {
 		return s.NewMessage(ui.InspectionMessageOwner{Kind: ui.KindMessage})
@@ -231,6 +234,9 @@ func (s *mapInspectionEdits) trialAdd(k newRecordKind, r ui.InspectionNewRecord)
 // reference, and, once r holds every value its add call needs, the whole
 // record as AddRecord would add it.
 func (s *mapInspectionEdits) CheckNewRecord(r ui.InspectionNewRecord, key string) (said error) {
+	if !s.row().adds.has(r.Kind) {
+		return s.refuse()
+	}
 	defer s.worded(&said)
 	k, err := newRecordKindOf(r.Kind)
 	if err != nil {
@@ -258,7 +264,7 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 	if err != nil {
 		return err
 	}
-	if !s.model.NarrowTools() {
+	if s.row().playableRing {
 		if err := playableAreaError(view, r.Kind, admitAdd); err != nil {
 			return err
 		}
@@ -277,11 +283,7 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 				return err
 			}
 		case "kind":
-			if s.model.NarrowTools() {
-				if _, _, ok := mapload.BuildingName(s.inspector.table, uint32(v)); !ok || v > math.MaxUint8 {
-					return wordErr("editor.err.structurekind", v)
-				}
-			} else if err := s.inspector.checkStructureKind(v); err != nil {
+			if err := s.row().structureKind(s.inspector, v); err != nil {
 				return err
 			}
 		case "item":
@@ -303,6 +305,9 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 // take, given the values before it, and the value it starts at. A field of
 // the new record starts at the value its kind's bare add call writes.
 func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string) ui.InspectionNewStep {
+	if steps := s.row().newSteps; steps != nil && !steps[key] {
+		return ui.InspectionNewStep{Absent: true}
+	}
 	var out ui.InspectionNewStep
 	first := func() {
 		if len(out.Choices) > 0 {

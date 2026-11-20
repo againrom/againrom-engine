@@ -39,7 +39,7 @@ func (e *MapEditor) cardPicture(name string) *image.RGBA {
 	if _, err := fmt.Sscanf(name, "card:%d", &n); err != nil || e.doc == nil {
 		return nil
 	}
-	host, ok := e.doc.Edits.(InspectionTestPlayParty)
+	host, ok := Seam[InspectionTestPlayParty](e.doc.Edits)
 	if !ok {
 		return nil
 	}

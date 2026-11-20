@@ -17,7 +17,7 @@ func (e *MapEditor) dropZones() (InspectionDropZones, bool) {
 	if !e.editable() {
 		return nil, false
 	}
-	z, ok := e.doc.Edits.(InspectionDropZones)
+	z, ok := Seam[InspectionDropZones](e.doc.Edits)
 	return z, ok
 }
 

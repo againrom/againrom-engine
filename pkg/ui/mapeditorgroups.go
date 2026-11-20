@@ -29,7 +29,7 @@ func (e *MapEditor) groupsHost() (InspectionGroups, bool) {
 	if !e.editable() || e.catalog {
 		return nil, false
 	}
-	h, ok := e.doc.Edits.(InspectionGroups)
+	h, ok := Seam[InspectionGroups](e.doc.Edits)
 	return h, ok
 }
 

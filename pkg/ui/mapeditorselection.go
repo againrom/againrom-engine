@@ -309,7 +309,7 @@ func (e *MapEditor) selectionHost() (InspectionSelection, bool) {
 	if !e.editable() {
 		return nil, false
 	}
-	h, ok := e.doc.Edits.(InspectionSelection)
+	h, ok := Seam[InspectionSelection](e.doc.Edits)
 	return h, ok
 }
 
@@ -330,7 +330,7 @@ func (e *MapEditor) selectionKey(key string) error {
 	e.leave(leaveDrag | leavePick)
 	if key == "copy" {
 		refs := e.selectionRefs()
-		_, ok := h.(InspectionAreaCopy)
+		_, ok := Seam[InspectionAreaCopy](h)
 		box := e.selection.box
 		if !ok || box.Empty() {
 			box = image.Rectangle{}
@@ -409,7 +409,7 @@ func (e *MapEditor) moveSelection(offset image.Point) error {
 // the objects under the box. hit is the record the press would drag, or -1.
 func (e *MapEditor) boxPress(p image.Point, hit int) (*editorRecordDrag, bool) {
 	box := e.selection.box
-	_, area := e.doc.Edits.(InspectionAreaCopy)
+	_, area := Seam[InspectionAreaCopy](e.doc.Edits)
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
 	cell := image.Pt(x, y)
 	if box.Empty() || !area || !ok || !cell.In(box) || hit >= 0 && !e.inSelection(hit) {
@@ -428,7 +428,7 @@ func (e *MapEditor) boxOffset(offset image.Point) image.Point {
 // offset cells as one edit; the box follows what it moved.
 func (e *MapEditor) moveArea(offset image.Point) error {
 	h, ok := e.selectionHost()
-	if _, isArea := h.(InspectionAreaCopy); !ok || !isArea {
+	if _, isArea := Seam[InspectionAreaCopy](h); !ok || !isArea {
 		e.noteSelection(e.word("editor.selection.nohost"), nil)
 		return nil
 	}
@@ -507,7 +507,7 @@ func (e *MapEditor) marqueeLines() []editorLine {
 	box := e.selection.box
 	if m != nil && m.moved {
 		box = cellBox(m.from, m.to)
-	} else if _, area := e.doc.Edits.(InspectionAreaCopy); m != nil || box.Empty() || !area {
+	} else if _, area := Seam[InspectionAreaCopy](e.doc.Edits); m != nil || box.Empty() || !area {
 		return nil
 	} else if d := e.recordDrag; d != nil && d.box && d.moved {
 		box = box.Add(d.cell.Sub(d.origin)) // preview only, as the records' marks

@@ -60,9 +60,8 @@ func New(data []byte) (*Editor, error) {
 	return e, nil
 }
 
-// NarrowTools reports a map of the second game's format, whose edit tools are
-// the ones whose written fields are read.
-func (e *Editor) NarrowTools() bool { return e.format == alm.SecondFormat }
+// Format is the map's file format, the key of the format's row.
+func (e *Editor) Format() alm.Format { return e.format }
 
 // Document reads physical records with the same format as Map.
 func (e *Editor) Document() (*alm.Document, error) {

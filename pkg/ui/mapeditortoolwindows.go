@@ -101,7 +101,7 @@ func (e *MapEditor) restoreBarWindows(s barWindowSet) {
 			e.objectTop = s.record.top
 		}
 		if s.page != 0 && s.page != NewMessagePage {
-			if host, ok := e.doc.Edits.(InspectionMessages); ok && len(host.MessageFields(s.page)) != 0 {
+			if host, ok := Seam[InspectionMessages](e.doc.Edits); ok && len(host.MessageFields(s.page)) != 0 {
 				e.openMessage(s.page)
 				e.objectBack = s.back
 			}

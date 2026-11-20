@@ -178,7 +178,7 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 		}
 	}
 	if e.doc != nil {
-		if host, ok := e.doc.Edits.(InspectionInputRules); ok {
+		if host, ok := Seam[InspectionInputRules](e.doc.Edits); ok {
 			limit, bytes := host.InputRule(scope, kind, name)
 			if limit > 0 {
 				p.limit = limit

@@ -194,7 +194,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool, unn
 		return nil, err
 	}
 	next, ok := candidate.Edits.(*mapInspectionEdits)
-	if !ok {
+	if !ok || !next.row().workspace {
 		if x.mod != nil {
 			x.mod.selected = previous
 		}

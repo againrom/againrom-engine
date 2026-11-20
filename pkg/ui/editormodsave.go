@@ -15,7 +15,7 @@ func (e *MapEditor) modSave() (InspectionModSave, bool) {
 	if !e.editable() {
 		return nil, false
 	}
-	m, ok := e.doc.Edits.(InspectionModSave)
+	m, ok := Seam[InspectionModSave](e.doc.Edits)
 	if !ok || m.ModTarget() == "" {
 		return nil, false
 	}

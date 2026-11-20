@@ -376,7 +376,7 @@ func (e *MapEditor) openMap(source string) error {
 		return err
 	}
 	if _, ok := e.mapSet(); ok && ParseMapSource(source).Kind != SourceNew {
-		if set, ok := next.Edits.(InspectionMapSet); ok && set.InMod() {
+		if set, ok := Seam[InspectionMapSet](next.Edits); ok && set.InMod() {
 			return e.addOpenMap(next)
 		}
 	}

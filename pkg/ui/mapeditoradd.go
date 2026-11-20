@@ -207,7 +207,7 @@ func (e *MapEditor) addHost() (InspectionNewRecords, bool) {
 	if !e.editable() || e.catalog {
 		return nil, false
 	}
-	h, ok := e.doc.Edits.(InspectionNewRecords)
+	h, ok := Seam[InspectionNewRecords](e.doc.Edits)
 	return h, ok
 }
 

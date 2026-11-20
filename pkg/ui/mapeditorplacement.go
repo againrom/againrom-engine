@@ -90,7 +90,7 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 	}
 	if e.pick == pickMove && e.selected >= 0 {
 		r := e.doc.Records[e.selected]
-		if host, ok := e.doc.Edits.(InspectionCellCheck); ok {
+		if host, ok := Seam[InspectionCellCheck](e.doc.Edits); ok {
 			f.Refused = host.CheckObjectCell(r.Kind, r.Index, f.Cell) != nil
 		}
 		f.Sprites = e.recordSprites(e.doc.Viewer, r, f.Cell.Sub(r.Cell))
@@ -100,7 +100,7 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 		f.Cells = []placementCells{{Rect: r.footprint().Add(f.Cell.Sub(r.Cell)), Refused: f.Refused}}
 	}
 	if e.pick == pickPlace || e.pick == pickPaste {
-		host, ok := e.doc.Edits.(InspectionPlacementPreview)
+		host, ok := Seam[InspectionPlacementPreview](e.doc.Edits)
 		if !ok {
 			return f, true
 		}
@@ -286,7 +286,7 @@ func (e *MapEditor) dragPlacement() (placementFrame, bool) {
 // the move the release makes: CheckMove for the selection, CheckObjectCell
 // for one record. The answer is kept while the document and the move stay.
 func (e *MapEditor) dragRefused(d *editorRecordDrag) map[RecordRef]bool {
-	host, ok := e.doc.Edits.(InspectionCellCheck)
+	host, ok := Seam[InspectionCellCheck](e.doc.Edits)
 	offset := d.cell.Sub(d.origin)
 	if !ok || offset == (image.Point{}) {
 		return nil

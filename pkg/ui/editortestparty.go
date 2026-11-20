@@ -103,7 +103,7 @@ const testPartySide, testPartyHigh = 104, 80
 // profile, or from a man fighter alone. A choice that puts none of the cards
 // in the party puts the hero in.
 func (e *MapEditor) askTestParty() bool {
-	host, ok := e.doc.Edits.(InspectionTestPlayParty)
+	host, ok := Seam[InspectionTestPlayParty](e.doc.Edits)
 	if !ok {
 		return false
 	}
@@ -112,7 +112,7 @@ func (e *MapEditor) askTestParty() bool {
 		return false
 	}
 	e.leave(leaveDrag | leavePick)
-	d, _ := e.doc.Edits.(InspectionTestPlayDeclared)
+	d, _ := Seam[InspectionTestPlayDeclared](e.doc.Edits)
 	e.openPrompt(editorPrompt{kind: promptTestParty, party: &testPartyPrompt{host: host, hero: hero, cards: cards, declared: d != nil && d.TestPlayDeclaresParty()}})
 	e.prompt.party.heroIn = !e.testPartyAny()
 	return true

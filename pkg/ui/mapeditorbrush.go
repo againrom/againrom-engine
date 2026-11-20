@@ -254,7 +254,7 @@ func (e *MapEditor) brushHost() InspectionBrush {
 	if !e.editable() {
 		return nil
 	}
-	b, _ := e.doc.Edits.(InspectionBrush)
+	b, _ := Seam[InspectionBrush](e.doc.Edits)
 	return b
 }
 
@@ -318,7 +318,7 @@ func (e *MapEditor) brushPicture() (pic *image.RGBA, ok bool) {
 		}
 		return nil, true
 	}
-	if _, ok := h.(InspectionNewRecords); !ok {
+	if _, ok := Seam[InspectionNewRecords](h); !ok {
 		return nil, false
 	}
 	objects := e.brushObjectRows()
@@ -494,7 +494,7 @@ func (e *MapEditor) brushFit(s *popupSpec) {
 // the host offers no choice. A class with one has nothing to choose from: the
 // fill row is not shown and the stroke keeps the pattern.
 func (e *MapEditor) brushVariants() int {
-	h, _ := e.brushHost().(InspectionBrushFill)
+	h, _ := Seam[InspectionBrushFill](e.brushHost())
 	terrains := []BrushTerrain(nil)
 	if b := e.brushHost(); b != nil {
 		terrains = b.BrushTerrains()

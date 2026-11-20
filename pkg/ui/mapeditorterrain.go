@@ -42,7 +42,7 @@ func (e *MapEditor) wholeMapHost() (InspectionWholeMap, bool) {
 	if e.doc == nil || e.catalog || !e.editable() {
 		return nil, false
 	}
-	h, ok := e.doc.Edits.(InspectionWholeMap)
+	h, ok := Seam[InspectionWholeMap](e.doc.Edits)
 	return h, ok
 }
 

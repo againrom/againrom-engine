@@ -49,7 +49,7 @@ func (e *MapEditor) mapPanel() (InspectionMapPanel, bool) {
 	if !e.editable() {
 		return nil, false
 	}
-	p, ok := e.doc.Edits.(InspectionMapPanel)
+	p, ok := Seam[InspectionMapPanel](e.doc.Edits)
 	return p, ok
 }
 

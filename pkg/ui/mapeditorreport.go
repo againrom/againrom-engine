@@ -174,7 +174,7 @@ func (e *MapEditor) checker() (InspectionChecker, bool) {
 	if !e.editable() {
 		return nil, false
 	}
-	c, ok := e.doc.Edits.(InspectionChecker)
+	c, ok := Seam[InspectionChecker](e.doc.Edits)
 	return c, ok
 }
 
@@ -223,7 +223,7 @@ func (e *MapEditor) noteSave(errs int) {
 	if errs > 0 {
 		parts = append(parts, fmt.Sprintf(e.word("editor.saved.errors"), errs))
 	}
-	if n, ok := e.doc.Edits.(InspectionSaveNote); ok && n.SaveNote() != "" {
+	if n, ok := Seam[InspectionSaveNote](e.doc.Edits); ok && n.SaveNote() != "" {
 		parts = append(parts, n.SaveNote())
 	}
 	e.saveNote, e.saveNoteFor = strings.Join(parts, ". "), e.doc.Source
@@ -246,7 +246,7 @@ func (e *MapEditor) askSaveWithErrors(r *ReportRefusal, again func() error) {
 	e.openReportAtFirstFinding(r.Findings, fmt.Sprintf(e.word("editor.save.errors"), errs))
 	e.report.outcome = e.word("editor.report.refused")
 	e.report.confirm = func() error {
-		if a, ok := e.doc.Edits.(InspectionErrorSave); ok {
+		if a, ok := Seam[InspectionErrorSave](e.doc.Edits); ok {
 			a.AllowErrors()
 		}
 		e.saveErrors = errs

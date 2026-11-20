@@ -167,7 +167,7 @@ func (e *MapEditor) loadObject() {
 		return
 	}
 	if e.messagePage != 0 {
-		if host, ok := e.doc.Edits.(InspectionMessages); ok {
+		if host, ok := Seam[InspectionMessages](e.doc.Edits); ok {
 			if e.dialog != nil {
 				o.lines = e.dialog.lines
 				e.loadMessageFields(e.dialog.parts)

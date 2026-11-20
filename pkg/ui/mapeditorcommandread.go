@@ -70,7 +70,7 @@ func (e *MapEditor) readMessages(raw json.RawMessage) (any, error) {
 	if !e.editable() || e.doc.Script == nil {
 		return nil, fmt.Errorf("this map has no message pages")
 	}
-	host, ok := e.doc.Edits.(InspectionMessages)
+	host, ok := Seam[InspectionMessages](e.doc.Edits)
 	if !ok {
 		return nil, fmt.Errorf("this map has no message pages")
 	}
@@ -112,7 +112,7 @@ func (e *MapEditor) readUnitSettings(raw json.RawMessage) (any, error) {
 	if !e.editable() {
 		return nil, fmt.Errorf("no editable map is open")
 	}
-	host, ok := e.doc.Edits.(InspectionUnitSettings)
+	host, ok := Seam[InspectionUnitSettings](e.doc.Edits)
 	if !ok {
 		return nil, fmt.Errorf("this map has no unit settings window")
 	}
@@ -357,7 +357,7 @@ func (e *MapEditor) readBrushes(raw json.RawMessage) (any, error) {
 	if host == nil {
 		return nil, fmt.Errorf("this map has no brushes")
 	}
-	fill, _ := e.doc.Edits.(InspectionBrushFill)
+	fill, _ := Seam[InspectionBrushFill](e.doc.Edits)
 	terrains := []map[string]any{}
 	for _, t := range host.BrushTerrains() {
 		variants := 1

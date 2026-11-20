@@ -175,7 +175,7 @@ func TestReleaseSecondMapPlacesMovesAndDeletes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host := d.Edits.(secondEdits)
+	host := d.Edits.(*mapInspectionEdits)
 
 	// The identity choice of a unit the map holds, the structure kind of one it
 	// holds and the first catalog item.

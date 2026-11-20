@@ -378,7 +378,7 @@ func (e *MapEditor) commandSetField(f fieldEdit) (editorChange, error) {
 	var next *InspectionDocument
 	var err error
 	if f.Value.Text {
-		host, ok := e.doc.Edits.(InspectionTextFields)
+		host, ok := Seam[InspectionTextFields](e.doc.Edits)
 		if !ok {
 			return editorChange{}, fmt.Errorf("This host cannot edit text fields.")
 		}
@@ -412,7 +412,7 @@ func (e *MapEditor) commandSetFields(o recordFields) (editorChange, error) {
 func (e *MapEditor) commandSetObject(o recordFields) (editorChange, error) {
 	var next *InspectionDocument
 	var err error
-	if host, ok := e.doc.Edits.(InspectionObjectSet); ok {
+	if host, ok := Seam[InspectionObjectSet](e.doc.Edits); ok {
 		next, err = host.SetObject(o.Kind, o.Index, o.Values, o.Move)
 	} else if o.Move != nil {
 		next, err = e.doc.Edits.Move(o.Kind, o.Index, *o.Move)
@@ -428,7 +428,7 @@ func (e *MapEditor) commandSetObject(o recordFields) (editorChange, error) {
 // setFields writes values through the host's one-edit seam, or field by
 // field on a host without it.
 func (e *MapEditor) setFields(kind RecordKind, index int, values []InspectionFieldValue) (*InspectionDocument, error) {
-	if host, ok := e.doc.Edits.(InspectionFieldSet); ok {
+	if host, ok := Seam[InspectionFieldSet](e.doc.Edits); ok {
 		return host.SetFields(kind, index, values)
 	}
 	var next *InspectionDocument
@@ -436,7 +436,7 @@ func (e *MapEditor) setFields(kind RecordKind, index int, values []InspectionFie
 		var d *InspectionDocument
 		var err error
 		if v.Text {
-			host, ok := e.doc.Edits.(InspectionTextFields)
+			host, ok := Seam[InspectionTextFields](e.doc.Edits)
 			if !ok {
 				return nil, fmt.Errorf("This host cannot edit text fields.")
 			}
@@ -568,7 +568,7 @@ func (e *MapEditor) commandDeleteDropZone(zone int) (editorChange, error) {
 }
 
 func (e *MapEditor) commandWriteTrigger(t WizardTrigger) (editorChange, error) {
-	host, ok := e.doc.Edits.(InspectionTriggerWizard)
+	host, ok := Seam[InspectionTriggerWizard](e.doc.Edits)
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
@@ -592,7 +592,7 @@ func (e *MapEditor) commandWriteTrigger(t WizardTrigger) (editorChange, error) {
 // commandScriptForm moves the map's triggers into the Againrom script record,
 // or with fold back into type-7 records, as one edit.
 func (e *MapEditor) commandScriptForm(fold bool) (editorChange, error) {
-	host, ok := e.doc.Edits.(InspectionScriptForm)
+	host, ok := Seam[InspectionScriptForm](e.doc.Edits)
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
@@ -840,7 +840,7 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 		op.Fill = BrushFill{Mode: mode, Variant: a.Variant}
 		if mode == BrushFillVariant {
 			n := 1
-			if f, ok := e.doc.Edits.(InspectionBrushFill); ok {
+			if f, ok := Seam[InspectionBrushFill](e.doc.Edits); ok {
 				n = f.BrushVariants(a.Value)
 			}
 			if a.Variant < 0 || a.Variant >= n {
@@ -919,7 +919,7 @@ func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (addValue, error) {
 		rec, err := e.newRecordOf(a.Kind, a.X, a.Y, a.Values, nil)
 		return addValue{record: rec}, err
 	}
-	host, ok := e.doc.Edits.(InspectionMessages)
+	host, ok := Seam[InspectionMessages](e.doc.Edits)
 	if !ok {
 		return addValue{}, errNoEditHost
 	}
@@ -1375,7 +1375,7 @@ func (e *MapEditor) decodeWriteTrigger(raw json.RawMessage) (triggerWrite, error
 	if err != nil {
 		return triggerWrite{}, err
 	}
-	if _, ok := e.doc.Edits.(InspectionTriggerWizard); !ok || e.doc.Script == nil {
+	if _, ok := Seam[InspectionTriggerWizard](e.doc.Edits); !ok || e.doc.Script == nil {
 		return triggerWrite{}, errNoEditHost
 	}
 	t := WizardTrigger{Index: -1, Name: a.Name, Once: 1}
@@ -1431,7 +1431,7 @@ func (e *MapEditor) decodeWriteTrigger(raw json.RawMessage) (triggerWrite, error
 	if dialogue < 0 {
 		return w, nil
 	}
-	host, ok := e.doc.Edits.(InspectionMessages)
+	host, ok := Seam[InspectionMessages](e.doc.Edits)
 	if !ok {
 		return w, errNoEditHost
 	}
@@ -1606,7 +1606,7 @@ type StoredMap struct {
 // storedMap is what d's map stores, through the host; a host without the
 // seam gives the planes the view draws and no record bytes.
 func storedMap(d *InspectionDocument) StoredMap {
-	if h, ok := d.Edits.(InspectionStore); ok {
+	if h, ok := Seam[InspectionStore](d.Edits); ok {
 		if s, err := h.Stored(d); err == nil {
 			return s
 		}

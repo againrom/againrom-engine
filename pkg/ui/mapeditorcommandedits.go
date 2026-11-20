@@ -69,7 +69,7 @@ func (e *MapEditor) commandPaste(p recordsPaste) (editorChange, error) {
 
 func (e *MapEditor) commandMoveArea(m areaMove) (editorChange, error) {
 	h, _ := e.selectionHost()
-	area, ok := h.(InspectionAreaCopy)
+	area, ok := Seam[InspectionAreaCopy](h)
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
@@ -86,7 +86,7 @@ func (e *MapEditor) copyOf(refs []RecordRef, box image.Rectangle) (InspectionCli
 	if box.Empty() {
 		return h.CopyRecords(refs)
 	}
-	area, ok := h.(InspectionAreaCopy)
+	area, ok := Seam[InspectionAreaCopy](h)
 	if !ok {
 		return nil, "", errNoEditHost
 	}
@@ -112,7 +112,7 @@ func (e *MapEditor) commandSetUnitsGroup(g unitsGroup) (editorChange, error) {
 }
 
 func (e *MapEditor) commandAddStock(unit int) (editorChange, error) {
-	host, ok := e.doc.Edits.(InspectionRecords)
+	host, ok := Seam[InspectionRecords](e.doc.Edits)
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
@@ -135,7 +135,7 @@ type itemRecipe struct {
 }
 
 func (e *MapEditor) commandAddItemRecipe(r itemRecipe) (editorChange, error) {
-	host, ok := e.doc.Edits.(InspectionRecords)
+	host, ok := Seam[InspectionRecords](e.doc.Edits)
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
@@ -160,7 +160,7 @@ type messageWrite struct {
 }
 
 func (e *MapEditor) commandWriteMessage(w messageWrite) (editorChange, error) {
-	host, ok := e.doc.Edits.(InspectionMessages)
+	host, ok := Seam[InspectionMessages](e.doc.Edits)
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
@@ -201,7 +201,7 @@ type boxArea struct {
 }
 
 func (e *MapEditor) commandAddBoxArea(a boxArea) (editorChange, error) {
-	host, ok := e.doc.Edits.(InspectionAreaAuthor)
+	host, ok := Seam[InspectionAreaAuthor](e.doc.Edits)
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
@@ -223,7 +223,7 @@ func (e *MapEditor) commandAddBoxArea(a boxArea) (editorChange, error) {
 // commandCopyTrigger copies trigger index right after it as one edit; the
 // change names the copy.
 func (e *MapEditor) commandCopyTrigger(index int) (editorChange, error) {
-	host, ok := e.doc.Edits.(InspectionTriggerCopy)
+	host, ok := Seam[InspectionTriggerCopy](e.doc.Edits)
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
@@ -243,7 +243,7 @@ func (e *MapEditor) decodeCopyTrigger(raw json.RawMessage) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if _, ok := e.doc.Edits.(InspectionTriggerCopy); !ok || e.doc.Script == nil {
+	if _, ok := Seam[InspectionTriggerCopy](e.doc.Edits); !ok || e.doc.Script == nil {
 		return 0, errNoEditHost
 	}
 	if a.Index < 0 || a.Index >= len(e.doc.Script.Triggers) {
@@ -381,7 +381,7 @@ func (e *MapEditor) decodeCopyRecords(raw json.RawMessage) (recordsPaste, error)
 	var refs []RecordRef
 	var box image.Rectangle
 	if a.Area != nil {
-		if _, ok := e.doc.Edits.(InspectionAreaCopy); !ok {
+		if _, ok := Seam[InspectionAreaCopy](e.doc.Edits); !ok {
 			return recordsPaste{}, fmt.Errorf("this map copies records, not areas")
 		}
 		if box, err = e.boxOf(a.Area); err != nil {
@@ -414,7 +414,7 @@ func (e *MapEditor) decodeMoveArea(raw json.RawMessage) (areaMove, error) {
 	if err != nil {
 		return areaMove{}, err
 	}
-	if _, ok := e.doc.Edits.(InspectionAreaCopy); !ok {
+	if _, ok := Seam[InspectionAreaCopy](e.doc.Edits); !ok {
 		return areaMove{}, errNoEditHost
 	}
 	box, err := e.boxOf(a.Area)
@@ -477,7 +477,7 @@ func (e *MapEditor) decodeAddStock(raw json.RawMessage) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
+	if _, ok := Seam[InspectionRecords](e.doc.Edits); !ok {
 		return 0, errNoEditHost
 	}
 	_, err = e.recordOf(KindUnit, a.Unit)
@@ -489,7 +489,7 @@ func (e *MapEditor) decodeAddItemRecipe(raw json.RawMessage) (itemRecipe, error)
 	if err != nil {
 		return a, err
 	}
-	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
+	if _, ok := Seam[InspectionRecords](e.doc.Edits); !ok {
 		return a, errNoEditHost
 	}
 	if a.Kind != KindStock && a.Kind != KindSack {
@@ -561,7 +561,7 @@ func (e *MapEditor) decodeWriteMessage(raw json.RawMessage) (messageWrite, error
 	if err != nil {
 		return messageWrite{}, err
 	}
-	host, ok := e.doc.Edits.(InspectionMessages)
+	host, ok := Seam[InspectionMessages](e.doc.Edits)
 	if !ok {
 		return messageWrite{}, errNoEditHost
 	}
@@ -593,7 +593,7 @@ func (e *MapEditor) decodeAddBoxArea(raw json.RawMessage) (boxArea, error) {
 	if err != nil {
 		return boxArea{}, err
 	}
-	if _, ok := e.doc.Edits.(InspectionAreaAuthor); !ok || e.doc.Script == nil {
+	if _, ok := Seam[InspectionAreaAuthor](e.doc.Edits); !ok || e.doc.Script == nil {
 		return boxArea{}, errNoEditHost
 	}
 	b := boxArea{Trigger: -1}

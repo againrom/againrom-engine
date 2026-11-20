@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/scriptprofile"
 )
 
 // Kind names a record section an edit addresses by file-order index.
@@ -69,6 +70,18 @@ type section struct {
 
 var sections map[Kind]*section
 
+// formatRow is what one map format fixes in the record layer: the section
+// rows it replaces in the shared table, and the script profile it holds
+// whatever the map carries. A format without a row has the shared table and
+// the profile its script record chooses.
+type formatRow struct {
+	own     map[Kind]*section
+	profile *scriptprofile.Profile
+}
+
+// formatRows is the one table of formats, keyed by the map's format.
+var formatRows = map[alm.Format]formatRow{}
+
 func init() {
 	sections = map[Kind]*section{
 		KindUnit: {name: "unit", typeID: alm.TypeUnits, count: alm.MetaUnitCount, x: alm.UnitX, y: alm.UnitY,
@@ -125,7 +138,7 @@ func sectionOf(k Kind) (*section, error) {
 // sectionFor is k's row in frame f. A map carrying the Againrom script
 // record holds its triggers there, so KindTrigger is that record's row.
 func sectionFor(k Kind, f frame) (*section, error) {
-	if s, ok := secondSections[k]; ok && f.format == alm.SecondFormat {
+	if s, ok := formatRows[f.format].own[k]; ok {
 		return s, nil
 	}
 	if k == KindTrigger && f.carries(alm.ScriptRecordTypeID) {

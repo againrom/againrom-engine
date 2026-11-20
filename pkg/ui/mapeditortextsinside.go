@@ -22,7 +22,7 @@ func (e *MapEditor) textsInsideHost() (InspectionTextsInside, bool) {
 	if e.doc == nil || e.doc.Edits == nil {
 		return nil, false
 	}
-	host, ok := e.doc.Edits.(InspectionTextsInside)
+	host, ok := Seam[InspectionTextsInside](e.doc.Edits)
 	return host, ok
 }
 

@@ -83,7 +83,7 @@ func (e *MapEditor) forestKinds() []BrushObject {
 // forestHasArt reports whether class code may stand in the grid: always for a
 // host without pictures, else only when its picture has a visible pixel.
 func (e *MapEditor) forestHasArt(code int) bool {
-	if _, ok := e.brushHost().(InspectionBrushIcons); !ok {
+	if _, ok := Seam[InspectionBrushIcons](e.brushHost()); !ok {
 		return true
 	}
 	pic := e.forestIcon(code)
@@ -126,7 +126,7 @@ func (e *MapEditor) forestIcon(code int) *image.RGBA {
 	if pic, ok := e.brush.forest.icons[code]; ok {
 		return pic
 	}
-	h, ok := e.brushHost().(InspectionBrushIcons)
+	h, ok := Seam[InspectionBrushIcons](e.brushHost())
 	if !ok {
 		return nil
 	}

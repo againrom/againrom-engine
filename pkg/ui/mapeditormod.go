@@ -94,7 +94,7 @@ type InspectionModMaps interface {
 // modMapList is the open mod's list of maps as the host gives it. W's rows
 // and the Open window's group of the mod's maps both read it.
 func (e *MapEditor) modMapList() (InspectionField, bool) {
-	host, ok := e.modEdits().(InspectionModMaps)
+	host, ok := Seam[InspectionModMaps](e.modEdits())
 	if !ok {
 		return InspectionField{}, false
 	}
@@ -209,7 +209,7 @@ func (e *MapEditor) modSaveState() string {
 	if e.modConfirm != "" {
 		return e.modStatus
 	}
-	if status, ok := e.modEdits().(interface{ SaveNote() string }); ok {
+	if status, ok := Seam[interface{ SaveNote() string }](e.modEdits()); ok {
 		if note := status.SaveNote(); note != "" {
 			return note
 		}
@@ -762,7 +762,7 @@ type InspectionModMapActions interface {
 // modMapRows adds the unused maps with their make buttons, and the rows that
 // add the open map or a folder of maps, to W's Missions page.
 func (e *MapEditor) modMapRows(s *popupSpec, links *[]int) {
-	host, ok := e.modEdits().(InspectionModMapActions)
+	host, ok := Seam[InspectionModMapActions](e.modEdits())
 	if !ok {
 		return
 	}

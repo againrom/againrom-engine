@@ -24,7 +24,7 @@ func (e *MapEditor) variableLabels() (InspectionVariableLabels, bool) {
 	if !e.editable() {
 		return nil, false
 	}
-	h, ok := e.doc.Edits.(InspectionVariableLabels)
+	h, ok := Seam[InspectionVariableLabels](e.doc.Edits)
 	return h, ok
 }
 

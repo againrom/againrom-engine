@@ -22,10 +22,10 @@ type InspectionRecordChoices interface {
 func (e *MapEditor) recipeItemField() []InspectionField {
 	f := InspectionField{Key: "recipeitem", Label: e.plainWord("editor.prompt.recipe")}
 	kind, index := e.selectedRecord()
-	if host, ok := e.doc.Edits.(InspectionRecordChoices); ok {
+	if host, ok := Seam[InspectionRecordChoices](e.doc.Edits); ok {
 		f.Choices = host.RecordChoices(kind, index, f.Key)
 	}
-	look, ok := e.doc.Edits.(InspectionItemLook)
+	look, ok := Seam[InspectionItemLook](e.doc.Edits)
 	if !ok || len(f.Choices) == 0 || index < 0 {
 		return []InspectionField{f}
 	}
@@ -50,7 +50,7 @@ func (e *MapEditor) keyRecords(key string) error {
 		e.showRecords(2)
 		return nil
 	}
-	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
+	if _, ok := Seam[InspectionRecords](e.doc.Edits); !ok {
 		return nil
 	}
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush)
@@ -90,7 +90,7 @@ func (e *MapEditor) setItemRecipe(text string) error {
 		return errors.New(e.message)
 	}
 	kind, index := e.selectedRecord()
-	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
+	if _, ok := Seam[InspectionRecords](e.doc.Edits); !ok {
 		return nil
 	}
 	ch, err := e.commandAddItemRecipe(itemRecipe{Kind: kind, Index: index, Item: n})

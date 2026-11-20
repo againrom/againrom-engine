@@ -16,7 +16,7 @@ func TestFirstGameMapOpensForEditingWhateverTheCaller(t *testing.T) {
 		t.Fatal("first-game header read as the second format")
 	}
 	e, err := mapedit.New(raw)
-	if err != nil || e.NarrowTools() {
+	if err != nil || e.Format() != alm.FirstFormat {
 		t.Fatalf("first-game map not editable: %v", err)
 	}
 	if _, err := e.SaveBytes(); err != nil {
@@ -54,7 +54,7 @@ func TestSecondMapFormatSurvivesCloneAndSavesUnchanged(t *testing.T) {
 	}
 	for _, model := range []*mapedit.Editor{e, e.Clone()} {
 		m, err := model.Map()
-		if err != nil || m.Width != 16 || m.Height != 16 || !model.NarrowTools() {
+		if err != nil || m.Width != 16 || m.Height != 16 || model.Format() != alm.SecondFormat {
 			t.Fatalf("format lost: %v", err)
 		}
 		if b, err := model.SaveBytes(); err != nil || !bytes.Equal(raw, b) || model.CanUndo() {

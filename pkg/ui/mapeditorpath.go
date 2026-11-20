@@ -151,7 +151,7 @@ func (e *MapEditor) mapStart(kind pathdialog.Kind) string {
 		}
 	}
 	if kind == pathdialog.SaveFile && e.editable() {
-		if f, ok := e.doc.Edits.(InspectionSaveFolder); ok {
+		if f, ok := Seam[InspectionSaveFolder](e.doc.Edits); ok {
 			if dir := f.SaveFolder(); dir != "" {
 				start = dir
 			}

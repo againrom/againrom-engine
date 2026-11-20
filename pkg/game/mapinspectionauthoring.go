@@ -13,14 +13,12 @@ func (s *mapInspectionEdits) AddStructure(cell image.Point, kind int64) (_ *ui.I
 		if err := s.admitCell(m, cell, "structure cell", ui.KindStructure, admitAdd); err != nil {
 			return false, err
 		}
-		if !m.NarrowTools() {
-			if err := s.inspector.checkStructureKind(kind); err != nil {
-				return false, err
-			}
-		}
-		if m.NarrowTools() {
-			_, err := s.secondStructureFrom(m, cell, kind)
+		if rowFor(m).templatePlacing {
+			_, err := s.structureFromTemplate(m, cell, kind)
 			return err == nil, err
+		}
+		if err := s.inspector.checkStructureKind(kind); err != nil {
+			return false, err
 		}
 		view, err := m.Map()
 		if err != nil {

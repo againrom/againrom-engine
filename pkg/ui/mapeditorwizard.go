@@ -1428,7 +1428,7 @@ func (e *MapEditor) loneRow(n InspectionScriptNode) (wizRow, bool) {
 // applyWizard writes the rows through the host as one edit.
 func (e *MapEditor) applyWizard(v scriptView) {
 	o := &e.obj
-	if _, ok := e.doc.Edits.(InspectionTriggerWizard); !ok {
+	if _, ok := Seam[InspectionTriggerWizard](e.doc.Edits); !ok {
 		return
 	}
 	t, err := e.wizardPlan(v)

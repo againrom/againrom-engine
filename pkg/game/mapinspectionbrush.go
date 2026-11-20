@@ -79,6 +79,9 @@ func (s *mapInspectionEdits) BrushObjects() []ui.BrushObject {
 
 // Paint applies one stroke to the model as one edit.
 func (s *mapInspectionEdits) Paint(op ui.BrushStroke) (_ *ui.InspectionDocument, said error) {
+	if !s.row().planes && op.Plane != ui.BrushPlaneTerrain {
+		return nil, s.refuse()
+	}
 	defer s.worded(&said)
 	if op.Plane == ui.BrushPlaneObjects {
 		for i, code := range append([]int{op.Value}, op.Forest.Kinds...) {

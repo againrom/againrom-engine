@@ -9,7 +9,7 @@ func (e *MapEditor) script() (InspectionScript, bool) {
 	if !e.editable() {
 		return nil, false
 	}
-	s, ok := e.doc.Edits.(InspectionScript)
+	s, ok := Seam[InspectionScript](e.doc.Edits)
 	return s, ok
 }
 

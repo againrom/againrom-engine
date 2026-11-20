@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/scriptprofile"
 )
 
 // The second game's placed elements: structures (type 4), units (type 6) and
@@ -23,10 +24,9 @@ const secondMaxID = math.MaxInt16
 // (R2-ASSET-231); a record the map lacks is inserted after its predecessors.
 var secondWriteOrder = []uint32{0, 1, 2, 3, 5, 11, 4, 9, 8, 6, 7, 10, 12}
 
-var secondSections map[Kind]*section
-
+// The second format's row: these three sections, and its own script profile.
 func init() {
-	secondSections = map[Kind]*section{
+	own := map[Kind]*section{
 		KindUnit: {name: "unit", typeID: alm.TypeUnits, count: alm.MetaUnitCount, x: alm.UnitX, y: alm.UnitY, create: true,
 			length:      func(_ *Editor, b []byte) int { return fixedLength(b, alm.SecondUnitSize) },
 			renumber:    secondRenumberUnit,
@@ -49,6 +49,7 @@ func init() {
 			removeParts: secondRemoveParts,
 		},
 	}
+	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second}
 }
 
 // secondUnitFields is the one unit field the second game's placement sets:
