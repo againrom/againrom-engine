@@ -192,23 +192,68 @@ func listKey(m *Picker, up, down, pageUp, pageDown bool) bool {
 	return true
 }
 
-// rangeBarRequest is the first position a bar over positions 0..count-1
-// moves to when it is at pos and asks req: line and page steps, or the
-// dragged position set.
-func rangeBarRequest(pos, count, page int, req barRequest, set int) int {
-	switch req {
-	case barLineUp:
-		pos--
-	case barLineDown:
-		pos++
-	case barPageUp:
-		pos -= page
-	case barPageDown:
-		pos += page
-	case barSetPos:
-		pos = set
+// scrollOwner is the one value a scrolled region gives its bar: the bar with
+// its position and count, the row of the model that sizes its line and page
+// steps over Visible positions, and the apply. scrollBarInput.drive reads it,
+// runs the step and updates it.
+type scrollOwner struct {
+	Bar     vScrollBar
+	Spec    scrollSpec
+	Visible int
+	// Set writes the first shown position; Pos is already clamped.
+	Set func(pos int)
+	// Keys, when set, takes a line or page request as the four keys the
+	// region's own routine answers.
+	Keys func(up, down, pageUp, pageDown bool)
+	// List is the list whose highlight a request moves instead of Set.
+	List *Picker
+	// Before runs once a request is made, ahead of its apply; Landed runs
+	// after a list request acted, with the selection before it.
+	Before func()
+	Landed func(old int)
+	// Grab is the pointer's offset in the thumb when Grabbed: a drag keeps
+	// that offset.
+	Grab    int
+	Grabbed bool
+}
+
+// keys reports a line or page request as the key that makes it.
+func (r barRequest) keys() (up, down, pageUp, pageDown bool) {
+	return r == barLineUp, r == barLineDown, r == barPageUp, r == barPageDown
+}
+
+// moveTo clamps pos to the bar's range and writes it.
+func (o *scrollOwner) moveTo(pos int) {
+	o.Bar.Pos = max(0, min(pos, o.Bar.Count-1))
+	if o.Set != nil {
+		o.Set(o.Bar.Pos)
 	}
-	return max(0, min(pos, count-1))
+}
+
+// apply runs request req, with the dragged position pos for barSetPos, on
+// the owner: a list moves its highlight, a region with Keys answers line and
+// page requests as keys, any other moves its position by the spec's step. It
+// reports whether a list request acted.
+func (o *scrollOwner) apply(req barRequest, pos int) bool {
+	switch {
+	case req == barNone:
+		return false
+	case o.List != nil:
+		old := o.List.Selection()
+		acted := listBarRequest(o.List, req, pos)
+		if acted && o.Landed != nil {
+			o.Landed(old)
+		}
+		return acted
+	case req == barSetPos:
+		o.moveTo(pos)
+	case o.Keys != nil:
+		o.Keys(req.keys())
+	default:
+		step, _ := o.Spec.barStep(req, o.Visible)
+		o.moveTo(o.Bar.Pos + step)
+	}
+	return true
 }
 
 // listBarRequest applies a bar request to its list: line and page requests

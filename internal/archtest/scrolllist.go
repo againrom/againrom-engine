@@ -43,8 +43,8 @@ var scrollFocusMovers = map[string]bool{
 }
 
 // scrollBarDispatchers are the functions allowed to dispatch a bar request
-// outside the model: the help text, whose steps come from the model row.
-var scrollBarDispatchers = map[string]bool{"pkg/ui/help.go:helpBarRequest": true}
+// outside the model: none, every owner is applied by scrollOwner.apply.
+var scrollBarDispatchers = map[string]bool{}
 
 // scrollStepCalls are the calls that move a list by a count.
 var scrollStepCalls = map[string]bool{

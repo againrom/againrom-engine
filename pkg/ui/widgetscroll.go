@@ -234,6 +234,37 @@ func (s *scrollBarInput) step(b vScrollBar, p image.Point, ok bool, in appInput)
 	return barNone, 0
 }
 
+// dragPosFrom maps a dragged pointer row to a position when the thumb was
+// grabbed grab rows below its top; it reports false for a bar without travel.
+func (b vScrollBar) dragPosFrom(y, grab int) (int, bool) {
+	span := b.Rect.Dy() - 3*b.Rect.Dx() + 8
+	if span <= 0 {
+		return 0, false
+	}
+	y -= grab + b.Rect.Min.Y + b.Rect.Dx() - 4
+	return min(max((y*(b.Count-1)+span/2)/span, 0), b.Count-1), true
+}
+
+// drive runs one tick of the bar's input over owner o: the step reads the
+// owner's bar, and the request it makes is applied to the owner, which
+// updates its position. It returns the request.
+func (s *scrollBarInput) drive(o *scrollOwner, p image.Point, ok bool, in appInput) barRequest {
+	req, pos := s.step(o.Bar, p, ok, in)
+	if req == barNone {
+		return req
+	}
+	if req == barSetPos && o.Grabbed {
+		if at, found := o.Bar.dragPosFrom(p.Y, o.Grab); found {
+			pos = at
+		}
+	}
+	if o.Before != nil {
+		o.Before()
+	}
+	o.apply(req, pos)
+	return req
+}
+
 // active reports whether the bar owns the held button.
 func (s scrollBarInput) active() bool { return s.held != barNone || s.drag }
 
@@ -346,6 +377,12 @@ func listBar(l listBox, m *Picker) vScrollBar {
 		b.Pos, b.Count = max(m.Selection(), 0), m.Len()
 	}
 	return b
+}
+
+// listOwner is the owner value of list m's bar: its requests move m's
+// highlight.
+func listOwner(l listBox, m *Picker) scrollOwner {
+	return scrollOwner{Bar: listBar(l, m), List: m}
 }
 
 var (

@@ -323,12 +323,14 @@ func stepPageListKeys(l *Picker, in appInput, rule scrollSpec, home bool) {
 
 // stepPageBar runs the scroll bar and reports whether it took the input.
 func (a *App) stepPageBar(v pageView, l *Picker, p image.Point, ok bool, in appInput, onRequest func()) bool {
-	if req, pos := v.ui.bar.step(listBar(a.pageListBox(v), l), p, ok, in); req != barNone {
+	owner := listOwner(a.pageListBox(v), l)
+	owner.Before = func() {
 		if onRequest != nil {
 			onRequest()
 		}
 		v.ui.rowPressed = false
-		listBarRequest(l, req, pos)
+	}
+	if v.ui.bar.drive(&owner, p, ok, in) != barNone {
 		return true
 	}
 	if v.ui.bar.active() {

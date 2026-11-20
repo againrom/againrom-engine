@@ -277,8 +277,8 @@ func (a *App) stepMedia(in appInput, now time.Time) {
 	}
 	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
 	box := a.movieListBox()
-	if req, pos := a.media.bar.step(listBar(box, list), p, ok, in); req != barNone {
-		listBarRequest(list, req, pos)
+	owner := listOwner(box, list)
+	if a.media.bar.drive(&owner, p, ok, in) != barNone {
 		return
 	}
 	if a.media.bar.active() {

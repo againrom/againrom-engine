@@ -261,22 +261,11 @@ func helpBarParts(bar image.Rectangle, first, total, visible int) (up, down, tra
 	return up, down, image.Rect(bar.Min.X, up.Max.Y, bar.Max.X, down.Min.Y), b.Thumb()
 }
 
-// helpBarRequest is the text control's handler of its bar's requests: set
-// position, line up, line down, page up and page down, through the same
-// routines as its keys (MENU-078).
-func (v *Viewer) helpBarRequest(req barRequest, pos int) {
-	switch req {
-	case barSetPos:
-		v.helpSetPos(pos)
-	case barLineUp:
-		v.helpStep(true, false, false, false)
-	case barLineDown:
-		v.helpStep(false, true, false, false)
-	case barPageUp:
-		v.helpStep(false, false, true, false)
-	case barPageDown:
-		v.helpStep(false, false, false, true)
-	}
+// helpOwner is the text control's owner value: its bar's requests run the
+// same routines as its keys, and a set position its set-position routine
+// (MENU-078).
+func (v *Viewer) helpOwner(bar vScrollBar) scrollOwner {
+	return scrollOwner{Bar: bar, Set: v.helpSetPos, Keys: v.helpStep}
 }
 
 // helpPanelPoint maps a window position to the open help panel's own pixels.
@@ -313,10 +302,8 @@ func (v *Viewer) helpPointer(in appInput) bool {
 		h.bar.reset()
 		return false
 	}
-	req, pos := h.bar.step(bar, p, ok, in)
-	if req != barNone {
-		v.helpBarRequest(req, pos)
-	}
+	owner := v.helpOwner(bar)
+	h.bar.drive(&owner, p, ok, in)
 	return in.PrimaryPressed && h.bar.active()
 }
 

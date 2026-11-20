@@ -294,8 +294,8 @@ func (a *App) settingsPointer(p settingsPage, in appInput) {
 		if inFrame && pt.In(c.rect) && wheeled(in) {
 			c.list.Move(c.wheel.wheelStep(in))
 		}
-		if req, pos := h.bar.step(listBar(c.box, c.list), pt, inFrame, in); req != barNone {
-			listBarRequest(c.list, req, pos)
+		owner := listOwner(c.box, c.list)
+		if h.bar.drive(&owner, pt, inFrame, in) != barNone {
 			f.menuList.Select(i)
 			return
 		}

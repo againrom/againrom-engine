@@ -260,14 +260,9 @@ func (a *App) stepQuestObjectives(in appInput) {
 	f.questTop = min(f.questTop, most)
 	p, valid := a.windowToNativeFrame(in.CursorX, in.CursorY)
 	if most > 0 {
-		if req, pos := f.questBar.step(questBar(l.Bar, f.questTop, most), p, valid, in); req != barNone {
-			if req == barSetPos {
-				f.questTop = pos
-			} else if step, ok := questList.barStep(req, max(1, 100/pitch)); ok {
-				f.questTop += step
-			}
-			f.questTop = min(max(f.questTop, 0), most)
-		}
+		owner := scrollOwner{Bar: questBar(l.Bar, f.questTop, most), Spec: questList, Visible: max(1, 100/pitch),
+			Set: func(n int) { f.questTop = n }}
+		f.questBar.drive(&owner, p, valid, in)
 		if f.questBar.active() {
 			return
 		}

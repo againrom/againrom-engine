@@ -198,13 +198,8 @@ func (w *dialogRun) scrollStep(in appInput, p image.Point, ok bool, l dialogLayo
 	case wheel != 0:
 		w.scroll(wheel, lines, rows)
 	}
-	if req, pos := w.bar.step(noticeBar(l, w.top, lines), p, ok, in); req != barNone {
-		if req == barSetPos {
-			w.top = 0
-			w.scroll(pos, lines, rows)
-		} else if step, ok := noticeList.barStep(req, rows); ok {
-			w.scroll(step, lines, rows)
-		}
+	owner := scrollOwner{Bar: noticeBar(l, w.top, lines), Spec: noticeList, Visible: rows, Set: func(n int) { w.top = n }}
+	if w.bar.drive(&owner, p, ok, in) != barNone {
 		return true
 	}
 	return w.bar.active()

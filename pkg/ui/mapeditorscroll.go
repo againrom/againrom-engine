@@ -14,16 +14,12 @@ type scrollArea struct {
 	// Opaque makes a press inside Over that is off the bar belong to nothing
 	// else, as an open list over other content does.
 	Opaque bool
-	// Bar is the region's bar: Pos is the first shown position and Count is
-	// one more than the last first position.
-	Bar vScrollBar
-	// Page is the positions one track click moves.
-	Page int
-	// Set writes the first shown position; Pos is already clamped.
-	Set func(pos int)
-	// List is the list whose highlight the bar and the wheel move instead of
-	// Set; Step, when set, replaces its wheel move.
-	List *Picker
+	// scrollOwner is the region's bar value: Bar.Pos is the first shown
+	// position, Bar.Count one more than the last first position, Visible the
+	// positions one track click moves, Set writes the position, and List is
+	// the list whose highlight the bar and the wheel move instead of Set.
+	scrollOwner
+	// Step, when set, replaces the wheel move.
 	Step func(rows int)
 	// Wheel is the wheel remainder the region counts its notches in.
 	Wheel *float64
@@ -46,12 +42,13 @@ func inRects(p image.Point, rects []image.Rectangle) bool {
 // rangeArea is a region of first positions 0..most that Set writes.
 func rangeArea(bar image.Rectangle, pos, most, page int, over []image.Rectangle, wheel *float64, set func(int)) scrollArea {
 	most = max(0, most)
-	return scrollArea{Over: over, Bar: vScrollBar{Rect: bar, Pos: max(0, min(pos, most)), Count: most + 1}, Page: max(1, page), Set: set, Wheel: wheel}
+	return scrollArea{Over: over, Wheel: wheel, scrollOwner: scrollOwner{
+		Bar: vScrollBar{Rect: bar, Pos: max(0, min(pos, most)), Count: most + 1}, Spec: editorList, Visible: max(1, page), Set: set}}
 }
 
 // listArea is a region over list m whose box is box.
 func listArea(box listBox, m *Picker, over []image.Rectangle, wheel *float64) scrollArea {
-	return scrollArea{Over: over, Bar: listBar(box, m), List: m, Wheel: wheel}
+	return scrollArea{Over: over, scrollOwner: listOwner(box, m), Wheel: wheel}
 }
 
 // dropdownArea is the region of an open drop-down d over everything under
@@ -229,7 +226,7 @@ func (e *MapEditor) objectAreas() []scrollArea {
 		if ok && s.Canvas != nil {
 			bar := l.canvasBar(s.Canvas)
 			pitch := max(1, l.Pitch)
-			a.Bar, a.Page = bar, max(1, l.Canvas.Dy()/pitch)
+			a.Bar, a.Spec, a.Visible = bar, editorList, max(1, l.Canvas.Dy()/pitch)
 			a.Set = func(n int) { e.graphAt.Y = n * pitch }
 		}
 		if !e.graphShown() {
@@ -316,27 +313,15 @@ func editorListStep(m *Picker, delta int) bool {
 	return true
 }
 
-// scrollRequest applies a bar request to region a.
-func (e *MapEditor) scrollRequest(a *scrollArea, req barRequest, pos int) {
-	if a.List != nil {
-		old := a.List.Selection()
-		if listBarRequest(a.List, req, pos) {
-			if e.catalog && a.List == e.model && a.List.Len() > 0 && !a.List.Rows()[a.List.Selection()].Choosable {
-				delta := 1
-				if a.List.Selection() < old {
-					delta = -1
-				}
-				e.catalogStep(delta)
-			}
+// landed steps the catalog past a row it cannot choose after region a's list
+// moved from selection old.
+func (e *MapEditor) landed(a *scrollArea, old int) {
+	if e.catalog && a.List == e.model && a.List.Len() > 0 && !a.List.Rows()[a.List.Selection()].Choosable {
+		delta := 1
+		if a.List.Selection() < old {
+			delta = -1
 		}
-		return
-	}
-	if req == barNone {
-		return
-	}
-	a.Bar.Pos = rangeBarRequest(a.Bar.Pos, a.Bar.Count, a.Page, req, pos)
-	if a.Set != nil {
-		a.Set(a.Bar.Pos)
+		e.catalogStep(delta)
 	}
 }
 
@@ -357,15 +342,9 @@ func (e *MapEditor) scrollPointer(in Input, p image.Point, pressed bool) bool {
 	if a.List != nil {
 		a.Bar.Pos, a.Bar.Count = max(a.List.Selection(), 0), a.List.Len()
 	}
-	req, pos := s.input.step(a.Bar, p, true, appInput{Viewer: in, PrimaryPressed: pressed, PrimaryReleased: !in.PrimaryDown})
-	if req == barSetPos {
-		span := a.Bar.Rect.Dy() - 3*a.Bar.Rect.Dx() + 8
-		if span > 0 {
-			y := p.Y - s.grabY - a.Bar.Rect.Min.Y - a.Bar.Rect.Dx() + 4
-			pos = min(max((y*(a.Bar.Count-1)+span/2)/span, 0), a.Bar.Count-1)
-		}
-	}
-	e.scrollRequest(a, req, pos)
+	a.Grab, a.Grabbed = s.grabY, true
+	a.Landed = func(old int) { e.landed(a, old) }
+	s.input.drive(&a.scrollOwner, p, true, appInput{Viewer: in, PrimaryPressed: pressed, PrimaryReleased: !in.PrimaryDown})
 	e.down, e.uiDown = in.PrimaryDown, in.PrimaryDown
 	return true
 }

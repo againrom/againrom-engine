@@ -425,15 +425,9 @@ func (a *App) stepModScreen(in appInput) {
 	}
 	p, inFrame := a.windowToNativeFrame(in.CursorX, in.CursorY)
 	if a.modMaxTop() > 0 {
-		if req, pos := f.modUI.bar.step(a.modBar(f.modUI.top), p, inFrame, in); req != barNone {
-			visible := a.modVisibleLines()
-			if req == barSetPos {
-				f.modUI.top = pos
-			} else if step, ok := modScreenList.barStep(req, visible); ok {
-				f.modUI.top += step
-			}
-			f.modUI.top = min(max(f.modUI.top, 0), a.modMaxTop())
-		}
+		owner := scrollOwner{Bar: a.modBar(f.modUI.top), Spec: modScreenList, Visible: a.modVisibleLines(),
+			Set: func(n int) { f.modUI.top = n }}
+		f.modUI.bar.drive(&owner, p, inFrame, in)
 		if f.modUI.bar.active() {
 			return
 		}
