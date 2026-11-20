@@ -56,6 +56,8 @@ type hoverShape struct {
 	textX, textY    int
 	advance         bool
 	corners         bool
+	// clip keeps the text and the picture inside the frame's inner edge.
+	clip bool
 }
 
 // hoverParams are the values a keyed style takes from its caller.
@@ -84,6 +86,20 @@ var hoverSharedShape = hoverShape{
 // hoverShopShape is the shape of the characteristics box: a one-pixel
 // outline, ten wide and eight tall around the text.
 var hoverShopShape = hoverShape{outlined: true, pitchPad: 2, padW: 10, padH: 8, textX: 5, textY: 4}
+
+// editorTipShape is the shape of the editor's tips in body: a one-pixel
+// outline, tipPad around the lines, the lines body's height apart.
+func editorTipShape(body *text.Font) hoverShape {
+	return hoverShape{outlined: true, clip: true, pitch: fontHeight(body, 15),
+		padW: 2 * tipPad, padH: 2 * tipPad, textX: tipPad, textY: tipPad}
+}
+
+// editorTipStyle is the style of the editor's tips in the window inks: the
+// title ground framed in the edge ink, the lines in the value ink.
+func editorTipStyle(body *text.Font, ink popupInk) *hoverStyle {
+	shape := editorTipShape(body)
+	return &hoverStyle{ink: ink.Value, box: &hoverBoxInk{fill: ink.TitleGround, light: ink.Edge}, shape: &shape}
+}
 
 // hoverStyleFor is the style of row key, filled from p where the row takes
 // the caller's values. The shared row is nil.

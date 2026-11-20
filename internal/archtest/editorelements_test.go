@@ -77,7 +77,7 @@ func TestEditorFrameworkElementsHaveOneBuilder(t *testing.T) {
 					case id == nil:
 					case id.Name == "popupBar" && !bars[fn.Name.Name]:
 						t.Errorf("%s.%s builds a bar; the menu bar, toolbar and search field are the editor's bars", name, fn.Name.Name)
-					case id.Name == "popupTip" && len(n.Elts) > 0 && name != "editortip.go":
+					case id.Name == "popupTip" && len(n.Elts) > 0 && name != "editortip.go" && name != "widgethover.go":
 						t.Errorf("%s.%s builds a tip; lay it out with layoutTip", name, fn.Name.Name)
 					}
 				case *ast.CallExpr:
@@ -91,7 +91,7 @@ func TestEditorFrameworkElementsHaveOneBuilder(t *testing.T) {
 					switch {
 					case callee == "drawIconButton" && name != "editorpopupbar.go" && !strings.HasPrefix(name, "widget"):
 						t.Errorf("%s.%s paints an icon button; put it in a bar", name, fn.Name.Name)
-					case callee == "recordWidget" && len(n.Args) > 0 && exprName(n.Args[0]) == "widgetTip" && name != "editortip.go":
+					case callee == "recordWidget" && len(n.Args) > 0 && exprName(n.Args[0]) == "widgetTip" && name != "widgethover.go":
 						t.Errorf("%s.%s paints a tip; paint it with drawPopupTip", name, fn.Name.Name)
 					case callee == "setDelay" && editor && (len(n.Args) != 1 || exprName(n.Args[0]) != "editorTipDelay"):
 						t.Errorf("%s.%s sets a tip delay other than editorTipDelay", name, fn.Name.Name)

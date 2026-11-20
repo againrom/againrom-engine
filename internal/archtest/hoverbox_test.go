@@ -57,6 +57,14 @@ func f() { placeHover(d, nil) }`, "pkg/ui/x.go:2 placeHover places a hover descr
 func f() { drawHover(dst, d) }`, "pkg/ui/x.go:2 drawHover places a hover description outside its builders"},
 		{"a box recorded", "pkg/ui/x.go", `package x
 func f() { recordWidget(widgetHoverBox, r, nil) }`, "pkg/ui/x.go:2 a hover box is recorded outside the composer"},
+		{"a tip recorded", "pkg/ui/x.go", `package x
+func f() { recordWidget(widgetTip, r, nil) }`, "pkg/ui/x.go:2 a tip is recorded outside the composer"},
+		{"the tip painter called", "pkg/ui/x.go", `package x
+func f() { paintTip(d, f, t, nil) }`, "pkg/ui/x.go:2 paintTip is called outside the composer and the editor's tip file"},
+		{"the editor's tips painting a line", editorTipHome, `package x
+func f() { body.Draw(dst, s, 1, 2, c) }`, "pkg/ui/editortip.go:2 Draw paints a tip in the editor's tip file beside paintTip"},
+		{"the editor's tips painting through the painter", editorTipHome, `package x
+func f() { paintTip(dst, body, t, nil); _ = tipSize(1, 2, body, s, nil) }`, ""},
 		{"a box colour used", "pkg/ui/x.go", `package x
 var c = hoverFill`, "pkg/ui/x.go:2 hoverFill is a hover box colour used outside the table and the composer"},
 		{"a painter under another name", "pkg/ui/x.go", `package x

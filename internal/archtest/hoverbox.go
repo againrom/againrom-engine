@@ -30,6 +30,18 @@ var hoverStyleTypes = map[string]bool{"hoverStyle": true, "hoverBoxInk": true, "
 // hoverComposerNames are the functions only the composer file calls.
 var hoverComposerNames = map[string]bool{"composeHoverBox": true, "hoverBoxSize": true, "paintHoverBevel": true}
 
+// The editor's tips are laid out in the editor's tip file and painted by the
+// composer file's tip painter, which the game's hover boxes use too.
+const editorTipHome = "pkg/ui/editortip.go"
+
+// tipPainterNames are the functions only the composer file and the editor's
+// tip file call; editorTipPaintCalls are the calls the editor's tip file
+// never makes, since it paints through the tip painter.
+var (
+	tipPainterNames     = map[string]bool{"paintTip": true, "tipSize": true}
+	editorTipPaintCalls = map[string]bool{"Draw": true, "DrawFlat": true, "drawFrame": true, "drawVScrollBar": true, "recordWidget": true}
+)
+
 // hoverColourNames are the box colours only the table and composer files use.
 var hoverColourNames = map[string]bool{"hoverFill": true, "hoverLight": true, "hoverDark": true, "hoverSharedBox": true}
 
@@ -168,6 +180,15 @@ func hoverBoxInSource(name string, src []byte) []string {
 				if a, ok := n.Args[0].(*ast.Ident); ok && a.Name == "widgetHoverBox" {
 					add(n.Pos(), "a hover box is recorded outside the composer")
 				}
+				if a, ok := n.Args[0].(*ast.Ident); ok && a.Name == "widgetTip" {
+					add(n.Pos(), "a tip is recorded outside the composer")
+				}
+			}
+			if tipPainterNames[id.Name] && !inComposer && name != editorTipHome {
+				add(n.Pos(), id.Name+" is called outside the composer and the editor's tip file")
+			}
+			if name == editorTipHome && editorTipPaintCalls[id.Name] {
+				add(n.Pos(), id.Name+" paints a tip in the editor's tip file beside paintTip")
 			}
 		case *ast.Ident:
 			if hoverColourNames[n.Name] && !inTable && !inComposer {

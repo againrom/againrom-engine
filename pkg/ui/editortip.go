@@ -2,8 +2,6 @@ package ui
 
 import (
 	"image"
-	"image/draw"
-	"strings"
 
 	"againrom/pkg/render/text"
 )
@@ -22,6 +20,10 @@ type popupTip struct {
 	// Top is the first line shown and Rows how many lines show, 0 for all:
 	// a text taller than the editor shows a window of its lines and scrolls.
 	Top, Rows int
+	// Style is how the tip paints and Hover marks a game hover box, which
+	// records as one; the painter takes both from the caller that paints.
+	Style *hoverStyle
+	Hover bool
 }
 
 // shown is the lines the box holds, from Top.
@@ -82,21 +84,19 @@ func layoutTip(bounds image.Rectangle, body *text.Font, anchor image.Rectangle, 
 			width = max(width, measure(line)+2*tipPad)
 		}
 	}
-	h := len(lines)*fontHeight(body, 15) + 2*tipPad
+	shape := editorTipShape(body)
+	shown := len(lines)
 	rows := 0
-	if how.Scroll && h > bounds.Dy() && picture == nil {
+	if how.Scroll && tipSize(shown, width, body, &shape, nil).Y > bounds.Dy() && picture == nil {
 		// The bar stands at the right edge, so the text wraps narrower.
 		lines = editorRule.plain(lineBox{Measure: measure, Width: width - 2*tipPad - widgetSpriteSize}, full)
 		rows = max(1, (bounds.Dy()-2*tipPad)/fontHeight(body, 15))
 		rows = min(rows, len(lines))
-		h = rows*fontHeight(body, 15) + 2*tipPad
+		shown = rows
 	}
-	if picture != nil {
-		size := picture.Bounds().Size()
-		width = max(width, size.X+2*tipPad)
-		h += size.Y + tipPad
-	}
-	box := image.Rect(anchor.Min.X, anchor.Max.Y, anchor.Min.X+width, anchor.Max.Y+h)
+	size := tipSize(shown, width, body, &shape, picture)
+	h := size.Y
+	box := image.Rect(anchor.Min.X, anchor.Max.Y, anchor.Min.X+size.X, anchor.Max.Y+h)
 	place := tipPlace{Box: box, PullRight: how.Pull, FlipBy: h + anchor.Dy(), PushTopLeft: how.Clip, Clip: how.Clip}
 	return popupTip{Text: full, Lines: lines, Picture: picture, Anchor: anchor, Rect: placeTip(place, bounds), Rows: rows}
 }
@@ -135,22 +135,6 @@ func drawPopupTip(dst *image.RGBA, body *text.Font, t popupTip, ink popupInk) {
 	if dst == nil || body == nil || t.Rect.Empty() {
 		return
 	}
-	recordWidget(widgetTip, t.Rect, strings.Join(t.Lines, "\n"))
-	drawFrame(dst, panelFrame(t.Rect, ink.TitleGround, ink.Edge))
-	clip := dst.SubImage(t.Rect.Inset(2)).(*image.RGBA)
-	at := t.Rect.Min.Add(image.Pt(tipPad, tipPad))
-	for i, line := range t.shown() {
-		body.Draw(clip, line, at.X, at.Y+i*fontHeight(body, 15), ink.Value)
-	}
-	if t.Rows > 0 && t.Rows < len(t.Lines) {
-		drawVScrollBar(dst, nil, t.bar())
-	}
-	if t.Picture != nil {
-		y := at.Y + len(t.Lines)*fontHeight(body, 15)
-		if len(t.Lines) > 0 {
-			y += tipPad
-		}
-		r := t.Picture.Bounds()
-		draw.Draw(clip, r.Sub(r.Min).Add(image.Pt(at.X, y)), t.Picture, r.Min, draw.Over)
-	}
+	t.Style = editorTipStyle(body, ink)
+	paintTip(dst, body, t, nil)
 }
