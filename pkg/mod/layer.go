@@ -68,7 +68,15 @@ type Override struct {
 }
 
 func (o Override) String() string {
-	return fmt.Sprintf("%s %s %s: mod %q (%s:%d) overrides mod %q", o.Kind, o.Key, o.Field, o.Later.Mod, o.Later.File, o.Later.Line, o.Earlier)
+	return fmt.Sprintf("%s %s %s: mod %q (%s) overrides mod %q", o.Kind, o.Key, o.Field, o.Later.Mod, o.Later.Position(), o.Earlier)
+}
+
+// Position is the file and, when the source has a line, the line.
+func (s Source) Position() string {
+	if s.Line > 0 {
+		return fmt.Sprintf("%s:%d", s.File, s.Line)
+	}
+	return s.File
 }
 
 // Precedence is the load order the mods state: each mod by the mods it names

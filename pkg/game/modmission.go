@@ -164,6 +164,7 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 	if err != nil {
 		return nil, nil, err
 	}
+	f.Table.Mods.Set = f.Table.Mods.Set.Settled(declared)
 	if declared.Empty() {
 		return nil, unmatched, nil
 	}

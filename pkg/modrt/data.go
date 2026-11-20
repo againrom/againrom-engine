@@ -18,6 +18,9 @@ type dataValue struct {
 	frozen           bool
 	settings         []mod.SettingValue
 	state            bool
+	// maps: the mod holds files whose names declare records; they change
+	// state only if the install admits one (mod.Set.Settled).
+	maps bool
 }
 
 func (d *dataValue) String() string        { return "<game.data>" }
@@ -60,7 +63,7 @@ func readBesideManifest(m mod.Entry, values []mod.SettingValue, sh *shared) (*da
 		if err != nil {
 			return nil, fmt.Errorf("mod %q: %w", d.id, err)
 		}
-		d.state = d.state || held
+		d.maps = d.maps || held
 	}
 	return d, nil
 }

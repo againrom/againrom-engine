@@ -36,6 +36,28 @@ type SetEntry struct {
 	// carries pictures and sounds at most. It
 	// is not part of the set's canonical form.
 	StateFree bool
+	// MapsOnly reports that the mod's only state is numbered map files the
+	// install may not admit; Settled decides it. It is not part of the
+	// set's canonical form.
+	MapsOnly bool
+}
+
+// Settled is s once the install has admitted its mission maps: a mod whose
+// only state is map files, none of them in admitted, replaces nothing and is
+// state-free.
+func (s Set) Settled(admitted MissionData) Set {
+	out := Set{Base: s.Base, Mods: append([]SetEntry(nil), s.Mods...)}
+	for i, m := range out.Mods {
+		if !m.MapsOnly {
+			continue
+		}
+		kept := false
+		for _, row := range admitted.Missions {
+			kept = kept || row.Mod == m.ID && row.byName
+		}
+		out.Mods[i].StateFree = !kept
+	}
+	return out
 }
 
 // Set is the resolved mod set a game runs under: the base it applies to, and

@@ -166,7 +166,7 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 		for _, w := range mod.MapWarnings(mod.MapList(held, id, sh.data.Missions)) {
 			warnings = append(warnings, fmt.Sprintf("mod %q: %s", id, w))
 		}
-		set.Mods = append(set.Mods, mod.SetEntry{ID: id, Version: m.Manifest.Version, Digest: digest, Settings: values, StateFree: !state})
+		set.Mods = append(set.Mods, mod.SetEntry{ID: id, Version: m.Manifest.Version, Digest: digest, Settings: values, StateFree: !state && !data.maps, MapsOnly: !state && data.maps})
 	}
 	r, err := rules.New(sh.params)
 	if err != nil {
