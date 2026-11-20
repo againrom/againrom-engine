@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A dead unit's body now sinks through its corpse stages and leaves the world as fast as in the original; before, it did so one and a half times slower, which also kept it raisable longer.
 - [ROM2] A new hero who picks Shooting or Astral now starts at level 10 in it, as in the original, and the town save writes the hero's template row and experience word as the original does.
 - [ROM2] The mission report after a win is now a framed popup at the original's size and place with its two buttons where the original has them, the failure page has the original's width and button places, and movies such as the teleport play at their original place centred on the screen.
 - [BASE] "Abandon mission" is now a row of the End Quest page instead of the game menu's own row, and it abandons the mission at once without asking again.

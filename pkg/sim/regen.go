@@ -35,6 +35,9 @@ const (
 // sixteen; the original counts passes in a counter of its own.
 func (w *World) regenPass() {
 	const phases = healthRegenCycle / manaRegenCycle
+	if w.game.regenBodyLoss && w.tick%healthRegenCycle == regenPhase {
+		w.regenBodyLoss()
+	}
 	if w.smoothRegen {
 		mana := windowPart(w.tick%manaRegenCycle, regenPhase, manaRegenCycle)
 		w.regenerateEach(mana, func(e *Entity) (regenPart, bool) {
@@ -50,6 +53,16 @@ func (w *World) regenPass() {
 	w.regenerateEach(regenPart{}, func(e *Entity) (regenPart, bool) {
 		return regenPart{}, pass%phases == uint64(e.SourceBinding.RuntimeID)%phases
 	})
+}
+
+// regenBodyLoss takes one health from each on-map body the decay walk takes
+// from, on the pass the pool pass loses health in; the walk takes its own on top.
+func (w *World) regenBodyLoss() {
+	for i := range w.entities {
+		if e := &w.entities[i]; !e.OffMap && e.Decay != DecayNone && e.InLife(LifeDecayWalk) {
+			e.setCurrentHealth(e.HP - 1)
+		}
+	}
 }
 
 // regenerateActors is the first game's pool pass: health moves for every

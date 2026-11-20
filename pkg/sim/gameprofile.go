@@ -145,6 +145,9 @@ type gameProfile struct {
 	// game restores nothing at health zero or below, an undying unit
 	// included (R2-ENGINE-1207).
 	regenLife LifeState
+	// regenBodyLoss: the pool pass takes one health from a unit below zero on
+	// every fourth pass, beside the decay walk (R2-ENGINE-1207).
+	regenBodyLoss bool
 	// nativeDecay: the decay ladder walks held dead and decaying health on
 	// the native tick; no session-clock dead ladder runs.
 	nativeDecay bool
@@ -288,6 +291,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		showMapFullCard:            true,
 		nativeRegen:                true,
 		regenLife:                  LifeStanding,
+		regenBodyLoss:              true,
 		nativeDecay:                true,
 		deadList:                   true,
 		keepsCastRetain:            true,
