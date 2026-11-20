@@ -90,12 +90,6 @@ func TestComputerSupportUsesTheExistingAdmission(t *testing.T) {
 		{"an attack order keeps the caster", func(w *World) {
 			w.entities[0].HasAttackTarget, w.entities[0].AttackTarget, w.entities[0].AttackTargetKind = true, 2, AttackTargetUnit
 		}, false},
-		{"a hostile striking the wounded caster keeps it", func(w *World) {
-			w.entities[0].HP = 50
-			w.relations.Set(7, SelfSlot, relationHostile)
-			w.relations.Set(SelfSlot, 7, relationHostile)
-			w.entities[1].HasAttackTarget, w.entities[1].AttackTarget, w.entities[1].AttackTargetKind = true, 1, AttackTargetUnit
-		}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w, _, heal := computerSupportFixture(t, true, 7, 1, 11, true, true, 3)
@@ -109,6 +103,40 @@ func TestComputerSupportUsesTheExistingAdmission(t *testing.T) {
 				}
 			} else if w.entities[0].Mana != beforeMana || len(w.bookCasts) > beforeCasts {
 				t.Fatalf("refused support spent mana or started a cast: %d -> %d, %+v", beforeMana, w.entities[0].Mana, w.bookCasts)
+			}
+		})
+	}
+}
+
+// The second game's computer mage that a hostile holds as its victim but that
+// holds no target of its own heals (R2-ENGINE-1420); its own attack target
+// holds it; the first game keeps the victim hold.
+func TestComputerSupportVictimHold(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		second     bool
+		ownTarget  bool
+		wantHealed bool
+	}{
+		{"ROM2 victim without own target heals", true, false, true},
+		{"ROM2 own attack target holds", true, true, false},
+		{"ROM1 victim keeps the hold", false, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w, _, heal := computerSupportFixture(t, tc.second, 7, 1, 11, true, true, 3)
+			w.entities[0].HP = 50
+			w.relations.Set(7, SelfSlot, relationHostile)
+			w.relations.Set(SelfSlot, 7, relationHostile)
+			w.entities[1].HasAttackTarget, w.entities[1].AttackTarget, w.entities[1].AttackTargetKind = true, 1, AttackTargetUnit
+			if tc.ownTarget {
+				w.entities[0].HasAttackTarget, w.entities[0].AttackTarget, w.entities[0].AttackTargetKind = true, 2, AttackTargetUnit
+			}
+			beforeMana := w.entities[0].Mana
+			Step(w, nil)
+			at, ok := w.bookCastIndex(1)
+			healed := ok && w.bookCasts[at].Spell == heal && w.bookCasts[at].Target == 1
+			if healed != tc.wantHealed || !healed && w.entities[0].Mana != beforeMana {
+				t.Fatalf("healed %v mana %d -> %d casts %+v, want healed %v", healed, beforeMana, w.entities[0].Mana, w.bookCasts, tc.wantHealed)
 			}
 		})
 	}

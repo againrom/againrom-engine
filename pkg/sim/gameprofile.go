@@ -239,7 +239,7 @@ var secondGameCardWindow = cardWindow{lastType: 107, lastFace: 7}
 func newGameProfile(d ScriptDialect) gameProfile {
 	if d != ScriptROM2 {
 		return gameProfile{skillAward: firstGameSkillAward,
-			computerSupport: supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, shield: shieldNone}}
+			computerSupport: supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, victimHolds: true, shield: shieldNone}}
 	}
 	return gameProfile{
 		spellGame:                  rules.SpellGameSecond,

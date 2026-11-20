@@ -135,7 +135,20 @@ type supportCastPolicy struct {
 	// drawsOne: candidates are Heal's area list, and support past Heal goes
 	// to one drawn candidate (AI-785, AI-786, R2-ENGINE-1244).
 	drawsOne bool
-	shield   supportShield
+	// victimHolds: a living hostile holding the caster as its unit victim
+	// keeps the idle-only policy from running, besides the caster's own
+	// attack target and cast (R2-ENGINE-1420 tests only the member's own target).
+	victimHolds bool
+	shield      supportShield
+}
+
+// supportHeld is the idle-only policy's hold: the caster's own cast, its own
+// attack target, and for a policy with victimHolds the inCombat predicate.
+func (w *World) supportHeld(ci int, policy supportCastPolicy) bool {
+	if policy.victimHolds {
+		return w.inCombat(ci)
+	}
+	return w.castHolds(ci, waitIdleHeal) || w.entities[ci].HasAttackTarget
 }
 
 // supportShield is where the sequence tries Shield at the caster.
@@ -167,7 +180,7 @@ func (w *World) supportCast(ci int) {
 	} else if caster.Owner != SelfSlot {
 		return
 	}
-	if caster.Mana < policy.minimumMana || s&autoCastTiers[0].bit == 0 || policy.idleOnly && w.inCombat(ci) {
+	if caster.Mana < policy.minimumMana || s&autoCastTiers[0].bit == 0 || policy.idleOnly && w.supportHeld(ci, policy) {
 		return
 	}
 	heal := autoCastRoleArm(autoCastHealer)
