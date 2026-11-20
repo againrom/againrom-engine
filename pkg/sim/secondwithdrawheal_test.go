@@ -142,7 +142,7 @@ func TestSecondGameClassReadsTheBookNotTheManaPool(t *testing.T) {
 // and the built thresholds.
 func TestFirstGameWithdrawUnchanged(t *testing.T) {
 	w := teleportWorld(t, false, true, 10, 30, 30, 30)
-	if w.game.fleeSightExtra != 0 || w.game.fleeTeleports {
+	if w.game.fleeSightExtra != 0 || w.game.fleeBlockRadius != 0 || w.game.fleeTeleports || w.game.computerSupport.yieldsToWithdrawal {
 		t.Fatalf("first game profile carries the second game's escape rules: %+v", w.game)
 	}
 	regWithdrawalPass(w, nil)

@@ -114,6 +114,10 @@ type gameProfile struct {
 	// fleeSightExtra: the Wimpy test's hostile square is this many rings wider
 	// than the mover's search radius (R2-ENGINE-506); the first game adds none.
 	fleeSightExtra int64
+	// fleeBlockRadius: the unit block's constant radius byte that stands for
+	// the mover radius in the flee test and in the Teleport arm's hostile list
+	// (R2-ENGINE-1438, R2-ENGINE-1440); zero keeps the mover radius.
+	fleeBlockRadius int64
 	// fleeTeleports: a computer unit that books Teleport and can pay it casts it
 	// to flee or back off, and walks otherwise (R2-ENGINE-1418).
 	fleeTeleports bool
@@ -284,6 +288,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		withdrawAnchorCells:        true,
 		classThresholds:            true,
 		fleeSightExtra:             5,
+		fleeBlockRadius:            5,
 		fleeTeleports:              true,
 		keepsSuppressedAcquirer:    true,
 		noHealArmReach:             true,
@@ -291,7 +296,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		autoCastSideSight:          true,
 		keepsWeaponSpell:           true,
 		autoCastFullDefault:        true,
-		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, shield: shieldAfterCandidateHeal},
+		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, yieldsToWithdrawal: true, shield: shieldAfterCandidateHeal},
 		computerHealOwnSide:        true,
 		spareMageTypes:             secondGameSpareMageTypes,
 		cardCreatures:              secondGameCardWindow,

@@ -61,57 +61,115 @@ func (w *World) classThresholds() {
 	}
 }
 
-func (w *World) withdrawalActor(i int, obs *withdrawalObs) {
+// withdrawArm is the arm of the withdrawal test an actor meets.
+type withdrawArm uint8
+
+const (
+	withdrawNone withdrawArm = iota
+	withdrawFlee
+	withdrawBackOff
+)
+
+// withdrawalArm is the arm actor i's withdrawal tests select now and the
+// hostile square that selected it. It reads and writes no state.
+func (w *World) withdrawalArm(i int) (withdrawArm, []int) {
 	if _, using := w.structureUseIndex(w.entities[i].ID); using {
-		return
+		return withdrawNone, nil
 	}
 	e := w.entities[i]
 	// HP > 0 is both the living-actor test used by the picker and what
 	// keeps the zero constructor thresholds inert on a no-health-system
 	// entity. Every placed actor with a health system is positive here.
 	if !e.Living() || e.Owner == 0 || e.OffMap || w.stoneCursed(i) {
-		return
+		return withdrawNone, nil
 	}
 	if e.ActorState == actorStateRetreat && w.retreatProgressBusy(i) {
-		return
+		return withdrawNone, nil
 	}
 	// ROM1 reads HP as a signed WORD here (`AI-WITHDRAW-026`); this
 	// build compares canonical Entity.HP as int32. The shipped bounds and
 	// the unrepresentable high-health edge are recorded by DIV-352.
 	if e.MaxHP > 0 && e.HP >= e.MaxHP {
-		return
+		return withdrawNone, nil
 	}
 	if e.HP <= e.Wimpy {
-		if hostile := w.withdrawalHostiles(i, w.fleeSearchRadius(i)+w.game.fleeSightExtra); len(hostile) != 0 {
-			before := w.entities[i]
-			if w.teleportEscape(i, hostile, int64(e.ScanRange)+1, true) {
-				obs.record(before, w.entities[i])
-				return
-			}
-			if w.withdrawFrom(i, hostile) {
-				w.answerRefusedFlee(i)
-			}
-			obs.record(before, w.entities[i])
-			return
+		if hostile := w.withdrawalHostiles(i, w.fleeRadius(i)+w.game.fleeSightExtra); len(hostile) != 0 {
+			return withdrawFlee, hostile
 		}
 	}
 	if e.HP <= e.Withdraw {
 		if hostile := w.withdrawalHostiles(i, 2); len(hostile) != 0 {
-			before := w.entities[i]
-			if w.teleportEscape(i, hostile, int64(e.ScanRange)-1, false) {
-				obs.record(before, w.entities[i])
-				return
-			}
-			if w.withdrawFromAny(i, hostile) {
-				w.answerRefusedFlee(i)
-			}
-			obs.record(before, w.entities[i])
+			return withdrawBackOff, hostile
 		}
 	}
+	return withdrawNone, nil
+}
+
+func (w *World) withdrawalActor(i int, obs *withdrawalObs) {
+	step, hostile := w.withdrawalArm(i)
+	e := w.entities[i]
+	switch step {
+	case withdrawFlee:
+		before := w.entities[i]
+		if w.teleportEscape(i, hostile, int64(e.ScanRange)+1, true) {
+			obs.record(before, w.entities[i])
+			return
+		}
+		if w.withdrawFrom(i, hostile) {
+			w.answerRefusedFlee(i)
+		}
+		obs.record(before, w.entities[i])
+	case withdrawBackOff:
+		before := w.entities[i]
+		if w.teleportEscape(i, hostile, int64(e.ScanRange)-1, false) {
+			obs.record(before, w.entities[i])
+			return
+		}
+		if w.withdrawFromAny(i, hostile) {
+			w.answerRefusedFlee(i)
+		}
+		obs.record(before, w.entities[i])
+	}
+}
+
+// withdrawalHolds reports whether a withdrawal step would walk or cast actor i
+// now: the back-off arm always does, the flee arm when a living hostile stands
+// in the list the arm reads. With none, the original takes the idle planner
+// (R2-ENGINE-1442), which may heal.
+func (w *World) withdrawalHolds(i int) bool {
+	step, hostile := w.withdrawalArm(i)
+	if step == withdrawNone {
+		return false
+	}
+	if step == withdrawFlee && w.teleportReady(i) {
+		hostile = w.withdrawalHostiles(i, w.fleeRadius(i))
+	}
+	return step == withdrawBackOff || anyLiving(w, hostile)
+}
+
+func anyLiving(w *World, list []int) bool {
+	for _, ci := range list {
+		if w.entities[ci].Living() {
+			return true
+		}
+	}
+	return false
 }
 
 // teleportArm is the arm of the spell that relocates its caster.
 var teleportArm = armWith(func(a spellArm) bool { return a.teleport })
+
+// teleportReady reports a computer unit of a game whose flee casts Teleport
+// that books the spell and has the mana for it.
+func (w *World) teleportReady(i int) bool {
+	e := w.entities[i]
+	if !w.game.fleeTeleports || !w.computerControlledUnit(e) {
+		return false
+	}
+	id := uint32(w.spellIDOfArm(teleportArm))
+	rule, ok := w.bookSpell(e, id)
+	return ok && rule.runsArm(teleportArm) && knowsSpell(e, id) && e.Mana >= int32(rule.ManaCost)
+}
 
 // teleportEscape is the second game's computer flee and back-off by spell: a
 // unit with Teleport in its book and mana for it casts the spell at the cell
@@ -122,20 +180,18 @@ var teleportArm = armWith(func(a spellArm) bool { return a.teleport })
 // is Unknown.
 func (w *World) teleportEscape(i int, hostile []int, reach int64, needLiving bool) bool {
 	e := w.entities[i]
-	if !w.game.fleeTeleports || reach < 1 || !w.computerControlledUnit(e) {
+	if reach < 1 || !w.teleportReady(i) {
 		return false
 	}
 	id := uint32(w.spellIDOfArm(teleportArm))
-	rule, ok := w.bookSpell(e, id)
-	if !ok || !rule.runsArm(teleportArm) || !knowsSpell(e, id) || e.Mana < int32(rule.ManaCost) {
-		return false
-	}
-	living := !needLiving
-	for _, ci := range hostile {
-		living = living || w.entities[ci].Living()
-	}
-	if !living {
-		return false
+	if needLiving {
+		// The flee lists hostiles within the block radius alone; with none
+		// living the original takes the idle planner, which is not modelled:
+		// the unit neither casts nor walks.
+		hostile = w.withdrawalHostiles(i, w.fleeRadius(i))
+		if !anyLiving(w, hostile) {
+			return true
+		}
 	}
 	for _, c := range w.bookCasts {
 		if c.Caster == e.ID && uint32(c.Spell) == id {
@@ -197,6 +253,15 @@ func (w *World) fleeRefusedAt(i int, tx, ty int32) bool {
 	defer releaseRouteScratch(s)
 	route, ok := w.searchRoute(s, i, terrainRelation, noWindow, w.farBudgetFor(i), settleOrdered, tx, ty)
 	return !ok || len(route) == 0
+}
+
+// fleeRadius is the radius the flee test and the Teleport arm's list start
+// from: the second game's block constant, else the search radius.
+func (w *World) fleeRadius(i int) int64 {
+	if w.game.fleeBlockRadius != 0 {
+		return w.game.fleeBlockRadius
+	}
+	return w.fleeSearchRadius(i)
 }
 
 // fleeSearchRadius is the ring count of the Wimpy and explicit Retreat

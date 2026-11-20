@@ -139,7 +139,10 @@ type supportCastPolicy struct {
 	// keeps the idle-only policy from running, besides the caster's own
 	// attack target and cast (R2-ENGINE-1420 tests only the member's own target).
 	victimHolds bool
-	shield      supportShield
+	// yieldsToWithdrawal: a unit whose withdrawal step walks or casts it now
+	// prepares no heal, since the step overwrites it on the pass (R2-ENGINE-1442).
+	yieldsToWithdrawal bool
+	shield             supportShield
 }
 
 // supportHeld is the idle-only policy's hold: the caster's own cast, its own
@@ -181,6 +184,9 @@ func (w *World) supportCast(ci int) {
 		return
 	}
 	if caster.Mana < policy.minimumMana || s&autoCastTiers[0].bit == 0 || policy.idleOnly && w.supportHeld(ci, policy) {
+		return
+	}
+	if policy.yieldsToWithdrawal && w.withdrawalHolds(ci) {
 		return
 	}
 	heal := autoCastRoleArm(autoCastHealer)
