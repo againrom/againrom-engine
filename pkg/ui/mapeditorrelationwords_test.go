@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/words"
 )
 
@@ -58,7 +59,8 @@ func TestWizardChangeRelationWritesCommandTenForEachValue(t *testing.T) {
 	}
 	for _, lang := range []string{"", "ru"} {
 		e.SetWords(words.For(lang))
-		got, _ := e.actionWord(10)
+		row, _ := scriptprofile.OpRow(scriptprofile.OpsFirst, false, 10)
+		got := e.word(row.Word)
 		if want := e.word(wizItems(false)[item].labelWord); got != want {
 			t.Fatalf("language %q: the trigger list names command 10 %q, the wizard %q", lang, got, want)
 		}

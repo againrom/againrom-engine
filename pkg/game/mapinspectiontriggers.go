@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
+	"againrom/pkg/words"
 )
 
 // conditionIDs is t's condition ids, each pair's left then right.
@@ -176,36 +177,30 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limi
 // editor: each opcode with whether a claim names it, the group commands, and
 // the signatures the claims state.
 func scriptCatalog(limits scriptprofile.Profile) ui.InspectionScriptCatalog {
-	if limits.Ops == scriptprofile.OpsSecond {
-		// A parameter's kind is the type its node stores; the first game's
-		// message and variable arms are not the second game's.
-		family := func(condition bool) []ui.InspectionScriptOperation {
-			var out []ui.InspectionScriptOperation
-			for _, op := range mapload.ScriptOperationsIn(limits.Ops, condition) {
-				out = append(out, ui.InspectionScriptOperation{Opcode: op.Opcode, Named: true})
-			}
-			return out
-		}
-		return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false),
-			ParameterKind: func(_ bool, _ uint32, types [10]uint32, slot int) uint32 {
-				if types[slot] >= ui.ScriptVariableParameter {
-					return 0
-				}
-				return types[slot]
-			}}
-	}
 	family := func(condition bool) []ui.InspectionScriptOperation {
 		var out []ui.InspectionScriptOperation
-		for _, op := range mapload.ScriptOperations(condition) {
-			out = append(out, ui.InspectionScriptOperation{Opcode: op.Opcode, Named: mapload.ScriptOperationNamed(condition, op.Opcode),
-				Againrom: op.Opcode == mapload.AgainromScriptOperation(condition)})
+		for _, op := range scriptprofile.OpRows(limits.Ops, condition) {
+			if op.Offered {
+				out = append(out, ui.InspectionScriptOperation{Opcode: op.ID, Named: op.Decoded, Againrom: op.Again})
+			}
 		}
 		return out
 	}
-	return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: mapload.ScriptGroupCommands,
-		ParameterKind: scriptParameterKind,
+	commands, _ := scriptprofile.OpRow(limits.Ops, false, mapload.ScriptGroupCommand)
+	return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: commands.Commands,
+		// A parameter's kind is the type its node stores; the first game's
+		// message, spell and variable arms are not the second game's.
+		ParameterKind: func(condition bool, opcode uint32, types [10]uint32, slot int) uint32 {
+			if scriptprofile.VocabularyOf(limits.Ops).Kinds {
+				return scriptParameterKind(condition, opcode, types, slot)
+			}
+			if types[slot] >= ui.ScriptVariableParameter {
+				return 0
+			}
+			return types[slot]
+		},
 		Signature: func(condition bool, opcode, command uint32) ([10]ui.InspectionScriptSlot, bool) {
-			sig, ok := mapload.ScriptSignature(condition, opcode, command)
+			sig, ok := mapload.ScriptSignatureIn(limits.Ops, condition, opcode, command)
 			var out [10]ui.InspectionScriptSlot
 			for i, slot := range sig {
 				out[i] = ui.InspectionScriptSlot{Type: slot.Type, Role: slot.Role}
@@ -218,8 +213,8 @@ func scriptCatalog(limits scriptprofile.Profile) ui.InspectionScriptCatalog {
 // claim reads it, else the raw id where the second game's is not decoded.
 func (s *inspectionScript) operation(kind ui.RecordKind, opcode uint32) string {
 	condition := kind == ui.KindCondition
-	if s.profile.Ops == scriptprofile.OpsSecond && !mapload.ScriptOperationDecoded(s.profile.Ops, condition, opcode) {
-		return fmt.Sprintf("Operation %d, not decoded", opcode)
+	if v := scriptprofile.VocabularyOf(s.profile.Ops); v.Numbered && !mapload.ScriptOperationDecoded(s.profile.Ops, condition, opcode) {
+		return fmt.Sprintf(words.For("").Text(v.Undecoded(condition)), opcode)
 	}
 	return mapload.ScriptOperationNameIn(s.profile.Ops, condition, opcode)
 }

@@ -1,0 +1,120 @@
+0 true 0x1|Group count|DO-|2:group
+0 true 0x2|Unit in box|DO-|4:unit,5:corner,6:,5:corner2,6:
+0 true 0x3|Unit in distance square|DO-|4:unit,5:cell,6:,1:radius
+0 true 0x4|Unit field (selector 6)|DO-|4:unit,1:selector
+0 true 0x5|Unit alive|DO-|4:unit
+0 true 0x6|Distance between units|DO-|4:unit,4:unit2
+0 true 0x7|Point to unit distance|DO-|4:unit,5:cell,6:
+0 true 0x8|Player population|DO-|3:player
+0 true 0x9|Unit target ID|DO-|4:unit
+0 true 0xa|Player relation|DO-|3:player,3:player2
+0 true 0xb|No-write arm|DO-|empty
+0 true 0xc|Item presence|DO-|4:unit,8:item
+0 true 0xd|No-write arm|DO-|empty
+0 true 0xe|Sack at cell|DO-|5:cell,6:
+0 true 0xf|Nearest player unit distance|DO-|3:player,5:cell,6:
+0 true 0x10|Item to point distance|DO-|4:unit,8:item,5:cell,6:
+0 true 0x11|Item presence|DO-|4:unit,8:item
+0 true 0x12|Lose if unit dies|DO-|4:unit
+0 true 0x13|Read variable|DO-|1:variable
+0 true 0x14|Unknown operation|---|3:player
+0 true 0x15|Structure field|DO-|9:structure
+0 true 0x16|Move object check|D--|5:cell,6:,5:cell2,6:
+0 true 0x10002|Constant / variable preset|DO-|1:value
+0 true 0x4101|Health below (Againrom)|DOA|4:unit,1:health
+0 false 0x1|Unknown operation|---|empty
+0 false 0x2|Send message|DO-|1:message
+0 false 0x3|Set variable|DO-|1:variable,1:value
+0 false 0x4|Win|DO-|empty
+0 false 0x5|Lose|DO-|empty
+0 false 0x6|Group command|DO-|none
+0 false 0x7|Set formation|-O-|none
+0 false 0x8|Increment variable|DO-|1:variable
+0 false 0x9|No-op arm|D--|empty
+0 false 0xa|Set relation|DO-|1:player,1:player2,1:value
+0 false 0xb|Unknown operation|D--|4:unit,4:unit2,8:item
+0 false 0xc|Create item|DO-|4:unit,8:item
+0 false 0xd|Take item|DO-|4:unit,8:item
+0 false 0x10|Take unit off map|DO-|4:unit
+0 false 0x11|Return unit to map|DO-|4:unit
+0 false 0x12|Replace unit on map|DO-|4:unit,4:unit2
+0 false 0x13|Give unit to player|DO-|4:unit,3:player
+0 false 0x14|Drop inventory|DO-|4:unit
+0 false 0x15|Cast at cell|DO-|5:cell,6:,5:cell2,6:,1:spell,1:power
+0 false 0x16|Give group to player|DO-|2:group,3:player
+0 false 0x17|Give money to player|DO-|3:player,1:money
+0 false 0x18|Cast at unit|DO-|5:cell,6:,4:unit,1:spell,1:power
+0 false 0x19|Set cell tail|DO-|1:spell,1:power,5:cell,6:
+0 false 0x1a|Set structure field|DO-|9:structure,1:value
+0 false 0x1b|Move unit|D--|4:unit,5:cell,6:
+0 false 0x1c|Give entire inventory|DO-|4:unit,4:unit2
+0 false 0x1d|Set cell effect duration|DO-|5:cell,6:,1:spell,1:time
+0 false 0x1e|Set unit effect duration|DO-|4:unit,1:spell,1:time
+0 false 0x20|Take group off map|DO-|2:group
+0 false 0x21|Return group to map|DO-|2:group
+0 false 0x22|Set unit field|DO-|4:unit,1:selector,1:value
+0 false 0x10002|Drop location (build time)|DO-|5:cell,6:
+0 false 0x10003|Object form (build time)|-O-|none
+0 false 0x4100|Set undying (Againrom)|DOA|4:unit,1:undying
+1 true 0x1|Unknown operation|---|none
+1 true 0x2|Unknown operation|---|none
+1 true 0x3|Unknown operation|---|none
+1 true 0x4|Unknown operation|---|none
+1 true 0x5|Unit state is not 16|DO-|none
+1 true 0x6|Unknown operation|---|none
+1 true 0x7|Unknown operation|---|none
+1 true 0x8|Unknown operation|---|none
+1 true 0x9|Unknown operation|---|none
+1 true 0xa|Unknown operation|---|none
+1 true 0xb|Unknown operation|---|none
+1 true 0xc|Unknown operation|---|none
+1 true 0xd|Unknown operation|---|none
+1 true 0xe|Unknown operation|---|none
+1 true 0xf|Unknown operation|---|none
+1 true 0x10|Unknown operation|---|none
+1 true 0x11|Unknown operation|---|none
+1 true 0x12|Failure counter while unit is in state 16|DO-|none
+1 true 0x13|Map register|DO-|none
+1 true 0x14|Unknown operation|---|none
+1 true 0x15|Unknown operation|---|none
+1 true 0x16|Unknown operation|---|none
+1 true 0x17|Scenario variable|DO-|none
+1 true 0x18|Scenario variable 752+n|DO-|none
+1 true 0x19|Cell effect layer present|DO-|none
+1 true 0x1a|Unit effect active|DO-|none
+1 true 0x1b|Unit tile position|DO-|none
+1 true 0x10002|Compiler parameter|DO-|none
+1 false 0x1|Unknown operation|---|none
+1 false 0x2|Send event|DO-|none
+1 false 0x3|Set map register|DO-|none
+1 false 0x4|Add to win counter|DO-|none
+1 false 0x5|Store failure reason|DO-|none
+1 false 0x8|Increment map register|DO-|none
+1 false 0x9|Unknown operation|---|none
+1 false 0xa|Set relation|DO-|none
+1 false 0xb|Unknown operation|---|none
+1 false 0xc|Unknown operation|---|none
+1 false 0xd|Unknown operation|---|none
+1 false 0x10|Unknown operation|---|none
+1 false 0x11|Unknown operation|---|none
+1 false 0x12|Unknown operation|---|none
+1 false 0x13|Unknown operation|---|none
+1 false 0x14|Unknown operation|---|none
+1 false 0x15|Unknown operation|---|none
+1 false 0x16|Unknown operation|---|none
+1 false 0x17|Unknown operation|---|none
+1 false 0x18|Unknown operation|---|none
+1 false 0x19|Unknown operation|---|none
+1 false 0x1a|Unknown operation|---|none
+1 false 0x1b|Unknown operation|---|none
+1 false 0x1c|Unknown operation|---|none
+1 false 0x1d|Unknown operation|---|none
+1 false 0x1e|Unknown operation|---|none
+1 false 0x20|Unknown operation|---|none
+1 false 0x21|Unknown operation|---|none
+1 false 0x22|Unknown operation|---|none
+1 false 0x23|Set scenario variable|DO-|none
+1 false 0x24|Set scenario state 752+n|DO-|none
+1 false 0x26|Take item from units|DO-|none
+1 false 0x27|Clear group forced activity|DO-|none
+1 false 0x10002|Compiler parameter|DO-|none

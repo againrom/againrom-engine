@@ -167,7 +167,7 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 	// Ids built as a literal prefix plus a key (`"editor.mod." + key`) are
 	// read by prefix; the scan cannot see which keys reach them.
 	var prefixes []string
-	for _, dir := range []string{"../ui", "../game", "../mapload"} {
+	for _, dir := range []string{"../ui", "../game", "../mapload", "../scriptprofile"} {
 		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 		if err != nil {
 			t.Fatal(err)

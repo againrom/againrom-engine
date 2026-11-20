@@ -357,7 +357,7 @@ func scriptVariableAllowed(m *mapedit.Editor, k mapedit.Kind, index int) error {
 }
 
 func scriptAddressesVariable(condition bool, opcode uint32) bool {
-	return condition && opcode == 19 || !condition && (opcode == 3 || opcode == 8)
+	return scriptprofile.AddressesRegister(condition, opcode)
 }
 
 // scriptRegisterAllowed refuses a variable the map's script cannot hold: on

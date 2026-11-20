@@ -134,22 +134,11 @@ func mark(marks *[]bool, i int, on bool) {
 // opName is the operation's word: its name where a claim names it, else
 // "Condition N" or "Action N".
 func (e *MapEditor) opName(condition bool, opcode uint32) string {
-	if e.doc.Script.Profile().Ops == scriptprofile.OpsSecond {
-		if w, ok := e.secondOpWord(condition, opcode); ok && e.doc.Script.Catalog.named(condition, opcode) {
-			return w
-		}
-		return fmt.Sprintf(e.word("editor.op.undecoded"), opcode)
+	ops := e.doc.Script.Profile().Ops
+	if row, ok := scriptprofile.OpRow(ops, condition, opcode); ok && row.Word != "" && e.doc.Script.Catalog.named(condition, opcode) {
+		return e.word(row.Word)
 	}
-	if condition {
-		if w, ok := e.checkWord(opcode); ok && e.doc.Script.Catalog.named(true, opcode) {
-			return w
-		}
-		return fmt.Sprintf(e.word("editor.check.unnamed"), opcode)
-	}
-	if w, ok := e.actionWord(opcode); ok && e.doc.Script.Catalog.named(false, opcode) {
-		return w
-	}
-	return fmt.Sprintf(e.word("editor.action.unnamed"), opcode)
+	return fmt.Sprintf(e.word(scriptprofile.VocabularyOf(ops).Undecoded(condition)), opcode)
 }
 
 // cmpWord is a comparison code in words (TRIG-CMP-006); a code above 5 never
@@ -358,9 +347,10 @@ func (e *MapEditor) scriptFields(v scriptView) []InspectionField {
 	return fields
 }
 
-// secondScript reports that the shown map's script is the second game's.
+// secondScript reports that the shown map's script keeps the fields of an
+// undecoded operation read-only.
 func (e *MapEditor) secondScript() bool {
-	return e.doc != nil && e.doc.Script != nil && e.doc.Script.Profile().Ops == scriptprofile.OpsSecond
+	return e.doc != nil && e.doc.Script != nil && scriptprofile.VocabularyOf(e.doc.Script.Profile().Ops).ReadOnlyUndecoded
 }
 
 // secondNodeFields keeps the parameter fields of a decoded operation
