@@ -395,7 +395,13 @@ func (s *mapInspectionEdits) editTown(w *editorWorkspaceState, book *townBook, i
 		return nil
 	case "on":
 		if i >= 0 && rec.Off {
-			d.TownRecords = slices.Delete(d.TownRecords, i, i+1)
+			// The table the file held keeps every key its writer wrote; only a
+			// record the file did not hold leaves.
+			if j := slices.IndexFunc(d.TownRecordsOriginal, func(r mod.TownRecord) bool { return r.Entry.ID == id && !r.Off }); j >= 0 {
+				d.TownRecords[i] = cloneTownRecords(d.TownRecordsOriginal[j : j+1])[0]
+			} else {
+				d.TownRecords = slices.Delete(d.TownRecords, i, i+1)
+			}
 		}
 		return nil
 	case "off":
@@ -420,9 +426,12 @@ func (s *mapInspectionEdits) editTown(w *editorWorkspaceState, book *townBook, i
 	case "x", "y":
 		v := strings.TrimSpace(value)
 		if v == "" {
-			rec.Entry.MapPoint = base.MapPoint
-			set("map-point", false)
-			break
+			// One emptied number never takes the point the record states
+			// away: it stays as written, and the page says why.
+			if _, _, stated := rec.Entry.MapPoint.Stated(); stated && i >= 0 {
+				return errors.New(x.word("editor.towns.err.halfpoint"))
+			}
+			return nil
 		}
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 0 {

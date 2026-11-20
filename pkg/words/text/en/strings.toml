@@ -2289,6 +2289,7 @@
 "editor.towns.err.gone" = "This town, offer or choice is no longer available. Open Towns again."
 "editor.towns.err.name" = "Type a name of up to 40 characters."
 "editor.towns.err.point" = "Type a whole number from 0, or leave the field empty."
+"editor.towns.err.halfpoint" = "A map point needs both numbers, so one of them cannot be emptied alone. Type a new number, or use \"Undo changes to this town\" to give the game's point back."
 "editor.towns.err.talk" = "Type the words this character says."
 "editor.towns.err.nochapter" = "This character already speaks in every chapter."
 "editor.towns.err.townneeded" = "Cannot switch this town off: mission %s (%d) of the mod is given here. Change that mission first."
