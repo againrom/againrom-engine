@@ -102,9 +102,6 @@ type gameProfile struct {
 	// castDropsLoadedStep: a manual cast or cast approach ends a loaded
 	// step between cells instead of waiting for its centre.
 	castDropsLoadedStep bool
-	// bodyCentreAim: an area row cast at a unit lands on the cell of the
-	// body's centre less one sub-unit, not the anchor cell (R2-ENGINE-1138).
-	bodyCentreAim bool
 	// withdrawAnchorCells: the withdrawal square lists each hostile once by
 	// its anchor cell (AI-697).
 	withdrawAnchorCells bool
@@ -284,7 +281,6 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		withdrawMoverPoint:         true,
 		uncorrectedStride:          true,
 		castDropsLoadedStep:        true,
-		bodyCentreAim:              true,
 		withdrawAnchorCells:        true,
 		classThresholds:            true,
 		fleeSightExtra:             5,

@@ -45,25 +45,21 @@ func landedAt(t *testing.T, w *World, id uint16) (int32, int32) {
 
 // A book cast of an area row at a unit aims at the unit's position, and for a
 // body wider than one cell at its centre less one sub-unit: the cell the
-// anchor and half the side less one lie on (R2-ENGINE-1138). The first game
-// lands on the anchor.
-func TestAnAreaCastAtAWideUnitLandsOnTheBodyCentreInTheSecondGame(t *testing.T) {
+// anchor and half the side less one lie on (MAGIC-449 in the first game,
+// R2-ENGINE-1138 in the second).
+func TestAnAreaCastAtAWideUnitLandsOnTheBodyCentre(t *testing.T) {
 	t.Parallel()
 	for _, c := range []struct {
-		side         uint8
-		first, other int32
-	}{{1, 20, 20}, {2, 20, 20}, {3, 20, 21}, {4, 20, 21}, {5, 20, 22}} {
+		side uint8
+		want int32
+	}{{1, 20}, {2, 20}, {3, 21}, {4, 21}, {5, 22}} {
 		for _, second := range []bool{false, true} {
 			w, rule := areaAimWorld(t, second, c.side)
 			if !w.castSpell(0, 2, uint32(rule.ID), nil) {
 				t.Fatalf("side %d second %v: the cast was refused", c.side, second)
 			}
-			want := c.first
-			if second {
-				want = c.other
-			}
-			if x, y := landedAt(t, w, rule.ID); x != want || y != want {
-				t.Errorf("side %d second %v: landed on (%d,%d), want (%d,%d)", c.side, second, x, y, want, want)
+			if x, y := landedAt(t, w, rule.ID); x != c.want || y != c.want {
+				t.Errorf("side %d second %v: landed on (%d,%d), want (%d,%d)", c.side, second, x, y, c.want, c.want)
 			}
 		}
 	}

@@ -453,7 +453,7 @@ func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32,
 		victims = w.applyPrismaticItem(ci, ti, rule, power, true)
 		applied = len(victims) != 0
 	} else if rule.Area {
-		ax, ay := w.unitAimCell(&w.entities[ti])
+		ax, ay := unitAimCell(&w.entities[ti])
 		applied = w.landAreaAimed(areaAim{Target: c.Target, Has: true}, rule, uint16(power), a.ID, true, a.X, a.Y, ax, ay, a.Facing, true, obs)
 	} else if arm.controlSpirit {
 		// The arm finds its corpse by the target's cell and never reads the
