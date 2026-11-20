@@ -147,6 +147,16 @@ func (r gameMenuRow) text() string {
 	return gameMenuLabelText(r.Label)
 }
 
+// button reports whether the panel draws the row as a framed push button. Status
+// rows and literal informational rows are text; a mod action row is literal
+// (its label carries no accelerator mark) yet is still pressed, so it is a button.
+func (r gameMenuRow) button() bool {
+	if r.Status {
+		return false
+	}
+	return !r.Literal || r.Action == gameMenuModAction || r.Action == gameMenuModActionConfirm
+}
+
 func (r gameMenuRow) accelerator(selector int) (byte, bool) {
 	if r.Literal {
 		return 0, false

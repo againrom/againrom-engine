@@ -79,9 +79,9 @@ func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow
 		for slot := 0; slot < count && top+slot < len(rows); slot++ {
 			row := rows[top+slot]
 			r := gameMenuRowRect(panel, slot)
-			if !row.Status && !row.Literal {
+			if row.button() {
 				inside := pointer.ok && pointer.at.In(r)
-				spec.Pushes = append(spec.Pushes, pushButton{Rect: r, Label: row.Label, Hover: inside,
+				spec.Pushes = append(spec.Pushes, pushButton{Rect: r, Label: row.Label, Literal: row.Literal, Hover: inside,
 					Focus: top+slot == list.Selection(), Pressed: pointer.press.Pressed(top + slot),
 					Inside: inside, Disabled: !row.Enabled})
 				continue
