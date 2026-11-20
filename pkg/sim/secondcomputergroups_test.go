@@ -6,13 +6,15 @@ import "testing"
 // a computer Human mage, archer, fighter and flying archer, a player's Human
 // mage and a computer creature carrying its row's thresholds.
 func thresholdActors() []Entity {
-	mage := Entity{ID: 1, Owner: 3, X: 2, Y: 2, HP: 100, MaxHP: 100, MaxMana: 50, Mana: 50, Reach: 1, Humanoid: true}
+	mage := Entity{ID: 1, Owner: 3, X: 2, Y: 2, HP: 100, MaxHP: 100, MaxMana: 50, Mana: 50, Reach: 1, Humanoid: true, KnownSpells: 1 << 24}
 	archer := Entity{ID: 2, Owner: 3, X: 4, Y: 2, HP: 80, MaxHP: 80, Reach: 6, Humanoid: true}
 	fighter := Entity{ID: 3, Owner: 3, X: 6, Y: 2, HP: 60, MaxHP: 60, Reach: 1, Withdraw: 5, Humanoid: true}
 	flyer := Entity{ID: 4, Owner: 3, X: 8, Y: 2, HP: 40, MaxHP: 40, Reach: 6, Domain: DomainAir, Humanoid: true}
 	hero := Entity{ID: 5, Owner: SelfSlot, X: 10, Y: 2, HP: 90, MaxHP: 90, MaxMana: 30, Mana: 30, Reach: 1, Humanoid: true}
 	beast := Entity{ID: 6, Owner: 3, X: 12, Y: 2, HP: 30, MaxHP: 30, Reach: 1, Withdraw: 7, Wimpy: 3}
-	return []Entity{mage, archer, fighter, flyer, hero, beast}
+	// A Human with a mana pool and no spellbook is no mage.
+	manaFighter := Entity{ID: 7, Owner: 3, X: 14, Y: 2, HP: 50, MaxHP: 50, MaxMana: 20, Mana: 20, Reach: 1, Humanoid: true}
+	return []Entity{mage, archer, fighter, flyer, hero, beast, manaFighter}
 }
 
 // A second-game computer Human backs off at Withdraw and flees at Wimpy as
@@ -22,7 +24,7 @@ func thresholdActors() []Entity {
 // setting and a creature its row's values. The first game keeps every value
 // the actor was built with.
 func TestSecondComputerHumansTakeTheClassThresholds(t *testing.T) {
-	want := map[EntityID][2]int32{1: {100, 25}, 2: {40, 0}, 3: {0, 0}, 4: {0, 0}, 5: {0, 0}, 6: {7, 3}}
+	want := map[EntityID][2]int32{1: {100, 25}, 2: {40, 0}, 3: {0, 0}, 4: {0, 0}, 5: {0, 0}, 6: {7, 3}, 7: {0, 0}}
 	w := secondWorld(t, 1, Bounds{Width: 16, Height: 16}, nil, thresholdActors()...)
 	for _, e := range w.Entities() {
 		if got := [2]int32{e.Withdraw, e.Wimpy}; got != want[e.ID] {

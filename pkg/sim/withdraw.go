@@ -39,7 +39,8 @@ func (w *World) withdrawalPassObserved(obs *withdrawalObs) {
 // classThresholds gives each Human no player controls the Withdraw and Wimpy
 // of its class (R2-ENGINE-506): a spellbook HPmax and HPmax/4; else an attack
 // range above 1 on a unit not of movement type 3 (the air domain) HPmax/2 and
-// 0; else 0 and 0. The second game runs it at mission start.
+// 0; else 0 and 0. The second game runs it at mission start. The class reads
+// the book, not the mana pool: a Human with mana and no book is no mage here.
 func (w *World) classThresholds() {
 	if !w.game.classThresholds {
 		return
@@ -50,7 +51,7 @@ func (w *World) classThresholds() {
 			continue
 		}
 		switch {
-		case isMage(*e):
+		case e.Book.WirePresent(e.KnownSpells):
 			e.Withdraw, e.Wimpy = e.MaxHP, e.MaxHP/4
 		case w.attackRange(i) > 1 && e.Domain != DomainAir:
 			e.Withdraw, e.Wimpy = e.MaxHP/2, 0
@@ -81,8 +82,12 @@ func (w *World) withdrawalActor(i int, obs *withdrawalObs) {
 		return
 	}
 	if e.HP <= e.Wimpy {
-		if hostile := w.withdrawalHostiles(i, w.fleeSearchRadius(i)); len(hostile) != 0 {
+		if hostile := w.withdrawalHostiles(i, w.fleeSearchRadius(i)+w.game.fleeSightExtra); len(hostile) != 0 {
 			before := w.entities[i]
+			if w.teleportEscape(i, hostile, int64(e.ScanRange)+1, true) {
+				obs.record(before, w.entities[i])
+				return
+			}
 			if w.withdrawFrom(i, hostile) {
 				w.answerRefusedFlee(i)
 			}
@@ -93,12 +98,57 @@ func (w *World) withdrawalActor(i int, obs *withdrawalObs) {
 	if e.HP <= e.Withdraw {
 		if hostile := w.withdrawalHostiles(i, 2); len(hostile) != 0 {
 			before := w.entities[i]
+			if w.teleportEscape(i, hostile, int64(e.ScanRange)-1, false) {
+				obs.record(before, w.entities[i])
+				return
+			}
 			if w.withdrawFromAny(i, hostile) {
 				w.answerRefusedFlee(i)
 			}
 			obs.record(before, w.entities[i])
 		}
 	}
+}
+
+// teleportArm is the arm of the spell that relocates its caster.
+var teleportArm = armWith(func(a spellArm) bool { return a.teleport })
+
+// teleportEscape is the second game's computer flee and back-off by spell: a
+// unit with Teleport in its book and mana for it casts the spell at the cell
+// reach cells from the hostiles' mean point, away from the unit (R2-ENGINE-1418).
+// It reports true when the unit holds the cast, begun now or already winding
+// up; false leaves the unit to the three-cell walk. A flee needs a living
+// hostile in the list; a back-off does not. The landing cell the cast takes
+// is Unknown.
+func (w *World) teleportEscape(i int, hostile []int, reach int64, needLiving bool) bool {
+	e := w.entities[i]
+	if !w.game.fleeTeleports || reach < 1 || !w.computerControlledUnit(e) {
+		return false
+	}
+	id := uint32(w.spellIDOfArm(teleportArm))
+	rule, ok := w.bookSpell(e, id)
+	if !ok || !rule.runsArm(teleportArm) || !knowsSpell(e, id) || e.Mana < int32(rule.ManaCost) {
+		return false
+	}
+	living := !needLiving
+	for _, ci := range hostile {
+		living = living || w.entities[ci].Living()
+	}
+	if !living {
+		return false
+	}
+	for _, c := range w.bookCasts {
+		if c.Caster == e.ID && uint32(c.Spell) == id {
+			return true
+		}
+	}
+	tx, ty, ok := w.fleeCellAt(i, hostile, reach)
+	if !ok {
+		return false
+	}
+	w.clearOrder(i)
+	w.entities[i].clearAttackBetweenCycles()
+	return w.castOrder(i, CastAt(e.ID, SpellID(id), CellPoint{X: tx, Y: ty}))
 }
 
 // answerRefusedFlee ends a withdrawal's move when no route serves its flee
@@ -241,6 +291,12 @@ func (w *World) withdrawFrom(i int, hostile []int) bool {
 // second game keeps the centres until its own evidence says otherwise
 // (DIV-348).
 func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
+	return w.fleeCellAt(i, hostile, 3)
+}
+
+// fleeCellAt is fleeCell with the displacement of cells cells in place of the
+// walk's three.
+func (w *World) fleeCellAt(i int, hostile []int, cells int64) (tx, ty int32, ok bool) {
 	var sx, sy int64
 	for _, ci := range hostile {
 		fx, fy := w.fleePoint(w.entities[ci])
@@ -261,7 +317,7 @@ func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 	if dy == 0 {
 		dy = 1
 	}
-	const stride = int64(3 * subCell)
+	stride := cells * subCell
 	if intmath.Abs(dx) >= intmath.Abs(dy) {
 		px += sign64(dx) * stride
 		py += stride * dy / intmath.Abs(dx)
