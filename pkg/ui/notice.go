@@ -741,6 +741,7 @@ type noticeKey struct {
 	second   DialogueButtonState
 	policy   DialogueBackdrop
 	lit      int
+	held     int
 }
 
 // Dialogue is one part of a mission's event text as the map screen shows it:
@@ -820,7 +821,7 @@ func (v *Viewer) PageDialogue(d Dialogue) {
 		v.noticeFace, v.noticeFaceWindow = d.Face, d.FaceWindow
 		v.noticeFaceSerial++
 	}
-	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit = d.Replies, d.RepliesOff, 0
+	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit, v.noticeReplyHeld = d.Replies, d.RepliesOff, 0, 0
 	v.noticePic = nil
 }
 
@@ -829,6 +830,15 @@ func (v *Viewer) PageDialogue(d Dialogue) {
 func (v *Viewer) SetDialogueReplyLit(i int) {
 	if v.noticeReplyLit != i {
 		v.noticeReplyLit = i
+		v.noticePic = nil
+	}
+}
+
+// SetDialogueReplyHeld shows reply i (from 1) pressed: the row a primary press
+// began on while the pointer is still over it; 0 shows none pressed.
+func (v *Viewer) SetDialogueReplyHeld(i int) {
+	if v.noticeReplyHeld != i {
+		v.noticeReplyHeld = i
 		v.noticePic = nil
 	}
 }
@@ -902,7 +912,7 @@ func (v *Viewer) SetNotice(s string, kind NoticeKind) {
 	v.noticePortrait, v.noticeFace = false, nil
 	v.noticeFaceWindow = image.Rectangle{}
 	v.noticeFaceSerial++
-	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit = nil, nil, 0
+	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit, v.noticeReplyHeld = nil, nil, 0, 0
 	v.noticePic = nil
 	if kind == NoticeFailure {
 		v.noticeTerminal = true
@@ -936,7 +946,7 @@ func (v *Viewer) ClearNotice() {
 	v.noticePortrait, v.noticeFace = false, nil
 	v.noticeFaceWindow = image.Rectangle{}
 	v.noticeFaceSerial++
-	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit = nil, nil, 0
+	v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit, v.noticeReplyHeld = nil, nil, 0, 0
 	v.noticePic = nil
 }
 
@@ -1001,6 +1011,7 @@ func (v *Viewer) noticeLayout() Dialog {
 			l = v.helpApply(l)
 		} else {
 			l = l.WithReplies(v.font, v.notice, v.noticeReplies, v.noticeReplyOff, v.noticeReplyLit)
+			l.ReplyHeld = v.noticeReplyHeld
 		}
 	} else {
 		state := v.noticeButtonState
@@ -1061,7 +1072,7 @@ func (v *Viewer) noticePresent() (*image.RGBA, image.Point, float64, bool) {
 	l := v.noticeLayout()
 	key := noticeKey{text: v.notice, kind: v.noticeKind, serial: v.noticeSerial,
 		portrait: v.noticePortrait, face: v.noticeFaceSerial, button: l.ButtonState, second: l.SecondaryState, policy: l.DialogueBackdrop,
-		lit: v.noticeReplyLit}
+		lit: v.noticeReplyLit, held: v.noticeReplyHeld}
 	if v.noticePic == nil || key != v.noticeKey {
 		v.noticeText = text.Record(func() {
 			v.noticePic, v.noticeFresh = RenderNotice(l, v.font, v.notice, v.noticeFace), true

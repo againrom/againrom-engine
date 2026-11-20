@@ -843,6 +843,7 @@ type Viewer struct {
 	noticeReplies        []string
 	noticeReplyOff       []bool
 	noticeReplyLit       int
+	noticeReplyHeld      int
 	noticeLayouts        [4]Dialog
 	dialogFrame          *DialogFrame
 	fogCanvas, fogInk    *ebiten.Image

@@ -83,5 +83,10 @@ func (a *App) stepDialogueReplies(in *appInput) int {
 		return chosen
 	}
 	v.SetDialogueReplyLit(lit)
+	if row > 0 && row == a.reply.row {
+		v.SetDialogueReplyHeld(row)
+	} else {
+		v.SetDialogueReplyHeld(0)
+	}
 	return 0
 }

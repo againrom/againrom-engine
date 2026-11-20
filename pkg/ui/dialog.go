@@ -119,6 +119,8 @@ type Dialog struct {
 	Replies   []string
 	ReplyRows []image.Rectangle
 	ReplyLit  int
+	// ReplyHeld is the reply a held primary press began on, from 1, 0 none.
+	ReplyHeld int
 	// ReplyOff marks the rows shown greyed and not choosable.
 	ReplyOff []bool
 }
@@ -359,7 +361,7 @@ func layoutNoticeBox(s Dialog, f *text.Font) dialogLayout {
 		off := i < len(s.ReplyOff) && s.ReplyOff[i]
 		lit := s.ReplyLit == i+1 && !off
 		l.Pushes = append(l.Pushes, pushButton{Rect: r, Label: label, Literal: true, LabelLeft: replyRowInset, Ramp: row.ramp,
-			Hover: lit, Pressed: lit, Inside: lit, Disabled: off, Policy: s.DialogueBackdrop})
+			Hover: lit, Pressed: s.ReplyHeld == i+1 && !off, Inside: lit, Disabled: off, Policy: s.DialogueBackdrop})
 	}
 	l.Pushes = append(l.Pushes, s.Pushes...)
 	if f != nil && !s.Text.Empty() {

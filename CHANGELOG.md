@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 - [BASE] "Abandon mission" is now a row of the End Quest page instead of the game menu's own row, and it abandons the mission at once without asking again.
 - [BASE] A mage's Teleport now plays its sound also when he was still finishing his turn toward the target as the spell began; before, the second game cast it in silence, and the first game lost its second sound.
 - [BASE] The in-game chat and command line now remembers the last 50 lines you sent during the session; Up and Down step through them, and Down past the newest brings back what you were typing.
+- В окне диалога поле «Ответ» снова показывает русский текст читаемо, а строка ответа вдавливается только при нажатии, а не при наведении.
 
 ### For map makers and modders
 

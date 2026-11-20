@@ -175,8 +175,49 @@ func TestReplyLightChangesThePictureAndRowsDoNotOverlap(t *testing.T) {
 	if reflect.DeepEqual(before, lit.Pix) {
 		t.Error("lighting reply 1 left the picture unchanged")
 	}
-	if p := layoutNoticeBox(v.noticeLayout(), v.font).Pushes; !p[0].sunk() || !p[0].Hover || p[1].sunk() || p[1].Hover {
-		t.Error("the lit row is not hover-inked and sunk, or another row is")
+	if p := layoutNoticeBox(v.noticeLayout(), v.font).Pushes; p[0].sunk() || !p[0].Hover || p[1].sunk() || p[1].Hover {
+		t.Error("the lit row is not hover-inked and raised, or another row is lit or sunk")
+	}
+	v.SetDialogueReplyHeld(1)
+	if p := layoutNoticeBox(v.noticeLayout(), v.font).Pushes; !p[0].sunk() || p[1].sunk() {
+		t.Error("the held row is not sunk, or another row is")
+	}
+}
+
+// Hover lights a row and does not sink it; a press that began on the row sinks
+// it while held over it, and the release lets it up.
+func TestReplyRowSinksOnlyWhileAPressIsHeld(t *testing.T) {
+	a, seam := replyApp(t, replyTexts(3))
+	sunk := func() bool {
+		return layoutNoticeBox(seam.v.noticeLayout(), seam.v.font).Pushes[1].sunk()
+	}
+	at, other := rowCentre(seam.v, 2), rowCentre(seam.v, 1)
+	step := func(action string, p image.Point) {
+		t.Helper()
+		if err := a.HeadlessPointer(action, p.X, p.Y); err != nil {
+			t.Fatal(err)
+		}
+	}
+	step("hover", at)
+	if seam.v.noticeReplyLit != 2 || sunk() {
+		t.Fatalf("hover: lit %d, sunk %v, want lit 2 and raised", seam.v.noticeReplyLit, sunk())
+	}
+	step("press", at)
+	if !sunk() {
+		t.Fatal("a held press on the row does not sink it")
+	}
+	step("hover", other)
+	if sunk() {
+		t.Fatal("the row stays sunk with the pointer off it")
+	}
+	step("hover", at)
+	if !sunk() {
+		t.Fatal("the row does not sink again with the pointer back on it")
+	}
+	step("hover", other)
+	step("release", other)
+	if sunk() {
+		t.Fatal("the row stays sunk after the release")
 	}
 }
 

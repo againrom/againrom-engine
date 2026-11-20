@@ -1272,6 +1272,8 @@ func (e *MapEditor) replyScope() *popupScope {
 		}
 	}
 	bind("text", dlgReplyText)
+	// The field holds UTF-8; the row draws in the font's bytes, converted here once.
+	top.Values["text"] = e.editorHostText(top.Values["text"])
 	bind("next", dlgNext)
 	bind("once", dlgOnce)
 	bind("unavailable", dlgUnavailable)
