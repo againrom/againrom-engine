@@ -78,6 +78,7 @@ var editRows = map[alm.Format]*editRow{
 			reflect.TypeFor[ui.InspectionNewRecords](), reflect.TypeFor[ui.InspectionBrush](),
 			reflect.TypeFor[ui.InspectionBrushFill](), reflect.TypeFor[ui.InspectionBrushIcons](),
 			reflect.TypeFor[ui.InspectionFieldSet](),
+			reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups](),
 		},
 		templatePlacing: true, centredCells: true, admissions: secondAdmissions,
 	},

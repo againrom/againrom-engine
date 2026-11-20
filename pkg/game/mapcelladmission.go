@@ -86,8 +86,9 @@ func admissionOf(kind ui.RecordKind, route cellRoute) cellAdmission {
 // structure, more than 8 cells from every edge. The ring, the ground arms and
 // the footprint tables are the first game's and are not read for it.
 var secondAdmissions = map[admissionKey]cellAdmission{
-	{ui.KindStructure, admitAdd}:  {bounds: true, edge: 8},
-	{ui.KindStructure, admitMove}: {bounds: true, edge: 8},
+	{ui.KindStructure, admitAdd}:   {bounds: true, edge: 8},
+	{ui.KindStructure, admitMove}:  {bounds: true, edge: 8},
+	{ui.KindStructure, admitGroup}: {bounds: true, edge: 8},
 }
 
 // admissionFor is the row of m's format.

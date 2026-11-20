@@ -67,7 +67,7 @@ var almReferences = nameTable{
 	"second.go/(*Editor).secondIDs":              {"alm.SecondUnitTag"},
 	"second.go/(*Editor).secondLists":            {"alm.SecondMeta11Count", "alm.SecondTypeLists"},
 	"second.go/(*Editor).secondMarkers":          {"alm.SecondMarkerCount", "alm.SecondMarkerEntry", "alm.SecondMarkerHead", "alm.SecondMarkerKey", "alm.SecondMarkerMode"},
-	"second.go/" + fileScope:                     {"alm.SecondType11A", "alm.SecondType11B", "alm.SecondType11C", "alm.SecondUnitOwner"},
+	"second.go/" + fileScope:                     {"alm.SecondType11A", "alm.SecondType11B", "alm.SecondType11C", "alm.SecondUnitGroup", "alm.SecondUnitOwner"},
 	"second.go/init":                             {"alm.SecondFormat", "alm.SecondUnitSize"},
 	"second.go/secondCloneUnitParts":             {"alm.SecondUnitSack", "alm.SecondUnitTag"},
 	"second.go/secondMoveUnitParts":              {"alm.SecondUnitTag"},

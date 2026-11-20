@@ -164,12 +164,12 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 				refusals = append(refusals, why)
 				continue
 			}
-			a := admissionOf(it.ref.Kind, admitGroup)
+			a := admissionFor(m, it.ref.Kind, admitGroup)
 			switch a.verdict(view, it.cell) {
 			case cellOutside:
 				refusals = append(refusals, fmt.Sprintf(s.inspector.word("editor.selection.outside"), s.recordName(it.ref), it.cell.X, it.cell.Y))
 				continue
-			case cellInRing:
+			case cellInRing, cellAtEdge:
 				refusals = append(refusals, s.refusalNote(it.ref, a.refusal(view, it.cell, "cell")))
 				continue
 			}
@@ -200,7 +200,7 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 		}
 		refused := false
 		for n, it := range items {
-			if i, ok := placed[n]; ok && admissionOf(it.ref.Kind, admitGroup).footprint {
+			if i, ok := placed[n]; ok && admissionFor(m, it.ref.Kind, admitGroup).footprint {
 				if err := s.placementError(after, feet, it.kind, i, image.Rectangle{}, group); err != nil {
 					closed[n] = s.refusalNote(it.ref, err)
 					refused = true
@@ -212,7 +212,7 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 		again := refused
 		for n, it := range items {
 			i, ok := placed[n]
-			adm := admissionOf(it.ref.Kind, admitGroup)
+			adm := admissionFor(m, it.ref.Kind, admitGroup)
 			if !ok || refused || adm.arms == 0 || len(arms) != bounds.Dx()*bounds.Dy() || len(plane) != len(arms) {
 				continue
 			}
@@ -294,7 +294,7 @@ func (s *mapInspectionEdits) moveItems(refs []ui.RecordRef, offset image.Point) 
 		from := image.Pt(int(x>>8), int(y>>8))
 		cell := from.Add(offset)
 		items = append(items, groupPlacement{ref: ref, kind: k, cell: cell, foot: groupFoot(feet, k, index, from, cell), apply: func(m *mapedit.Editor) (int, error) {
-			nx, ny := cellWords(cell, x, y)
+			nx, ny := placeWords(m, cell, x, y)
 			return index, m.Move(k, index, nx, ny)
 		}})
 	}
@@ -340,7 +340,7 @@ func (s *mapInspectionEdits) PasteRecords(c ui.InspectionClip, cell image.Point)
 			if err != nil {
 				return -1, err
 			}
-			nx, ny := cellWords(target, x, y)
+			nx, ny := placeWords(m, target, x, y)
 			if same {
 				return m.CloneFromCopy(clip.source, r.kind, r.ref.Index, nx, ny)
 			}
@@ -440,6 +440,9 @@ func pastedGroups(m *mapedit.Editor, groups map[int64]int64) int {
 func (s *mapInspectionEdits) pasteOwner(m *mapedit.Editor, source *mapedit.Editor, r clipRecord) error {
 	if r.kind != mapedit.KindUnit && r.kind != mapedit.KindStructure {
 		return nil
+	}
+	if r.kind == mapedit.KindStructure && !rowFor(m).playerRecords {
+		return nil // the format's structure record names no owner field
 	}
 	owner, err := source.FieldValue(r.kind, r.ref.Index, "owner")
 	if err != nil {

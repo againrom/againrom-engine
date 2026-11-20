@@ -57,6 +57,7 @@ func init() {
 // template's bytes.
 var secondUnitFields = []Field{
 	{Key: "owner", Label: "Owner slot", Offset: alm.SecondUnitOwner, Width: 4, Min: 1, Max: math.MaxUint16, Check: CheckRosterSlot},
+	{Key: "group", Label: "Group", Offset: alm.SecondUnitGroup, Width: 4, Min: 0, Max: math.MaxUint32},
 }
 
 func secondStructureLength(_ *Editor, b []byte) int {

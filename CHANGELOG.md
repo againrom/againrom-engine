@@ -40,6 +40,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM2] The map editor now selects with a frame, copies, pastes and groups units, structures and ground sacks on a second-game map, and a pasted unit keeps its own sack; the store and recipe tools and area copy stay off there.
 - [BASE] The mod window has a "Move old paths" button that carries every file a row names on an old path into the mod's `assets` and `maps` folders and rewrites the rows; it refuses, naming both files, when a target holds a different file.
 - [BASE] A mod whose numbered map files replace no mission of the install marks no save again, and the override line of a mission replaced by a map file names the file without a line number.
 - [ROM1] On the mod window's Towns page, "Switch on" gives a town back the table its towns file holds, with every key written by hand, and emptying only one number of a map point leaves the point as written and says why.
