@@ -170,10 +170,9 @@ func TestTavernSleepIsTheTavernRoomsSleepRow(t *testing.T) {
 	}
 }
 
-// A mod first-game tavern room's own buttons do not move Sleep: the shown
-// button 0 restocks once and button 1 (Hire) restocks none, whatever the room
-// names.
-func TestModTavernButtonsKeepSleepAtButtonZero(t *testing.T) {
+// A mod tavern room's own buttons place Sleep: the button named sleep
+// restocks once, wherever the room lists it, and no other button restocks.
+func TestModTavernButtonsPlaceSleepByName(t *testing.T) {
 	shipped := townBooks["rom1"]
 	sleepRow := shipped.descriptions["rom1"].Room("tavern").Buttons[0]
 	named := func(name string) town.ButtonSpec {
@@ -187,7 +186,8 @@ func TestModTavernButtonsKeepSleepAtButtonZero(t *testing.T) {
 		"shipped":    {sleepRow},
 	}
 	for name, buttons := range rooms {
-		for pressed, want := range []uint64{1, 0} {
+		wants := map[string][]uint64{"talk": {0, 0}, "hire,sleep": {0, 1}, "shipped": {1, 0}}[name]
+		for pressed, want := range wants {
 			f := shellFrontEnd()
 			table := shopTable()
 			table.Humans, table.NPC = f.Table.Humans, f.Table.NPC

@@ -95,9 +95,9 @@ type roomSeatInput struct {
 	price, detail           string
 }
 
-func surfaceRoomContents(v ui.TownSurfaceView) roomPageContents {
+func surfaceRoomContents(v ui.TownSurfaceView, appearance *town.SeatAppearance) roomPageContents {
 	c := roomPageContents{surface: &v}
-	c.appearance = ROM1TownDescription().Room("tavern").Seats.Appearance
+	c.appearance = appearance
 	font := v.CardFont
 	if font == nil {
 		font = v.Font
@@ -174,28 +174,69 @@ func pagePicture(pic func(string) image.Image, name string) image.Image {
 	return pic(name)
 }
 
-// tavernRoom is the first game's tavern room: the town's own when it lays
-// out seats, else the profile's, as for a mod town that names none.
+// tavernRoom is the tavern room every reader of the page shares: the town's
+// own, with the profile's seats, seat appearance, buttons and backdrop where
+// the town's room names none. Buttons keep their index: 0 is the Sleep
+// control by name, 1 to 3 hire, talk and exit; a button past 3 has no
+// action and is ignored.
 func (t *townScreen) tavernRoom() *town.RoomSpec {
-	if d := t.townDescription(); d != nil {
-		if r := d.Room("tavern"); r != nil && r.Seats != nil {
-			return r
-		}
-	}
 	d := t.defaults
 	if d == nil {
 		d = ROM1TownDescription()
 	}
-	return d.Room("tavern")
+	base := d.Room("tavern")
+	if base == nil {
+		base = ROM1TownDescription().Room("tavern")
+	}
+	var own *town.RoomSpec
+	if td := t.townDescription(); td != nil {
+		own = td.Room("tavern")
+	}
+	if own == nil {
+		return base
+	}
+	r := *own
+	if r.Seats == nil {
+		r.Seats = base.Seats
+	} else if r.Seats.Appearance == nil && base.Seats != nil {
+		seats := *r.Seats
+		seats.Appearance = base.Seats.Appearance
+		r.Seats = &seats
+	}
+	if len(r.Buttons) == 0 {
+		r.Buttons = base.Buttons
+	}
+	if r.Scene == nil || r.Scene.Backdrop == nil {
+		var scene town.SceneSpec
+		if r.Scene != nil {
+			scene = *r.Scene
+		}
+		if base.Scene != nil {
+			scene.Backdrop = base.Scene.Backdrop
+		}
+		r.Scene = &scene
+	}
+	return &r
 }
 
-// tavernButtons are the first game's tavern buttons in index order: the
-// shipped first town's, whatever a mod tavern room's buttons name.
-func (t *townScreen) tavernButtons() []town.ButtonSpec {
-	if r := ROM1TownDescription().Room("tavern"); r != nil {
-		return r.Buttons
+// tavernButtonVerb is the inn verb of tavern button i by the button's name;
+// a button the engine has no verb for is ignored.
+func (t *townScreen) tavernButtonVerb(i int) (innVerb, bool) {
+	b := t.tavernButtons()
+	if i < 0 || i >= len(b) {
+		return 0, false
 	}
-	return nil
+	return innButtonVerb(b[i].Name)
+}
+
+func (t *townScreen) tavernButtonIs(i int, v innVerb) bool {
+	got, ok := t.tavernButtonVerb(i)
+	return ok && got == v
+}
+
+// tavernButtons are the tavern room's buttons in index order.
+func (t *townScreen) tavernButtons() []town.ButtonSpec {
+	return t.tavernRoom().Buttons
 }
 
 // TavernPageLayout is the first game's tavern page of n seats, the first
@@ -212,7 +253,7 @@ func (in *InstallResources) SurfacePageLayout(v ui.TownSurfaceView, hires int) u
 	}
 	room := map[ui.TownSurfaceKind]string{ui.TownSurfaceTavern: "tavern", ui.TownSurfaceSchool: "school"}[v.Kind]
 	r := ROM1TownDescription().Room(room)
-	c := surfaceRoomContents(v)
+	c := surfaceRoomContents(v, ROM1TownDescription().Room("tavern").Seats.Appearance)
 	if r != nil {
 		c.person = placeRoomPerson(r.Seats, pic, v.Candidate, v.Candidate.Figure)
 	}
@@ -242,21 +283,16 @@ func (t *townScreen) tavernPerson(c ui.TownCharacterView) ui.RoomPerson {
 // of them a mercenary's, and v's candidate placed on it and drawn by the
 // pixels and text v carries.
 func (t *townScreen) setTavernPage(v *ui.TownSurfaceView, n, hires int) {
-	c := surfaceRoomContents(*v)
-	c.person = t.tavernPerson(v.Candidate)
+	r := t.tavernRoom()
+	var appearance *town.SeatAppearance
+	if r.Seats != nil {
+		appearance = r.Seats.Appearance
+	}
+	c := surfaceRoomContents(*v, appearance)
+	c.person = placeRoomPerson(r.Seats, t.tavernPicture(), v.Candidate, v.Candidate.Figure)
 	c.person.Picture, c.person.Text = v.CandidatePixels, v.CandidateText
 	c.scene = t.roomView("tavern")
-	r := *t.tavernRoom()
-	r.Buttons = t.tavernButtons()
-	if r.Scene == nil || r.Scene.Backdrop == nil {
-		var scene town.SceneSpec
-		if r.Scene != nil {
-			scene = *r.Scene
-		}
-		scene.Backdrop = ROM1TownDescription().Room("tavern").Scene.Backdrop
-		r.Scene = &scene
-	}
-	v.Page = buildRoomPage(&r, t.tavernPicture(), n, hires, c)
+	v.Page = buildRoomPage(r, t.tavernPicture(), n, hires, c)
 }
 
 // renderTavernPerson draws candidate c once over the tavern's own art; nil

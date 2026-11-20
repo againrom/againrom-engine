@@ -349,7 +349,7 @@ func (t *townScreen) TownSurfacePress(c ui.TownSurfaceControl) {
 			t.raiseRoomEvent(roomTavern, roomEventCellPress)
 		}
 		return
-	case t.room == roomTavern && c.Kind == ui.TownSurfaceControlButton && c.Index == tavernButtonExit,
+	case t.room == roomTavern && c.Kind == ui.TownSurfaceControlButton && t.tavernButtonIs(c.Index, innExit),
 		t.room == roomSchool && c.Kind == ui.TownSurfaceControlButton && c.Index == 1:
 		t.raiseRoomEvent(t.room, roomEventLeave)
 		return
@@ -449,16 +449,16 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	if t.room == roomTavern {
-		if sleepButton(t.tavernButtons(), i) {
+		verb, ok := t.tavernButtonVerb(i)
+		if ok && verb == innSleep {
 			return t.innAction(t.innProfile(), nil, innSleep)
 		}
-		candidate, ok := t.selectedTavernCandidate()
+		candidate, found := t.selectedTavernCandidate()
 		var seat *innSeat
-		if ok {
+		if found {
 			seat = &candidate.seat
 		}
-		verbs := map[int]innVerb{tavernButtonHire: innHire, tavernButtonTalk: innTalk, tavernButtonExit: innExit}
-		if verb, ok := verbs[i]; ok {
+		if ok {
 			return t.innAction(t.innProfile(), seat, verb)
 		}
 	}
