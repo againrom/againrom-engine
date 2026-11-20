@@ -46,7 +46,7 @@ func cellPlaneMissionPair(t *testing.T, f *FrontEnd, n int) (planes, native *Mis
 	}
 	planes, m = open(f.Table)
 	bare := *f.Table
-	bare.DocumentCellPlanes = true
+	bare.DocumentCellPlanes, bare.StartSlots = true, true
 	native, _ = open(&bare)
 	return planes, native, m, true
 }

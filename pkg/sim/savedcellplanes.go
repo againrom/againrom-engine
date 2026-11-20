@@ -388,7 +388,16 @@ func (w *World) createSavedCell(key uint16) string {
 		return ""
 	}
 	p := w.savedCellPlanes
-	if p == nil || p.CostKnown[key] == 0 {
+	if p == nil {
+		// A World without planes keeps the slot table alone: a record holds
+		// the two slots and nothing else.
+		at := sort.Search(len(w.cellRecords), func(i int) bool { return w.cellRecords[i].Cell >= key })
+		w.cellRecords = append(w.cellRecords, SavedActorCell{})
+		copy(w.cellRecords[at+1:], w.cellRecords[at:])
+		w.cellRecords[at] = SavedActorCell{Cell: key}
+		return ""
+	}
+	if p.CostKnown[key] == 0 {
 		return "new cell construction lacks known current cost"
 	}
 	// SAV-CELLENTRY-582: zero52, then capture both baselines before setting
@@ -408,6 +417,14 @@ func (w *World) createSavedCell(key uint16) string {
 func (w *World) deleteEmptySavedCell(key uint16) bool {
 	c := w.motionCell(key)
 	p := w.savedCellPlanes
+	if c != nil && p == nil {
+		if !motionCellDeletionEligible(c.Payload) || cellSlotTaken(c.Ground) || cellSlotTaken(c.Air) {
+			return false
+		}
+		at := sort.Search(len(w.cellRecords), func(i int) bool { return w.cellRecords[i].Cell >= key })
+		w.cellRecords = append(w.cellRecords[:at], w.cellRecords[at+1:]...)
+		return true
+	}
 	if c == nil || p == nil {
 		return false
 	}
@@ -469,13 +486,67 @@ func (w *World) movePlaneMotionSlots(i int, to uint16) bool {
 	return detached
 }
 
-// moveNativeCellSlots is a native mover's crossing on a World with planes:
-// the release of the footprint at from, then the occupation of the footprint
-// at to (MOVE-088). The native step's crossing requests the entry's cell
-// casts, so the occupation requests none. A native actor without a
+// HoldsSlotTable reports whether a World without planes keeps its cell slots
+// as a slot table: rows that hold the two slots and nothing else.
+func (w *World) HoldsSlotTable() bool {
+	if w.savedCellPlanes != nil || len(w.cellRecords) == 0 {
+		return false
+	}
+	for _, c := range w.cellRecords {
+		p := c.Payload
+		binary.LittleEndian.PutUint32(p[4:], 0)
+		binary.LittleEndian.PutUint32(p[8:], 0)
+		if p != [52]byte{} {
+			return false
+		}
+	}
+	return true
+}
+
+// loadedSlotTable is the slot table of a World without planes, taken from the
+// cell rows a LOAD imported: a row keeps its two slots and nothing else, and a
+// row with no slot taken goes. A slot bound to a native actor takes the native
+// form, as a crossing writes it.
+func (w *World) loadedSlotTable() []SavedActorCell {
+	var out []SavedActorCell
+	for _, c := range w.cellRecords {
+		if !cellSlotTaken(c.Ground) && !cellSlotTaken(c.Air) {
+			continue
+		}
+		r := SavedActorCell{Cell: c.Cell, Ground: c.Ground, Air: c.Air}
+		binary.LittleEndian.PutUint32(r.Payload[4:], c.Ground.Key)
+		binary.LittleEndian.PutUint32(r.Payload[8:], c.Air.Key)
+		out = append(out, r)
+	}
+	saved := w.cellRecords
+	w.cellRecords = out
+	w.nativeSlotForm()
+	w.cellRecords = saved
+	return out
+}
+
+// recomputeCrossedCell is the recompute of one cell a slot test lets through:
+// the shared plane recompute on a World with planes, the area-cost recompute
+// on one without.
+func (w *World) recomputeCrossedCell(key uint16) {
+	if w.savedCellPlanes != nil {
+		w.recomputeSavedCell(key)
+		return
+	}
+	w.recomputeAreaCosts(cell{x: int32(key & 255), y: int32(key >> 8)})
+}
+
+// recomputeCrossing is a native mover's crossing on either kind of World: the
+// release of the footprint at from, then the occupation of the footprint at
+// to (MOVE-084, MOVE-088). The native step's crossing requests the entry's
+// cell casts, so the occupation requests none. A native actor without a
 // source identity binds its slots with key 0; SAVE supplies the key.
-func (w *World) moveNativeCellSlots(i int, from, to cell) {
-	key := w.motionActorKey(w.entities[i].ID)
+func (w *World) recomputeCrossing(e Entity, from, to cell) {
+	i := indexOfEntity(w.entities, e.ID)
+	if i < 0 {
+		return
+	}
+	key := w.motionActorKey(e.ID)
 	w.releaseCellSlots(i, from)
 	w.occupyCellSlots(i, to, key, false)
 	w.refreshSavedPlaneBlocks()
@@ -526,7 +597,7 @@ func (w *World) releaseCellSlots(i int, at cell) bool {
 			*motionSlot(c, layer) = SavedActorSlot{}
 			binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], 0)
 			w.syncCurrentCellActor(key, layer, *motionSlot(c, layer))
-			w.recomputeSavedCell(key)
+			w.recomputeCrossedCell(key)
 			w.deleteEmptySavedCell(key)
 			detached = true
 		}
@@ -560,7 +631,7 @@ func (w *World) occupyCellSlots(i int, at cell, actorKey uint32, cast bool) stri
 			*motionSlot(c, layer) = SavedActorSlot{Key: actorKey, Entity: e.ID, Bound: true}
 			binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], actorKey)
 			w.syncCurrentCellActor(key, layer, *motionSlot(c, layer))
-			w.recomputeSavedCell(key)
+			w.recomputeCrossedCell(key)
 		}
 	}
 	return ""

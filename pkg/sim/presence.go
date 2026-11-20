@@ -171,16 +171,23 @@ func (w *World) placeAt(i int, x, y int32) bool {
 // leavePresenceCells and enterPresenceCells keep a World's cell slots with
 // map presence: a removal leaves the actor's cells and a placement enters
 // them, by the crossing's rules (SAV-CELLLEAVE-584, SAV-CELLENTRY-582;
-// DIV-3099). A World without cell planes holds no slots.
+// DIV-3099). A World holds slots with planes or as a slot table; any other
+// World holds none.
 func (w *World) leavePresenceCells(i int) {
-	if w.savedCellPlanes != nil {
+	if w.holdsPresenceSlots() {
 		w.releaseCellSlots(i, cell{x: w.entities[i].X, y: w.entities[i].Y})
 		w.refreshSavedPlaneBlocks()
 	}
 }
 
+// holdsPresenceSlots is true for a World with planes and for one whose own
+// slot table stands without imported motion.
+func (w *World) holdsPresenceSlots() bool {
+	return w.savedCellPlanes != nil || w.HoldsSlotTable() && (w.savedMotion == nil || len(w.savedMotion.Motions) == 0)
+}
+
 func (w *World) enterPresenceCells(i int) {
-	if w.savedCellPlanes != nil {
+	if w.holdsPresenceSlots() {
 		e := w.entities[i]
 		w.occupyCellSlots(i, cell{x: e.X, y: e.Y}, w.motionActorKey(e.ID), false)
 		w.refreshSavedPlaneBlocks()

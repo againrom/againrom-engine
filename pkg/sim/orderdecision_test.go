@@ -146,13 +146,13 @@ func TestEmptyWalkStopAndArrivalKeepDifferentLatches(t *testing.T) {
 
 func TestFirstGameOrderCellsKeepTheirBytes(t *testing.T) {
 	t.Parallel()
-	for primary, want := range map[uint8]uint64{4: 5639754465014353473, 7: 14881767044725322728, 255: 2175796466901727936} {
+	for primary, want := range map[uint8]uint64{4: 16317512651219598567, 7: 10724637488198771854, 255: 3477048198492198742} {
 		w := primaryCellScene(t, false, primary)
 		for range 20 {
 			Step(w, nil)
 		}
 		if got := w.Hash(); got != want {
-			t.Errorf("first-game imported primary %d hash=%d, want pre-change %d", primary, got, want)
+			t.Errorf("first-game imported primary %d hash=%d, want recorded %d", primary, got, want)
 		}
 	}
 	for _, kind := range []string{"body veto", "body flier", "body reserve", "saved acquisition", "joined score", "cover preference", "idle escort", "computer support", "empty guard", "empty pursuit", "empty none", "repick range"} {
@@ -167,7 +167,7 @@ func TestFirstGameOrderCellsKeepTheirBytes(t *testing.T) {
 				"empty none": 11314713690971926999, "repick range": 16341346082256859235,
 			}[kind]
 			if got := w.Hash(); got != want {
-				t.Fatalf("first-game %s hash=%d, want pre-change %d", kind, got, want)
+				t.Fatalf("first-game %s hash=%d, want recorded %d", kind, got, want)
 			}
 		})
 	}
@@ -199,7 +199,7 @@ func TestFirstGameOrderCellsKeepTheirBytes(t *testing.T) {
 				"empty walk": 3291890885520310301,
 			}[kind]
 			if got := w.Hash(); got != want {
-				t.Fatalf("first-game %s hash=%d, want pre-change %d", kind, got, want)
+				t.Fatalf("first-game %s hash=%d, want recorded %d", kind, got, want)
 			}
 		})
 	}

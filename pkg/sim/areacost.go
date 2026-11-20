@@ -321,28 +321,6 @@ func (w *World) ResetLoadedAreaCosts() {
 	w.areaCosts, w.areaCostLive = rows, true
 }
 
-// recomputeCrossing is the release of the footprint at from and the occupation
-// of the footprint at to (MOVE-084, MOVE-085). On a World with planes the cell
-// slots decide which cells recompute (MOVE-088).
-func (w *World) recomputeCrossing(e Entity, from, to cell) {
-	if w.savedCellPlanes != nil {
-		if i := indexOfEntity(w.entities, e.ID); i >= 0 {
-			w.moveNativeCellSlots(i, from, to)
-		}
-		return
-	}
-	side := footprintSide(e.TokenSize)
-	cells := make([]cell, 0, 2*side*side)
-	for _, at := range [2]cell{from, to} {
-		for dy := int32(0); dy < side; dy++ {
-			for dx := int32(0); dx < side; dx++ {
-				cells = append(cells, cell{x: at.x + dx, y: at.y + dy})
-			}
-		}
-	}
-	w.recomputeAreaCosts(cells...)
-}
-
 // strideCrossing reports the cells a transit leaves and enters on its tick-th
 // tick after the one that started it, when the position's cell changes on that
 // tick. The starting tick already adds the first step (MOVE-084), so tick t

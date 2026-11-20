@@ -128,7 +128,7 @@ func TestACrossingRecomputesTheWholeFootprint(t *testing.T) {
 	for i := range cost {
 		cost[i] = 8
 	}
-	w, err := NewTerrainWorld(1, b, ModeCanonical, Terrain{Cost: cost},
+	w, err := NewTerrainWorld(1, b, ModeCanonical, Terrain{Cost: cost, StartSlots: true},
 		[]Entity{{ID: 1, X: 1, Y: 1, Speed: 16, TokenSize: 2}}, nil)
 	if err != nil {
 		t.Fatal(err)

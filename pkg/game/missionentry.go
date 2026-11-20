@@ -303,6 +303,10 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 		loaded := *table
 		loaded.DocumentCellPlanes = true
 		table = &loaded
+	} else if table != nil {
+		started := *table
+		started.StartSlots = true
+		table = &started
 	}
 	ms, err := startMissionFromWith(mv.Map, addr, r.n, table, diff, entryParty, draws)
 	if err != nil {

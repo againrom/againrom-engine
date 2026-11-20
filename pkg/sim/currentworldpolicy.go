@@ -39,6 +39,7 @@ type CurrentWorldPolicy struct {
 	CurrentRegisters                                                           *[100]int32          `json:"-"`
 	Groups                                                                     []CurrentGroupPolicy
 	GroupCarrier, MotionCarrier, PlaneCarrier, StructureCarrier, ObjectCarrier bool
+	SlotCarrier                                                                bool                 `json:",omitempty"`
 	SpellGraphCarrier, EffectDriverCarrier                                     *bool                `json:",omitempty"`
 	SpellPolicies                                                              []CurrentSpellPolicy `json:",omitempty"`
 	Formations                                                                 [relationSlots]uint8
@@ -95,6 +96,7 @@ func (w *World) CurrentPolicy() CurrentWorldPolicy {
 		ItemWeights:  &weights,
 		Terrain:      Terrain{Block: slices.Clone(w.grid), Cost: slices.Clone(w.cost), Height: slices.Clone(w.height)},
 		GroupCarrier: true, MotionCarrier: w.savedMotion != nil, PlaneCarrier: w.savedCellPlanes != nil,
+		SlotCarrier:      w.HoldsSlotTable(),
 		StructureCarrier: w.hasSavedStructures, ObjectCarrier: w.savedObjects != nil, Formations: w.formations,
 		Scorched: slices.Clone(w.scorchedCells), SpellGraphCarrier: &graph, EffectDriverCarrier: &drivers}
 	if w.savedCellPlanes != nil {
@@ -244,7 +246,9 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 	// A first-game World keeps the cell planes its LOAD import built even when
 	// an older engine SAV did not mark them: every first-game World holds them.
 	dropPlanes := !p.PlaneCarrier && (w.game.nativeCellPlanes || w.savedCellPlanes == nil)
-	if !p.MotionCarrier && dropPlanes {
+	if p.SlotCarrier && w.savedCellPlanes == nil {
+		w.cellRecords = w.loadedSlotTable()
+	} else if !p.MotionCarrier && dropPlanes {
 		w.cellRecords = nil
 	}
 	if dropPlanes {

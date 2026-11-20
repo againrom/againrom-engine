@@ -82,7 +82,8 @@ func (w *World) SavedActorMotions() ([]SavedActorMotion, []SavedActorCell, []Sav
 			// records in the planes.
 			return nil, cells, w.planeBlocks(0), true
 		}
-		return nil, cells, nil, len(w.cellRecords) > 0
+		// A slot table is the World's own occupancy, not imported authority.
+		return nil, cells, nil, len(w.cellRecords) > 0 && !w.HoldsSlotTable()
 	}
 	return s.Motions, cells, s.Blocks, true
 }

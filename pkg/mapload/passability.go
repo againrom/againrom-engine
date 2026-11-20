@@ -464,6 +464,7 @@ func Height(m *alm.Map) []byte {
 // (the second game, a tool without an install) yields neither.
 func Planes(m *alm.Map, t *Table) sim.Terrain {
 	out := sim.Terrain{Block: PassabilityWith(m, t), Cost: costPlane(m, t.TerrainCostTable(), t.ModTerrain()), Height: Height(m)}
+	out.StartSlots = t != nil && t.StartSlots && m != nil
 	if t != nil && t.TerrainCosts != nil && !t.DocumentCellPlanes && m != nil {
 		out.Base, out.BaseFault = OriginalTerrainPlanesWith(m, *t.TerrainCosts, t.ModTerrain())
 		out.Overlay = m.Overlay

@@ -84,6 +84,10 @@ func (w *World) clearTerminalRegistry(ids map[EntityID]bool, keys map[uint32]boo
 		}
 	}
 	for cell, mask := range touched {
+		if w.savedCellPlanes == nil {
+			// The slot table keeps a row only while a slot holds it.
+			w.deleteEmptySavedCell(cell)
+		}
 		if c := w.motionCell(cell); c != nil {
 			if cellSlotTaken(c.Ground) {
 				mask &^= 0x40

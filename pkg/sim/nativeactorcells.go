@@ -7,10 +7,10 @@ func (w *World) ReconcileNativeActorRegistry(bindings map[EntityID]uint32) {
 }
 
 func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
+	w.nativeSlotForm()
 	if w.savedCellPlanes == nil {
 		return
 	}
-	w.nativeSlotForm()
 	// A native actor (no source identity, no motion record) moves its slots
 	// with it, so a slot bound to it on a cell it does not cover comes from a
 	// loaded document; such an actor is reconciled as a mover is.

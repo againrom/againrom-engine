@@ -186,7 +186,7 @@ func savedMotionWords(record *sav.DocumentRecordData, name string) ([]uint16, er
 // this producer alone does not admit original-format world export.
 func projectSavedActorMotions(state *SnapshotSAVDocument, world *sim.World) error {
 	motions, cells, blocks, present := world.SavedActorMotions()
-	if !present {
+	if !present && !world.HoldsSlotTable() {
 		return nil // Historical AGS has no reconstructed spatial authority.
 	}
 	if state == nil || state.Document == nil || state.Document.World == nil {
@@ -264,6 +264,12 @@ func projectSavedActorMotions(state *SnapshotSAVDocument, world *sim.World) erro
 		next.World.Blocks = make([]sav.BlockRecord, 0, len(blocks))
 		for _, block := range blocks {
 			next.World.Blocks = append(next.World.Blocks, sav.BlockRecord{Cell: block.Cell, Dyn: block.Dyn, Static: block.Static})
+		}
+	} else if world.HoldsSlotTable() {
+		// A slot table alone says who holds a cell; the positions the
+		// document builder wrote are not the history it keeps.
+		for i := range next.World.Cells {
+			next.World.Cells[i].GroundActor, next.World.Cells[i].AirActor = 0, 0
 		}
 	}
 	for i, cell := range next.World.Cells {

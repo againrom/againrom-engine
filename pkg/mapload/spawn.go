@@ -132,6 +132,10 @@ type Table struct {
 	// planes and the LOAD import builds them (SAV-LOAD-057).
 	DocumentCellPlanes bool
 
+	// StartSlots marks a mission start: a World built without planes holds
+	// its actors' cell slots from construction.
+	StartSlots bool
+
 	// Mods describes the mods the session runs under; the zero value is none.
 	// The save writer and reader read it to mark and check a save.
 	Mods ModContext

@@ -1666,6 +1666,10 @@ type Terrain struct {
 	Base      *SavedCellPlanes
 	Overlay   []byte
 	BaseFault error
+
+	// StartSlots marks a mission start without installed planes: the actors
+	// occupy their cell slots at construction, as a start with planes does.
+	StartSlots bool
 }
 
 // newPlane returns the plane a world over b holds, given the plane its builder
@@ -2666,6 +2670,8 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 		if err := w.ConstructSavedCellPlanes(CellPlaneStart{Base: t.Base, Overlay: t.Overlay}); err != nil {
 			return nil, fmt.Errorf("sim: cell planes: %w", err)
 		}
+	} else if t.StartSlots {
+		w.occupyMissionStartCells()
 	}
 	return w, nil
 }
