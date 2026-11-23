@@ -273,6 +273,8 @@ func secondSavedWorldOf(mission uint32, money uint32, hero *secondOriginalHero, 
 // binder refuses.
 type secondSavedFlight struct {
 	cloud     bool
+	blast     bool
+	cell      uint16
 	spell     uint16
 	countdown uint16
 	target    uint32
@@ -397,6 +399,26 @@ func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero
 			s.u8(0)
 			s.u32(0)
 			s.u16(0)
+			continue
+		}
+		if f.blast {
+			// A blast is one top-level AreaEffect at its cell key, radius
+			// 1, nesting its damage payload.
+			s.obj("AreaEffect")
+			at := len(s.b)
+			s.token(0, f.spell, 0, 0, key)
+			binary.LittleEndian.PutUint16(s.b[at:], f.cell)
+			s.u8(0)
+			s.u8(1)
+			s.b = append(s.b, 0, 1, 0, 0) // AE48: radius 1
+			s.u16(0)                      // AE4C
+			s.obj("Effect_DirectDamage")
+			s.token(0, 0, 0, 0, key+1)
+			s.u8(0)
+			s.u8(0)
+			s.u32(0)
+			s.u16(0)
+			s.b = append(s.b, f.damage[:]...)
 			continue
 		}
 		s.obj("SpellTransport")

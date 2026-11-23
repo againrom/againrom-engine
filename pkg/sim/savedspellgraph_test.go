@@ -3,6 +3,7 @@ package sim
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -189,6 +190,21 @@ func TestSavedPointFatalBoundaryWithoutInventedCaster(t *testing.T) {
 	Step(back, nil)
 	if back.entities[1].HP != -5 {
 		t.Fatal("fatal point replayed")
+	}
+}
+
+// A loaded point takes health from a target of another side without a
+// caster: no attacker memory, no hostility, no credit.
+func TestSavedPointWithoutCasterLeavesNoMemoryHostilityOrCredit(t *testing.T) {
+	w := transportGraphWorld(t, 1)
+	relations := w.Relations()
+	hp := w.entities[1].HP
+	for range 2 {
+		Step(w, nil)
+	}
+	e := w.entities[1]
+	if e.HP >= hp || e.attackNotice != (attackNotice{}) || e.HasKillCredit || !reflect.DeepEqual(w.Relations(), relations) {
+		t.Fatal("a caster-less point", hp, e.HP, e.attackNotice, e.HasKillCredit)
 	}
 }
 

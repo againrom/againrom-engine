@@ -3,6 +3,7 @@ package game
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -199,5 +200,86 @@ func TestSecondMissionFlightWithARefusedCloudStillLoads(t *testing.T) {
 	}
 	if cold := secondFlightOf(t, secondMissionFlightLoad(t, dir, entries[0].Name).live.world); len(cold.roots) != 0 {
 		t.Fatalf("the cold LOAD of our SAVE holds %+v, want no carried effect", cold)
+	}
+}
+
+// secondBlastFlight is an area effect over the hero's cell, as the fixture
+// hero's transport is a point effect on him.
+func secondBlastFlight(hero secondOriginalHero) secondSavedFlight {
+	var damage [24]byte
+	damage[19], damage[21] = 4, 1
+	return secondSavedFlight{blast: true, spell: 1, cell: uint16(hero.cell[0]) | uint16(hero.cell[1])<<8, damage: damage}
+}
+
+// A loaded point effect and a loaded area effect reach the hero with no
+// caster (R2-ENGINE-1398, R2-ENGINE-1399): both take his health, and
+// neither writes kill credit or turns a side hostile.
+func TestSecondMissionFlightLandsWithoutACaster(t *testing.T) {
+	hero := secondMissionFixtureHero()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "game0001.sav"), secondMissionFlightFile(hero, secondBlastFlight(hero)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f := secondMissionFlightLoad(t, dir, "game0001.sav")
+	w := f.live.world
+	loaded := secondFlightOf(t, w)
+	if !slices.Equal(loaded.roots, []string{"SpellTransport", "AreaEffect"}) || w.SavedSpellGraph() == nil {
+		t.Fatalf("the LOAD holds %+v, want the transport and the area bound", loaded)
+	}
+	relations := w.Relations()
+	for range 4 {
+		f.live.tick()
+		if now := secondMissionActor(t, w); now.HasKillCredit {
+			t.Fatalf("a loaded effect left kill credit %d", now.KillCreditSource)
+		}
+	}
+	if got := secondFlightOf(t, w); len(got.roots) != 0 {
+		t.Fatalf("after four ticks %+v, want no effect", got)
+	}
+	if !reflect.DeepEqual(w.Relations(), relations) {
+		t.Fatal("a loaded effect turned a side hostile")
+	}
+	// The point alone takes less health than the point and the area.
+	alone, _ := secondMissionFlightLoadFile(t, hero)
+	for range 4 {
+		alone.live.tick()
+	}
+	if both, point := secondFlightOf(t, w).hp, secondFlightOf(t, alone.live.world).hp; both >= point || point >= loaded.hp {
+		t.Fatalf("health %d of the point and the area, %d of the point alone, %d loaded", both, point, loaded.hp)
+	}
+}
+
+// The SAVE of an area in flight and a point beside it, cold-loaded, lands
+// as the live World does.
+func TestSecondMissionFlightSavesAnAreaAndColdLoads(t *testing.T) {
+	hero := secondMissionFixtureHero()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "game0001.sav"), secondMissionFlightFile(hero, secondBlastFlight(hero)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f := secondMissionFlightLoad(t, dir, "game0001.sav")
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
+	if _, err := save(true); err != nil {
+		t.Fatalf("our SAVE: %v", err)
+	}
+	entries, err := secondSaveFiles(dir, "game0001.sav")
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("our SAVE wrote %d files, %v", len(entries), err)
+	}
+	cold := secondMissionFlightLoad(t, dir, entries[0].Name)
+	got, want := secondFlightOf(t, cold.live.world), secondFlightOf(t, f.live.world)
+	if !slices.Equal(got.roots, want.roots) || got.hp != want.hp {
+		t.Fatalf("the cold LOAD holds %+v, want %+v", got, want)
+	}
+	for tick := range 4 {
+		f.live.tick()
+		cold.live.tick()
+		got, want := secondFlightOf(t, cold.live.world), secondFlightOf(t, f.live.world)
+		if !slices.Equal(got.roots, want.roots) || got.hp != want.hp {
+			t.Fatalf("tick %d: the cold LOAD runs to %+v, the live World to %+v", tick+1, got, want)
+		}
+	}
+	if want.hp == secondFlightOf(t, f.live.world).hp {
+		t.Fatal("the flight struck nothing")
 	}
 }
