@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"againrom/pkg/locale"
+	"againrom/pkg/scriptprofile"
 )
 
 // A dialogue file is one interactive dialogue of a mission, read from
@@ -20,7 +21,8 @@ import (
 // absent ends the dialogue); a node may carry the name the editor shows; do
 // lists action node ids and when lists condition pairs by condition node ids
 // and comparison code, as a trigger does; once offers the reply until it is chosen and records the choice in
-// script variable mark; unavailable is hidden (default) or disabled.
+// script variable mark; unavailable is hidden (default) or disabled. A reply
+// holds as many conditions and actions as an extended trigger does.
 
 // The dialogue file's bounds.
 const (
@@ -28,10 +30,6 @@ const (
 	MaxDialogueReplies = 4
 	// MaxDialogueNodes is the most nodes one file holds.
 	MaxDialogueNodes = 256
-	// MaxDialogueDo is the most actions one reply runs.
-	MaxDialogueDo = 16
-	// MaxDialogueWhen is the most condition pairs one reply tests.
-	MaxDialogueWhen = 8
 	// MaxDialogueVariable is the highest script variable a mark names.
 	MaxDialogueVariable = 4095
 	// maxDialogueID bounds a node id and a node reference.
@@ -366,7 +364,7 @@ func readDialogueReply(t tomlTable, bad dialogueBad) (DialogueReply, error) {
 				err = bad(p.line, "unavailable is %q; use \"hidden\" or \"disabled\"", p.val.str)
 			}
 		case "do":
-			r.Do, err = dialogueList(p, MaxDialogueDo, bad, func(v tomlValue, line int) (int, error) {
+			r.Do, err = dialogueList(p, scriptprofile.Extended.Actions, bad, func(v tomlValue, line int) (int, error) {
 				if v.kind != tomlInt || v.num < 1 || v.num > maxDialogueID {
 					return 0, bad(line, "do holds action node ids, whole numbers from 1")
 				}
@@ -374,7 +372,7 @@ func readDialogueReply(t tomlTable, bad dialogueBad) (DialogueReply, error) {
 			})
 		case "when":
 			var pairs []DialogueCondition
-			pairs, err = dialogueList(p, MaxDialogueWhen, bad, func(v tomlValue, line int) (DialogueCondition, error) {
+			pairs, err = dialogueList(p, scriptprofile.Extended.Pairs, bad, func(v tomlValue, line int) (DialogueCondition, error) {
 				return readDialogueCondition(v, line, bad)
 			})
 			r.When = pairs

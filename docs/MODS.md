@@ -1569,8 +1569,16 @@ the same way and, all optional, `next` (a node id; absent ends the dialogue),
 (condition pairs `{ left = N, right = N, cmp = N }` over condition node ids, all
 of which must hold), `unavailable` (`"hidden"`, the default, or `"disabled"`,
 greyed and not choosable) and `once = true` with `mark = N`, the script variable
-that records the choice. A dialogue map is saved as `.almx` and cannot fold back
-to `.alm`. The first game only.
+that records the choice. A reply holds as many conditions and actions as an
+extended trigger, 64 of each: all its conditions must hold (there is no OR
+group), and its actions run in list order, then the once mark. A long `when` or
+`do` list may run over several lines inside its brackets. In the Dialog window
+an open reply shows every condition row and every action row, built as the
+trigger window builds them, with Add condition, Add action and each row's
+Remove; Alt+Up and Alt+Down move the row in focus among the rows of its kind. A
+65th row is refused with a note. The window's right column scrolls apart from
+the list of lines when its rows pass the window's height. A dialogue map is
+saved as `.almx` and cannot fold back to `.alm`. The first game only.
 
 ### Saves of an extended map
 

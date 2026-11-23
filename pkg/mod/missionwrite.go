@@ -245,11 +245,20 @@ func writeRows(source []byte, before, after []sourceRow, pad func(string) string
 			if oldValues[p.key] == newValues[p.key] {
 				continue
 			}
-			line := p.line - t.line
+			// A pair owns the lines its value spans, a wrapped list as
+			// a whole: they are replaced by one line or all removed.
+			line, last := p.line-t.line, p.last-t.line
 			if value, ok := newValues[p.key]; ok {
-				block[line], err = rewritePair(block[line], value)
+				if last == line {
+					block[line], err = rewritePair(block[line], value)
+				} else {
+					block[line], err = rewriteSpan(block[line], block[last], value)
+				}
 			} else {
 				block[line] = ""
+			}
+			for k := line + 1; k <= last; k++ {
+				block[k] = ""
 			}
 			if err != nil {
 				return nil, err
@@ -271,6 +280,20 @@ func writeRows(source []byte, before, after []sourceRow, pad func(string) string
 	}
 	leftTails(len(before))
 	return []byte(out.String()), nil
+}
+
+// rewriteSpan is the pair that opens on first and ends on last, a value over
+// lines, made one line holding value up to last's line end.
+func rewriteSpan(first, last, value string) (string, error) {
+	eq := strings.IndexByte(first, '=')
+	if eq < 0 {
+		return "", fmt.Errorf("missing assignment")
+	}
+	start := eq + 1
+	for start < len(first) && (first[start] == ' ' || first[start] == '\t') {
+		start++
+	}
+	return first[:start] + value + last[len(strings.TrimRight(last, "\r\n")):], nil
 }
 
 func rewritePair(line, value string) (string, error) {

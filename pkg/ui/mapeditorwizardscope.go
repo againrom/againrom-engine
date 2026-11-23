@@ -97,13 +97,33 @@ func (e *MapEditor) detailsScope(v scriptView) *popupScope {
 // condition and action with its parameters, and the flags that pick the
 // headings, add rows, warnings and disabled buttons.
 func (e *MapEditor) wizardScope(v scriptView) *popupScope {
-	w := e.obj.wiz
 	top := e.triggerScope(v)
 	at := map[string]int{}
 	for i, f := range e.obj.fields {
 		at[f.Key] = i
 	}
-	conds, acts, heroes, drops := 0, 0, false, 0
+	conds, acts, heroes, drops := e.wizardLists(top, at)
+	for _, f := range []struct {
+		name string
+		on   bool
+	}{
+		{"nocondwarn", conds == 0 && acts > drops},
+		{"heroes", heroes && e.multiplayer()},
+	} {
+		if f.on {
+			top.flag(f.name)
+		}
+	}
+	return top
+}
+
+// wizardLists adds the open wizard's rows to top as its conditions and
+// actions lists, an item per row, with the flags that pick the headings and
+// the add rows; the trigger window and a dialogue reply's rows both list
+// them here. It returns the rows of each kind, whether a unit parameter
+// names a hero and the drop zone actions.
+func (e *MapEditor) wizardLists(top *popupScope, at map[string]int) (conds, acts int, heroes bool, drops int) {
+	w := e.obj.wiz
 	// Each OR group opens with "When" or "Or when" and its second condition
 	// with "And if".
 	inGroup, group := 0, uint32(0)
@@ -147,14 +167,12 @@ func (e *MapEditor) wizardScope(v scriptView) *popupScope {
 		{"noconditions", conds == 0},
 		{"pairroom", conds == 0 || conds < most.Pairs},
 		{"actionroom", acts < most.Actions},
-		{"nocondwarn", conds == 0 && acts > drops},
-		{"heroes", heroes && e.multiplayer()},
 	} {
 		if f.on {
 			top.flag(f.name)
 		}
 	}
-	return top
+	return conds, acts, heroes, drops
 }
 
 // wizardItemScope is wizard row r as a list item: its item choice, the

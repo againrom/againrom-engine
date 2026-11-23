@@ -1147,7 +1147,7 @@ func (e *MapEditor) selectLine(number int) {
 		e.leave(leavePick)
 		o.pickField = -1
 	}
-	o.sel, o.open, o.focus = number, -1, -1
+	o.sel, o.open, o.focus, o.fieldsTop = number, -1, -1, 0
 	e.dialogFields()
 	o.focus = e.firstMessageField()
 	e.keepLineShown(number)
@@ -1265,11 +1265,82 @@ func (e *MapEditor) dialogRowButton(row, k int) bool {
 	default:
 		e.wizardRowButton(act, f, hasField)
 		e.dialogPull()
+		// An added row takes the focus, which brings it into view.
+		if added := act == actAddPair || act == actAddAct; added && o.note == "" && o.wiz != nil {
+			condition := act == actAddPair
+			family := "a"
+			if condition {
+				family = "c"
+			}
+			if f := e.dialogFieldAt(fmt.Sprintf("%s%d.item", family, o.wiz.kindRows(condition)-1)); f >= 0 {
+				e.focusObjectField(f)
+			}
+		}
 	}
 	return true
 }
 
-// replyScope is the bindings of the open reply's rows.
+// fieldsLines is the lines of the right column of the Dialog window s.
+func fieldsLines(s popupSpec) int {
+	n := 0
+	for _, r := range s.Rows {
+		if r.Column == 1 && !r.placed() {
+			n++
+		}
+	}
+	return n
+}
+
+// fieldsArea is the region of the Dialog window's right column while its
+// rows pass the window's height: the wheel over it moves that column alone.
+func (e *MapEditor) fieldsArea(s popupSpec, l popupLayout) (scrollArea, bool) {
+	most := fieldsLines(s) - s.MaxRows
+	if e.messagePage == 0 || len(s.ColumnTops) < 2 || s.MaxRows <= 0 || most <= 0 {
+		return scrollArea{}, false
+	}
+	left := l.RowsViewport.Max.X
+	for _, rr := range l.Rows {
+		if rr.Index < len(s.Rows) && s.Rows[rr.Index].Column == 1 {
+			left = min(left, rr.Rect.Min.X)
+		}
+	}
+	over := image.Rect(left, l.RowsViewport.Min.Y, l.RowsViewport.Max.X, l.RowsViewport.Max.Y)
+	return rangeArea(image.Rectangle{}, e.obj.fieldsTop, most, s.MaxRows, []image.Rectangle{over}, &e.objectWheel,
+		func(n int) { e.obj.fieldsTop = max(0, min(n, most)) }), true
+}
+
+// moveReplyRow moves the open reply's condition or action row that holds
+// the focus one place up, or down, among the rows of its kind, the focus
+// going with it, and reports that the focus was on such a row.
+func (e *MapEditor) moveReplyRow(down bool) bool {
+	o := &e.obj
+	if o.wiz == nil || o.focus < o.extra || o.focus >= len(o.fields) || e.openReply() == nil {
+		return false
+	}
+	r, _ := e.wizardRowOf(o.focus)
+	if r < 0 {
+		return false
+	}
+	step := -1
+	if down {
+		step = 1
+	}
+	e.dialogPull()
+	to := o.wiz.moveRow(r, step)
+	if to < 0 {
+		return true
+	}
+	key := o.wiz.wizardKey(to, "item")
+	o.messageChanged = true
+	e.wizardRefill()
+	if f := e.dialogFieldAt(key); f >= 0 {
+		e.focusObjectField(f)
+	}
+	return true
+}
+
+// replyScope is the bindings of the open reply: its text and settings and
+// every condition and action row, listed as the trigger window lists them.
 func (e *MapEditor) replyScope() *popupScope {
 	o := &e.obj
 	at := map[string]int{}
@@ -1300,24 +1371,11 @@ func (e *MapEditor) replyScope() *popupScope {
 	bind("once", dlgOnce)
 	bind("unavailable", dlgUnavailable)
 	if o.wiz != nil {
-		heroes, drops := false, 0
-		cond, act := -1, -1
-		for r, wr := range o.wiz.rows {
-			switch {
-			case wr.condition && cond < 0:
-				cond = r
-			case !wr.condition && act < 0:
-				act = r
-			}
-		}
-		if cond >= 0 {
-			top.Lists["conditions"] = append(top.Lists["conditions"], e.wizardItemScope(cond, at, &heroes, &drops))
-		} else {
+		conds, acts, _, _ := e.wizardLists(top, at)
+		if conds == 0 {
 			top.flag("nocondition")
 		}
-		if act >= 0 {
-			top.Lists["actions"] = append(top.Lists["actions"], e.wizardItemScope(act, at, &heroes, &drops))
-		} else {
+		if acts == 0 {
 			top.flag("noaction")
 		}
 	}

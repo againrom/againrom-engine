@@ -250,6 +250,9 @@ func (e *MapEditor) objectAreas() []scrollArea {
 				&e.objectWheel, func(n int) { e.setTextFirst(field, n) }))
 		}
 	}
+	if a, ok := e.fieldsArea(s, l); ok {
+		out = append(out, a)
+	}
 	if a, ok := e.pagedArea(popObject, s, l); ok {
 		out = append(out, a)
 	} else if s.MaxRows != 0 {

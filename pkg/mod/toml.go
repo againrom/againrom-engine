@@ -39,6 +39,9 @@ type tomlPair struct {
 	key  string
 	val  tomlValue
 	line int
+	// last is the line the pair's value ends on; it is line unless an array
+	// runs over lines.
+	last int
 }
 
 type tomlTable struct {
@@ -83,8 +86,8 @@ func parseTOMLWith(data []byte, o tomlOptions) ([]tomlTable, error) {
 	tables := []tomlTable{{}}
 	seenTable, seenArray := map[string]bool{}, map[string]bool{}
 	lines := strings.Split(string(bytes.TrimPrefix(data, utf8BOM)), "\n")
-	for n, raw := range lines {
-		t := strings.TrimSpace(raw)
+	for n := 0; n < len(lines); n++ {
+		t := strings.TrimSpace(lines[n])
 		if t == "" || t[0] == '#' {
 			continue
 		}
@@ -154,20 +157,32 @@ func parseTOMLWith(data []byte, o tomlOptions) ([]tomlTable, error) {
 			}
 			after = t[eq+1:]
 		}
+		first := n
+		// An array left open runs on over the lines after it, each read
+		// without its comment, until its brackets close.
+		if strings.HasPrefix(strings.TrimSpace(after), "[") {
+			code, last, closed := continueList(after, lines, n)
+			if !closed {
+				return nil, fmt.Errorf("line %d: %s: the array is not closed", first+1, key)
+			}
+			if last > n {
+				after, n = code, last
+			}
+		}
 		val, rest, err := parseTOMLValue(strings.TrimSpace(after))
 		if err != nil {
-			return nil, fmt.Errorf("line %d: %s: %w", n+1, key, err)
+			return nil, fmt.Errorf("line %d: %s: %w", first+1, key, err)
 		}
 		if err := onlyComment(rest); err != nil {
-			return nil, fmt.Errorf("line %d: %s: %w", n+1, key, err)
+			return nil, fmt.Errorf("line %d: %s: %w", first+1, key, err)
 		}
 		cur := &tables[len(tables)-1]
 		for _, p := range cur.pairs {
 			if p.key == key {
-				return nil, fmt.Errorf("line %d: %s is given twice", n+1, key)
+				return nil, fmt.Errorf("line %d: %s is given twice", first+1, key)
 			}
 		}
-		cur.pairs = append(cur.pairs, tomlPair{key: key, val: val, line: n + 1})
+		cur.pairs = append(cur.pairs, tomlPair{key: key, val: val, line: first + 1, last: n + 1})
 	}
 	return tables, nil
 }

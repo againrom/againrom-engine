@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -441,8 +442,8 @@ func writeDialogueInto(m *mapedit.Editor, st *editorWorkspaceState, name string,
 	for i, n := range d.Nodes {
 		pairs[i], outs[i] = make([][]mod.DialogueCondition, len(n.Replies)), make([][]int, len(n.Replies))
 		for k, r := range n.Replies {
-			if len(r.Pairs) > mod.MaxDialogueWhen || len(r.Actions) > mod.MaxDialogueDo {
-				return wordErr("editor.dialogue.err.rows")
+			if most := scriptprofile.Extended; len(r.Pairs) > most.Pairs || len(r.Actions) > most.Actions {
+				return wordErr("editor.dialogue.err.rows", most.Pairs, most.Actions)
 			}
 			for j, p := range r.Pairs {
 				var ids [2]uint32

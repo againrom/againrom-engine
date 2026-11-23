@@ -105,3 +105,60 @@ func TestManifestTitleWriterKeepsCommentsAndMetadata(t *testing.T) {
 		t.Fatalf("manifest: %v\n%s", err, got)
 	}
 }
+
+const wrappedPartyMissions = `[[mission]]
+key    = "mill"
+number = 21
+map    = "mill.alm"
+after  = 20
+party  = [ # the guests
+  { character = "npc22" },
+  { character = "npc23" }, # the second
+]
+gold   = 5
+`
+
+// A list that runs over lines is one pair: left alone it stays byte for
+// byte, changed it is replaced as a whole, dropped it leaves no line of it.
+func TestRowWriterTreatsAWrappedListAsOnePair(t *testing.T) {
+	source := []byte(wrappedPartyMissions)
+	read := func(b []byte) []Mission {
+		d, err := ParseMissions("m", MissionsFile, b, missionText, "ru")
+		if err != nil {
+			t.Fatalf("%v\n%s", err, b)
+		}
+		return d.Missions
+	}
+	before := read(source)
+	if len(before[0].Party) != 2 {
+		t.Fatalf("the wrapped party reads %+v", before[0].Party)
+	}
+	got, err := WriteMissions(source, before, before)
+	if err != nil || !bytes.Equal(got, source) {
+		t.Fatalf("no-op changed source: %v\n%s", err, got)
+	}
+	changed := []Mission{CloneMission(before[0])}
+	changed[0].Party[1].Character = "npc24"
+	got, err = WriteMissions(source, before, changed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after := read(got); len(after[0].Party) != 2 || after[0].Party[1].Character != "npc24" || after[0].Gold != 5 {
+		t.Fatalf("the changed party reads %+v\n%s", after[0], got)
+	}
+	if strings.Contains(string(got), "the second") {
+		t.Fatalf("the old lines of the list stay:\n%s", got)
+	}
+	removed := []Mission{CloneMission(before[0])}
+	removed[0].Party, removed[0].Guest, removed[0].Chapter = nil, 22, 30
+	got, err = WriteMissions(source, before, removed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after := read(got); len(after[0].Party) != 0 || after[0].Gold != 5 || after[0].After != 20 {
+		t.Fatalf("the removed party reads %+v\n%s", after[0], got)
+	}
+	if strings.Contains(string(got), "npc2") || strings.Contains(string(got), "party") || strings.Contains(string(got), "second") {
+		t.Fatalf("lines of the removed list stay:\n%s", got)
+	}
+}

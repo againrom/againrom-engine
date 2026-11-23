@@ -1105,6 +1105,15 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 		e.wizardRefill()
 	case actAddPair, actAddGroup, actAddAct:
 		condition := act != actAddAct
+		// A list past the extended record's limit is refused in words.
+		most, word := scriptprofile.Extended.Pairs, "editor.wizard.full.conditions"
+		if !condition {
+			most, word = scriptprofile.Extended.Actions, "editor.wizard.full.actions"
+		}
+		if w.kindRows(condition) >= most {
+			o.note = fmt.Sprintf(e.word(word), most)
+			return
+		}
 		r := wizRow{condition: condition, origItem: -2}
 		r.item, r.vals = 0, e.wizardDefaults(condition, 0)
 		// A condition goes after the last condition, in its group or, for
@@ -1154,6 +1163,32 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 			e.armPick(pickScriptCell)
 		}
 	}
+}
+
+// kindRows is the wizard's condition rows, or its action rows.
+func (w *wizardState) kindRows(condition bool) int {
+	n := 0
+	for _, r := range w.rows {
+		if r.condition == condition {
+			n++
+		}
+	}
+	return n
+}
+
+// moveRow moves row r one place by step among the rows of its kind, each
+// place keeping its OR group, and returns where the row went; -1 when it
+// stands first or last of its kind already.
+func (w *wizardState) moveRow(r, step int) int {
+	for k := r + step; k >= 0 && k < len(w.rows); k += step {
+		if w.rows[k].condition == w.rows[r].condition {
+			w.rows[k].group, w.rows[r].group = w.rows[r].group, w.rows[k].group
+			w.rows[k], w.rows[r] = w.rows[r], w.rows[k]
+			w.changed = true
+			return k
+		}
+	}
+	return -1
 }
 
 // wizardRowOf is the row and parameter index field f edits, -1 for none.

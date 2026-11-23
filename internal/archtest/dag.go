@@ -428,9 +428,10 @@ var allow = map[string][]string{
 	// mod's applies-to list from pkg/base, writes a towns layer in the
 	// town catalog's entry format from pkg/town, reads and writes a
 	// packed mod's RES through pkg/formats/res, and reads the pages an
-	// extended map carries through pkg/formats/alm.
+	// extended map carries through pkg/formats/alm. A dialogue reply's
+	// condition and action bounds are the script limits of pkg/scriptprofile.
 	"pkg/ini": {},
-	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base", "pkg/town", "pkg/formats/res", "pkg/formats/alm", "pkg/namefold", "pkg/herokind"},
+	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base", "pkg/town", "pkg/formats/res", "pkg/formats/alm", "pkg/namefold", "pkg/herokind", "pkg/scriptprofile"},
 	// The install languages: one record per language, read by every surface
 	// that depends on the install's language. A stdlib-only leaf.
 	"pkg/locale": {},

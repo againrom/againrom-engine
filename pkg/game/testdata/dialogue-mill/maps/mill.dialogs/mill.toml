@@ -34,3 +34,9 @@ id = 2
 name = "thanks"
 en = "Thank you, the mill is ours again."
 ru = "Спасибо, мельница снова наша."
+
+[[reply]]
+en = "Share the mill's stores with the village."
+ru = "Поделитесь запасами мельницы с деревней."
+when = [{ left = 1, right = 2, cmp = 0 }, { left = 2, right = 3, cmp = 0 }, { left = 3, right = 4, cmp = 0 }, { left = 1, right = 3, cmp = 0 }, { left = 1, right = 4, cmp = 0 }, { left = 2, right = 4, cmp = 0 }, { left = 1, right = 1, cmp = 0 }, { left = 2, right = 2, cmp = 0 }, { left = 3, right = 3, cmp = 0 }]
+do = [101, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 102, 2]

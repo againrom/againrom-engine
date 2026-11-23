@@ -467,8 +467,13 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	s.LabelWidth = messageFaceColumn
 	s.Notes = wrapNotes(s.Notes, advanceOf(e.bodyFont()), s.Width)
 	e.pageObjectRows(&s, true)
-	// The list scrolls alone; the line's fields stay in view beside it.
-	s.ColumnTops = []int{e.objectTop, 0}
+	// The list scrolls alone; the line's fields beside it scroll apart
+	// from it when they pass the window's height.
+	if s.MaxRows <= 0 {
+		o.fieldsTop = 0
+	}
+	o.fieldsTop = max(0, min(o.fieldsTop, fieldsLines(s)-s.MaxRows))
+	s.ColumnTops = []int{e.objectTop, o.fieldsTop}
 	return s, make([]int, len(s.Rows)), true
 }
 
@@ -1067,10 +1072,10 @@ func (e *MapEditor) moveMessageCard(at, to int) bool {
 }
 
 // keyCard moves the focused card one place up or down, past the whole of
-// the neighbouring page number.
+// the neighbouring page number; with a reply's row in focus it moves the row.
 func (e *MapEditor) keyCard(key string) error {
 	o := &e.obj
-	if e.messagePage == 0 {
+	if e.messagePage == 0 || e.moveReplyRow(key == "carddown") {
 		return nil
 	}
 	at := -1

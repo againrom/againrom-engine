@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [ROM1] In the map editor's Dialog window, a dialogue reply now takes as many conditions and actions as a trigger: every condition must hold, the actions run in their order, and each row can be added, removed or moved with Alt and the arrow keys; before, a reply showed one condition and one action, and a dialogue file with longer lists was refused.
+
 ## 0.159.0
 
 ### For players

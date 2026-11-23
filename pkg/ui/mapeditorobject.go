@@ -109,6 +109,8 @@ type objectEdit struct {
 	// textFirst is the first line a scrolled text field shows, by field; it
 	// holds while the field's text is the one it was scrolled at.
 	textFirst map[int]textScroll
+	// fieldsTop is the first line the Dialog window's right column shows.
+	fieldsTop int
 }
 
 // textScroll is a text field's first shown line and the text and caret it was
@@ -672,11 +674,16 @@ func (e *MapEditor) focusObjectField(i int) {
 	if row < 0 || row >= len(s.Rows) || s.Rows[row].placed() {
 		return // a row on the card never scrolls
 	}
-	_, line := popupRowPosition(specWindow(s), row)
-	if line < s.Top {
-		e.objectTop = line
-	} else if s.MaxRows > 0 && line >= s.Top+s.MaxRows {
-		e.objectTop = line - s.MaxRows + 1
+	column, line := popupRowPosition(specWindow(s), row)
+	top, at := &e.objectTop, s.Top
+	if e.messagePage != 0 && column == 1 && len(s.ColumnTops) > 1 {
+		// The Dialog window's right column scrolls apart from its list.
+		top, at = &e.obj.fieldsTop, s.ColumnTops[1]
+	}
+	if line < at {
+		*top = line
+	} else if s.MaxRows > 0 && line >= at+s.MaxRows {
+		*top = line - s.MaxRows + 1
 	}
 }
 

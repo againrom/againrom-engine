@@ -8,6 +8,7 @@
     {"kind": "heading", "label": "editor.dialogue.when"},
     {"each": "conditions",
       "rows": [
+        {"kind": "heading", "when": "second", "label": "editor.wizard.andif"},
         {"kind": "choice", "label": "editor.wizard.condition", "value": "value", "ink": "condition", "field": "item", "helpBind": "itemHelp",
           "buttons": [{"word": "editor.trigger.remove", "act": "removerow"}]
         },
@@ -32,6 +33,7 @@
     {"kind": "text", "when": "nocondition", "help": "editor.dialogue.condition.help",
       "buttons": [{"word": "editor.wizard.addcondition", "act": "addpair"}]
     },
+    {"kind": "text", "when": "!nocondition", "help": "editor.dialogue.rows.help", "buttons": [{"word": "editor.wizard.addcondition", "act": "addpair"}]},
     {"kind": "heading", "label": "editor.dialogue.then"},
     {"each": "actions",
       "rows": [
@@ -58,6 +60,7 @@
     {"kind": "text", "when": "noaction", "help": "editor.dialogue.outcome.help",
       "buttons": [{"word": "editor.wizard.addaction", "act": "addaction"}]
     },
+    {"kind": "text", "when": "!noaction", "help": "editor.dialogue.rows.help", "buttons": [{"word": "editor.wizard.addaction", "act": "addaction"}]},
     {"kind": "text", "buttons": [{"word": "editor.dialogue.removereply", "act": "removereply"}]}
   ]
 }
