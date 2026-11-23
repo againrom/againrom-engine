@@ -53,7 +53,29 @@ func (w *World) appendROM2ScriptState(b []byte) []byte {
 		}
 		b = append(b, flag)
 	}
+	// The late checks' indices follow the groups, only when there is one, so
+	// a program without late references keeps its earlier bytes.
+	if late := w.lateCheckIndices(); len(late) > 0 {
+		b = binary.LittleEndian.AppendUint32(b, uint32(len(late)))
+		for _, i := range late {
+			b = binary.LittleEndian.AppendUint32(b, uint32(i))
+		}
+	}
 	return endWrapper(b, ws, rom2ScriptFormVersion)
+}
+
+// lateCheckIndices lists the checks that name a late reference, in order.
+func (w *World) lateCheckIndices() []int {
+	var out []int
+	if w.script == nil {
+		return out
+	}
+	for i, c := range w.script.checks {
+		if c.Late {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 func (w *World) unmarshalROM2ScriptState(data []byte, proof formProof) error {
@@ -65,8 +87,20 @@ func (w *World) unmarshalROM2ScriptState(data []byte, proof formProof) error {
 	}
 	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start+rom2ScenarioWireLen:]))
-	if count > maxROM2Groups || span != rom2ScenarioWireLen+4+rom2GroupRecordLen*count {
+	groupsEnd := rom2ScenarioWireLen + 4 + rom2GroupRecordLen*count
+	if count > maxROM2Groups || span < groupsEnd || span > groupsEnd && span < groupsEnd+8 {
 		return fail()
+	}
+	var late []uint32
+	if span > groupsEnd {
+		o := start + int(groupsEnd)
+		n := uint64(binary.LittleEndian.Uint32(data[o:]))
+		if n == 0 || span != groupsEnd+4+4*n {
+			return fail()
+		}
+		for k := uint64(0); k < n; k++ {
+			late = append(late, binary.LittleEndian.Uint32(data[o+4+4*int(k):]))
+		}
 	}
 	state := &rom2ScriptState{}
 	for i := range state.Scenario {
@@ -102,6 +136,13 @@ func (w *World) unmarshalROM2ScriptState(data []byte, proof formProof) error {
 	var triggers []ScriptTrigger
 	if next.script != nil {
 		checks, instants, triggers = next.script.checks, next.script.instants, next.script.triggers
+	}
+	checks = append([]ScriptCheck(nil), checks...)
+	for k, i := range late {
+		if uint64(i) >= uint64(len(checks)) || k > 0 && i <= late[k-1] {
+			return fail()
+		}
+		checks[i].Late = true
 	}
 	script, err := newScript(ScriptROM2, checks, instants, triggers)
 	if err != nil {

@@ -74,6 +74,9 @@ const (
 	// ScriptSilenceHealthGate is a dispatched health check whose authored gate
 	// parameter did not select the write.
 	ScriptSilenceHealthGate ScriptSilence = 19
+	// ScriptSilenceLateReference is a second-game check naming a late
+	// reference; the pass skips it undispatched (R2-ENGINE-1697).
+	ScriptSilenceLateReference ScriptSilence = 20
 )
 
 // ScriptCheckRun is one check's complete runtime disposition in one pass.

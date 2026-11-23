@@ -49,8 +49,9 @@ func TestSecondOmissionsAttributeEachTriggerToItsGreatestCause(t *testing.T) {
 		Conditions: []alm.ScriptNode{
 			censusNode(65538, 1, censusInt(0)),
 			censusNode(5, 2, censusUnit(10002)),
-			censusNode(5, 3, censusUnit(8001)),
+			censusNode(5, 3, censusUnit(99)),
 			censusNode(5, 4, censusUnit(10003)),
+			censusNode(5, 5, censusUnit(8001)),
 		},
 		Actions: []alm.ScriptNode{
 			censusNode(2, 10, censusInt(1)),
@@ -72,11 +73,14 @@ func TestSecondOmissionsAttributeEachTriggerToItsGreatestCause(t *testing.T) {
 	if want := (SecondOmission{Nodes: 3, Triggers: 1, ActionTriggers: 1}); c.Omitted[CauseFixture] != want {
 		t.Errorf("fixture omissions = %+v, want %+v", c.Omitted[CauseFixture], want)
 	}
-	if want := (SecondOmission{Nodes: 1, Triggers: 1}); c.Omitted[CauseDynamic] != want {
-		t.Errorf("dynamic omissions = %+v, want %+v: a trigger with a real cause is not a party artifact", c.Omitted[CauseDynamic], want)
+	if want := (SecondOmission{Nodes: 1, Triggers: 1}); c.Omitted[CauseAbsent] != want {
+		t.Errorf("absent omissions = %+v, want %+v: a trigger with a real cause is not a party artifact", c.Omitted[CauseAbsent], want)
+	}
+	if c.Omitted[CauseDynamic] != (SecondOmission{}) {
+		t.Errorf("a late reference omitted %+v", c.Omitted[CauseDynamic])
 	}
 	if c.FixtureOnly() {
-		t.Error("a dynamic reference reported as a party artifact")
+		t.Error("an absent reference reported as a party artifact")
 	}
 
 	_, full, err := mapload.CompileROM2ScriptFrom(src, secondSaturatedRefs(refs, 5))
@@ -85,8 +89,8 @@ func TestSecondOmissionsAttributeEachTriggerToItsGreatestCause(t *testing.T) {
 	}
 	var saturated SecondMapCensus
 	secondOmissions(&saturated, src, full, nil)
-	if saturated.Omitted[CauseFixture] != (SecondOmission{}) || saturated.Omitted[CauseDynamic] != c.Omitted[CauseDynamic] {
-		t.Errorf("saturated omissions = %+v, want only the dynamic cause", saturated.Omitted)
+	if saturated.Omitted[CauseFixture] != (SecondOmission{}) || saturated.Omitted[CauseAbsent] != c.Omitted[CauseAbsent] {
+		t.Errorf("saturated omissions = %+v, want only the absent cause", saturated.Omitted)
 	}
 }
 

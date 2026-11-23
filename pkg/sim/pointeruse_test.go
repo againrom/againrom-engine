@@ -74,7 +74,7 @@ func TestPointerWithoutAPositiveSlotIsNotUsable(t *testing.T) {
 		kind uint16
 		slot int32
 		want bool
-	}{{0x46, 1, true}, {0x4b, 3, true}, {0x4a, 0, false}, {0x45, 1, false}, {0x4c, 1, false}} {
+	}{{0x46, 1, true}, {0x4b, 3, true}, {0x4a, 0, false}, {0x45, 1, false}, {0x4e, 1, false}} {
 		s := Structure{Kind: tc.kind, UseAmount: tc.slot, Width: 1, Height: 1}
 		if s.Usable() != tc.want {
 			t.Errorf("kind %#x slot %d usable %v", tc.kind, tc.slot, !tc.want)

@@ -48,11 +48,17 @@ func (s Structure) Usable() bool {
 		return true
 	}
 	switch s.Kind {
-	case 15, 16, 28, 29, 34, 35, 66:
+	case 15, 16, 34, 35, 66:
 		return true
 	}
-	return false
+	return switchKind(s.Kind)
 }
+
+// switchKind reports a kind whose use toggles its +0x42 word between 0 and 1:
+// the switches 28 and 29 (UNIT-STRUCTUSE-090, R2-ENGINE-1695) and the second
+// game's altars 76 and 77 (R2-ENGINE-1695). The first game's Buildings table
+// ends at kind 66 (DAT-BLD-005), so it places no altar.
+func switchKind(kind uint16) bool { return kind == 28 || kind == 29 || kind == 76 || kind == 77 }
 
 func (w *World) pruneStructureUses() {
 	w.structureUses = slices.DeleteFunc(w.structureUses, func(u StructureUse) bool {
@@ -196,7 +202,7 @@ func (w *World) applyStructureUse(i, si int) {
 		w.castObservation.recordShopUse(w.entities[i].ID, s.ID)
 		return
 	}
-	if s.Kind == 28 || s.Kind == 29 {
+	if switchKind(s.Kind) {
 		w.structures[si].Field42 = 0
 		if s.Field42 == 0 {
 			w.structures[si].Field42 = 1

@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Altars now switch on and off when used, units knocked unconscious still count for mission goals until they die, script triggers that name a not-yet-known object now run instead of being dropped, a trap without a source strikes from its own cell, and mission scripts can hand an item from one unit to another or move a unit, after which a computer unit stands guard.
 - [BASE] A unit at full health now backs away or flees from a nearby enemy when its health is at or below its withdrawal point, as in the original; bats and archers no longer stand still at full health.
 - [ROM2] A spell rolled on a mage's item in a shop now gets a budget of a hundred times the item's price, as in the first game; before, it got ten times, leaving those spells weaker or absent.
 - [ROM1] Юниты под управлением компьютера теперь выбирают целью юнита под заклинанием номер 20 в последнюю очередь, как в оригинале; раньше это заклинание не меняло выбор цели.

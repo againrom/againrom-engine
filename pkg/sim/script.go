@@ -407,6 +407,10 @@ type ScriptCheck struct {
 	HasItem      bool
 	Structure    StructureID
 	HasStructure bool
+	// Late marks a second-game check that names a late reference
+	// (8000..9999 under a group, player or unit parameter): the check pass
+	// skips it without dispatching (R2-ENGINE-1697).
+	Late bool `json:",omitempty"`
 }
 
 // ScriptInstant is one compiled instant: an opcode, its ten plain parameters, and
@@ -732,7 +736,7 @@ func newScriptOn(dialect ScriptDialect, m scriptMachine, checks []ScriptCheck, i
 	var gaps []ScriptGap
 	rows := profile.scriptRows
 	for i := range cp {
-		if scriptCheckSupported(cp[i].Op) || rows.check[cp[i].Op] != nil {
+		if cp[i].Late || scriptCheckSupported(cp[i].Op) || rows.check[cp[i].Op] != nil {
 			continue
 		}
 		gaps = append(gaps, ScriptGap{Kind: ScriptGapCheck, Op: cp[i].Op, Index: int32(i)})
@@ -1215,6 +1219,10 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	defer func() {
 		tr.check(i, c, before, lostBefore, dispatched, wrote, silence, w)
 	}()
+	if c.Late {
+		dispatched, silence = false, ScriptSilenceLateReference
+		return
+	}
 	if body := w.game.scriptRows.check[c.Op]; body != nil {
 		v, ok := body(w, c)
 		if ok {
@@ -1264,8 +1272,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 		}
 		for _, g := range groups {
 			for _, m := range g.Members {
-				// A downed member is out of the count, as above.
-				if k := indexOfEntity(w.entities, m.Entity); !m.Bound || k < 0 || !w.entities[k].Downed() {
+				if k := indexOfEntity(w.entities, m.Entity); !m.Bound || k < 0 || w.scriptCountsMember(w.entities[k]) {
 					n++
 				}
 			}
@@ -1314,7 +1321,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 		}
 		n := int32(0)
 		for i := range w.entities {
-			if w.entities[i].Owner == c.Player && !scriptDead(w.entities[i]) {
+			if w.entities[i].Owner == c.Player && w.scriptAlive(w.entities[i]) {
 				n++
 			}
 		}
@@ -1437,7 +1444,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 
 	case ScriptCheckAlive:
 		v := int32(1)
-		if scriptDead(e) && !(c.Args[ScriptAliveHeldBody] != 0 && e.InLife(LifeDowned)) {
+		if !w.scriptAlive(e) && !(c.Args[ScriptAliveHeldBody] != 0 && e.InLife(LifeDowned)) {
 			v = 0
 		}
 		write(v)
@@ -1610,14 +1617,18 @@ func (w *World) handOver(i int, player uint32) {
 	w.handOverSaved(i, player)
 }
 
-func (w *World) standHandedOverMember(i int) {
+// standScriptedUnit is the one-unit order setter a script reaches: the command
+// reset, the given state and the post at the unit's own cell. A hand-over
+// stands the unit with state 0xc; the second game's action 27 guards it with
+// 0xb (R2-ENGINE-1700).
+func (w *World) standScriptedUnit(i int, state uint8) {
 	if !w.entities[i].Alive() {
 		return
 	}
 	w.clearTurnUnlessCasting(i)
 	w.standScriptedMembers([]int{i})
 	e := &w.entities[i]
-	e.ActorState = actorStateAcquire
+	e.ActorState = state
 	e.PostX, e.PostY = e.X, e.Y
 	w.syncSavedActorCommand(i)
 	w.syncSavedPost(i)
@@ -2395,6 +2406,29 @@ const ScriptAliveHeldBody = 1
 // separate owner rule because ROM1's immediate-loss re-placement arm is not
 // implemented here (DIV-219).
 func scriptDead(e Entity) bool { return !e.Alive() && !e.Dying() }
+
+// scriptListed reports whether a second-game unit is still on its group's
+// list: a unit leaves it at death, when its body reaches the bones; a living
+// or unconscious unit stays (R2-ENGINE-1696).
+func scriptListed(e Entity) bool { return e.Decay < DecayBones }
+
+// scriptAlive is the unit test of checks 5 and 8: the first game counts a unit
+// scriptDead leaves out; the second counts every listed unit (R2-ENGINE-1696).
+func (w *World) scriptAlive(e Entity) bool {
+	if w.game.countsListed {
+		return scriptListed(e)
+	}
+	return !scriptDead(e)
+}
+
+// scriptCountsMember is check 1's member test: the first game leaves a downed
+// member out; the second counts every member its group lists (R2-ENGINE-1696).
+func (w *World) scriptCountsMember(e Entity) bool {
+	if w.game.countsListed {
+		return scriptListed(e)
+	}
+	return !e.Downed()
+}
 
 // scriptVIPDead is the narrower teardown predicate used by check 18. The
 // original admits the mission-loss side effect only after the dying countdown

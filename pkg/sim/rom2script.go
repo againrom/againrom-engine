@@ -1,6 +1,9 @@
 package sim
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 type ScriptDialect uint8
 
@@ -23,6 +26,8 @@ const (
 	ScriptInstantDiagnostic         int32 = 37
 	ScriptInstantTakeItemFromMap    int32 = 38
 	ScriptInstantClearGroupActivity int32 = 39
+	ScriptInstantMoveItem           int32 = 11
+	ScriptInstantRelocateUnit       int32 = 27
 )
 
 type rom2ScriptState struct {
@@ -165,6 +170,26 @@ func secondGameScriptRows() scriptOpRows {
 			ScriptInstantLose: func(w *World, in ScriptInstant, _ *castObs) {
 				w.lost = uint32(in.Args[0])
 			},
+			// R2-ENGINE-1699: one unit of the item leaves U's bag (the whole
+			// element at count 1, else one split off) and joins V's bag.
+			ScriptInstantMoveItem: func(w *World, in ScriptInstant, _ *castObs) {
+				w.moveScriptItem(in)
+			},
+			// R2-ENGINE-1700: the cell move to (low8 p0, low8 p1), then a
+			// computer unit's Guard order, whether or not the cell took it.
+			ScriptInstantRelocateUnit: func(w *World, in ScriptInstant, obs *castObs) {
+				if !in.HasUnit {
+					return
+				}
+				i := indexOfEntity(w.entities, in.Unit)
+				if i < 0 || !w.entities[i].Alive() || w.entities[i].OffMap {
+					return
+				}
+				w.relocateActor(i, in.Args[0]&0xff, in.Args[1]&0xff, obs)
+				if w.computerControlledUnit(w.entities[i]) {
+					w.standScriptedUnit(i, actorStateGuard)
+				}
+			},
 		},
 	}
 }
@@ -277,4 +302,40 @@ func (w *World) rom2CellEffect(key uint16, layer int32) bool {
 		}
 	}
 	return false
+}
+
+// moveScriptItem is action 11: the first element of U's bag holding the
+// node's item gives up one unit, the whole element at count 1, and that unit
+// joins V's bag, merged as a pickup merges (R2-ENGINE-1699). It uses the
+// give-all body's load mutation, so a refusal leaves both bags as they were.
+func (w *World) moveScriptItem(in ScriptInstant) {
+	gi, ok := w.scriptItemHolder(in)
+	if !ok || !in.HasUnit2 {
+		return
+	}
+	ri := indexOfEntity(w.entities, in.Unit2)
+	k := slices.IndexFunc(w.carried[gi], func(st ItemStack) bool { return st.Code == in.Item })
+	if ri < 0 || ri == gi || k < 0 || !w.hasActorContainer(ri) {
+		return
+	}
+	giverLoad, receiverLoad := w.beginLoadMutation(gi), w.beginLoadMutation(ri)
+	if !w.sourceMutationReady(gi) || !w.sourceMutationReady(ri) {
+		return
+	}
+	live := w
+	if w.savedObjects != nil || w.entities[gi].ActorLoad.Source.Class != 0 || w.entities[ri].ActorLoad.Source.Class != 0 {
+		n := w.sourceMutationCopy(gi)
+		n.carried[ri] = cloneStacks(w.carried[ri])
+		w = &n
+	}
+	item, ok := w.takeCarriedObject(gi, k, w.carried[gi][k].Count <= 1, ri)
+	if !ok || !w.addCarried(ri, item, gi) {
+		return
+	}
+	if !w.finishLoadMutation(ri, receiverLoad) || !w.finishLoadMutation(gi, giverLoad) || !w.savedMutationValid() {
+		return
+	}
+	if w != live {
+		*live = *w
+	}
 }

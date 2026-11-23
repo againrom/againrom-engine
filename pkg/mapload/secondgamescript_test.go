@@ -62,8 +62,55 @@ func TestSecondGameCompilerOmitsUnresolvedReferencesAndDependentTriggers(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(s.Checks()) != 1 || len(s.Instants()) != 0 || len(s.Triggers()) != 0 || len(rep.Unresolved) != 3 || len(rep.OmittedActions) != 1 || len(rep.OmittedChecks) != 2 || len(rep.OmittedTriggers) != 1 {
+	if len(s.Checks()) != 2 || len(s.Instants()) != 0 || len(s.Triggers()) != 0 || len(rep.Unresolved) != 2 || len(rep.Late) != 1 || len(rep.OmittedActions) != 1 || len(rep.OmittedChecks) != 1 || len(rep.OmittedTriggers) != 1 {
 		t.Fatalf("program arrays%d/%d/%d report%+v", len(s.Checks()), len(s.Instants()), len(s.Triggers()), rep)
+	}
+}
+
+// A late reference, 8000..9999 under a group, player or unit parameter, keeps
+// its node and trigger: the reference stays absent and a check carrying one is
+// marked to be skipped (R2-ENGINE-1697, R2-ENGINE-1684).
+func TestSecondGameCompilerKeepsLateReferencesAndTheirTriggers(t *testing.T) {
+	src := alm.Script{
+		Conditions: []alm.ScriptNode{
+			node("late unit", 26, 1, par(4, 8001), par(1, 3)),
+			node("late group", 1, 2, par(2, 9000)),
+			node("late player", 8, 3, par(3, 8500)),
+			node("constant", 65538, 4, par(1, 0)),
+			node("named player", 8, 5, par(3, 2)),
+		},
+		Actions:  []alm.ScriptNode{node("late move", 11, 6, par(4, 8001), par(4, 9999), par(8, 6))},
+		Triggers: []alm.ScriptTrigger{trg("late", [3]uint32{1, 2, 3}, [3]uint32{4, 4, 5}, [3]uint32{0, 0, 0}, [4]uint32{6}, 1)},
+	}
+	s, rep, err := mapload.CompileROM2ScriptFrom(src, mapload.ScriptRefs{Units: map[uint16]sim.EntityID{8001: 1, 9999: 2}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	checks, instants := s.Checks(), s.Instants()
+	if len(checks) != 5 || len(instants) != 1 || len(s.Triggers()) != 1 || len(rep.Unresolved) != 0 || len(rep.Late) != 5 ||
+		len(rep.OmittedActions) != 0 || len(rep.OmittedChecks) != 0 || len(rep.OmittedTriggers) != 0 {
+		t.Fatalf("program arrays %d/%d/%d report %+v", len(checks), len(instants), len(s.Triggers()), rep)
+	}
+	for i, want := range []bool{true, true, true, false, false} {
+		if checks[i].Late != want {
+			t.Fatalf("check %d Late=%v, want %v", i, checks[i].Late, want)
+		}
+	}
+	if c := checks[0]; c.HasUnit || c.Args[0] != 3 {
+		t.Fatalf("late unit check %+v", c)
+	}
+	if checks[1].HasGroup || checks[2].HasPlayer || !checks[4].HasPlayer || checks[4].Player != 2 {
+		t.Fatalf("late group/player checks %+v %+v %+v", checks[1], checks[2], checks[4])
+	}
+	if in := instants[0]; in.HasUnit || in.HasUnit2 || !in.HasItem {
+		t.Fatalf("late action %+v", in)
+	}
+	kinds := map[string]int{}
+	for _, r := range rep.Late {
+		kinds[r.Kind.String()]++
+	}
+	if kinds["unit"] != 3 || kinds["group"] != 1 || kinds["player"] != 1 {
+		t.Fatalf("late reference kinds %v", kinds)
 	}
 }
 

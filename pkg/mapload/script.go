@@ -207,15 +207,35 @@ type ScriptRefKind uint8
 const (
 	ScriptRefUnit ScriptRefKind = iota
 	ScriptRefStructure
+	// ScriptRefGroup and ScriptRefPlayer name a late reference's parameter
+	// type in ScriptReport.Late; neither id space is ever looked up.
+	ScriptRefGroup
+	ScriptRefPlayer
 )
 
 // String names the reference kind, so a renderer can use a ScriptRefKind
 // directly in a format verb instead of holding its own copy of the two names.
 func (k ScriptRefKind) String() string {
-	if k == ScriptRefStructure {
+	switch k {
+	case ScriptRefStructure:
 		return "structure"
+	case ScriptRefGroup:
+		return "group"
+	case ScriptRefPlayer:
+		return "player"
 	}
 	return "unit"
+}
+
+// lateKind names a late reference's parameter type.
+func lateKind(t uint32) ScriptRefKind {
+	switch t {
+	case typeGroup:
+		return ScriptRefGroup
+	case typePlayer:
+		return ScriptRefPlayer
+	}
+	return ScriptRefUnit
 }
 
 // ScriptUnresolved is one reference the binder could not resolve: which node,
@@ -270,7 +290,11 @@ type ScriptReport struct {
 	DroppedTriggers   []int
 	DiscardedActions  []uint32
 	Unresolved        []ScriptUnresolved
-	Raises            []ScriptRaise
+	// Late lists the second game's late references: 8000..9999 under a group,
+	// player or unit parameter. They bind nothing and drop no node
+	// (R2-ENGINE-1697, DIV-2355).
+	Late   []ScriptUnresolved
+	Raises []ScriptRaise
 	// Dialogues are the dialogue names the interactive message actions of an
 	// extended script carry, in first-use order; a raise whose Event is
 	// InteractiveEvent(i) opens Dialogues[i].
@@ -486,6 +510,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			// THE STRUCTURE REFERENCE (1033 B3), on the item reference's own
 			// terms above: resolved by bindParams on the same pass.
 			Structure: refd.structure, HasStructure: refd.hasStructure,
+			Late: refd.late > 0,
 		})
 	}
 
@@ -705,6 +730,19 @@ type bound struct {
 
 	structure    sim.StructureID
 	hasStructure bool
+
+	// late counts the second game's late references (lateReference); a group
+	// slot a late reference took is spent like a carried one.
+	late      int
+	groupSeen bool
+}
+
+// lateReference reports a second-game value the compiler leaves for the
+// session table: 8000..9999 under a group, player or unit parameter. The node
+// is built with the reference unset and its late count raised (R2-ENGINE-1684,
+// R2-ENGINE-1697).
+func lateReference(dialect sim.ScriptDialect, t, v uint32) bool {
+	return dialect == sim.ScriptROM2 && (t == typeGroup || t == typePlayer || t == typeUnit) && v >= 8000 && v <= 9999
 }
 
 // scriptItemCodeBase is what the builder ADDS to a Target_Item value to get
@@ -738,6 +776,19 @@ func bindParamsDialect(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, con
 				args[next] = int32(v)
 				next++
 			}
+		case lateReference(dialect, t, v):
+			// The session table these slots read is zeroed at session start and
+			// has no writer, so the reference stays absent (R2-ENGINE-1697).
+			b.late++
+			rep.Late = append(rep.Late, ScriptUnresolved{Condition: cond, Kind: lateKind(t), NodeID: n.ID, Opcode: n.Opcode, Value: v})
+			switch t {
+			case typeUnit:
+				b.seenUnit++
+			case typePlayer:
+				b.seenPlayer++
+			default:
+				b.groupSeen = true
+			}
 		case t == typeUnit:
 			id, ok := resolveUnit(v, refs)
 			if dialect == sim.ScriptROM2 {
@@ -764,8 +815,8 @@ func bindParamsDialect(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, con
 			// because group zero is a real group. No arm of the vocabulary
 			// names two, and taking the first is what a node carrying a second
 			// would get from a forward-reading builder.
-			if !b.hasGroup {
-				b.group, b.hasGroup = v, true
+			if !b.groupSeen {
+				b.group, b.hasGroup, b.groupSeen = v, true, true
 			}
 		case t == typePlayer:
 			// CARRIED like the group above and on the same terms — the roster
@@ -823,9 +874,6 @@ func bindParamsDialect(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, con
 }
 
 func resolveROM2Unit(v uint32, refs ScriptRefs) (sim.EntityID, bool) {
-	if v >= 8000 && v <= 9999 {
-		return 0, false
-	}
 	if v <= 65535 {
 		if id, ok := refs.Units[uint16(v)]; ok {
 			return id, true

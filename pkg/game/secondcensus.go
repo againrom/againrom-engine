@@ -24,7 +24,7 @@ type SecondCause uint8
 
 const (
 	CauseFixture   SecondCause = iota // a hero-band subject the census party does not supply
-	CauseDynamic                      // the 8000..9999 band, which this build never binds
+	CauseDynamic                      // the 8000..9999 band; a unit reference there is late and omits nothing
 	CauseWithdrawn                    // a literal unit whose placement the border ring withdrew
 	CauseAbsent                       // a literal unit no placement of the map carries
 	CauseStructure                    // a structure word no placed structure carries
