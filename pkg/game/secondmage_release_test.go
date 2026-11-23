@@ -179,10 +179,12 @@ func secondMageBookVisible(t *testing.T, f *FrontEnd, app *ui.App, stage string)
 					}
 				}
 			}
+			secondMageClickApart(t, app)
 			spellbookClick(t, app, x, y)
 			if _, selected, armed := f.live.view.QuickSpellState(); !armed || selected != known.id {
 				t.Errorf("%s spell %d bar click armed=%v selected=%d", stage, known.id, armed, selected)
 			}
+			secondMageClickApart(t, app)
 			spellbookClick(t, app, x, y)
 		}
 	}
@@ -197,6 +199,16 @@ func secondMageCastFromBar(t *testing.T, f *FrontEnd, app *ui.App) {
 	}
 }
 
+// secondMageClickApart keeps two presses on one cell from being a double-click.
+func secondMageClickApart(t *testing.T, app *ui.App) {
+	t.Helper()
+	for range 60 {
+		if err := app.HeadlessStep(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func secondMageCastSelf(t *testing.T, live *mapWorld, app *ui.App, id sim.EntityID, spell uint32) {
 	t.Helper()
 	e, _ := live.entity(id)
@@ -204,6 +216,7 @@ func secondMageCastSelf(t *testing.T, live *mapWorld, app *ui.App, id sim.Entity
 	if err != nil {
 		t.Fatal(err)
 	}
+	secondMageClickApart(t, app)
 	spellbookClick(t, app, x, y)
 	inspectionCentre(live, int(e.X), int(e.Y))
 	live.push()
