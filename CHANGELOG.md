@@ -22,55 +22,53 @@ modder or developer can notice gets no entry.
 - [ROM2] Altars now switch on and off when used, units knocked unconscious still count for mission goals until they die, script triggers that name a not-yet-known object now run instead of being dropped, a trap without a source strikes from its own cell, and mission scripts can hand an item from one unit to another or move a unit, after which a computer unit stands guard.
 - [BASE] A unit at full health now backs away or flees from a nearby enemy when its health is at or below its withdrawal point, as in the original; bats and archers no longer stand still at full health.
 - [ROM2] A spell rolled on a mage's item in a shop now gets a budget of a hundred times the item's price, as in the first game; before, it got ten times, leaving those spells weaker or absent.
-- [ROM1] Юниты под управлением компьютера теперь выбирают целью юнита под заклинанием номер 20 в последнюю очередь, как в оригинале; раньше это заклинание не меняло выбор цели.
-- [ROM2] Юниты идут по склону с той же скоростью, что в оригинале; юнит, которому некуда бежать, останавливается на месте; порог отступления у юнитов игрока теперь зависит от класса, как в оригинале: в одном режиме воин не отступает, а стрелок и маг отступают раньше, в другом порог здоровья общий для всех.
-- [BASE] Существо с несколькими видами оружия теперь бьёт на сумму их дальностей, как в оригинале; раньше учитывалось только первое оружие.
-- [BASE] Невидимый маг, колдующий на другую цель или в клетку, теперь не теряет невидимость сразу, а сохраняет её ещё на один шаг, как в оригинале; заклинание на себя невидимость не меняет.
+- [ROM1] Computer units now pick a unit under Stone Curse as their target last, as in the original; before, Stone Curse did not change their choice.
+- [ROM2] Units now climb slopes at the original's speed, a unit with nowhere to flee stands still, and your units' retreat point now depends on their class, as in the original.
+- [BASE] A creature with several weapons now reaches as far as all its weapons together, as in the original; before, only the first weapon counted.
+- [BASE] An invisible mage who casts at another unit or at a cell now stays invisible one step longer, as in the original; a spell cast on itself does not change its invisibility.
 - [ROM2] In the English version, the second pulse of a straight Acid Stream now strikes one cell twice and skips the cell on the far side, as the original does; the Russian version keeps its own cone.
-- [ROM2] Units now step as in the original: a diagonal step keeps the first game's position correction and the slowest diagonal step stands still for 256 ticks, a struck guard steps away ten cells along the longer axis, and computer units rank a target under Stone Curse lower.
-- [ROM2] Порядок товаров в магазинах второй игры проверен по русской версии клиента оригинала: он тот же, что в английской, так что обе версии показывают полки одинаково.
-- [ROM2] Заклинание второй игры, летящее в сохранении, после загрузки попадает без заклинателя: цель теряет здоровье, но не помнит нападавшего, враждебность не включается и опыт за убийство не начисляется.
-- [ROM2] Сохранение города теперь пишет опыт каждого члена отряда по его строке, число убийств игрока по записанным убийствам и выбор на герое; блок игрока из загруженного оригинала сохраняется как есть.
-- [ROM2] The Kaarg inn taverner now runs its long animation for the original's 95 steps with its holds, a shop's second tip shows once the deal table holds an item, and the druid inn's lower-right edge starts as HumanBackL.
-- [ROM2] A mission's step costs on layered cells now follow the original's cell slots: after a second walker shares a cell, the cell keeps its decayed cost, and a mission SAVE keeps those slots.
+- [ROM2] Units now step as in the original: diagonal steps keep the first game's pace and pauses, a struck guard steps ten cells away along the longer direction, and computer units rank a target under Stone Curse lower.
+- [ROM2] A spell still flying when you save now lands after loading without a caster: the target loses health but does not learn who attacked it, does not turn hostile, and a kill gives no experience.
+- [ROM2] A town save now keeps each party member's experience and the player's kill count; what a loaded save from the original holds about the player stays as it was.
+- [ROM2] The Kaarg inn taverner now runs its whole long animation, a shop's second tip shows once the deal table holds an item, and the druid inn's lower-right corner shows its original picture.
+- [ROM2] A mission's step costs on layered cells now follow the original: after a second walker shares a cell, the cell keeps its decayed cost, and a mission save keeps it.
 - [ROM2] A dead unit's body now sinks through its corpse stages and leaves the world as fast as in the original; before, it did so one and a half times slower, which also kept it raisable longer.
-- [ROM2] A new hero who picks Shooting or Astral now starts at level 10 in it, as in the original, and the town save writes the hero's template row and experience word as the original does.
+- [ROM2] A new hero who picks Shooting or Astral now starts at level 10 in it, as in the original, and the hero's experience survives a town save.
 - [ROM2] The mission report after a win is now a framed popup at the original's size and place with its two buttons where the original has them, the failure page has the original's width and button places, and movies such as the teleport play at their original place centred on the screen.
 - [BASE] "Abandon mission" is now a row of the End Quest page instead of the game menu's own row, and it abandons the mission at once without asking again.
+- [BASE] "Abandon mission" and the rows mods add to the game menu are now drawn as buttons, like the other rows.
 - [BASE] A mage's Teleport now plays its sound also when he was still finishing his turn toward the target as the spell began; before, the second game cast it in silence, and the first game lost its second sound.
+- [ROM2] The Teleport sound from a spell or a scroll now plays where the caster stands, once per cast, and is no longer lost after the jump.
 - [BASE] The in-game chat and command line now remembers the last 50 lines you sent during the session; Up and Down step through them, and Down past the newest brings back what you were typing.
-- В окне диалога поле «Ответ» снова показывает русский текст читаемо, а строка ответа вдавливается только при нажатии, а не при наведении.
-- [BASE] Свиток, использованный во время заклинания или его восстановления, теперь ждёт и срабатывает следом; два свитка телепорта подряд срабатывают оба.
-- В редакторе карт окно «Диалог»: щелчок в любом месте строки списка выбирает реплику, а список больше не прыгает к началу после выбора.
-- [ROM2] Компьютерные люди без книги заклинаний больше не отступают при любом ранении; маги и существа с Телепортом при бегстве телепортируются, а не только уходят пешком.
-- [BASE] В меню игры строка «Abandon mission» (и строки действий модов) теперь нарисована кнопкой, как остальные.
-- [ROM2] Компьютерный маг лечит себя и союзников, даже когда по нему бьёт враг, если сам он никого не атакует.
-- [ROM2] Звук телепортации при заклинании и свитке теперь звучит там, откуда колдует персонаж, и больше не пропадает после прыжка.
-- [ROM2] Область поражения больше не отправляет задетых чужих монстров на кастера, а заклинание по большому существу попадает в центр его тела.
-- [ROM2] Компьютерные юниты второй игры убегают от врага в радиусе 10 клеток независимо от дальности обзора, а маг с заклинанием Teleport не убегает, пока враг дальше 5 клеток; раненый маг при отступлении больше не начинает лечение.
-- [ROM2] Раненые стражи второй игры, получив недавний удар и не имея цели, отходят в сторону от ударившего, как в оригинале.
-- [ROM1] Заклинание по площади, выпущенное в большое существо (огр, тролль, дракон), теперь ложится в середину его тела, как в оригинале.
-- [ROM1] Урон водой и землёй от предметов героя из сохранения оригинала теперь снижает защита от своей стихии, как в оригинале; раньше вода и земля были перепутаны.
-- [ROM1] Стихийный урон предмета добавляется к удару, только если удар попал по меткости или у оружия нет своего урона, как в оригинале; удар, прошедший лишь за счёт автопопадания или броска 90 и выше, наносит только обычный урон.
-- [ROM1] Заклинание на предмете мага в магазине, выпавшее не обязательным, а случайным выбором, теперь получает бюджет в сто раз больше цены предмета, как в оригинале; раньше в десять раз, и такие заклинания были слабее или не выпадали.
-- [ROM2] Эффекты заклинаний на склоне (картинки Телепорта, молния и летящие заряды) стоят на высоте земли в своей точке клетки, как в оригинале, а не на средней высоте клетки.
-- [ROM2] Ядовитое облако и Проклятие, наложенные героем или существом, больше не рисуют собственную картинку заклинания; видна только метка на юните, как в оригинале.
+- [BASE] A scroll used while a spell is being cast or recovering now waits and works right after it; two Teleport scrolls in a row both work.
+- [BASE] A reply row in a dialogue now looks pressed only while the mouse button is held, not when the pointer is over it.
+- [ROM2] Computer Humans with no spell book no longer retreat at any wound; mages and creatures with Teleport now teleport away when they flee instead of only walking.
+- [ROM2] A computer mage now heals itself and its allies even while an enemy strikes it, as long as it attacks no one itself.
+- [ROM2] An area spell no longer sends monsters of another side that it hits after the caster, and a spell aimed at a large creature lands at the centre of its body.
+- [ROM2] Computer units now flee from an enemy within 10 cells however far they see, a mage with Teleport does not flee while the enemy is more than 5 cells away, and a wounded mage no longer starts healing while it retreats.
+- [ROM2] A wounded guard with no target that was just struck now steps aside, away from its attacker, as in the original.
+- [ROM1] An area spell cast at a large creature (ogre, troll, dragon) now lands in the middle of its body, as in the original.
+- [ROM1] Water and earth damage from a hero's items in a save from the original is now reduced by protection from its own element, as in the original; before, water and earth were swapped.
+- [ROM1] An item's elemental damage now adds to a blow only when the blow hits through accuracy or the weapon has no damage of its own, as in the original; a blow that lands only through an automatic hit deals plain damage.
+- [ROM1] A spell rolled at random on a mage's item in a shop now gets a budget of a hundred times the item's price, as in the original; before, it got ten times, so those spells were weaker or absent.
+- [ROM2] Spell effects on a slope (Teleport pictures, lightning and flying bolts) now sit at the ground's height where they are, as in the original, not at the cell's average height.
+- [ROM2] Poison Cloud and Curse cast by a hero or a creature no longer draw their own spell picture; only the mark on the unit shows, as in the original.
 - [ROM2] An area spell cast on a unit, such as Acid Stream, now heads from the caster's cell toward the target's cell, as in the original; before, it followed the caster's facing and could miss the target.
-- [ROM2] Your Humans now take their class retreat and flee thresholds at mission start, as the computer's Humans do; with the retreat option unset, a wounded mage steps back from a near enemy and flees at a quarter of health.
+- [ROM2] Your Humans now take their class retreat and flee points at mission start, as the computer's Humans do; with the retreat option unset, a wounded mage steps back from a near enemy and flees at a quarter of health.
 - [ROM2] Leaving a town through its gate no longer adds Dina to the party; as in the original, only the win of mission 40 brings her in.
-- [ROM2] After a book or scroll spell, a mage again regains mana three times faster 81 ticks after turning to the target and starting the spell, as in the original; flying spells such as Fire Arrow now travel the straight distance to the target, so they arrive later on a diagonal, while Lightning and Prismatic Spray still strike after 10 ticks.
-- [ROM2] Casting a spell whose target or cell cannot take it now spends mana first as in the original (casting without enough mana still costs nothing), and a neutral unit caught in an area spell's cell hit only turns hostile back after more than ten area hits, below half health, or on death (a poison tick still turns it at once).
-- [ROM2] A second-game mission now keeps its trigger cell slots after SAVE and a cold LOAD; before, they were lost on loading a saved mission.
-- [ROM2] The second game's 29th spell now stays in a hero's spell book after SAVE and a cold LOAD; before, the saved book held only 28 spells and the 29th was lost.
+- [ROM2] Shortly after starting a book or scroll spell, a mage again regains mana three times faster, as in the original; flying spells such as Fire Arrow now travel the straight distance to the target, so they arrive later on a diagonal, while Lightning and Prismatic Spray still strike almost at once.
+- [ROM2] Casting a spell whose target or cell cannot take it now spends mana first, as in the original (casting without enough mana still costs nothing), and a neutral unit caught in an area spell only turns hostile after more than ten such hits, below half health, or on death (a poison tick still turns it at once).
+- [ROM2] A second-game mission now keeps its trigger cells working after a save and a load from the main menu; before, they were lost on loading a saved mission.
+- [ROM2] The second game's 29th spell now stays in a hero's spell book after a save and a load from the main menu; before, the saved book held only 28 spells and the 29th was lost.
 
 ### For map makers and modders
 
 - [ROM2] Mission scripts now run with all 1,000 registers (starting with register 901 at 1, counting each script tick in register 999, and keeping registers 100..999 across save and load) and support the player-buildings check, the occupied-cell relocate check, and the counter action for register 902.
 - [ROM2] In the map editor, opening or editing a mod that replaces install files now reloads the second game's definition table under the second game's layout; before, it read the table under the first game's layout.
-- [ROM1] In the map editor, a unit, structure or sack record card now lists its fields in the same field-list layout as the second game, with localized labels in English and Russian.
-- [ROM2] Редактор карт теперь показывает и меняет поля юнита, строения и мешка на карте второй игры: владельца, определение по названию, здоровье, флаги, тип и предметы; поля, смысл которых не найден, названы по смещению, например «Поле 0x0a», и карточка записи строится из тех же полей.
+- [ROM1] In the map editor, the record card of a unit, structure or sack lists its fields in the second game's layout, with labels in English and Russian.
+- [ROM2] The map editor now shows and changes the fields of a unit, structure or sack on a second-game map: owner, definition by name, health, flags, type and items; a field whose meaning is not known yet is named by its place, such as "Field 0x0a".
 - [ROM2] The map editor's Players window now lists the players of a second-game map, renames them, sets their colour and relations and adds a player; two unread roster words stay read-only and a player cannot be deleted there.
-- [ROM2] Редактор карт теперь проверяет карту второй игры, показывает отчёт и отметку о проблемах, спрашивает при сохранении с ошибкой и запускает пробную игру этой карты; правила, опирающиеся на факты первой игры, не выполняются, и отчёт называет их.
+- [ROM2] The map editor now checks a second-game map, shows the report and a problem mark, asks before saving a map with errors and starts a test game of it; checks that rest on first-game facts are skipped, and the report names them.
 - [ROM2] The map editor now selects with a frame, copies, pastes and groups units, structures and ground sacks on a second-game map, and a pasted unit keeps its own sack; the store and recipe tools and area copy stay off there.
 - [BASE] The mod window has a "Move old paths" button that carries every file a row names on an old path into the mod's `assets` and `maps` folders and rewrites the rows; it refuses, naming both files, when a target holds a different file.
 - [BASE] A mod whose numbered map files replace no mission of the install marks no save again, and the override line of a mission replaced by a map file names the file without a line number.
@@ -89,13 +87,13 @@ modder or developer can notice gets no entry.
 - [BASE] The mod window has a Companions page: add, change and remove the rows that make a town's companion join only when the hero opens a chosen tavern conversation; Save mod refuses a row the campaign cannot run, naming it.
 - [BASE] The mod window's Bodies page now offers the weapon body choice even while the mod holds no body, so a weapon can take a body from the game's bodies.
 - [BASE] The map editor now edits interactive dialogues: the Start dialog action chooses between a message page and a dialogue with replies, a window edits the dialogue's nodes, their texts in two languages and up to four replies each with its next node, once mark, hidden or disabled look, condition and outcome, and the mod window has a Dialogues page; Apply and Save mod refuse a broken dialogue in plain words, and a dialogue is saved and published with the mod.
-- [BASE] The map editor now draws its notes, refusals and default node names in Russian instead of question marks: text kept in the face's bytes was encoded a second time, and the default node name falls back to English when the face cannot draw the editor's letters.
-- [BASE] Saving a map from the map editor now writes its interactive dialogue files into the .dialogs folder beside the map, in the map's own folder and in a mod folder alike; before, a trigger that started a dialogue with replies paid its other actions and showed no dialogue, because the dialogue file was never written beside the saved map.
+- [BASE] The map editor now draws its notes, refusals and default node names in Russian instead of question marks, and the default node name falls back to English where the editor's font cannot draw the letters.
+- [BASE] Saving a map from the map editor now writes its interactive dialogue files into the .dialogs folder beside the map, in the map's own folder and in a mod folder alike; before, a trigger that started a dialogue with replies ran its other actions and showed no dialogue.
 - [BASE] A mod whose records did not load now refuses edits on every mod page in the map editor, not only on Speakers.
-- [BASE] In the Dialog window a reply's text no longer turns into unreadable letters after you change its When unavailable, Only once or Transition choice or reopen the dialog; the text was converted to the font's encoding twice.
+- [BASE] In the Dialog window a reply's text no longer turns into unreadable letters after you change its When unavailable, Only once or Transition choice or reopen the dialog, and the Reply field shows Russian text readably.
 - [BASE] The Dialog window no longer counts the sex or class word a tag holds as an extra condition on a cell already sorted by that sex or class, so an original message split by the hero's sex opens and applies; a tag attribute such as tips that a dialogue file cannot hold is now named in the refusal, with an x on its Also in the tag row that drops it from the file, and the never-shown, ending and extra-condition refusals each say which button fixes them.
-- The map editor's Dialog window now opens and edits its lines at once on a dialogue with many lines; before, a 21-line dialogue took about five seconds on every open and edit.
-- [ROM1] The map editor's record card for a unit, building or sack in the first game now lists its fields the way the second game's card does.
+- [BASE] In the Dialog window, a click anywhere on a line's row selects that line, and the list no longer jumps back to the top after the choice.
+- [BASE] The Dialog window now opens and edits a dialogue with many lines at once; before, a 21-line dialogue took about five seconds on every open and edit.
 
 ## 0.158.0
 
