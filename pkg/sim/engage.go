@@ -620,8 +620,8 @@ const groupScorerReach = 1
 //
 // The two modifiers apply unless preferenceWithheld answers true.
 //
-// Not applied at all: the flat 127 a candidate carrying one active spell id
-// costs. This tree has no spells (0086 D-6).
+// The flat 127 a candidate carrying one active spell id costs is applied only
+// where the profile names that spell (scoreEffectSpell); the first game does not.
 //
 // THE NOTICE CIRCLE IS NOT TOUCHED AT ALL BY EITHER TASK — not the jitter,
 // not the margin, not noticeBase's own freeze. Measured on the tenth mission
@@ -729,23 +729,31 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 	if w.game.orders.standGroundScore {
 		cost += facingArc(m.Facing, w.headingBetween(m, c))
 	}
-	if w.preferenceWithheld(&m, &c, order) {
-		return cost
+	if !w.preferenceWithheld(&m, &c, order) {
+		// THE SECOND DIFFERENCE: the second scorer's modifiers are coarser — a
+		// doubling and a halving where the first has a half and a quarter.
+		switch {
+		case pref == 1 && order == orderStandGround:
+			cost <<= 1
+		case pref == 1:
+			cost += cost / 2
+		case pref == 4 && order == orderStandGround:
+			cost >>= 1
+		case pref == 4:
+			cost -= cost / 4
+		}
 	}
-	// THE SECOND DIFFERENCE: the second scorer's modifiers are coarser — a
-	// doubling and a halving where the first has a half and a quarter.
-	switch {
-	case pref == 1 && order == orderStandGround:
-		cost <<= 1
-	case pref == 1:
-		cost += cost / 2
-	case pref == 4 && order == orderStandGround:
-		cost >>= 1
-	case pref == 4:
-		cost -= cost / 4
+	// The ordinary scorer, not the stand-ground one, adds a flat cost to a
+	// candidate under the profile's effect (R2-ENGINE-1495, R2-ENGINE-1496).
+	if spell := w.game.scoreEffectSpell; spell != 0 && order != orderStandGround && w.hasAttachedSpell(c.ID, spell) {
+		cost = max(cost+scoreEffectCost, 1)
 	}
 	return cost
 }
+
+// scoreEffectCost is what the ordinary scorer adds for a candidate under the
+// profile's scoreEffectSpell.
+const scoreEffectCost = 0x7f
 
 // scoreMindFloor is the Mind the preference modifiers need (AI-COST-071,
 // R2-ENGINE-503).

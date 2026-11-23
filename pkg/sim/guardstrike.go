@@ -35,15 +35,17 @@ func (w *World) groupClock() uint16 { return uint16(w.tick / scriptCycle) }
 func (w *World) fineClock() uint32  { return uint32(w.tick) }
 
 // recordBlow writes the blow's record on victim ti's command o: the striker
-// ai, the fine clock and the cell strikeAwayCells beyond the victim on the
-// line from the striker, held inside the map (R2-ENGINE-845).
+// ai, the fine clock and the cell beyond the victim on the line from the
+// striker, held inside the map. Both differences are scaled by
+// strikeAwayCells over the larger of their magnitudes and truncated, so the
+// longer axis moves exactly strikeAwayCells (R2-ENGINE-1491).
 func (w *World) recordBlow(ai, ti int, o *SavedActorOrder) {
 	a, v := w.entities[ai], w.entities[ti]
 	dx, dy := v.X-a.X, v.Y-a.Y
 	x, y := v.X, v.Y
-	if d := isqrt(dx*dx + dy*dy); d > 0 {
-		x += roundedQuotient(strikeAwayCells*dx, d)
-		y += roundedQuotient(strikeAwayCells*dy, d)
+	if m := max(dx, -dx, dy, -dy); m > 0 {
+		x += strikeAwayCells * dx / m
+		y += strikeAwayCells * dy / m
 	}
 	x, y = min(max(x, 0), w.bounds.Width-1), min(max(y, 0), w.bounds.Height-1)
 	o.Strike.Attacker, o.Strike.Clock, o.Strike.Held = a.ID, w.fineClock(), true
@@ -57,14 +59,6 @@ func (k SavedStrike) CommandStamp() uint16 {
 		return k.Stamp
 	}
 	return unstampedCommand
-}
-
-// roundedQuotient is n / d rounded half away from zero, for d > 0.
-func roundedQuotient(n, d int32) int32 {
-	if n < 0 {
-		return -((-n*2 + d) / (2 * d))
-	}
-	return (n*2 + d) / (2 * d)
 }
 
 // stampMissedApproach writes +0x16 for attacker i whose approach search

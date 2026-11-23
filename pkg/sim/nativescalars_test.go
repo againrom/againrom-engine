@@ -273,7 +273,7 @@ func TestNativeScalarMaintainedPartsKeepIndependentBits(t *testing.T) {
 	e.NativeBasis = basis
 	want := basis
 	want.Scalars[ScalarUA4], want.Scalars[ScalarU4C] = 0x07ab, 0xad
-	if NativeBasisNow(*e, true) != want || e.NativeBasis != basis {
+	if NativeBasisNow(*e) != want || e.NativeBasis != basis {
 		t.Fatal("current scalar composition lost independent bits or changed backing history")
 	}
 	actions := w.Actions()
@@ -296,7 +296,7 @@ func TestNativeScalarMaintainedPartsKeepIndependentBits(t *testing.T) {
 		t.Fatal("noncanonical maintained scalar form accepted or changed state")
 	}
 	e.NativeBasis.ScalarKnown &^= 1<<ScalarUA4 | 1<<ScalarU4C
-	if NativeBasisNow(*e, true) != e.NativeBasis {
+	if NativeBasisNow(*e) != e.NativeBasis {
 		t.Fatal("maintained fields promoted unknown scalar history")
 	}
 }
@@ -311,7 +311,7 @@ func TestNativeBlockKeepsTheStridePositionWhenTheTransitClears(t *testing.T) {
 	e.NativeBasis = NativeActorBasis{BlockPresent: true, BlockKnown: 0x3ff, Block: [10]byte{69, 36, 128, 128, 0, 0, 16, 0, 0, 81}}
 	still := *e
 	e.Stride = NativeStride{Present: true, FromX: 69, FromY: 36, ToX: 70, ToY: 35, StepX: 8, StepY: -8}
-	shown := NativeBasisNow(*e, true)
+	shown := NativeBasisNow(*e)
 	e.clearTransit()
 	if e.NativeBasis != shown || e.NativeBasis.Block[0] != 70 || e.NativeBasis.Block[1] != 35 {
 		t.Fatalf("felled block %v, held %v", e.NativeBasis.Block, shown.Block)
@@ -344,7 +344,7 @@ func TestNativeScalarCurrentClockKeepsUnknownHistory(t *testing.T) {
 			}
 			before, want := e.NativeBasis, e.NativeBasis
 			want.Scalars[ScalarU138] = tc.want
-			if NativeBasisNow(*e, true) != want || e.NativeBasis != before {
+			if NativeBasisNow(*e) != want || e.NativeBasis != before {
 				t.Fatal("current clock changed unknown history, masks or backing values")
 			}
 			actions := w.Actions()
@@ -391,7 +391,7 @@ func TestNativeScalarCreatureExperienceKeepsOtherHistory(t *testing.T) {
 			e.NativeBasis = basis
 			want := basis
 			want.Scalars[ScalarT1C] = tc.want
-			if NativeBasisNow(*e, true) != want || e.NativeBasis != basis {
+			if NativeBasisNow(*e) != want || e.NativeBasis != basis {
 				t.Fatal("creature experience changed masks, independent history or backing values")
 			}
 			actions := w.Actions()
@@ -407,7 +407,7 @@ func TestNativeScalarCreatureExperienceKeepsOtherHistory(t *testing.T) {
 				t.Fatal("creature experience scalar cold form differs", err)
 			}
 			e.NativeBasis = NativeActorBasis{}
-			if NativeBasisNow(*e, true).HasValues() {
+			if NativeBasisNow(*e).HasValues() {
 				t.Fatal("creature experience invented an absent carrier")
 			}
 		})
@@ -478,7 +478,7 @@ func TestNativeScalarCurrentMotionOrderAndTerminalSnapshots(t *testing.T) {
 				}
 				before := w.entities[0]
 				e, ok := w.Entity(0)
-				if !ok || e.NativeBasis != want || w.Entities()[0].NativeBasis != want || NativeBasisNow(e, true) != want {
+				if !ok || e.NativeBasis != want || w.Entities()[0].NativeBasis != want || NativeBasisNow(e) != want {
 					t.Fatal("current snapshot lost motion/order/terminal authority or independent history", known, e.NativeBasis, want)
 				}
 				if w.entities[0] != before {
@@ -563,7 +563,7 @@ func TestNativeScalarPhysicalAttackOverridesMotion(t *testing.T) {
 				}
 				before := w.entities[0]
 				current, _ := w.Entity(0)
-				if current.NativeBasis != want || w.Entities()[0].NativeBasis != want || NativeBasisNow(current, true) != want || w.entities[0] != before {
+				if current.NativeBasis != want || w.Entities()[0].NativeBasis != want || NativeBasisNow(current) != want || w.entities[0] != before {
 					t.Fatal("physical action lost current priority, unknown history, or backing immutability", known, current.NativeBasis, want)
 				}
 				if a := w.Actions(); a.Actors[0].Current.NativeBasis == nil || *a.Actors[0].Current.NativeBasis != want {
@@ -659,8 +659,8 @@ func TestNativeScalarBlockFollowsActualStrideAndCompletion(t *testing.T) {
 		} else {
 			want.Block[0], want.Block[1], want.Block[2], want.Block[3] = 9, 9, 128, 128
 		}
-		if NativeBasisNow(e, true) != want || e.NativeBasis != basis {
-			t.Fatal("actual stride changed backing history or failed to compose current Block", paid, NativeBasisNow(e, true), want)
+		if NativeBasisNow(e) != want || e.NativeBasis != basis {
+			t.Fatal("actual stride changed backing history or failed to compose current Block", paid, NativeBasisNow(e), want)
 		}
 		actions := w.Actions()
 		if actions.Actors[0].Current.NativeBasis == nil || *actions.Actors[0].Current.NativeBasis != want {
@@ -686,21 +686,21 @@ func TestNativeScalarBlockKeepsPartialMasksAndImportedHistory(t *testing.T) {
 	e.NativeBasis = basis
 	want := basis
 	want.Block[0], want.Block[2] = 4, 144
-	if NativeBasisNow(e, true) != want || e.NativeBasis != basis {
+	if NativeBasisNow(e) != want || e.NativeBasis != basis {
 		t.Fatal("native stride changed unknown bytes, masks or unmodeled Block tail")
 	}
 	e.NativeBasis.BlockKnown = 0
-	if NativeBasisNow(e, true) != e.NativeBasis {
+	if NativeBasisNow(e) != e.NativeBasis {
 		t.Fatal("native stride promoted unknown Block bytes")
 	}
 	e.NativeBasis = NativeActorBasis{}
-	if NativeBasisNow(e, true).HasValues() {
+	if NativeBasisNow(e).HasValues() {
 		t.Fatal("native stride invented an absent Block")
 	}
 	e.NativeBasis, e.Stride = basis, NativeStride{}
 	for _, transit := range []uint16{15, 0} {
 		e.Transit = transit
-		if NativeBasisNow(e, true) != basis {
+		if NativeBasisNow(e) != basis {
 			t.Fatal("actor without native stride replaced imported Block history", transit)
 		}
 	}

@@ -566,7 +566,7 @@ func (w *World) advanceSavedMotion(i int, scratch *routeScratch) bool {
 	}
 	// AI-ORDER-039/MOVE-STEP-040: progress3 publishes actor+54=1 on
 	// this executed actor update, independently of reaching the center.
-	nativeStride := m.Issue == "" && m.NativeStrideCompatible(w.StrideCorrected())
+	nativeStride := m.Issue == "" && m.NativeStrideCompatible()
 	m.ActorAction = 1
 	p := m.Position
 	touched := []uint16{p.Cell}
@@ -575,9 +575,8 @@ func (w *World) advanceSavedMotion(i int, scratch *routeScratch) bool {
 			touched = append(touched, key)
 		}
 	}
-	// The first game corrects every step; the second its imported ones.
 	sx, sy := strideStep(int32(p.Cell&255)<<8|int32(p.FineX), int32(p.Cell>>8)<<8|int32(p.FineY),
-		int8(m.Mover[0xb0]), int8(m.Mover[0xb1]), binary.LittleEndian.Uint16(m.Mover[0xae:]), !nativeStride || w.StrideCorrected())
+		int8(m.Mover[0xb0]), int8(m.Mover[0xb1]), binary.LittleEndian.Uint16(m.Mover[0xae:]))
 	x, y := uint16(sx), uint16(sy)
 	next := p
 	next.Cell, next.PackedCell = uint16(y>>8)<<8|uint16(x>>8), uint16(y>>8)<<8|uint16(x>>8)

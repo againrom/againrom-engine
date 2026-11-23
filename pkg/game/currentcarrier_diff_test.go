@@ -13,10 +13,10 @@ func logCurrentCarrierDiff(t *testing.T, a, b *sim.World) {
 	t.Helper()
 	left, right := a.Entities(), b.Entities()
 	for i := range left {
-		left[i].NativeBasis = sim.NativeBasisNow(left[i], a.StrideCorrected())
+		left[i].NativeBasis = sim.NativeBasisNow(left[i])
 	}
 	for i := range right {
-		right[i].NativeBasis = sim.NativeBasisNow(right[i], b.StrideCorrected())
+		right[i].NativeBasis = sim.NativeBasisNow(right[i])
 	}
 	remaining := 48
 	var compare func(string, reflect.Value, reflect.Value)

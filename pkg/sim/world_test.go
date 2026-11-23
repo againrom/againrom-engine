@@ -153,8 +153,6 @@ func init() {
 	worldMethods = append(worldMethods, "RefreshPlayerBooks")
 	worldMethods = append(worldMethods, "EntityAlive")
 	worldMethods = append(worldMethods, "BuildingCellPlanes")
-	// The game's step law: whether a stride takes the octant 1 and 5 correction.
-	worldMethods = append(worldMethods, "StrideCorrected")
 	worldMethods = append(worldMethods, "RouteCost")
 	worldWriters = append(worldWriters, "RefreshPlayerBooks")
 	slices.Sort(worldMethods)

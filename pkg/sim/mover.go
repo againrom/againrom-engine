@@ -229,7 +229,7 @@ func (w *World) moverCrossed(id EntityID) {
 // the cell it stands in, or during a crossing the cell its position is in.
 func (w *World) moverCell(e Entity) cell {
 	if e.Transit > 0 && e.Stride.Present && e.Transit <= e.TransitTotal {
-		return strideCell(e.Stride, int32(e.TransitTotal-e.Transit), int32(e.TransitTotal), w.StrideCorrected())
+		return strideCell(e.Stride, int32(e.TransitTotal-e.Transit), int32(e.TransitTotal))
 	}
 	return cell{e.X, e.Y}
 }

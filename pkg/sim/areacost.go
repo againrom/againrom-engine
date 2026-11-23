@@ -263,8 +263,8 @@ func (w *World) syncAreaCosts() {
 // byte over the fraction byte, and a transit starts at fraction 0x80; each
 // tick adds the axis's signed step, so a step down borrows from the cell byte
 // as soon as the fraction goes below zero (MOVE-STEP-010).
-func strideCell(s NativeStride, steps, total int32, corrected bool) cell {
-	x, y := s.finePoint(steps, total, corrected)
+func strideCell(s NativeStride, steps, total int32) cell {
+	x, y := s.finePoint(steps, total)
 	return cell{x: x >> 8, y: y >> 8}
 }
 
@@ -327,8 +327,8 @@ func (w *World) ResetLoadedAreaCosts() {
 // adds step t+1. A diagonal whose axes cross on different ticks passes through
 // the cell between the two corners; the first game's correction crosses both
 // on one tick (MOVE-200).
-func strideCrossing(s NativeStride, tick, total int32, corrected bool) (from, to cell, crossed bool) {
-	from, to = strideCell(s, tick, total, corrected), strideCell(s, tick+1, total, corrected)
+func strideCrossing(s NativeStride, tick, total int32) (from, to cell, crossed bool) {
+	from, to = strideCell(s, tick, total), strideCell(s, tick+1, total)
 	return from, to, from != to
 }
 

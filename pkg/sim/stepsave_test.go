@@ -17,7 +17,7 @@ func TestASavedStepCarriesAndContinuesTheCorrectedPosition(t *testing.T) {
 		Step(w, nil)
 	}
 	e := w.Entities()[0]
-	saved, err := ProjectActorMotion(e, SavedActorMotion{Entity: 7}, w.Route(7), true, w.StrideCorrected())
+	saved, err := ProjectActorMotion(e, SavedActorMotion{Entity: 7}, w.Route(7), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,8 +26,8 @@ func TestASavedStepCarriesAndContinuesTheCorrectedPosition(t *testing.T) {
 		word(saved, 0xac) != 8 || word(saved, 0xae) != 1 || int8(saved.Mover[0xb0]) != 16 || int8(saved.Mover[0xb1]) != -16 {
 		t.Fatalf("saved step: position %+v, rate %d, calls %d of %d, octant %d", p, word(saved, 0xa8), word(saved, 0xac), word(saved, 0xaa), word(saved, 0xae))
 	}
-	if !saved.NativeStrideCompatible(true) || saved.NativeStrideCompatible(false) {
-		t.Fatal("the corrected position is not the first game's own stride, or is the second game's")
+	if !saved.NativeStrideCompatible() {
+		t.Fatal("the corrected position is not the native stride")
 	}
 
 	loaded, m, cs, bs := savedMotionFixture(t, saved.Position.FineX, saved.Position.FineY, 16, -16, 1, 8, 16)
@@ -41,7 +41,7 @@ func TestASavedStepCarriesAndContinuesTheCorrectedPosition(t *testing.T) {
 	for call := 9; call < 16; call++ {
 		Step(w, nil)
 		Step(loaded, nil)
-		want, err := ProjectActorMotion(w.Entities()[0], SavedActorMotion{Entity: 7}, w.Route(7), true, w.StrideCorrected())
+		want, err := ProjectActorMotion(w.Entities()[0], SavedActorMotion{Entity: 7}, w.Route(7), true)
 		if err != nil {
 			t.Fatal(err)
 		}

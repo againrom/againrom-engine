@@ -96,9 +96,6 @@ type gameProfile struct {
 	// withdrawMoverPoint: the withdrawal measures from the mover's fine
 	// point, not the saved target point.
 	withdrawMoverPoint bool
-	// uncorrectedStride: a step adds its strides with no octant 1/5
-	// correction, and a rate-1 diagonal strides 1 (NativeStride.finePoint).
-	uncorrectedStride bool
 	// castDropsLoadedStep: a manual cast or cast approach ends a loaded
 	// step between cells instead of waiting for its centre.
 	castDropsLoadedStep bool
@@ -183,6 +180,9 @@ type gameProfile struct {
 	// memberScoreGate: the score's preference modifiers test the scoring
 	// actor's size and Mind (R2-ENGINE-503), not the candidate's.
 	memberScoreGate bool
+	// scoreEffectSpell: the lasting effect whose bearer the ordinary score
+	// adds scoreEffectCost for, 0 for none (R2-ENGINE-1495, R2-ENGINE-1496).
+	scoreEffectSpell uint16
 	// blow: the blow's draws and gates (resolveBlow).
 	blow blowRule
 	// skillAward: the skill award's steps (R2-ENGINE-480, R2-ENGINE-486).
@@ -262,6 +262,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		cellEventRelocates:         true,
 		bookListsScrolls:           true,
 		memberScoreGate:            true,
+		scoreEffectSpell:           18,
 		blow:                       secondGameBlow,
 		skillAward:                 secondGameSkillAward,
 		nativeEffectDriver:         true,
@@ -279,7 +280,6 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		postKeepsDying:             true,
 		savedProjectileAim:         true,
 		withdrawMoverPoint:         true,
-		uncorrectedStride:          true,
 		castDropsLoadedStep:        true,
 		withdrawAnchorCells:        true,
 		classThresholds:            true,

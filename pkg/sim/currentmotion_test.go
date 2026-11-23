@@ -7,7 +7,7 @@ import (
 
 func TestIdleNativeMotionExportsCurrentEntryCell(t *testing.T) {
 	actor := Entity{ID: 7, Owner: 4, X: 12, Y: 13, PostX: 4, PostY: 5, HP: 100, MaxHP: 100, RotationSpeed: 19}
-	motion, err := ProjectActorMotion(actor, SavedActorMotion{Entity: actor.ID}, nil, true, true)
+	motion, err := ProjectActorMotion(actor, SavedActorMotion{Entity: actor.ID}, nil, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestNativeMotionPreservesCacheOutsideIdleConstruction(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			old := SavedActorMotion{Entity: tc.actor.ID}
 			copy(old.Mover[0x82:0x86], tc.cache[:])
-			got, err := ProjectActorMotion(tc.actor, old, nil, tc.fresh, true)
+			got, err := ProjectActorMotion(tc.actor, old, nil, tc.fresh)
 			if err != nil {
 				t.Fatal(err)
 			}

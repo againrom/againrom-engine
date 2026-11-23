@@ -22,13 +22,13 @@ type NativeStride struct {
 func (e *Entity) clearStride() { e.Stride = NativeStride{} }
 
 // strideStep is one call of the step on a position record, cell*256 plus the
-// sub byte per axis: it adds the signed strides and, when corrected, takes
-// one off x in octant 1 or 5 if both new sub bytes are 0 (MOVE-174). Within
-// one crossing from a centre that fires once, on call 128/|stride| when the
-// stride divides 128 (MOVE-200).
-func strideStep(x, y int32, sx, sy int8, octant uint16, corrected bool) (int32, int32) {
+// sub byte per axis: it adds the signed strides and takes one off x in octant
+// 1 or 5 if both new sub bytes are 0, in both games (MOVE-174, R2-ENGINE-1213).
+// Within one crossing from a centre that fires once, on call 128/|stride| when
+// the stride divides 128 (MOVE-200).
+func strideStep(x, y int32, sx, sy int8, octant uint16) (int32, int32) {
 	x, y = x+int32(sx), y+int32(sy)
-	if corrected && (octant == 1 || octant == 5) && x&255 == 0 && y&255 == 0 {
+	if (octant == 1 || octant == 5) && x&255 == 0 && y&255 == 0 {
 		x--
 	}
 	return x, y
@@ -36,41 +36,34 @@ func strideStep(x, y int32, sx, sy int8, octant uint16, corrected bool) (int32, 
 
 // finePoint is the position record after elapsed of the crossing's total
 // calls of strideStep from the start centre, and the destination centre
-// once the count reaches total. corrected is the World's StrideCorrected.
-func (s NativeStride) finePoint(elapsed, total int32, corrected bool) (x, y int32) {
+// once the count reaches total.
+func (s NativeStride) finePoint(elapsed, total int32) (x, y int32) {
 	if elapsed >= total {
 		return s.ToX*256 + 128, s.ToY*256 + 128
 	}
 	x, y = s.FromX*256+128, s.FromY*256+128
 	for range elapsed {
-		x, y = strideStep(x, y, s.StepX, s.StepY, uint16(s.Direction), corrected)
+		x, y = strideStep(x, y, s.StepX, s.StepY, uint16(s.Direction))
 	}
 	return x, y
 }
 
-// StrideCorrected reports whether w's game steps with the first game's
-// stride law, the flag ProjectActorMotion and NativeBasisNow take.
-func (w *World) StrideCorrected() bool { return !w.game.uncorrectedStride }
-
 // strideAxis is the per-axis stride of rate v: v straight, trunc(0.707v)
-// diagonally (MOVE-200), which is 0 at v 1 in the first game; the second
-// game (floored) takes 1 there.
-func strideAxis(v int32, diagonal, floored bool) int32 {
+// diagonally (MOVE-200, R2-ENGINE-1470), which is 0 at v 1 in both games; the
+// advance count then divides by 1 (transitOf).
+func strideAxis(v int32, diagonal bool) int32 {
 	if !diagonal {
 		return v
 	}
-	if axis := diagonalStep(v); axis >= rateFloor || !floored {
-		return axis
-	}
-	return rateFloor
+	return diagonalStep(v)
 }
 
 // retainStride consumes the rate already computed for this accepted step.
 // It does not recompute terrain, speed or duration, or move the actor again.
-func (e *Entity) retainStride(from cell, rate int32, floored bool) {
+func (e *Entity) retainStride(from cell, rate int32) {
 	dx, dy := int64(e.X)-int64(from.x), int64(e.Y)-int64(from.y)
 	d := dirOfSigns[signIndex(int32(dy))][signIndex(int32(dx))]
-	axis := strideAxis(rate, dx != 0 && dy != 0, floored)
+	axis := strideAxis(rate, dx != 0 && dy != 0)
 	e.Stride = NativeStride{Present: true, FromX: from.x, FromY: from.y,
 		ToX: e.X, ToY: e.Y, Rate: uint8(rate), StepX: int8(dx * int64(axis)),
 		StepY: int8(dy * int64(axis)), Direction: uint8(d)}
@@ -100,15 +93,14 @@ func strideFault(e Entity) error {
 	if s.Rate < rateFloor || s.Rate > rateCeil {
 		return fmt.Errorf("native stride rate %d is outside the native rate law", s.Rate)
 	}
-	// Either law's stride is accepted: they differ only for a rate-1
-	// diagonal, which an older form and the second game step by 1.
+	// A rate-1 diagonal strides 0; a form an earlier build wrote strides 1.
 	diagonal := dx != 0 && dy != 0
-	axis := strideAxis(int32(s.Rate), diagonal, true)
+	axis := strideAxis(int32(s.Rate), diagonal)
 	steps := func(a int32) bool { return int64(s.StepX) == dx*int64(a) && int64(s.StepY) == dy*int64(a) }
-	if !steps(axis) && !steps(strideAxis(int32(s.Rate), diagonal, false)) {
+	if !steps(axis) && !(diagonal && s.Rate == 1 && steps(1)) {
 		return fmt.Errorf("native stride axis steps differ from its accepted rate")
 	}
-	if int32(e.TransitTotal) != (subCell+axis-1)/axis {
+	if int32(e.TransitTotal) != transitOf(int32(s.Rate), diagonal) {
 		return fmt.Errorf("native stride duration differs from its accepted axis step")
 	}
 	return nil

@@ -41,7 +41,7 @@ func TestSavedStride1170QualifiedBoundaryAndNearMatchGuards(t *testing.T) {
 			if tc.mutate != nil {
 				tc.mutate(&m)
 			}
-			if m.NativeStrideCompatible(true) != (tc.mutate == nil) {
+			if m.NativeStrideCompatible() != (tc.mutate == nil) {
 				t.Fatal("stride qualification admitted a near-match or refused the complete tuple")
 			}
 			importSavedMotion(t, w, m, cs, bs)
@@ -63,7 +63,7 @@ func TestSavedStride1170QualifiedBoundaryAndNearMatchGuards(t *testing.T) {
 				t.Fatal("guard control never crossed its boundary")
 			}
 			if tc.mutate == nil {
-				if got.Issue != "" || !got.NativeStrideCompatible(true) {
+				if got.Issue != "" || !got.NativeStrideCompatible() {
 					t.Fatal("qualified crossing acquired an original callback refusal", got.Issue)
 				}
 				for range 4 {
@@ -92,7 +92,7 @@ func TestSavedStride1170QualifiedDiagonalKeepsNativeBoundary(t *testing.T) {
 	bs = append(bs, SavedActorBlock{Cell: 0x0f10})
 	importSavedMotion(t, w, m, cs, bs)
 	for tick := 16; tick <= 32; tick++ {
-		if !w.motionFor(7).NativeStrideCompatible(true) {
+		if !w.motionFor(7).NativeStrideCompatible() {
 			t.Fatalf("qualified NE stride lost its operands before sample %d", tick)
 		}
 		Step(w, nil)

@@ -5141,7 +5141,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		if stone && !finePosition {
 			// The held body and a cold LOAD use the same canonical SAV position.
 			fineX, fineY, finePosition = 128, 128, true
-			if motion, err := sim.ProjectActorMotion(e, sim.SavedActorMotion{}, nil, false, mw.world.StrideCorrected()); err == nil {
+			if motion, err := sim.ProjectActorMotion(e, sim.SavedActorMotion{}, nil, false); err == nil {
 				cell = image.Pt(int(motion.Position.Cell&0xff), int(motion.Position.Cell>>8))
 				fineX, fineY = motion.Position.FineX, motion.Position.FineY
 			}

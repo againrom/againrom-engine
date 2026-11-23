@@ -8,8 +8,7 @@ import "fmt"
 // after damage, equipment or terrain updates.
 // fresh marks a World without a saved motions plane. Existing mover bytes
 // remain authoritative when the plane is present or live carriers sync.
-// corrected is the World's StrideCorrected.
-func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh, corrected bool) (SavedActorMotion, error) {
+func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh bool) (SavedActorMotion, error) {
 	m := old
 	pack := func(x, y int32) (uint16, error) {
 		if x < 0 || x > 255 || y < 0 || y > 255 {
@@ -72,7 +71,7 @@ func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh,
 		}
 		elapsed := e.TransitTotal - e.Transit
 		if stride.Present {
-			x, y := stride.finePoint(int32(elapsed), int32(e.TransitTotal), corrected)
+			x, y := stride.finePoint(int32(elapsed), int32(e.TransitTotal))
 			near, err := pack(x>>8, y>>8)
 			if err != nil {
 				return m, err
