@@ -59,6 +59,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Leaving a town through its gate no longer adds Dina to the party; as in the original, only the win of mission 40 brings her in.
 - [ROM2] After a book or scroll spell, a mage again regains mana three times faster 81 ticks after turning to the target and starting the spell, as in the original; flying spells such as Fire Arrow now travel the straight distance to the target, so they arrive later on a diagonal, while Lightning and Prismatic Spray still strike after 10 ticks.
 - [ROM2] Casting a spell whose target or cell cannot take it now spends mana first as in the original (casting without enough mana still costs nothing), and a neutral unit caught in an area spell's cell hit only turns hostile back after more than ten area hits, below half health, or on death (a poison tick still turns it at once).
+- [ROM2] A second-game mission now keeps its trigger cell slots after SAVE and a cold LOAD; before, they were lost on loading a saved mission.
 
 ### For map makers and modders
 

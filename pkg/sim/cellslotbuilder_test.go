@@ -126,3 +126,25 @@ func TestPresenceRemovalAndReturnMoveTheSlots(t *testing.T) {
 		})
 	}
 }
+
+// A LOAD whose import built cell planes for a World that holds a slot table
+// restores the table, not the import's rows, and drops the planes.
+func TestSlotTableSurvivesAnImportThatBuiltPlanes(t *testing.T) {
+	_, worlds, _ := slotWorlds(t)
+	w := worlds["without planes"]
+	w.recomputeCrossing(w.entities[1], cell{x: 1, y: 1}, cell{x: 2, y: 1})
+	policy := w.CurrentPolicy()
+	if !policy.SlotCarrier || policy.PlaneCarrier {
+		t.Fatalf("the saved World writes SlotCarrier %v PlaneCarrier %v", policy.SlotCarrier, policy.PlaneCarrier)
+	}
+	want := w.loadedSlotTable()
+	imported := *w
+	imported.savedCellPlanes = worlds["with planes"].savedCellPlanes
+	imported.game.nativeCellPlanes = true
+	if err := imported.restoreCurrentPolicy(policy); err != nil {
+		t.Fatal(err)
+	}
+	if imported.savedCellPlanes != nil || !imported.HoldsSlotTable() || len(imported.cellRecords) != len(want) {
+		t.Fatalf("the restored World holds planes %v, slot table %v, %d rows, want %d", imported.savedCellPlanes != nil, imported.HoldsSlotTable(), len(imported.cellRecords), len(want))
+	}
+}

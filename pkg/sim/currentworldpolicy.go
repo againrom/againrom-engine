@@ -239,7 +239,9 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 	// A first-game World keeps the cell planes its LOAD import built even when
 	// an older engine SAV did not mark them: every first-game World holds them.
 	dropPlanes := !p.PlaneCarrier && (w.game.nativeCellPlanes || w.savedCellPlanes == nil)
-	if p.SlotCarrier && w.savedCellPlanes == nil {
+	// The slot table is built before the import's planes go: a World without
+	// planes holds its slots from the rows the import left.
+	if p.SlotCarrier && (w.savedCellPlanes == nil || dropPlanes) {
 		w.cellRecords = w.loadedSlotTable()
 	} else if !p.MotionCarrier && dropPlanes {
 		w.cellRecords = nil
