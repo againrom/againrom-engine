@@ -35,14 +35,14 @@ import (
 // art is centred on the point by subtracting them, and where they disagree with
 // the frame the sprite shifts rather than clipping. Sprite effects with no sheet
 // or an invalid frame draw nothing. Background deformation carries no sheet.
-// Raise draws the frame that many screen pixels above its point. PointLift
-// takes the relief from the ground blended at Pos instead of from the cells.
+// Raise draws the frame that many screen pixels above its point. Lift selects
+// cell-corner or point-blended relief.
 type SpellBolt struct {
 	Cell             image.Point
 	To               image.Point
 	Pos              image.Point
 	AbsolutePosition bool
-	PointLift        bool
+	Lift             SpellLift
 	Display          bool
 	Sheet            *terrain.EffectSheet
 	Frame            int
@@ -54,6 +54,13 @@ type SpellBolt struct {
 	Phase            int
 	Mapping          *refraction.Map
 }
+
+type SpellLift uint8
+
+const (
+	SpellLiftCell SpellLift = iota
+	SpellLiftPoint
+)
 
 type SpellEffect uint8
 
@@ -101,10 +108,9 @@ func GroundPixel(pos image.Point) image.Point {
 const boltStampCentre = 8
 
 // DisplayHeight is the terrain height a display point at cell-relative pos in
-// cell subtracts: the cell's AnchorHeight, or with point the ground blended at
-// pos, in the displaced view; zero in the flat view.
-func (v *Viewer) DisplayHeight(cell, pos image.Point, point bool) int {
-	return v.cellSpace().groundHeight(cell, finePoint(pos, false), point)
+// cell subtracts under lift in the displaced view; zero in the flat view.
+func (v *Viewer) DisplayHeight(cell, pos image.Point, lift SpellLift) int {
+	return v.cellSpace().groundHeight(cell, finePoint(pos, false), lift)
 }
 
 // displayLift moves a native display pixel into the camera world.
@@ -209,15 +215,22 @@ func (v *Viewer) spellArtPlacements() []effectScreenRect {
 	return out
 }
 
-// spellBoltLift is one stamp's relief: the terrain lift of the near cell, of
-// the far cell, or the interpolation by the stamp's projection onto the
-// segment (`MAGIC-BOLTSHAPE-070`). The launch point already carries its
-// height above the caster's ground point (MAGIC-261). A still object takes
-// its one cell's lift.
+var spellBoltLifts = [...]func(*Viewer, SpellBolt) int{
+	SpellLiftCell:  (*Viewer).spellBoltCellLift,
+	SpellLiftPoint: (*Viewer).spellBoltPointLift,
+}
+
+// spellBoltLift is one stamp's relief by b.Lift (`MAGIC-BOLTSHAPE-070`,
+// MAGIC-261).
 func (v *Viewer) spellBoltLift(b SpellBolt) int {
-	if b.PointLift {
-		return v.cellSpace().groundLift(b.Cell, finePoint(b.Pos, b.AbsolutePosition), true)
-	}
+	return spellBoltLifts[b.Lift](v, b)
+}
+
+func (v *Viewer) spellBoltPointLift(b SpellBolt) int {
+	return v.cellSpace().groundLift(b.Cell, finePoint(b.Pos, b.AbsolutePosition), SpellLiftPoint)
+}
+
+func (v *Viewer) spellBoltCellLift(b SpellBolt) int {
 	from := v.cellLift(b.Cell)
 	if b.To == b.Cell {
 		return from

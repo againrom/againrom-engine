@@ -96,13 +96,25 @@ func (w *World) engagementPassObserved(obs *castObs) { w.engagementPassTraced(ob
 // registry dispatch's withdrawal tail reports to.
 func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 	w.engageDrew = w.engageDrew[:0]
-	if !w.game.activityMask {
-		w.refreshSavedGroupActivity()
-	} else {
-		w.refreshROM2SavedGroupActivity(w.rom2ActivityMask())
-	}
+	groupActivityRefreshers[w.game.groupActivity](w)
 	w.savedGroupPassTraced(obs, withdrawals)
 	w.joinSavedEngagedGroups()
+}
+
+type groupActivityRule uint8
+
+const (
+	groupActivityByCover groupActivityRule = iota
+	groupActivityByMask
+)
+
+var groupActivityRefreshers = [...]func(*World){
+	groupActivityByCover: (*World).refreshSavedGroupActivity,
+	groupActivityByMask:  (*World).refreshMaskedGroupActivity,
+}
+
+func (w *World) refreshMaskedGroupActivity() {
+	w.refreshROM2SavedGroupActivity(w.rom2ActivityMask())
 }
 
 // mageEngageCast is the full-book draw of the engage routine (AI-554,

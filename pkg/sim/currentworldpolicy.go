@@ -150,14 +150,7 @@ func (w *World) RestoreCurrentClock(high uint32, known bool) error {
 	if known && high != 0 {
 		return fmt.Errorf("sim: invalid current clock")
 	}
-	if !w.game.nativeTick {
-		w.constructSessionClock()
-		return nil
-	}
-	w.tick, w.hasSessionClock = uint64(high)<<32|uint64(uint32(w.tick)), known
-	if !known {
-		w.fullTick = 0
-	}
+	tickClocks[w.game.tickClock].restore(w, high, known)
 	return nil
 }
 

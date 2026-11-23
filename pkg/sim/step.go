@@ -478,9 +478,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			standing[w.entities[i].ID] = true
 		}
 	}
-	if !w.game.nativeTick {
-		w.beginSessionTick(tr, obs, withdrawals)
-	}
+	tickClocks[w.game.tickClock].beginStep(w, tr, obs, withdrawals)
 	// A world with no layer at the start of a tick has nothing to recompute for
 	// one first present during it.
 	if len(w.effects) == 0 && len(w.areaCosts) == 0 {
@@ -857,29 +855,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	// arithmetic above is done on — the pre-increment tick — and the three
 	// script values are read after the phase because that is where they mean
 	// "what the script just did"; nothing later in a step moves any of them.
-	if tr != nil && w.game.nativeTick {
-		tr.Tick = w.tick
-	}
-	if w.game.nativeTick {
-		switch w.tick % scriptCycle {
-		case scriptPassPhase:
-			if tr != nil {
-				tr.Pass = true
-			}
-			w.scriptPassObserved(tr, obs)
-			w.engagementPassTraced(obs, withdrawals)
-			w.actorPass()
-			w.withdrawalPassObserved(withdrawals)
-			w.buildingCasterPass()
-		case worldPassPhase:
-			w.summonCapPass()
-		case scriptReportPhase:
-			if tr != nil {
-				tr.Report = true
-			}
-			w.scriptReport()
-		}
-	}
+	tickClocks[w.game.tickClock].midStep(w, tr, obs, withdrawals)
 	if tr != nil {
 		tr.Won, tr.Lost, tr.Outcome = w.won, w.lost, w.outcome
 	}
@@ -1329,11 +1305,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 
 	w.releaseHeldOrders()
 	w.releaseBodyReferences()
-	if !w.game.nativeTick {
-		w.endSessionTick(tr)
-	} else {
-		w.tick++
-	}
+	tickClocks[w.game.tickClock].endStep(w, tr)
 	if w.savedObjects != nil && len(w.savedObjects.BookRoots) != 0 {
 		for i := range w.entities {
 			w.refreshSavedBookRoots(i)
@@ -1952,6 +1924,86 @@ const (
 	decayPhase = 12
 )
 
+// runNativeTickPhase runs the native tick's script, world and report passes
+// on their phases of the tick the step started on.
+func (w *World) runNativeTickPhase(tr *ScriptTrace, obs *castObs, withdrawals *withdrawalObs) {
+	if tr != nil {
+		tr.Tick = w.tick
+	}
+	switch w.tick % scriptCycle {
+	case scriptPassPhase:
+		if tr != nil {
+			tr.Pass = true
+		}
+		w.scriptPassObserved(tr, obs)
+		w.engagementPassTraced(obs, withdrawals)
+		w.actorPass()
+		w.withdrawalPassObserved(withdrawals)
+		w.buildingCasterPass()
+	case worldPassPhase:
+		w.summonCapPass()
+	case scriptReportPhase:
+		if tr != nil {
+			tr.Report = true
+		}
+		w.scriptReport()
+	}
+}
+
+type decayWalkRule uint8
+
+const (
+	sessionDecayWalk decayWalkRule = iota
+	nativeDecayWalk
+)
+
+type decayWalk struct {
+	beforeWalk func(w *World)
+	takesStage func(stage DecayStage) bool
+	stepBody   func(w *World, e *Entity)
+	atTeardown func(w *World, e *Entity)
+}
+
+var decayWalks = [...]decayWalk{
+	sessionDecayWalk: {
+		beforeWalk: sessionDecayBefore,
+		takesStage: sessionDecayStage,
+		stepBody:   sessionDecayStep,
+		atTeardown: sessionDecayTeardown,
+	},
+	nativeDecayWalk: {
+		beforeWalk: nativeDecayBefore,
+		takesStage: nativeDecayStage,
+		stepBody:   nativeDecayStep,
+		atTeardown: nativeDecayTeardown,
+	},
+}
+
+func sessionDecayBefore(*World)               {}
+func sessionDecayStage(stage DecayStage) bool { return stage != DecayNone && stage < DecayBones }
+func sessionDecayStep(*World, *Entity)        {}
+
+// sessionDecayTeardown calls the dead ladder once at teardown, independently of
+// the ordinary dead-list walk.
+func sessionDecayTeardown(w *World, e *Entity) {
+	if w.fullTick&1 == 0 {
+		decaySessionHealth(e)
+	}
+}
+
+func nativeDecayBefore(w *World)             { w.decayHeldDead(w.tick%decayCycle == decayPhase) }
+func nativeDecayStage(stage DecayStage) bool { return stage != DecayNone }
+
+// nativeDecayStep takes one health on the walk tick; it saturates at the
+// representation's floor rather than wrapping.
+func nativeDecayStep(w *World, e *Entity) {
+	if w.tick%decayCycle == decayPhase && e.InLife(LifeDecayWalk) {
+		e.setCurrentHealth(e.HP - 1)
+	}
+}
+
+func nativeDecayTeardown(*World, *Entity) {}
+
 // decayPass advances every body on the ladder by one tick, and removes the ones
 // that have reached the bottom of it.
 //
@@ -1977,19 +2029,13 @@ const (
 // kept anyway so that the one walk order in this file is the walk order in every
 // other.
 func (w *World) decayPass() {
-	if w.game.nativeDecay {
-		w.decayHeldDead(w.tick%decayCycle == decayPhase)
-	}
+	rule := decayWalks[w.game.decayWalk]
+	rule.beforeWalk(w)
 	var gone []EntityID
 	for i := range w.entities {
 		e := &w.entities[i]
 		beforeHP, beforeStage := e.HP, e.Decay
-		if e.Decay == DecayNone {
-			continue
-		}
-		// Already torn-down bodies belong to the pre-body phase-12 loop in
-		// source-clock sessions; their ladder is not an actor-body action.
-		if !w.game.nativeDecay && e.Decay >= DecayBones {
+		if !rule.takesStage(e.Decay) {
 			continue
 		}
 		wasTargetable := e.OrdinaryTargetable()
@@ -2007,23 +2053,13 @@ func (w *World) decayPass() {
 				e.setCurrentHealth(noCorpseHP)
 			}
 		}
-		// The walk. It saturates rather than wrapping: the floor is the
-		// representation's and not the ladder's, so a health already at it is a
-		// state this leaves alone rather than one it turns back into a living
-		// unit.
-		if w.game.nativeDecay && w.tick%decayCycle == decayPhase && e.InLife(LifeDecayWalk) {
-			e.setCurrentHealth(e.HP - 1)
-		}
+		rule.stepBody(w, e)
 		if e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() {
 			if !w.dropTerminalLoot(i) {
 				continue
 			}
 			e = &w.entities[i]
-			// HERO-DEATH-026: teardown itself calls the dead ladder once,
-			// independently of the ordinary phase-12 dead-list walk.
-			if !w.game.nativeDecay && w.fullTick&1 == 0 {
-				decaySessionHealth(e)
-			}
+			rule.atTeardown(w, e)
 		}
 		if s := decayStageFor(e.HP); s > decayLast {
 			// A downed body whose walk crosses below zero and leaves in the same

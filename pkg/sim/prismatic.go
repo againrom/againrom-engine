@@ -32,9 +32,13 @@ func footprintCoord(size uint8, at int32) int32 {
 
 // edgeDistance is MAGIC-REACH-179's footprint-gap distance as a byte.
 func edgeDistance(a, b *Entity) uint8 {
-	return edgeDistanceAt(int64(footprintCoord(a.TokenSize, a.X)), int64(footprintCoord(a.TokenSize, a.Y)),
-		int64(footprintCoord(b.TokenSize, b.X)), int64(footprintCoord(b.TokenSize, b.Y)),
-		footprintSide(a.TokenSize), footprintSide(b.TokenSize))
+	return edgeDistanceCells(a.X, a.Y, a.TokenSize, b.X, b.Y, b.TokenSize)
+}
+
+func edgeDistanceCells(ax, ay int32, aSize uint8, bx, by int32, bSize uint8) uint8 {
+	return edgeDistanceAt(int64(footprintCoord(aSize, ax)), int64(footprintCoord(aSize, ay)),
+		int64(footprintCoord(bSize, bx)), int64(footprintCoord(bSize, by)),
+		footprintSide(aSize), footprintSide(bSize))
 }
 
 func edgeDistanceAt(ax, ay, bx, by int64, as, bs int32) uint8 {

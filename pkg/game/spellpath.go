@@ -115,7 +115,7 @@ func (mw *mapWorld) boltDisplayPoint(pos, cell image.Point) (int32, int32) {
 	p := ui.GroundPixel(pos)
 	height := 0
 	if mw.view != nil {
-		height = mw.view.DisplayHeight(cell, pos, mw.spells().PointLift)
+		height = mw.view.DisplayHeight(cell, pos, uiSpellLifts[mw.spells().Lift])
 	}
 	return int32(p.X), int32(p.Y - height)
 }

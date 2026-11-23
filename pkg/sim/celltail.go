@@ -114,18 +114,29 @@ func (w *World) setCellTail(in ScriptInstant) {
 	w.writeCellTail(tailKey(in.Args[2], in.Args[3]), w.cellTailBytes(in.Args))
 }
 
-// cellTailBytes is the six bytes instant 25 stores. The second game's node
-// names a source and a target beside the trigger cell, and its cell event reads
-// them at bytes 2..5 (R2-ENGINE-673); the writer's own arm is unread (DIV-4700).
+type cellTailRule uint8
+
+const (
+	cellTailLegacy cellTailRule = iota
+	cellTailTargeted
+)
+
+var cellTailEncoders = [...]func([scriptParams]int32) [cellTailLen]byte{
+	cellTailLegacy:   firstGameCellTailBytes,
+	cellTailTargeted: targetedCellTailBytes,
+}
+
+// cellTailBytes is the six bytes instant 25 stores (R2-ENGINE-673, DIV-4700).
 func (w *World) cellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
-	if w.game.cellEventRelocates {
-		return [cellTailLen]byte{byte(a[0]), byte(a[1]), byte(a[4]), byte(a[5]), byte(a[6]), byte(a[7])}
-	}
-	return firstGameCellTailBytes(a)
+	return cellTailEncoders[w.game.cellTail](a)
 }
 
 func firstGameCellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
 	return [cellTailLen]byte{byte(a[0]), byte(a[1]), 0, byte(a[3]), 0, byte(a[3])}
+}
+
+func targetedCellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
+	return [cellTailLen]byte{byte(a[0]), byte(a[1]), byte(a[4]), byte(a[5]), byte(a[6]), byte(a[7])}
 }
 
 // RepairCellEvents rewrites a second-game cell event an older build stored in

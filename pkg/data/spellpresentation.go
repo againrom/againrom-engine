@@ -1,6 +1,16 @@
 package data
 
-import "againrom/pkg/rules"
+import (
+	"againrom/pkg/rules"
+	"againrom/pkg/sim"
+)
+
+type SpellLift uint8
+
+const (
+	SpellLiftCell SpellLift = iota
+	SpellLiftPoint
+)
 
 // SpellPresentation is one game's spell presentation: per effect
 // identifier, how long the object lives, what it draws, what it lights and
@@ -29,11 +39,9 @@ type SpellPresentation struct {
 	// DrainLifeAliasRow is the row a language's Drain Life alias names
 	// (DIV-2177); zero names none, and every row keeps its `spell.txt` line.
 	DrainLifeAliasRow int
-	// PointLift raises an effect record and a path's ends by the ground
-	// blended at their own point; false raises them by their cell's mean
-	// corner height.
-	PointLift bool
-	effects   []EffectPresentation
+	// Lift chooses cell-corner or point-blended terrain height.
+	Lift    SpellLift
+	effects []EffectPresentation
 }
 
 // LightStep is one light stamp: a radius in cells and a level.
@@ -67,10 +75,8 @@ type EffectPresentation struct {
 	LifeTicks   int
 	LifeDivisor int
 	LifePhases  bool
-	// UnitLifeZero gives a unit caster's cast object life 0: the record ends
-	// on its first update and only the held mark draws. A caster that is not a
-	// unit keeps the life above.
-	UnitLifeZero bool
+	// UnitLife selects a unit caster's cast object life rule.
+	UnitLife sim.UnitLifeRule
 	// Trail is which of the two trail sheets the object leaves, with
 	// HasTrail.
 	HasTrail bool
@@ -276,7 +282,7 @@ var firstSpellPresentation = SpellPresentation{
 // (R2-ENGINE-691, R2-ENGINE-1520). An effect stands at the ground blended at
 // its point (R2-ENGINE-1518).
 var secondSpellPresentation = SpellPresentation{
-	Game: rules.SpellGameSecond, LastSoundRow: len(rules.SpellProfile(rules.SpellGameSecond)), SoundBase: 500, PointLift: true,
+	Game: rules.SpellGameSecond, LastSoundRow: len(rules.SpellProfile(rules.SpellGameSecond)), SoundBase: 500, Lift: SpellLiftPoint,
 	BurstLight: burstLightSteps, BurstLightTail: LightStep{3, 0}, HasBurstLightTail: true,
 	PathLightStep: 10, NamedRows: len(rules.SpellProfile(rules.SpellGameSecond)), BookRows: rules.SpellBookRows(rules.SpellGameSecond),
 	effects: []EffectPresentation{
@@ -284,25 +290,25 @@ var secondSpellPresentation = SpellPresentation{
 		{ID: 12, LifeDivisor: 384, HasTrail: true, Trail: 1, LightKind: LightPoint, Light: LightStep{1, 16}},
 		{ID: 13, LightKind: LightBurst},
 		{ID: 15, Overlay: true},
-		{ID: 16, LifePhases: true, UnitLifeZero: true},
+		{ID: 16, LifePhases: true, UnitLife: sim.UnitLifeImmediate},
 		{ID: 18, LifeDivisor: 200, LightKind: LightPoint, Light: LightStep{0, 16}},
-		{ID: 20, LifePhases: true, UnitLifeZero: true},
+		{ID: 20, LifePhases: true, UnitLife: sim.UnitLifeImmediate},
 		{ID: 21, Overlay: true},
 		// The original's counter starts at -1 and voices at 8, with frame 8
 		// (R2-ENGINE-446), so the cue waits 9.
 		{ID: 23, SoundDelay: 9, FallFrames: 8, FallLift: 28, FallStep: 4},
-		{ID: 24, LifePhases: true, UnitLifeZero: true},
+		{ID: 24, LifePhases: true, UnitLife: sim.UnitLifeImmediate},
 		{ID: 28, LifeTicks: 13, LightKind: LightPath},
 		{ID: 30, LifeTicks: 13, Chain: true, LightKind: LightPath},
-		{ID: 34, LifePhases: true, UnitLifeZero: true},
+		{ID: 34, LifePhases: true, UnitLife: sim.UnitLifeImmediate},
 		{ID: 40, LifeDivisor: 200, LightKind: LightPoint, Light: LightStep{0, 16}},
 		{ID: 43, Overlay: true},
-		{ID: 46, LifePhases: true, UnitLifeZero: true},
-		{ID: 48, LifePhases: true, UnitLifeZero: true},
+		{ID: 46, LifePhases: true, UnitLife: sim.UnitLifeImmediate},
+		{ID: 48, LifePhases: true, UnitLife: sim.UnitLifeImmediate},
 		{ID: 54, LifeTicks: 21, SecondRecord: true},
 		{ID: 56, LifeTicks: 1, Hidden: true},
 		{ID: 60, LifeTicks: 1},
-		{ID: 62, LifePhases: true, UnitLifeZero: true},
-		{ID: 64, LifePhases: true, UnitLifeZero: true},
+		{ID: 62, LifePhases: true, UnitLife: sim.UnitLifeImmediate},
+		{ID: 64, LifePhases: true, UnitLife: sim.UnitLifeImmediate},
 	},
 }

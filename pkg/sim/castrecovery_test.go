@@ -16,22 +16,22 @@ func TestCastRecoveryCountPerGameAndSource(t *testing.T) {
 	rule := SpellRule{ID: 1, Complication: complication}
 	cases := []struct {
 		name      string
-		lowByte   bool
+		rule      castRecoveryRule
 		relax     int32
 		src       castOrigin
 		withBook  bool
 		wantClamp bool
 	}{
-		{"first game book", false, 4, originBook, true, false},
-		{"first game staff", false, 4, originStaff, false, false},
-		{"first game scroll", false, 4, originScroll, false, false},
-		{"second game book", true, 4, originBook, false, false},
-		{"second game staff", true, 4, originStaff, false, false},
-		{"second game scroll", true, 4, originScroll, false, false},
-		{"first game book over a byte", false, 250, originBook, false, true},
-		{"first game scroll over a byte", false, 252, originScroll, false, true},
-		{"second game book over a byte", true, 250, originBook, false, false},
-		{"second game staff over a byte", true, 254, originStaff, false, false},
+		{"first game book", castRecoveryClamped, 4, originBook, true, false},
+		{"first game staff", castRecoveryClamped, 4, originStaff, false, false},
+		{"first game scroll", castRecoveryClamped, 4, originScroll, false, false},
+		{"second game book", castRecoveryLowByte, 4, originBook, false, false},
+		{"second game staff", castRecoveryLowByte, 4, originStaff, false, false},
+		{"second game scroll", castRecoveryLowByte, 4, originScroll, false, false},
+		{"first game book over a byte", castRecoveryClamped, 250, originBook, false, true},
+		{"first game scroll over a byte", castRecoveryClamped, 252, originScroll, false, true},
+		{"second game book over a byte", castRecoveryLowByte, 250, originBook, false, false},
+		{"second game staff over a byte", castRecoveryLowByte, 254, originStaff, false, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -39,7 +39,7 @@ func TestCastRecoveryCountPerGameAndSource(t *testing.T) {
 			e.Humanoid, e.Reaction, e.AttackRelax = true, 30, tc.relax
 			w := spWorld(t, 7, []SpellRule{rule}, e)
 			cadenceEquipWeightedWeapon(t, w, 1, 24)
-			w.game.recoveryLowByte = tc.lowByte
+			w.game.castRecovery = tc.rule
 			var comp int64
 			if tc.src == originBook {
 				comp = complication
@@ -47,7 +47,7 @@ func TestCastRecoveryCountPerGameAndSource(t *testing.T) {
 			_, sum := castRecoveryWant(w, int64(tc.relax), 2, comp)
 			want := sum
 			switch {
-			case tc.lowByte:
+			case tc.rule == castRecoveryLowByte:
 				want = sum & 0xff
 			case (tc.src == originBook || tc.src == originScroll) && sum > 255:
 				want = 255

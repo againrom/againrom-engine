@@ -36,21 +36,77 @@ func DerivedFullTick(sub uint32) uint32 {
 	return uint32((uint64(sub) + 1) >> 4)
 }
 
-// constructSessionClock gives every first-game World the session clock its
-// original-save importer gives (0/0, SESS-085). A World that
-// does not hold one yet, an older byte form or an older engine SAV, takes the
-// clock DerivedFullTick derives from its sub-tick. A second-game World holds
-// none.
+// tickClockRule selects the World's tick clock: session pair or native uint64.
+type tickClockRule uint8
+
+const (
+	sessionTickClock tickClockRule = iota
+	nativeTickClock
+)
+
+type tickClockRow struct {
+	beginStep         func(w *World, tr *ScriptTrace, obs *castObs, withdrawals *withdrawalObs)
+	midStep           func(w *World, tr *ScriptTrace, obs *castObs, withdrawals *withdrawalObs)
+	endStep           func(w *World, tr *ScriptTrace)
+	scriptPassJustRan func(w *World) bool
+	construct         func(w *World)
+	restore           func(w *World, high uint32, known bool)
+}
+
+var tickClocks = [...]tickClockRow{
+	sessionTickClock: {
+		beginStep:         (*World).beginSessionTick,
+		midStep:           (*World).sessionMidTick,
+		endStep:           (*World).endSessionTick,
+		scriptPassJustRan: (*World).sessionScriptPassJustRan,
+		construct:         (*World).initSessionClock,
+		restore:           (*World).restoreSessionClock,
+	},
+	nativeTickClock: {
+		beginStep:         (*World).nativeBeginTick,
+		midStep:           (*World).runNativeTickPhase,
+		endStep:           (*World).advanceNativeTick,
+		scriptPassJustRan: (*World).nativeScriptPassJustRan,
+		construct:         (*World).clearSessionClock,
+		restore:           (*World).restoreNativeClock,
+	},
+}
+
+// constructSessionClock sets up the World's clock by the profile's tickClock.
 func (w *World) constructSessionClock() {
-	if w.game.nativeTick {
-		w.hasSessionClock, w.fullTick = false, 0
-		return
-	}
+	tickClocks[w.game.tickClock].construct(w)
+}
+
+func (w *World) initSessionClock() {
 	if w.hasSessionClock {
 		return
 	}
 	w.tick = uint64(uint32(w.tick))
 	w.hasSessionClock, w.fullTick = true, DerivedFullTick(uint32(w.tick))
+}
+
+func (w *World) clearSessionClock() {
+	w.hasSessionClock, w.fullTick = false, 0
+}
+
+func (w *World) nativeBeginTick(*ScriptTrace, *castObs, *withdrawalObs) {}
+func (w *World) sessionMidTick(*ScriptTrace, *castObs, *withdrawalObs)  {}
+func (w *World) advanceNativeTick(*ScriptTrace)                         { w.tick++ }
+func (w *World) restoreSessionClock(uint32, bool)                       { w.initSessionClock() }
+
+func (w *World) restoreNativeClock(high uint32, known bool) {
+	w.tick, w.hasSessionClock = uint64(high)<<32|uint64(uint32(w.tick)), known
+	if !known {
+		w.fullTick = 0
+	}
+}
+
+func (w *World) sessionScriptPassJustRan() bool {
+	return int32(uint32(w.tick)-1)%scriptCycle == scriptPassPhase
+}
+
+func (w *World) nativeScriptPassJustRan() bool {
+	return w.tick > 0 && (w.tick-1)%scriptCycle == scriptPassPhase
 }
 
 // SessionClock returns the session pair. False names a World without one,

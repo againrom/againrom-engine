@@ -1467,13 +1467,30 @@ func (w *World) castRecoveryTicks(ci int, src castOrigin, rule SpellRule) int64 
 	if src == originBook {
 		n += int64(rule.Complication)
 	}
-	if w.game.recoveryLowByte {
-		return n & 0xff
-	}
+	return castRecoveryRules[w.game.castRecovery](n, src)
+}
+
+type castRecoveryRule uint8
+
+const (
+	castRecoveryClamped castRecoveryRule = iota
+	castRecoveryLowByte
+)
+
+var castRecoveryRules = [...]func(n int64, src castOrigin) int64{
+	castRecoveryClamped: clampCastRecovery,
+	castRecoveryLowByte: lowByteCastRecovery,
+}
+
+func clampCastRecovery(n int64, src castOrigin) int64 {
 	if (src == originBook || src == originScroll) && n > 255 {
 		return 255
 	}
 	return n
+}
+
+func lowByteCastRecovery(n int64, _ castOrigin) int64 {
+	return n & 0xff
 }
 
 func (w *World) bookCastIndex(caster EntityID) (int, bool) {
@@ -1509,10 +1526,38 @@ func unitAimCell(t *Entity) (int32, int32) {
 // (R2-ENGINE-348). A cast at a cell measures the whole-cell maximum axis in
 // both games (MAGIC-REACH-180).
 func (w *World) withinCastReach(caster, target *Entity, reach int64, test castReachTest) bool {
-	if test == reachChoice && w.game.cellCastReach {
-		return (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: target.X, y: target.Y}) <= reach
+	a := castReachEnd{id: caster.ID, x: caster.X, y: caster.Y, size: caster.TokenSize}
+	b := castReachEnd{id: target.ID, x: target.X, y: target.Y, size: target.TokenSize}
+	if test != reachChoice {
+		return withinFootprintCastReach(a, b, reach)
 	}
-	return caster.ID == target.ID || int64(edgeDistance(caster, target)) <= reach
+	return castReachRules[w.game.castReach](a, b, reach)
+}
+
+type castReachRule uint8
+
+const (
+	castReachFootprint castReachRule = iota
+	castReachCell
+)
+
+type castReachEnd struct {
+	id   EntityID
+	x, y int32
+	size uint8
+}
+
+var castReachRules = [...]func(a, b castReachEnd, reach int64) bool{
+	castReachFootprint: withinFootprintCastReach,
+	castReachCell:      withinCellCastReach,
+}
+
+func withinFootprintCastReach(a, b castReachEnd, reach int64) bool {
+	return a.id == b.id || int64(edgeDistanceCells(a.x, a.y, a.size, b.x, b.y, b.size)) <= reach
+}
+
+func withinCellCastReach(a, b castReachEnd, reach int64) bool {
+	return (cell{x: a.x, y: a.y}).chebyshevTo(cell{x: b.x, y: b.y}) <= reach
 }
 
 // chargeBookCast pays the admitted book cast of actor ci and starts its action.

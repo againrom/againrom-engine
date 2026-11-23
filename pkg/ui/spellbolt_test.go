@@ -320,7 +320,7 @@ func TestDisplayRowFindsTheGroundRowUnderADisplayPoint(t *testing.T) {
 	proj := cliffProjection()
 	for _, c := range []image.Point{{1, 1}, {0, 3}, {2, 2}} {
 		x := c.X*terrain.CellSize + terrain.CellSize/2
-		y := c.Y*terrain.CellSize + terrain.CellSize/2 - v.DisplayHeight(c, c.Mul(ShotScale), false)
+		y := c.Y*terrain.CellSize + terrain.CellSize/2 - v.DisplayHeight(c, c.Mul(ShotScale), SpellLiftCell)
 		row, ok := v.DisplayRow(x, y)
 		if !ok {
 			t.Fatalf("cell %v: no row under its display centre", c)
@@ -331,7 +331,7 @@ func TestDisplayRowFindsTheGroundRowUnderADisplayPoint(t *testing.T) {
 		}
 	}
 	flat := commandViewer(t)
-	if row, ok := flat.DisplayRow(5, 70); !ok || row != 2 || flat.DisplayHeight(image.Pt(1, 1), image.Pt(256, 256), false) != 0 {
+	if row, ok := flat.DisplayRow(5, 70); !ok || row != 2 || flat.DisplayHeight(image.Pt(1, 1), image.Pt(256, 256), SpellLiftCell) != 0 {
 		t.Errorf("flat view row %d ok %v, want 2", row, ok)
 	}
 }

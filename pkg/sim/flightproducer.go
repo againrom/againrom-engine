@@ -28,13 +28,27 @@ const (
 	ReleaseAtClient
 )
 
+type UnitLifeRule uint8
+
+const (
+	UnitLifeByPicture UnitLifeRule = iota
+	UnitLifeImmediate
+)
+
+var unitSegmentRules = [...]func(FlightPicture, int32, int32) int32{
+	UnitLifeByPicture: FlightPicture.segments,
+	UnitLifeImmediate: zeroUnitSegments,
+}
+
+func zeroUnitSegments(_ FlightPicture, _, _ int32) int32 { return 0 }
+
 type FlightPicture struct {
 	Present                  bool
 	Phases                   uint16
 	Homes                    bool
 	LifeTicks, LifeDivisor   int32
 	LifePhases, SecondRecord bool
-	UnitLifeZero             bool
+	UnitLife                 UnitLifeRule
 	CellLife                 int32
 	Drawn                    bool
 }
@@ -165,13 +179,9 @@ func (c FlightClass) castOffset(facing uint8, second bool) (int32, int32) {
 // shotTick is the run's swing count a class's shot leaves on (SAV-1153).
 func (c FlightClass) shotTick() int64 { return max(int64(c.ShootDelay)-1, 0) }
 
-// unitSegments is the life of a unit caster's cast object: 0 for a picture
-// whose unit cast ends on its first update.
+// unitSegments is the life of a unit caster's cast object.
 func (p FlightPicture) unitSegments(dx, dy int32) int32 {
-	if p.UnitLifeZero {
-		return 0
-	}
-	return p.segments(dx, dy)
+	return unitSegmentRules[p.UnitLife](p, dx, dy)
 }
 
 func (p FlightPicture) segments(dx, dy int32) int32 {

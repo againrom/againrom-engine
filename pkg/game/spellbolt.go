@@ -11,6 +11,11 @@ import (
 	"againrom/pkg/ui"
 )
 
+var uiSpellLifts = [...]ui.SpellLift{
+	data.SpellLiftCell:  ui.SpellLiftCell,
+	data.SpellLiftPoint: ui.SpellLiftPoint,
+}
+
 // spellBolt is one path figure's or shower's input: the two cells it runs
 // between, the picture, the driver calls made and the figure seed. The flying
 // object itself is a World record (flight.go); a path record is read into
@@ -675,7 +680,7 @@ func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 		if !ok {
 			continue
 		}
-		out = append(out, ui.SpellBolt{Cell: cell, To: cell, Pos: image.Pt(int(p.X), int(p.Y)), AbsolutePosition: true, PointLift: set.PointLift,
+		out = append(out, ui.SpellBolt{Cell: cell, To: cell, Pos: image.Pt(int(p.X), int(p.Y)), AbsolutePosition: true, Lift: uiSpellLifts[set.Lift],
 			Sheet: sheet, Frame: frame, Mirror: mirror, Owner: owners[p.ID], Raise: raise})
 		if trails {
 			out = append(out, mw.savedProjectileTrail(p)...)

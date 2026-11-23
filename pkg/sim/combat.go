@@ -485,23 +485,15 @@ const (
 // refusedWalkArm selects the profile's empty-route answer from member order.
 // First-game Group fallbacks retain their existing precedence.
 func (w *World) refusedWalkArm(i int) walkArm {
-	e := w.entities[i]
-	if w.game.orders.repickEmptyRoute && e.PendingOrder.Kind == PendingNone {
-		state := uint32(e.ActorState)
-		if o := w.savedOrder(e.ID); o != nil {
-			state = o.State
-		}
-		switch state {
-		case 0xa, 0x18:
-			return walkArmNone
-		default:
-			if o := w.savedOrder(e.ID); state == 1 || w.walksAtStateOne(i) || o != nil && w.savedGroups.atStandDown(o) {
-				return walkArmStandDown
-			}
-			return walkArmPick
-		}
+	if w.entities[i].PendingOrder.Kind != PendingNone {
+		return walkArmNone
 	}
-	if e.PendingOrder.Kind != PendingNone || w.game.nativeWalkRefusal && !(w.game.orders.stopEmptyWalk && w.walksAtStateOne(i)) {
+	return emptyRouteRules[w.game.orders.emptyRoute].walkArm(w, i)
+}
+
+func (w *World) legacyRefusedWalkArm(i int) walkArm {
+	e := w.entities[i]
+	if w.game.nativeWalkRefusal && !(w.game.orders.stopEmptyWalk && w.walksAtStateOne(i)) {
 		return walkArmNone
 	}
 	if e.ActorState == actorStateRetreat {
@@ -517,6 +509,23 @@ func (w *World) refusedWalkArm(i int) walkArm {
 		return walkArmStandDown
 	}
 	return walkArmPick
+}
+
+func (w *World) repickRefusedWalkArm(i int) walkArm {
+	e := w.entities[i]
+	state := uint32(e.ActorState)
+	if o := w.savedOrder(e.ID); o != nil {
+		state = o.State
+	}
+	switch state {
+	case 0xa, 0x18:
+		return walkArmNone
+	default:
+		if o := w.savedOrder(e.ID); state == 1 || w.walksAtStateOne(i) || o != nil && w.savedGroups.atStandDown(o) {
+			return walkArmStandDown
+		}
+		return walkArmPick
+	}
 }
 
 // walksAtStateOne reports whether actor i walks at command state 1: an order
@@ -564,14 +573,36 @@ func (w *World) stopWalkOrder(i int, latch bool) {
 // inReach. Sight is no term: the caster stops there whether or not it sees
 // the victim (R2-ENGINE-1136, R2-ENGINE-1139; first game MAGIC-410).
 func (w *World) closedOn(i, ti int) bool {
-	a, t := w.entities[i], w.entities[ti]
-	if _, ok := w.weaponSpell(a); ok {
+	if _, ok := w.weaponSpell(w.entities[i]); ok {
 		return w.weaponCastInRange(i, ti)
 	}
-	if w.game.orders.liveAdmission {
-		return w.withinAttackRange(i, ti)
-	}
-	return inReach(a, t)
+	return attackReachRules[w.game.orders.attackReach].strike(w, i, ti)
+}
+
+type attackReachRule uint8
+
+const (
+	attackReachStatic attackReachRule = iota
+	attackReachLive
+)
+
+type attackReachRow struct {
+	strike     func(w *World, i, ti int) bool
+	weaponCast func(w *World, ai, ti int) bool
+}
+
+var attackReachRules = [...]attackReachRow{
+	attackReachStatic: {strike: (*World).strikeInReach, weaponCast: (*World).weaponEdgeInReach},
+	attackReachLive:   {strike: (*World).withinAttackRange, weaponCast: (*World).withinAttackRange},
+}
+
+func (w *World) strikeInReach(i, ti int) bool {
+	return inReach(w.entities[i], w.entities[ti])
+}
+
+func (w *World) weaponEdgeInReach(ai, ti int) bool {
+	a, t := w.entities[ai], w.entities[ti]
+	return edgeDistance(&a, &t) <= a.Reach
 }
 
 // withinAttackRange is the second game's attack admission: the edge distance
@@ -588,11 +619,7 @@ func (w *World) withinAttackRange(i, ti int) bool {
 // second game admits a spell weapon's attack as any attack and turns it into
 // the cast at the strike's phase 5 (R2-ENGINE-1106, R2-ENGINE-543).
 func (w *World) weaponCastInRange(ai, ti int) bool {
-	if w.game.orders.liveAdmission {
-		return w.withinAttackRange(ai, ti)
-	}
-	a, t := w.entities[ai], w.entities[ti]
-	return edgeDistance(&a, &t) <= a.Reach
+	return attackReachRules[w.game.orders.attackReach].weaponCast(w, ai, ti)
 }
 
 // walkTo gives entity i a destination and takes it out of its layer's plane if

@@ -13,11 +13,13 @@ const (
 
 type orderProfile struct {
 	idleRanking              targetRanking
+	attackReach              attackReachRule
 	liveAdmission            bool
 	mageAcquisitionException bool
 	stopEmptyWalk            bool
 	standGroundScore         bool
 	lookAround               bool
+	emptyRoute               emptyRouteRule
 	repickEmptyRoute         bool
 	primaryCells             bool
 	collectSacks             bool

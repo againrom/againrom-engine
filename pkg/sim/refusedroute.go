@@ -93,27 +93,58 @@ func (w *World) answerRefusedRoute(i int, r refusedRoute) {
 	}
 }
 
+type emptyRouteRule uint8
+
+const (
+	emptyRouteLegacy emptyRouteRule = iota
+	emptyRouteRepicks
+)
+
+type emptyRouteRow struct {
+	walkArm        func(w *World, i int) walkArm
+	reacquireReach func(w *World, i int) int64
+	answerNone     func(w *World, i int, none refusedNone)
+}
+
+var emptyRouteRules = [...]emptyRouteRow{
+	emptyRouteLegacy: {
+		walkArm:        (*World).legacyRefusedWalkArm,
+		reacquireReach: (*World).entityReach,
+		answerNone:     (*World).answerRefusedNoneByRow,
+	},
+	emptyRouteRepicks: {
+		walkArm:        (*World).repickRefusedWalkArm,
+		reacquireReach: (*World).attackRange,
+		answerNone:     (*World).answerRefusedNoneRepick,
+	},
+}
+
 func (w *World) answerRefusedNone(i int, none refusedNone) {
+	emptyRouteRules[w.game.orders.emptyRoute].answerNone(w, i, none)
+}
+
+func (w *World) answerRefusedNoneByRow(i int, none refusedNone) {
 	e := &w.entities[i]
-	if w.game.orders.repickEmptyRoute {
-		w.clearOrder(i)
-		e.AcquirePursuit = false
-		e.PursuitIdle = e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit
-		if o := w.savedOrder(e.ID); o != nil {
-			o.Raw[8] = 0
-			if w.computerControlledUnit(*e) {
-				o.Raw[8] = 0xb
-				w.stepIdleTurn(i)
-			}
-		}
-		return
-	}
 	switch none {
 	case noneIdle:
 		e.PursuitIdle = true
 	case noneClear:
 		w.clearOrder(i)
 		e.clearAttack()
+	}
+}
+
+func (w *World) answerRefusedNoneRepick(i int, _ refusedNone) {
+	e := &w.entities[i]
+	w.clearOrder(i)
+	e.AcquirePursuit = false
+	e.PursuitIdle = e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit
+	if o := w.savedOrder(e.ID); o != nil {
+		o.Raw[8] = 0
+		if w.computerControlledUnit(*e) {
+			o.Raw[8] = 0xb
+			w.stepIdleTurn(i)
+		}
 	}
 }
 

@@ -2620,10 +2620,7 @@ func (w *World) SetRawSessionMid(v [sessionRawMidLen]byte)   { w.rawSessionMid =
 
 // ScriptPassJustRan reports whether the step just completed ran the script pass.
 func (w *World) ScriptPassJustRan() bool {
-	if !w.game.nativeTick {
-		return int32(uint32(w.tick)-1)%scriptCycle == scriptPassPhase
-	}
-	return w.tick > 0 && (w.tick-1)%scriptCycle == scriptPassPhase
+	return tickClocks[w.game.tickClock].scriptPassJustRan(w)
 }
 
 // ScriptTriggerBlocked reports whether a saved group's unresolved count makes

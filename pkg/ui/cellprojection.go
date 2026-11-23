@@ -46,28 +46,37 @@ func (s cellSpace) corner(c, r int) (float64, float64) {
 // lift is the vertical world offset a point anchored in cell carries over the
 // flat lattice: -AnchorHeight - MinV when displaced, 0 when flat.
 func (s cellSpace) lift(cell image.Point) int {
-	return s.groundLift(cell, image.Point{}, false)
+	return s.groundLift(cell, image.Point{}, SpellLiftCell)
 }
 
-// groundHeight is the terrain height an effect at fine point pos in cell
-// stands at: the cell's anchor height, or with point the ground blended at
-// pos (terrain.Projection.PointHeight); zero when flat.
-func (s cellSpace) groundHeight(cell, pos image.Point, point bool) int {
-	switch {
-	case s.proj == nil:
-		return 0
-	case point:
-		return s.proj.PointHeight(pos.X, pos.Y)
-	}
-	return s.proj.AnchorHeight(cell.X, cell.Y)
+var groundHeights = [...]func(*terrain.Projection, image.Point, image.Point) int{
+	SpellLiftCell:  cellAnchorHeight,
+	SpellLiftPoint: pointGroundHeight,
 }
 
-// groundLift is groundHeight as lift's vertical world offset.
-func (s cellSpace) groundLift(cell, pos image.Point, point bool) int {
+func cellAnchorHeight(proj *terrain.Projection, cell, _ image.Point) int {
+	return proj.AnchorHeight(cell.X, cell.Y)
+}
+
+func pointGroundHeight(proj *terrain.Projection, _, pos image.Point) int {
+	return proj.PointHeight(pos.X, pos.Y)
+}
+
+// groundHeight is the terrain height at fine point pos in cell under lift;
+// zero when flat.
+func (s cellSpace) groundHeight(cell, pos image.Point, lift SpellLift) int {
 	if s.proj == nil {
 		return 0
 	}
-	return -s.groundHeight(cell, pos, point) - s.proj.MinV
+	return groundHeights[lift](s.proj, cell, pos)
+}
+
+// groundLift is groundHeight as lift's vertical world offset.
+func (s cellSpace) groundLift(cell, pos image.Point, lift SpellLift) int {
+	if s.proj == nil {
+		return 0
+	}
+	return -s.groundHeight(cell, pos, lift) - s.proj.MinV
 }
 
 // centre is the world point in the middle of cell: the flat lattice's centre

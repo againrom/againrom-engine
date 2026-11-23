@@ -8,15 +8,14 @@ func (w *World) reacquireWithinReach(i int) {
 	w.answerRefusedRoute(i, refusedFlee)
 }
 
+func (w *World) entityReach(i int) int64 { return int64(w.entities[i].Reach) }
+
 // reacquisitionVictim filters by range and running distance before relation,
 // visibility, veto and living/body fallback. The shared chooser ranks by turn.
 // AI-327, AI-FILTER-001, R2-ENGINE-1019.
 func (w *World) reacquisitionVictim(i int) int {
 	self := w.entities[i]
-	reach := int64(self.Reach)
-	if w.game.orders.repickEmptyRoute {
-		reach = w.attackRange(i)
-	}
+	reach := emptyRouteRules[w.game.orders.emptyRoute].reacquireReach(w, i)
 	nearest := reach
 	var admitted []int
 	for _, id := range w.actorTraversalIDs() {

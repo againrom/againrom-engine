@@ -24,9 +24,8 @@ type gameProfile struct {
 	// deathItemRoll: the death roll draws the item roll after the gold.
 	deathItemRoll bool
 
-	// nativeTick: the World keeps its native uint64 tick and no session
-	// clock; the step ends by raising it and runs no session tick arms.
-	nativeTick bool
+	// tickClock: session clock or native uint64 tick (tickClocks).
+	tickClock tickClockRule
 	// buildingCasters: the map's type-9 mode-4 records build casters.
 	buildingCasters bool
 	// scriptRows: the second game's script op bodies, added to the shared ones;
@@ -37,8 +36,11 @@ type gameProfile struct {
 	// outcomeReport: how the outcome reads the lose and win counters
 	// (outcomeReports).
 	outcomeReport outcomeRule
-	// activityMask: Group and actor activity come from the second game's
-	// script activity mask; no first-game activity cover holds an actor.
+	// groupActivity: how the engagement pass refreshes Group activity
+	// (groupActivityRefreshers).
+	groupActivity groupActivityRule
+	// activityMask: actor and executor activity come from the second game's
+	// script activity mask rather than first-game activity covers.
 	activityMask bool
 	// cullClearsActionClock: the mission-return cull clears the action-run
 	// end; the first game keeps the one the mission set (SAV-1353).
@@ -74,14 +76,12 @@ type gameProfile struct {
 	// nativeWalkRefusal keeps near-search give-up separate from a known
 	// empty-route result (R2-ENGINE-1108).
 	nativeWalkRefusal bool
-	// cellCastReach: the automatic cast's candidate test and a scroll cast
-	// at a unit compare whole Chebyshev cells (R2-ENGINE-348), not the
-	// footprint gap. A book order at a unit keeps the footprint gap
-	// (R2-ENGINE-1143).
-	cellCastReach bool
-	// recoveryLowByte: a cast's recovery count is the low byte of its sum
-	// (R2-ENGINE-1261); the first game clamps a book or scroll count at 255.
-	recoveryLowByte bool
+	// castReach: unit-target reach rule for automatic and scroll casts
+	// (castReachRules, R2-ENGINE-348, R2-ENGINE-1143).
+	castReach castReachRule
+	// castRecovery: cast recovery narrowing rule (castRecoveryRules,
+	// R2-ENGINE-1261).
+	castRecovery castRecoveryRule
 	// paysFacingAim: a book cast at another unit or a cell pays when its
 	// wind-up starts facing the aim, not at the order (R2-ENGINE-543,
 	// R2-ENGINE-544, R2-ENGINE-926).
@@ -160,9 +160,8 @@ type gameProfile struct {
 	// regenBodyLoss: the pool pass takes one health from a unit below zero on
 	// every fourth pass, beside the decay walk (R2-ENGINE-1207).
 	regenBodyLoss bool
-	// nativeDecay: the decay ladder walks held dead and decaying health on
-	// the native tick; no session-clock dead ladder runs.
-	nativeDecay bool
+	// decayWalk: the decay pass's walk rule (decayWalks).
+	decayWalk decayWalkRule
 	// deadList: a body's teardown ranks it on the dead list, which Animate
 	// Dead walks (joinDeadList, R2-ENGINE-780).
 	deadList bool
@@ -179,8 +178,10 @@ type gameProfile struct {
 	// objective into the script; the first game restores its VIP check.
 	noCompanionObjective    bool
 	keepsHealthAboveMaximum bool
-	// cellEventRelocates: instant 25 stores a source and target, and a cell
-	// event of the Teleport kind moves the unit (R2-ENGINE-673, DIV-4700).
+	// cellTail: how instant 25 encodes its six tail bytes (cellTailEncoders).
+	cellTail cellTailRule
+	// cellEventRelocates: cell event 0x17 moves the entering unit
+	// (R2-ENGINE-673, DIV-4700).
 	cellEventRelocates bool
 	// bookListsScrolls: the book shows a carried scroll at its spell's cell
 	// (R2-ENGINE-766, R2-SESSION-229, DIV-4732).
@@ -262,15 +263,17 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		fillsEmptyCreatureBook:     true,
 		deathRollAt64:              true,
 		deathItemRoll:              true,
-		nativeTick:                 true,
+		tickClock:                  nativeTickClock,
 		buildingCasters:            true,
 		scriptRows:                 secondGameRows,
 		inertWithoutProgram:        true,
 		outcomeReport:              outcomeAtNonzero,
+		groupActivity:              groupActivityByMask,
 		activityMask:               true,
 		cullClearsActionClock:      true,
 		formHoldsConstructedGroups: true,
 		keepsHealthAboveMaximum:    true,
+		cellTail:                   cellTailTargeted,
 		cellEventRelocates:         true,
 		bookListsScrolls:           true,
 		memberScoreGate:            true,
@@ -285,8 +288,8 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		nativeTargetOrders:         true,
 		nativeShopUse:              true,
 		nativeWalkRefusal:          true,
-		cellCastReach:              true,
-		recoveryLowByte:            true,
+		castReach:                  castReachCell,
+		castRecovery:               castRecoveryLowByte,
 		paysFacingAim:              true,
 		bookWalkNoFallback:         true,
 		postKeepsDying:             true,
@@ -317,7 +320,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		nativeRegen:                true,
 		regenLife:                  LifeStanding,
 		regenBodyLoss:              true,
-		nativeDecay:                true,
+		decayWalk:                  nativeDecayWalk,
 		deadList:                   true,
 		keepsCastRetain:            true,
 		residueOverBookCasts:       true,
@@ -327,11 +330,13 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			defendFineStep:           true,
 			collectSacks:             true,
 			idleRanking:              targetIdleDistance,
+			attackReach:              attackReachLive,
 			liveAdmission:            true,
 			mageAcquisitionException: true,
 			stopEmptyWalk:            true,
 			standGroundScore:         true,
 			lookAround:               true,
+			emptyRoute:               emptyRouteRepicks,
 			repickEmptyRoute:         true,
 			primaryCells:             true,
 			supportOrder:             true,

@@ -185,3 +185,24 @@ func TestEveryBuildPathAnswersTheRecordedGameProfile(t *testing.T) {
 		t.Logf("answers:\n%s", strings.Join(got, "\n"))
 	}
 }
+
+// A rule row and the data fact its gates read name one game's behaviour, so
+// each profile holds them together.
+func TestRuleRowsAgreeWithTheirGates(t *testing.T) {
+	for _, d := range []ScriptDialect{ScriptROM1, ScriptROM2} {
+		p := newGameProfile(d)
+		second := d == ScriptROM2
+		for name, ok := range map[string]bool{
+			"cellTail":    (p.cellTail == cellTailTargeted) == p.cellEventRelocates,
+			"activity":    (p.groupActivity == groupActivityByMask) == p.activityMask,
+			"attackReach": (p.orders.attackReach == attackReachLive) == p.orders.liveAdmission,
+			"emptyRoute":  (p.orders.emptyRoute == emptyRouteRepicks) == p.orders.repickEmptyRoute,
+			"tickClock":   (p.tickClock == nativeTickClock) == second,
+			"decayWalk":   (p.decayWalk == nativeDecayWalk) == second,
+		} {
+			if !ok {
+				t.Errorf("dialect %d: %s row disagrees with its gate", d, name)
+			}
+		}
+	}
+}

@@ -25,10 +25,16 @@ func TestProfileRulesAreRows(t *testing.T) {
 	if _, ok := files["pkg/sim/gameprofile.go"]; !ok {
 		t.Fatal("pkg/sim/gameprofile.go is missing; the scan guards nothing")
 	}
-	flag := regexp.MustCompile(`\b(stopRefusedFlee|classRetreatMode|roundUphillTowardZero|countedOutcome|autoCastSideSight|savedProjectileAim|withdrawMoverPoint|victimHolds|raiseAtNext|packedStep|effectsFirst)\b`)
+	flag := regexp.MustCompile(`\b(stopRefusedFlee|classRetreatMode|roundUphillTowardZero|countedOutcome|autoCastSideSight|savedProjectileAim|withdrawMoverPoint|victimHolds|raiseAtNext|packedStep|effectsFirst|nativeTick|nativeDecay|cellCastReach|recoveryLowByte|UnitLifeZero)\b`)
+	presentFlag := regexp.MustCompile(`\b(PointLift|UnitLifeZero)\b`)
 	for path, src := range files {
 		if strings.HasPrefix(path, "pkg/sim/") {
 			if m := flag.FindString(src); m != "" {
+				t.Errorf("%s names %s, a flag that chose a rule's body; hold the rule as a row", path, m)
+			}
+		}
+		if strings.HasPrefix(path, "pkg/data/") || strings.HasPrefix(path, "pkg/game/") || strings.HasPrefix(path, "pkg/ui/") {
+			if m := presentFlag.FindString(src); m != "" {
 				t.Errorf("%s names %s, a flag that chose a rule's body; hold the rule as a row", path, m)
 			}
 		}
