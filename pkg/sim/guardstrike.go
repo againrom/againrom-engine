@@ -121,6 +121,7 @@ type LoadedStrike struct {
 	Notice           uint16
 	Clock            uint32
 	Away             uint16
+	AreaHits         int32
 }
 
 // ImportLoadedStrikes writes each row into its member's order. A missing
@@ -129,7 +130,14 @@ type LoadedStrike struct {
 // (R2-ENGINE-883). Other rows leave a missing order absent until dispatch.
 func (w *World) ImportLoadedStrikes(rows []LoadedStrike) error {
 	for _, r := range rows {
-		blow := r != (LoadedStrike{Entity: r.Entity, Stamp: r.Stamp})
+		if r.AreaHits != 0 {
+			i := indexOfEntity(w.entities, r.Entity)
+			if i < 0 {
+				return fmt.Errorf("sim: loaded strike names an actor the World does not hold")
+			}
+			w.entities[i].AreaHitCount = r.AreaHits
+		}
+		blow := r != (LoadedStrike{Entity: r.Entity, Stamp: r.Stamp, AreaHits: r.AreaHits})
 		if !blow && r.Stamp == unstampedCommand {
 			continue
 		}

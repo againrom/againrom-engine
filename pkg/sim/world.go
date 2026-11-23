@@ -793,6 +793,10 @@ type Entity struct {
 	// took (joinDeadList). Only the order it gives is kept: the byte form's
 	// dead rank section and the SAV dead-actor roots carry that order.
 	deadRank uint32
+
+	// AreaHitCount is the second game's signed command +0xac area-hit counter
+	// (R2-ENGINE-981). Zero in the first game.
+	AreaHitCount int32
 }
 
 // Guard is the constructor/felled default. Patrol, Defend, Follow and
@@ -2763,10 +2767,35 @@ func (w *World) hostileTo(me, him *Entity) bool {
 	return w.relations.Hostile(me.Owner, him.Owner)
 }
 
-// flipOnBlow remembers the attacker's cell and attempts both diplomacy flips
-// (AI-RETAL-056, HERO-AGGRO-028). Each direction retains its allied-bit gate.
-// It does not assign an order or target: normal acquisition consumes the notice.
-func (w *World) flipOnBlow(ai, ti int) {
+type blowHookKind uint8
+
+const (
+	blowDirect blowHookKind = iota
+	blowArea
+)
+
+type blowRelationRule uint8
+
+const (
+	blowRelationBoth blowRelationRule = iota
+	blowRelationAreaGated
+)
+
+type blowRelationPolicy struct {
+	areaGated       bool
+	counterLimit    int32
+	healthDivisor   int32
+	areaBlowAllRows bool
+}
+
+var blowRelationRules = [...]blowRelationPolicy{
+	blowRelationBoth:      {},
+	blowRelationAreaGated: {areaGated: true, counterLimit: 10, healthDivisor: 2, areaBlowAllRows: true},
+}
+
+// flipOnBlow remembers the attacker's cell and updates diplomacy for a blow
+// from ai onto ti (AI-RETAL-056, HERO-AGGRO-028, R2-ENGINE-981, R2-ENGINE-985).
+func (w *World) flipOnBlow(ai, ti int, kind ...blowHookKind) {
 	if ai < 0 || ti < 0 || ai >= len(w.entities) || ti >= len(w.entities) {
 		return
 	}
@@ -2776,7 +2805,23 @@ func (w *World) flipOnBlow(ai, ti int) {
 	}
 	w.rememberAttacker(ai, ti)
 	w.relations.turnHostile(a.Owner, t.Owner)
-	w.relations.turnHostile(t.Owner, a.Owner)
+	area := len(kind) != 0 && kind[0] == blowArea
+	p := blowRelationRules[w.game.blowRelation]
+	if !area || !p.areaGated {
+		w.relations.turnHostile(t.Owner, a.Owner)
+		return
+	}
+	if _, ok := relationIndex(t.Owner, a.Owner); !ok {
+		return
+	}
+	if w.relations.Byte(t.Owner, a.Owner)&(relationHostile|relationLocked) != 0 {
+		return
+	}
+	counter := w.entities[ti].AreaHitCount
+	if counter > p.counterLimit || t.HP < t.MaxHP/p.healthDivisor || !t.Alive() {
+		w.relations.turnHostile(t.Owner, a.Owner)
+	}
+	w.entities[ti].AreaHitCount = counter + 1
 }
 
 // Entities returns the world's entities in ascending id order, as a fresh slice

@@ -363,6 +363,7 @@ var nstPinned = []struct {
 		// The second game's dead list rank, carried by its own byte form
 		// section.
 		{"deadRank", "uint32"},
+		{"AreaHitCount", "int32"},
 	}},
 	{"RetreatContinuation", reflect.TypeOf(RetreatContinuation{}), []nstField{
 		{"Known", "bool"}, {"Pending", "bool"}, {"Failure", "bool"}, {"Complete", "bool"},

@@ -68,11 +68,18 @@ func (w *World) clearInvalidTargetReferences(target EntityID) {
 
 	books, walkers := w.bookCasts[:0], []EntityID(nil)
 	for _, cast := range w.bookCasts {
-		if !cast.AtCell && cast.Target == target && !w.spellIDTargetable(targetState, uint32(cast.Spell)) {
-			if cast.Phase == bookApproach {
-				walkers = append(walkers, cast.Caster)
+		if !cast.AtCell && cast.Target == target {
+			rule, known := w.findSpell(uint32(cast.Spell))
+			drop := !w.spellIDTargetable(targetState, uint32(cast.Spell))
+			if known {
+				drop = castPayRules[w.game.castPay].dropsTarget(targetState, rule)
 			}
-			continue
+			if drop {
+				if cast.Phase == bookApproach {
+					walkers = append(walkers, cast.Caster)
+				}
+				continue
+			}
 		}
 		books = append(books, cast)
 	}

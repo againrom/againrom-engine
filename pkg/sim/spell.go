@@ -261,14 +261,14 @@ func (w *World) ordinaryEffect(ci, ti int, rule SpellRule, power int32) bool {
 // ordinaryAreaEffect shares the payload with an ordinary point application but
 // runs AreaEffect's distinct post-payload attribution programme.
 func (w *World) ordinaryAreaEffect(ci, ti int, rule SpellRule, power int32) bool {
-	applied := w.ordinaryEffectPayload(ci, ti, rule, power)
+	applied := w.ordinaryEffectPayload(ci, ti, rule, power, true)
 	if applied {
 		w.areaAttribution(ci, ti, rule)
 	}
 	return applied
 }
 
-func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) bool {
+func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, area ...bool) bool {
 	if ti < 0 || ti >= len(w.entities) {
 		return false
 	}
@@ -327,7 +327,9 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		return true
 	}
 	if rule.Damaging {
-		w.flipOnBlow(ci, ti)
+		if len(area) == 0 || !area[0] || !blowRelationRules[w.game.blowRelation].areaBlowAllRows {
+			w.flipOnBlow(ci, ti)
+		}
 		before := w.entities[ti].HP
 		w.applySpellDamage(ci, ti, rule, power)
 		// The direct-damage resolver precedes the envelope tail. The temporary
@@ -965,7 +967,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 		return false
 	}
 	vi := indexOfEntity(w.entities, victim)
-	if vi < 0 || !spellTargetable(w.entities[vi], rule) ||
+	if vi < 0 || !rule.Restorative && !spellTargetable(w.entities[vi], rule) ||
 		prismaticBodyPrimary(w.entities[vi], rule) && !w.bookAlreadyPaid(caster.ID, spellID) {
 		return false
 	}
@@ -977,51 +979,15 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 	// release, so each repeat follows it (MAGIC-428).
 	aimX, aimY := unitAimCell(target)
 	healthBefore := target.HP
-	// A target without a health system spends nothing. A commanded heal on a
-	// target at its maximum is cast: the cost is paid and the apply tail clamps
-	// health at the maximum. Only the unbidden target choice skips full targets.
-	if rule.Restorative && target.MaxHP <= 0 {
-		return false
-	}
 	var level int32
 	if rule.School < skillSlots {
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	// 6. the range was tested when the cast was decided; the release asks
-	// it no more.
-	// 6b. THE ROW'S OWN TARGET CONDITION, asked BEFORE the cost so that a
-	// release the ordinary apply would refuse spends nothing (spec: a refusal,
-	// a release-time cancellation and an effect that cannot apply spend no
-	// mana, start no recovery and award no training). It is the same predicate
-	// bookSpellRefusal asks at admission, so the two cannot disagree.
-	if w.pointEffectRefusal(ci, vi, rule, power) != "" {
+	if !castPayRules[w.game.castPay].payAndCheck(w, ci, rule, w.bookAlreadyPaid(caster.ID, spellID), func() string {
+		return w.castUnitApplyRefusal(ci, vi, rule, power, aimX, aimY)
+	}) {
 		return false
-	}
-	// 6c. pointEffectRefusal answers "" for every area row and this one answers
-	// "" for every point row, so the two are one gate over the whole table with
-	// no row asked twice. Without it this arm paid, marked both actors and
-	// started recovery for a landing whose result it discarded.
-	if w.areaLandingRefusal(rule, uint16(power), aimX, aimY) != "" {
-		return false
-	}
-	// 6a. THE CADENCE FLOOR: a caster that cast inside the last castPeriod
-	// ticks is refused, so no book cast can emit a projectile before the
-	// previous one's swing has run. It is asked BEFORE the cost, so a throttled
-	// cast spends nothing and rolls nothing, and it is asked of the book arm
-	// alone — releaseWeaponSpell never reaches this function.
-	if w.orderState(caster).recoveryWaiting() {
-		return false
-	}
-	// 7. a cost the caster cannot afford refuses the WHOLE cast: no mana
-	// spent, nothing rolled — the return below is this arm's only one past
-	// this point, so nothing after it can leave a half-applied cast.
-	if !w.bookAlreadyPaid(caster.ID, spellID) && !bookAffords(*caster, rule) {
-		return false
-	}
-	// 8. the cost is paid, once.
-	if !w.bookAlreadyPaid(caster.ID, spellID) {
-		debitBook(caster, rule)
 	}
 	w.refreshAppliedBook(ci, spellID)
 	w.castStartHiding(caster.ID, victim, false)
@@ -1109,23 +1075,13 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	// Point orders use the book's range, not the caster's personal sight. The
-	// release asks no range again (MAGIC-403).
-	if _, inside := cellIndexIn(w.bounds, x, y); !inside ||
-		w.orderState(caster).recoveryWaiting() || !w.bookAlreadyPaid(caster.ID, spellID) && !bookAffords(*caster, rule) {
+	if _, inside := cellIndexIn(w.bounds, x, y); !inside {
 		return false
 	}
-	// The area landing's own refusals, asked BEFORE the cost (spec: a refusal
-	// and an effect that cannot apply spend no mana and start no recovery).
-	// This arm paid and then returned on landArea's false, so a player casting
-	// repeatedly at one cell paid the row every time the cell's six slots were
-	// already taken. It is pointEffectRefusal's counterpart for the cell form
-	// and answers "" for Teleport, whose own destination test is above.
-	if w.areaLandingRefusal(rule, uint16(power), x, y) != "" {
+	if !castPayRules[w.game.castPay].payAndCheck(w, ci, rule, w.bookAlreadyPaid(caster.ID, spellID), func() string {
+		return w.areaLandingRefusal(rule, uint16(power), x, y)
+	}) {
 		return false
-	}
-	if !w.bookAlreadyPaid(caster.ID, spellID) {
-		debitBook(caster, rule)
 	}
 	w.refreshAppliedBook(ci, spellID)
 	if spellArmOf(rule.arm()).teleport {
@@ -1556,6 +1512,75 @@ func withinFootprintCastReach(a, b castReachEnd, reach int64) bool {
 	return a.id == b.id || int64(edgeDistanceCells(a.x, a.y, a.size, b.x, b.y, b.size)) <= reach
 }
 
+type castPayRule uint8
+
+const (
+	castPayAfterRefusal castPayRule = iota
+	castPayBeforeRefusal
+)
+
+type castPayPolicy struct {
+	admitRefusal func(applyRefusal func() string) string
+	payAndCheck  func(w *World, ci int, rule SpellRule, alreadyPaid bool, applyRefusal func() string) bool
+	dropsTarget  func(target Entity, rule SpellRule) bool
+}
+
+// castPayRules orders application refusals against the mana debit
+// (R2-ENGINE-544, R2-ENGINE-026, R2-ENGINE-791, R2-ENGINE-018).
+var castPayRules = [...]castPayPolicy{
+	castPayAfterRefusal: {
+		admitRefusal: func(f func() string) string { return f() },
+		payAndCheck:  castPayAfterApplyRefusal,
+		dropsTarget:  func(target Entity, rule SpellRule) bool { return !spellTargetable(target, rule) },
+	},
+	castPayBeforeRefusal: {
+		admitRefusal: func(func() string) string { return "" },
+		payAndCheck:  castPayBeforeApplyRefusal,
+		dropsTarget:  func(target Entity, rule SpellRule) bool { return !rule.Restorative && !spellTargetable(target, rule) },
+	},
+}
+
+func (w *World) castUnitApplyRefusal(ci, vi int, rule SpellRule, power, aimX, aimY int32) string {
+	target := w.entities[vi]
+	if rule.Restorative {
+		if !spellTargetable(target, rule) {
+			return "target state refuses spell"
+		}
+		if target.MaxHP <= 0 {
+			return "heal target has no health system"
+		}
+	}
+	if r := w.pointEffectRefusal(ci, vi, rule, power); r != "" {
+		return r
+	}
+	return w.areaLandingRefusal(rule, uint16(power), aimX, aimY)
+}
+
+func castPayAfterApplyRefusal(w *World, ci int, rule SpellRule, alreadyPaid bool, applyRefusal func() string) bool {
+	if applyRefusal() != "" {
+		return false
+	}
+	caster := &w.entities[ci]
+	if w.orderState(caster).recoveryWaiting() || !alreadyPaid && !bookAffords(*caster, rule) {
+		return false
+	}
+	if !alreadyPaid {
+		debitBook(caster, rule)
+	}
+	return true
+}
+
+func castPayBeforeApplyRefusal(w *World, ci int, rule SpellRule, alreadyPaid bool, applyRefusal func() string) bool {
+	caster := &w.entities[ci]
+	if w.orderState(caster).recoveryWaiting() || !alreadyPaid && !bookAffords(*caster, rule) {
+		return false
+	}
+	if !alreadyPaid {
+		debitBook(caster, rule)
+	}
+	return applyRefusal() == ""
+}
+
 func withinCellCastReach(a, b castReachEnd, reach int64) bool {
 	return (cell{x: a.x, y: a.y}).chebyshevTo(cell{x: b.x, y: b.y}) <= reach
 }
@@ -1788,7 +1813,9 @@ func (w *World) bookSpellCellAdmissionRange(ci int, x, y int32, spellID uint32, 
 	if !skipRange && (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeOf(w.rules, rule, power, rangeCast) {
 		return refusalCellOutOfRange
 	}
-	if r := w.areaLandingRefusal(rule, uint16(power), x, y); r != "" {
+	if r := castPayRules[w.game.castPay].admitRefusal(func() string {
+		return w.areaLandingRefusal(rule, uint16(power), x, y)
+	}); r != "" {
 		return r
 	}
 	if w.stoneCursed(ci) || w.castActionBusy(ci, gate) {
@@ -1829,7 +1856,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 		return "target absent"
 	}
 	target := w.entities[vi]
-	if !spellTargetable(target, rule) {
+	if !rule.Restorative && !spellTargetable(target, rule) {
 		return "target state refuses spell"
 	}
 	if prismaticBodyPrimary(target, rule) && !w.bookAlreadyPaid(caster.ID, spellID) {
@@ -1838,14 +1865,12 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	if victim == caster.ID && rule.Damaging && !rule.SelfCast {
 		return "damaging self target"
 	}
-	if rule.Restorative && target.MaxHP <= 0 {
-		return "heal target has no health system"
-	}
 	var level int32
 	if rule.School < skillSlots {
 		level = caster.Skill[rule.School]
 	}
-	inReach := w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast), reachOrder)
+	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
+	inReach := w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, power, rangeCast), reachOrder)
 	// A target the computer mage's Group sees is refused for range alone, so
 	// out of range the mage walks into range with the cast armed (AI-760).
 	if !skipRange && !w.game.castsUnseen && !w.castSeesEntity(ci, vi) && !w.computerMageGroupSees(ci, vi) {
@@ -1854,14 +1879,10 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	if !skipRange && !inReach {
 		return refusalTargetOutOfRange
 	}
-	if r := w.pointEffectRefusal(ci, vi, rule, spellPowerUnder(w.rules, rule, level, caster.Mind)); r != "" {
-		return r
-	}
-	// An area row delivered at a unit lands at that unit's own cell, so the
-	// instrument must ask the landing's refusals there too. It reported a cast
-	// at a cell already holding six records as admissible.
 	aimX, aimY := unitAimCell(&target)
-	if r := w.areaLandingRefusal(rule, uint16(spellPowerUnder(w.rules, rule, level, caster.Mind)), aimX, aimY); r != "" {
+	if r := castPayRules[w.game.castPay].admitRefusal(func() string {
+		return w.castUnitApplyRefusal(ci, vi, rule, power, aimX, aimY)
+	}); r != "" {
 		return r
 	}
 	if w.stoneCursed(ci) || w.castActionBusy(ci, gate) {

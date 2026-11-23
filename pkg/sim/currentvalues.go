@@ -98,8 +98,9 @@ type ActorValues struct {
 	// KindWord and MainSkill are the second game's kind word and main skill,
 	// which its records hold in U148 and H1CC. An older SAVE writes neither:
 	// the actor keeps the values its LOAD read from those records.
-	KindWord  uint16 `json:",omitempty"`
-	MainSkill int32  `json:",omitempty"`
+	KindWord     uint16 `json:",omitempty"`
+	MainSkill    int32  `json:",omitempty"`
+	AreaHitCount int32  `json:",omitempty"`
 }
 
 type actorNumericField struct {
@@ -131,7 +132,7 @@ func (e Entity) Values() ActorValues {
 		AlwaysHits: e.AlwaysHits, Undying: e.Undying, DyingTime: e.DyingTime, XPValue: e.XPValue, GoldChance: e.GoldChance, TreasureMin: e.TreasureMin, TreasureMax: e.TreasureMax,
 		GainsXP: e.GainsXP, LegacyBook: e.Book.State == BookLegacy, ExtraSpells: e.KnownSpells & ^bookIDMask,
 		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, Dwell: e.Dwell,
-		VictimKinds: e.victimKinds.counts(), KindWord: e.KindWord, MainSkill: e.MainSkill}
+		VictimKinds: e.victimKinds.counts(), KindWord: e.KindWord, MainSkill: e.MainSkill, AreaHitCount: e.AreaHitCount}
 	if !e.Humanoid && e.SkillXP != ([skillSlots]int32{}) {
 		xp := e.SkillXP
 		v.UnitXP = &xp
@@ -347,6 +348,9 @@ func (e *Entity) restoreValues(v ActorValues) error {
 	e.victimKinds = kinds
 	if v.KindWord != 0 || v.MainSkill != 0 {
 		e.KindWord, e.MainSkill = v.KindWord, v.MainSkill
+	}
+	if v.AreaHitCount != 0 {
+		e.AreaHitCount = v.AreaHitCount
 	}
 	return nil
 }

@@ -90,6 +90,10 @@ type gameProfile struct {
 	// wind-up starts facing the aim, not at the order (R2-ENGINE-543,
 	// R2-ENGINE-544, R2-ENGINE-926).
 	paysFacingAim bool
+	// castPay: cast debit order against application refusals (castPayRules).
+	castPay castPayRule
+	// blowRelation: reverse-hostility gate on area blows (blowRelationRules).
+	blowRelation blowRelationRule
 	// bookWalkNoFallback: the engage book walk has no fallback row.
 	bookWalkNoFallback bool
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
@@ -297,6 +301,8 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		castStamp:                  castStampsRoutine,
 		flight:                     flightEveryRow,
 		paysFacingAim:              true,
+		castPay:                    castPayBeforeRefusal,
+		blowRelation:               blowRelationAreaGated,
 		bookWalkNoFallback:         true,
 		postKeepsDying:             true,
 		projectileAim:              aimAtSavedPoint,

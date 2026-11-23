@@ -91,6 +91,7 @@ func passiveItemForm(item ItemInstance) bool {
 // passiveEntity is the removed actor without references into the World.
 func passiveEntity(e Entity) Entity {
 	e.attackNotice = attackNotice{}
+	e.AreaHitCount = 0
 	e.NativeBasis = NativeActorBasis{}
 	e.clearKillCredit()
 	e.clearAttack()

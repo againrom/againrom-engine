@@ -148,7 +148,9 @@ func secondFormKeeps(s Snapshot, doc *sav.DocumentData) (sav.ProfileKeeps, error
 // striker's record key, 0 when doc holds no record of it.
 func secondCommandStrikes(w *sim.World, doc *sav.DocumentData) (map[uint32]sav.CommandStrike, error) {
 	_, orders, _ := w.SavedGroups()
-	if !slices.ContainsFunc(orders, func(o sim.SavedActorOrder) bool { return o.Strike != (sim.SavedStrike{}) }) {
+	hasStrike := slices.ContainsFunc(orders, func(o sim.SavedActorOrder) bool { return o.Strike != (sim.SavedStrike{}) })
+	hasAreaHits := slices.ContainsFunc(w.EntityView(), func(e sim.Entity) bool { return e.AreaHitCount != 0 })
+	if !hasStrike && !hasAreaHits {
 		return nil, nil
 	}
 	a, err := readCurrentActions(doc)
@@ -178,6 +180,21 @@ func secondCommandStrikes(w *sim.World, doc *sav.DocumentData) (map[uint32]sav.C
 		if k.Attacker != 0 {
 			c.Striker = key(k.Attacker)
 		}
+		out[victim] = c
+	}
+	for _, e := range w.EntityView() {
+		if e.AreaHitCount == 0 {
+			continue
+		}
+		victim := key(e.ID)
+		if victim == 0 {
+			continue
+		}
+		c, exists := out[victim]
+		if !exists {
+			c.Stamp = (sim.SavedStrike{}).CommandStamp()
+		}
+		c.AreaHits = e.AreaHitCount
 		out[victim] = c
 	}
 	return out, nil

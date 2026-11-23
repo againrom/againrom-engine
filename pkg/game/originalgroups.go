@@ -96,7 +96,8 @@ func applyOriginalGroups(ms *Mission, report *OriginalSaveResume) error {
 		if id, bound := bindings[a.ArchiveIndex]; bound && a.HasCommand {
 			k, n := a.CommandStrike, a.CommandNotice
 			row := sim.LoadedStrike{Entity: id, Attacker: targets[k.Striker], Struck: k.Striker != 0, Stamp: k.Stamp,
-				Alarm: n[0], Notice: binary.LittleEndian.Uint16(n[4:]), Scans: n[6], Clock: k.Clock, Away: k.Away}
+				Alarm: n[0], Notice: binary.LittleEndian.Uint16(n[4:]), Scans: n[6], Clock: k.Clock, Away: k.Away,
+				AreaHits: k.AreaHits}
 			if row.Attacker == id {
 				row.Attacker = 0
 			}

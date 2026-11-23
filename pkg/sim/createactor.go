@@ -48,7 +48,7 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 		return 0, fmt.Errorf("sim: actor creation identity space exhausted")
 	}
 	template.ID = id
-	template.victimKinds, template.deadRank = victimKindList{}, 0
+	template.victimKinds, template.deadRank, template.AreaHitCount = victimKindList{}, 0, 0
 	if p.suppressRewards {
 		template.SuppressRewards = true
 	}

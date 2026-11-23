@@ -28,7 +28,7 @@ var flightWitnessDigests = map[string]string{
 	"second/book":             "c8f6acd1a723f642",
 	"second/staff":            "db3df84e79fc17f4",
 	"second/staged":           "b58a868b25c2314c",
-	"second/fire-ball":        "746f4596faaf9902",
+	"second/fire-ball":        "b3d9fb8f020b8200",
 	"second/client-lightning": "ca6af635d8a3c8df",
 	"second/client-chain":     "025224636a991c58",
 	"second/teleport-moved":   "8374292d2964f132",

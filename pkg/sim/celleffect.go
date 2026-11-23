@@ -907,7 +907,8 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				w.markSpellEffect(i, rule.ID)
 				// NO CAST AWARD IS PAID HERE (DIV-238): castSpell and castBookAt
 				// pay the cast's own single award.
-				if areaRow(rule.arm()).blow && ci >= 0 && ci != i {
+				blows := areaRow(rule.arm()).blow || blowRelationRules[w.game.blowRelation].areaBlowAllRows && !areaRow(rule.arm()).unattributed
+				if blows && ci >= 0 && ci != i {
 					w.answerAreaBlow(ci, i)
 				}
 			}
@@ -955,7 +956,7 @@ func (w *World) applyStructureSpellAt(x, y int32, rule SpellRule, power int32) b
 // it answers the same for every victim, whatever its owner (R2-ENGINE-985,
 // R2-ENGINE-987); a side with no owner runs no hook (flipOnBlow).
 func (w *World) answerAreaBlow(ci, ti int) {
-	w.flipOnBlow(ci, ti)
+	w.flipOnBlow(ci, ti, blowArea)
 }
 
 func (w *World) areaHitAllowed(ci int, rule SpellRule, target Entity) bool {

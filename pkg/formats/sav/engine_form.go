@@ -228,10 +228,11 @@ const (
 // command (R2-ENGINE-845, R2-ENGINE-846): the stamp +0x16, the striker's
 // record key +0x94, the fine clock at the blow +0x98 and the cell +0x9c.
 type CommandStrike struct {
-	Stamp   uint16
-	Striker uint32
-	Clock   uint32
-	Away    uint16
+	Stamp    uint16
+	Striker  uint32
+	Clock    uint32
+	Away     uint16
+	AreaHits int32
 }
 
 // readCommandStrike is b's blow record and stamp; false for a block that is
@@ -240,7 +241,10 @@ func readCommandStrike(b []byte) (CommandStrike, bool) {
 	if len(b) != secondCreatureSpells.width {
 		return CommandStrike{}, false
 	}
-	return CommandStrike{Stamp: u16(b, 0x16), Striker: u32(b, 0x94), Clock: u32(b, 0x98), Away: u16(b, 0x9c)}, true
+	return CommandStrike{
+		Stamp: u16(b, 0x16), Striker: u32(b, 0x94), Clock: u32(b, 0x98), Away: u16(b, 0x9c),
+		AreaHits: int32(u32(b, 0xac)),
+	}, true
 }
 
 // writeCommandStrikes writes each keeps entry into the command block of
@@ -266,6 +270,7 @@ func writeCommandStrikes(out *DocumentData, keeps map[uint32]CommandStrike) {
 				put32(b, 0x94, k.Striker)
 				put32(b, 0x98, k.Clock)
 				put16(b, 0x9c, k.Away)
+				put32(b, 0xac, uint32(k.AreaHits))
 			}
 		}
 	}
