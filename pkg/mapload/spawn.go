@@ -718,12 +718,10 @@ func unitRowDefinition(t *Table, index int, diff Difficulty) (data.UnitDef, [sim
 		d.SecondaryDamage = cb.SecondaryDamage
 		d.ToHit, d.Defence = cb.ToHit, cb.Defence
 		d.AttackChargeTime, d.AttackRelaxTime = cb.AttackChargeTime, cb.AttackRelaxTime
-		d.Reach = cb.Reach
 		d.SkillSlot = cb.SkillSlot
 		d.SpellName, d.SpellPower = cb.SpellName, cb.SpellPower
-	} else {
-		d.Reach = unitReach(strs, t)
 	}
+	d.Reach = unitReach(strs, t)
 	if !weaponItem.Empty() {
 		weaponItem = sourceWeaponItem(weaponItem, *w, t)
 		weaponItem = SourceEquippedItem(weaponItem, t)
@@ -1115,28 +1113,24 @@ func wearRowItems(names []string, t *Table) (worn [sim.EquipSlots]sim.ItemInstan
 // unitReach is unitWeapon's own shape over a different question: not "what
 // does this row carry" but "how far does it reach", so it takes WeaponRange
 // in the place ResolveWeapon stands above — the same three-collection
-// guard, the same skip of an empty cell, the same "first cell that resolves
-// wins" (the UNITS band's own rule; a person's row is wearRow's, above, and
-// reads every cell by position instead) — and answers 1, the constructor's
-// own floor, when nothing does.
-//
-// A unit row carries two equipment strings and no shipped one names both, so
-// "the first that resolves" and "the one there is" agree over the whole
-// table.
+// guard and the same skip of an empty cell. Reach starts at the
+// constructor's 1 and every resolving weapon adds its range minus 1, as the
+// original's equip does (ITEM-WEAPCOL-021, UNIT-COMBAT-006).
 func unitReach(names []string, t *Table) int32 {
 	shapes, materials, weapons, ok := t.items()
 	if !ok {
 		return 1
 	}
+	reach := int32(1)
 	for _, n := range names {
 		if n == "" {
 			continue
 		}
 		if r, ok := data.WeaponRange(n, shapes, materials, weapons); ok {
-			return r
+			reach += r - 1
 		}
 	}
-	return 1
+	return reach
 }
 
 func unitWeaponItem(names []string, t *Table) (*data.Weapon, sim.ItemInstance, error) {

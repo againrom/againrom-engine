@@ -84,6 +84,32 @@ func TestAUnitsReachIsItsRowsFirstResolvingWeapon(t *testing.T) {
 	}
 }
 
+func TestAUnitsReachSumsEveryWeaponsRangeMinusOne(t *testing.T) {
+	t.Parallel()
+
+	weapons := reachWeapons()
+	one := int(srcBowRange) - 1
+	for _, tc := range []struct {
+		name      string
+		equipment []string
+		want      uint8
+	}{
+		{"two bows", []string{"Bow", "Bow"}, uint8(1 + 2*one)},
+		{"three bows", []string{"Bow", "Bow", "Bow"}, uint8(1 + 3*one)},
+		{"a bow and a rangeless dagger", []string{"Bow", "Dagger"}, uint8(1 + one)},
+		{"a bow and an empty slot", []string{"Bow", ""}, uint8(1 + one)},
+		{"a bow and a name no row answers", []string{"Nonexistent", "Bow"}, uint8(1 + one)},
+		{"one bow", []string{"Bow"}, uint8(1 + one)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tbl := reachTable(tc.equipment, weapons, identityScale(), identityScale())
+			if got := srcLoad(t, srcMap(0x40), tbl).Reach; got != tc.want {
+				t.Errorf("reach = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestAUnitWithNoItemCollectionHasReach1(t *testing.T) {
 	t.Parallel()
 

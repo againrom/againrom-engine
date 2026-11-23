@@ -72,7 +72,7 @@ type UnitDef struct {
 	// writes either. Sight stops there — it is purely one of the
 	// constructor's own numbers. Reach does not: a placed unit's loader reads
 	// its class row's trailing equipment strings and raises this field past the
-	// constructor's floor of 1 to the first weapon's range that resolves. It
+	// constructor's floor of 1 by each resolving weapon's range minus 1. It
 	// stays exported for exactly that reason — it is written from outside
 	// this package, after NewUnitDef returns, not by a case in the slot switch
 	// below.
