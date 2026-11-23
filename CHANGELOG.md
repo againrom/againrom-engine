@@ -24,6 +24,7 @@ modder or developer can notice gets no entry.
 - [BASE] Существо с несколькими видами оружия теперь бьёт на сумму их дальностей, как в оригинале; раньше учитывалось только первое оружие.
 - [BASE] Невидимый маг, колдующий на другую цель или в клетку, теперь не теряет невидимость сразу, а сохраняет её ещё на один шаг, как в оригинале; заклинание на себя невидимость не меняет.
 - [ROM2] Units now step as in the original: a diagonal step keeps the first game's position correction and the slowest diagonal step stands still for 256 ticks, a struck guard steps away ten cells along the longer axis, and computer units rank a target under Stone Curse lower.
+- [ROM2] Порядок товаров в магазинах второй игры проверен по русской версии клиента оригинала: он тот же, что в английской, так что обе версии показывают полки одинаково.
 - [ROM2] The Kaarg inn taverner now runs its long animation for the original's 95 steps with its holds, a shop's second tip shows once the deal table holds an item, and the druid inn's lower-right edge starts as HumanBackL.
 - [ROM2] A mission's step costs on layered cells now follow the original's cell slots: after a second walker shares a cell, the cell keeps its decayed cost, and a mission SAVE keeps those slots.
 - [ROM2] A dead unit's body now sinks through its corpse stages and leaves the world as fast as in the original; before, it did so one and a half times slower, which also kept it raisable longer.
