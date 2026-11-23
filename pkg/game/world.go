@@ -3947,13 +3947,19 @@ func (mw *mapWorld) sackAt(x, y int32) (sim.Sack, bool) {
 
 // itemName is the player's name for code: mapload.ItemDisplayName's.
 func itemName(code data.ItemCode, table *mapload.Table) string {
-	s := mapload.ItemSubject{Code: code}
-	if table != nil {
-		if rows := tableFiles(table).itemRows; rows != nil {
-			s.Rows = rows(uint16(code))
-		}
+	return mapload.ItemDisplayName(table, mapload.ItemSubject{Code: code, Rows: itemRowsOf(table, uint16(code))})
+}
+
+// itemRowsOf are the data.bin rows the game's composer row reads code as, or
+// nil when the game has none.
+func itemRowsOf(table *mapload.Table, code uint16) *mapload.ItemRows {
+	if table == nil {
+		return nil
 	}
-	return mapload.ItemDisplayName(table, s)
+	if rows := tableFiles(table).itemRows; rows != nil {
+		return rows(code)
+	}
+	return nil
 }
 
 // entity is the world's own entry for id, and whether it holds one. It reads

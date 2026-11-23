@@ -31,6 +31,8 @@ type editRow struct {
 	fields bool
 	// fieldKinds are the kinds that list and set fields while fields is off.
 	fieldKinds kindSet
+	// fieldCards: record cards list the record's fields instead of raw lines.
+	fieldCards bool
 	// planes: the brush paints every plane, not the terrain alone.
 	planes bool
 	// newSteps are the keys of a new record the palettes offer; nil: all.
@@ -86,9 +88,13 @@ var editRows = map[alm.Format]*editRow{
 		adds:    kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true},
 		deletes: placedKinds,
 		sets:    kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true},
-		// The Players window: the roster's name, colour and relations.
-		fieldKinds: kindSet{ui.KindPlayer: true}, playerRecords: true,
-		refusal: "editor.map.secondtool", scriptRefusal: "editor.map.secondscript", undecoded: "editor.map.secondundecoded",
+		// Units, structures, sacks and the roster list and edit their fields,
+		// and their record cards are built from those fields.
+		fieldKinds:     kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindStock: true, ui.KindPlayer: true},
+		fieldCards:     true,
+		playerRecords:  true,
+		structureOwner: true,
+		refusal:        "editor.map.secondtool", scriptRefusal: "editor.map.secondscript", undecoded: "editor.map.secondundecoded",
 		newSteps:      map[string]bool{"identity": true, "kind": true, "item": true}, // a new player takes the roster's defaults
 		structureKind: checkBuildingKind,
 		kindTable:     func(x *MapInspector) bool { return x.table != nil },
@@ -100,6 +106,7 @@ var editRows = map[alm.Format]*editRow{
 			reflect.TypeFor[ui.InspectionBrushFill](), reflect.TypeFor[ui.InspectionBrushIcons](),
 			reflect.TypeFor[ui.InspectionFieldSet](), reflect.TypeFor[ui.InspectionTextFields](),
 			reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups](),
+			reflect.TypeFor[ui.InspectionItemLook](),
 		},
 		templatePlacing: true, centredCells: true, admissions: secondAdmissions,
 	},

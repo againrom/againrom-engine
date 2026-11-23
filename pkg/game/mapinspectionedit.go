@@ -384,7 +384,10 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			script = &sc
 		}
 	}
-	template := s.unitTemplate(k, index)
+	var template *unitTemplateView
+	if s.row().unitOverrides {
+		template = s.unitTemplate(k, index)
+	}
 	if template != nil && s.inspector.table.ClassPlacementFields() {
 		out = append(out, s.identityField(template.m.AuthoredUnits[index]))
 		if level, ok := s.levelField(template.m.AuthoredUnits[index]); ok {
@@ -398,10 +401,10 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		}
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward, ValueWidth: fieldValueWidth(f), ReadOnly: f.ReadOnly}
 		locked = locked || f.ReadOnly
-		if strings.HasPrefix(f.Label, "editor.cast.") {
-			row.Label = s.inspector.word(f.Label)
+		if strings.HasPrefix(f.Label, "editor.") {
+			row.Label = fieldWordLabel(s.inspector, f.Key, f.Label)
 		}
-		if k == mapedit.KindUnit {
+		if template != nil {
 			label, offered := template.label(f)
 			if !offered {
 				continue
@@ -421,7 +424,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		if err != nil {
 			return nil
 		}
-		if k == mapedit.KindUnit {
+		if template != nil {
 			template.unitFieldValue(&row)
 			template.describe(&row)
 		}
@@ -433,7 +436,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 	if locked && k == mapedit.KindPlayer {
 		out = append(out, s.inspector.playerNote())
 	}
-	if k == mapedit.KindUnit {
+	if k == mapedit.KindUnit && s.row().unitOverrides {
 		out = append(out, s.nameField(index))
 	}
 	if k == mapedit.KindTrigger {
@@ -445,7 +448,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			out = append(out, keys)
 		}
 	}
-	if k == mapedit.KindUnit {
+	if k == mapedit.KindUnit && s.row().unitOverrides {
 		out = append(out, s.equipmentFields(template)...)
 		out = append(out, s.inventoryFields(template)...)
 		if gold, ok := s.goldField(template); ok {
@@ -457,6 +460,46 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			out = append(out, ui.InspectionField{Key: "loot", ReadOnly: true, Lines: s.inspector.corpseDropLines(sheets[index])})
 		}
 		out = unitSections(out)
+	}
+	return out
+}
+
+// fieldWordLabel resolves a word-book field label, substituting the field's
+// item ordinal when the word holds a %d placeholder.
+func fieldWordLabel(x *MapInspector, key, wordKey string) string {
+	label := x.word(wordKey)
+	if strings.Contains(label, "%d") {
+		if n, _, ok := stockItemField(key); ok {
+			return fmt.Sprintf(label, n)
+		}
+	}
+	return label
+}
+
+// recordFieldDetails builds a record card's lines from Fields: each field's
+// plain label and its choice label or value, skipping append-only rows.
+func (s *mapInspectionEdits) recordFieldDetails(kind ui.RecordKind, index int) []string {
+	var out []string
+	for _, f := range s.Fields(kind, index) {
+		if f.Key == "additem" || f.ReadOnly && len(f.Lines) > 0 {
+			continue
+		}
+		var value string
+		switch {
+		case f.Text:
+			value = s.inspector.inspectionUTF8(f.TextValue)
+		case len(f.Choices) > 0:
+			value = strconv.FormatInt(f.Value, 10)
+			for _, c := range f.Choices {
+				if c.Value == f.Value {
+					value = c.Label
+					break
+				}
+			}
+		default:
+			value = strconv.FormatInt(f.Value, 10)
+		}
+		out = append(out, s.inspector.inspectionUTF8(f.Label)+": "+value)
 	}
 	return out
 }
@@ -664,7 +707,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	if k == mapedit.KindUnit && key == unitGoldField {
 		return setUnitGold(m, index, value)
 	}
-	if k == mapedit.KindUnit && unitKeyFields[key] {
+	if k == mapedit.KindUnit && s.row().unitOverrides && unitKeyFields[key] {
 		return false, wordErr("editor.err.unitkey", key)
 	}
 	if k == mapedit.KindLoot {
@@ -740,7 +783,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	}
 	switch f.Check {
 	case mapedit.CheckStructureKind:
-		err = s.inspector.checkStructureKind(value)
+		err = s.row().structureKind(s.inspector, value)
 	case mapedit.CheckItemCode:
 		if value != 0 {
 			err = s.inspector.checkItem(value)
@@ -768,7 +811,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	if err := scriptCoordinateAllowed(view, k, index, key, value); err != nil {
 		return false, err
 	}
-	return true, s.checkPlacement(admissionOf(kind, admitField), k, m, index, was)
+	return true, s.checkPlacement(admissionFor(m, kind, admitField), k, m, index, was)
 }
 
 // recordFeet are the cells each structure and each unit of a map takes in
@@ -889,16 +932,21 @@ func (x *MapInspector) checkStructureKind(kind int64) error {
 }
 
 // checkItem refuses an item code the installed item-name table does not
-// name (DIV-3134). An item a mod adds is not consulted.
+// name (DIV-3134), or on the second game's tables a code that resolves to no
+// Data.bin item row (R2-ENGINE-1513, R2-ASSET-319). An item a mod adds is not
+// consulted.
 func (x *MapInspector) checkItem(code int64) error {
 	t := x.table
 	if t == nil {
 		return wordErr("editor.err.notables.item", code)
 	}
-	if _, ok := mapload.ShippedItemName(t, data.ItemCode(code)); !ok {
-		return wordErr("editor.err.noitem", code)
+	if _, ok := mapload.ShippedItemName(t, data.ItemCode(code)); ok {
+		return nil
 	}
-	return nil
+	if code > 0 && code <= math.MaxUint16 && itemRowsOf(t, uint16(code)).Resolves(t) {
+		return nil
+	}
+	return wordErr("editor.err.noitem", code)
 }
 
 func (s *mapInspectionEdits) Undo() (_ *ui.InspectionDocument, said error) {

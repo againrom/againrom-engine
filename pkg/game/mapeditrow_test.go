@@ -32,7 +32,12 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 			t.Fatalf("the second game's row takes kind %v", k)
 		}
 	}
-	if !second.fieldKinds.has(ui.KindPlayer) || second.fieldKinds.has(ui.KindUnit) || !second.playerRecords || second.structureOwner || !first.structureOwner {
+	for _, k := range []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindStock, ui.KindPlayer} {
+		if !second.fieldKinds.has(k) {
+			t.Fatalf("the second game's row lists no fields for %v", k)
+		}
+	}
+	if second.fieldKinds.has(ui.KindScenery) || second.fieldKinds.has(ui.KindEnchantment) || !second.fieldCards || first.fieldCards || !second.playerRecords || !second.structureOwner || !first.structureOwner {
 		t.Fatalf("the second game's row lists the wrong fields: %+v", second)
 	}
 	for _, k := range []ui.RecordKind{ui.KindAction, ui.KindCondition, ui.KindTrigger} {
@@ -46,7 +51,8 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 	offered := func(r *editRow, seam reflect.Type) bool { return r.seams == nil || slices.Contains(r.seams, seam) }
 	for _, seam := range []reflect.Type{reflect.TypeFor[ui.InspectionChecker](), reflect.TypeFor[ui.InspectionTestPlay](), reflect.TypeFor[ui.InspectionBrush](), reflect.TypeFor[ui.InspectionNewRecords](), reflect.TypeFor[ui.InspectionFieldSet](),
 		reflect.TypeFor[ui.InspectionInPlace](), reflect.TypeFor[ui.InspectionSaveFolder](),
-		reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups]()} {
+		reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups](),
+		reflect.TypeFor[ui.InspectionItemLook]()} {
 		if !offered(second, seam) || !offered(first, seam) {
 			t.Fatalf("seam %v is not offered", seam)
 		}

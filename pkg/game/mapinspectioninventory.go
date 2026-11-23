@@ -27,13 +27,13 @@ func carriedField(key string) (int, string, bool) {
 }
 
 // stockItemField parses a sack field that names one item: item# (part ""),
-// use# and recipe#.
+// use#, recipe# and field04_#.
 func stockItemField(key string) (int, string, bool) {
-	for _, part := range []string{"item", "use", "recipe"} {
+	for _, part := range []string{"item", "use", "recipe", "field04_"} {
 		if text, ok := strings.CutPrefix(key, part); ok {
 			i, err := strconv.Atoi(text)
 			if err == nil && i > 0 {
-				return i, strings.TrimPrefix(part, "item"), true
+				return i, strings.TrimSuffix(strings.TrimPrefix(part, "item"), "_"), true
 			}
 		}
 	}

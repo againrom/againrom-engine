@@ -46,6 +46,8 @@ var fieldChoiceRows = []fieldChoiceRow{
 	{kinds: []ui.RecordKind{ui.KindTrigger}, field: "action", prefix: true, script: true, supply: scriptLinkChoices},
 	{scripted: true, prefix: true, script: true, supply: noChoices},
 	{kinds: []ui.RecordKind{ui.KindEnchantment}, field: "castkind", supply: castKindChoices},
+	{kinds: []ui.RecordKind{ui.KindUnit}, field: "definition", supply: unitDefinitionChoices},
+	{kinds: []ui.RecordKind{ui.KindStructure}, field: "kind", supply: structureKindChoices},
 	{field: "owner", supply: ownerChoices},
 	{field: "face", supply: faceChoices},
 	{field: "sex", supply: wordChoices("editor.unit.look.male", "editor.unit.look.female")},
@@ -245,7 +247,11 @@ func (s *mapInspectionEdits) ItemLook(code int64) (string, *image.RGBA) {
 	if x == nil || code <= 0 || code > math.MaxUint16 {
 		return "", nil
 	}
-	name := mapload.ItemDisplayName(x.table, mapload.ItemSubject{Code: data.ItemCode(code), Form: mapload.ItemNameEditorList})
+	subject := editorItemSubject(x.table, uint16(code))
+	name := mapload.ItemDisplayName(x.table, subject)
+	if subject.Rows != nil {
+		name = x.inspectionUTF8(name)
+	}
 	var src entrySource
 	if art := x.archives.artSource(); art != nil {
 		src = art
@@ -305,22 +311,139 @@ func stockRecipeChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.Inspection
 }
 
 // stockItemChoices are a sack item's choices: remove it, duplicate it (not
-// a unit's worn item, whose slot holds one), or another item.
+// a unit's worn item, whose slot holds one, and not on a format without item
+// recipes), or another item.
 func stockItemChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
 	rows := catalogChoices("item", "Remove this item")(s, a)
 	element, part, ok := stockItemField(a.key)
 	if !ok || part != "" || len(rows) == 0 {
 		return rows
 	}
+	var cur uint16
 	if m, err := s.model.Map(); err == nil {
 		if loot, err := m.Loot(); err == nil && a.index >= 0 && a.index < len(loot.Records) && element <= len(loot.Records[a.index].Elements) {
+			cur = loot.Records[a.index].Elements[element-1].ItemCode()
 			if loot.Records[a.index].Owner != 0 && loot.Records[a.index].Elements[element-1].Field04 != 0 {
-				return rows
+				return s.withSecondItemChoice(rows, cur)
 			}
 		}
 	}
+	if !s.row().spellSets {
+		return s.withSecondItemChoice(rows, cur)
+	}
 	duplicate := ui.InspectionChoice{Value: stockDuplicate, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.inventory.duplicate"))}
 	return append([]ui.InspectionChoice{rows[0], duplicate}, rows[1:]...)
+}
+
+// withSecondItemChoice adds the Data.bin row name for a second-game sack item
+// code that the shipped item-name table does not list (R2-ENGINE-1513,
+// R2-ASSET-319).
+func (s *mapInspectionEdits) withSecondItemChoice(rows []ui.InspectionChoice, code uint16) []ui.InspectionChoice {
+	x := s.inspector
+	subject := editorItemSubject(x.table, code)
+	if code == 0 || subject.Rows == nil {
+		return rows
+	}
+	for _, c := range rows {
+		if c.Value == int64(code) {
+			return rows
+		}
+	}
+	name := x.inspectionUTF8(mapload.ItemDisplayName(x.table, subject))
+	return append(rows, ui.InspectionChoice{Value: int64(code), Label: fmt.Sprintf("%d: %s", code, name)})
+}
+
+// editorItemSubject is the item the editor names for code: a code the game's
+// rows resolve in the table is named by those rows, any other by the editor
+// list's form.
+func editorItemSubject(t *mapload.Table, code uint16) mapload.ItemSubject {
+	s := mapload.ItemSubject{Code: data.ItemCode(code), Form: mapload.ItemNameEditorList}
+	if rows := itemRowsOf(t, code); rows.Resolves(t) {
+		s.Rows, s.Form = rows, mapload.ItemNamePlayer
+	}
+	return s
+}
+
+// unitDefinitionChoices are a unit's definition choices: on the second game,
+// the Units or Humans rows keyed by serverID for the unit's current arm
+// (R2-ENGINE-1512, R2-ASSET-316).
+func unitDefinitionChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
+	x := s.inspector
+	if x.table == nil || x.table.ClassPlacementFields() {
+		return x.recordCatalog("definition")
+	}
+	m, err := s.model.Map()
+	if err != nil || a.index < 0 || a.index >= len(m.Units) {
+		return nil
+	}
+	return x.secondUnitDefinitions(m.Units[a.index].Flags&alm.SecondUnitFlagHuman != 0)
+}
+
+func (x *MapInspector) secondUnitDefinitions(human bool) []ui.InspectionChoice {
+	key := "second-def-units"
+	if human {
+		key = "second-def-humans"
+	}
+	if x.recordOptions == nil {
+		x.recordOptions = make(map[string][]ui.InspectionChoice)
+	}
+	if rows, ok := x.recordOptions[key]; ok {
+		return slices.Clone(rows)
+	}
+	c, serverID := x.table.Units, data.UnitServerID
+	if human {
+		c, serverID = x.table.Humans, data.HumanServerID
+	}
+	var rows []ui.InspectionChoice
+	seen := map[int64]bool{}
+	for i := 1; c != nil && i < c.Len(); i++ {
+		name := c.EntryName(i)
+		if name == "" {
+			continue
+		}
+		sid, ok := serverID(c.EntryParams(i))
+		if !ok {
+			continue
+		}
+		id := int64(uint32(sid))
+		if !seen[id] {
+			seen[id] = true
+			rows = append(rows, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(name))})
+		}
+	}
+	slices.SortFunc(rows, func(a, b ui.InspectionChoice) int {
+		if a.Value < b.Value {
+			return -1
+		}
+		if a.Value > b.Value {
+			return 1
+		}
+		return 0
+	})
+	x.recordOptions[key] = slices.Clone(rows)
+	return rows
+}
+
+// structureKindChoices are a structure's kind choices, keeping a second-game
+// extended kind word such as 0x1000021 under its Buildings row name until
+// changed (R2-ASSET-317).
+func structureKindChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
+	rows := s.inspector.recordCatalog("kind")
+	if !s.inspector.catalogPalettes() || a.index < 0 {
+		return rows
+	}
+	m, err := s.model.Map()
+	if err != nil || a.index >= len(m.Objects) {
+		return rows
+	}
+	raw := m.Objects[a.index].Kind
+	if raw == uint32(uint8(raw)) {
+		return rows
+	}
+	if row, name, ok := mapload.BuildingName(s.inspector.table, raw); ok {
+		rows = append(rows, ui.InspectionChoice{Value: int64(raw), Label: fmt.Sprintf("%d: %s", row, s.inspector.inspectionUTF8(name))})
+	}
+	return rows
 }
 
 func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {

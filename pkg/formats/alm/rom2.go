@@ -227,13 +227,22 @@ func (m *Map) MusicAreas() (head MusicArea, areas []MusicArea, ok bool) {
 }
 
 // The second game's record layout the map editor addresses, relative to the
-// record (R2-ASSET-253 to R2-ASSET-255).
+// record (R2-ASSET-253 to R2-ASSET-255, R2-ASSET-313 to R2-ASSET-316).
 const (
-	SecondUnitSize  = rom2UnitSize
-	SecondUnitOwner = 0x18 // owner slot, low word only
-	SecondUnitSack  = 0x1c // 1-based type-8 index, 0 for none
-	SecondUnitTag   = 0x28 // low word the unit id, high word the low word of x
-	SecondUnitGroup = 0x2c
+	SecondUnitSize      = rom2UnitSize
+	SecondUnitClass     = 0x08 // i16 lookup index
+	SecondUnitField0A   = 0x0a // u16 unread
+	SecondUnitFlags     = 0x0c // u32 flags; bit 0x10 selects Humans arm
+	SecondUnitFlags10   = 0x10 // u32 actor flags
+	SecondUnitDef       = 0x14 // u32 serverID in Units or Humans
+	SecondUnitOwner     = 0x18 // owner slot, low word only
+	SecondUnitSack      = 0x1c // 1-based type-8 index, 0 for none
+	SecondUnitField20   = 0x20 // u32 unread
+	SecondUnitHP        = 0x24 // i16 current health (-1 default)
+	SecondUnitHPMax     = 0x26 // i16 maximum health (-1 default)
+	SecondUnitTag       = 0x28 // low word the unit id, high word the low word of x
+	SecondUnitGroup     = 0x2c
+	SecondUnitFlagHuman = 0x10
 
 	// SecondObjectExtBit is the kind bit that gives a type-4 element its
 	// 8-byte extension besides kind 0x21.

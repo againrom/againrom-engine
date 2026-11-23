@@ -37,14 +37,15 @@ func init() {
 		},
 		KindStructure: {name: "structure", typeID: alm.TypeObjects, count: alm.MetaObjectCount, x: alm.ObjectX, y: alm.ObjectY, create: true,
 			length:      secondStructureLength,
+			reshape:     reshapeSecondStructure,
 			renumber:    secondRenumberStructure,
-			fields:      func(*Editor, []byte) []Field { return nil },
+			fields:      secondStructureFields,
 			removeParts: secondRemoveParts,
 		},
 		KindLoot: {name: "sack", typeID: alm.TypeLoot, count: alm.MetaLootCount, x: alm.LootX, y: alm.LootY, create: true,
 			length:      lootLength,
 			cellless:    func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[alm.LootOwner:]) != 0 },
-			fields:      func(*Editor, []byte) []Field { return nil },
+			fields:      secondLootFields,
 			cloneParts:  secondCloneSackParts,
 			removeParts: secondRemoveParts,
 		},
@@ -65,12 +66,76 @@ func init() {
 	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second}
 }
 
-// secondUnitFields is the one unit field the second game's placement sets:
-// the owner slot (R2-ASSET-257); every other field of a placed unit keeps the
-// template's bytes.
+// secondUnitFields are the settable fields of a second-game type-6 unit record
+// (R2-ENGINE-1510 to R2-ENGINE-1512, R2-ASSET-313 to R2-ASSET-316).
 var secondUnitFields = []Field{
-	{Key: "owner", Label: "Owner slot", Offset: alm.SecondUnitOwner, Width: 4, Min: 1, Max: math.MaxUint16, Check: CheckRosterSlot},
-	{Key: "group", Label: "Group", Offset: alm.SecondUnitGroup, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "owner", Label: "editor.plain.owner", Offset: alm.SecondUnitOwner, Width: 4, Min: 1, Max: math.MaxUint16, Check: CheckRosterSlot},
+	{Key: "definition", Label: "editor.second.unit.definition", Offset: alm.SecondUnitDef, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "hp", Label: "editor.second.unit.hp", Offset: alm.SecondUnitHP, Width: 2, Signed: true, Min: -1, Max: math.MaxInt16},
+	{Key: "hpmax", Label: "editor.second.unit.hpmax", Offset: alm.SecondUnitHPMax, Width: 2, Signed: true, Min: -1, Max: math.MaxInt16},
+	{Key: "flags", Label: "editor.second.unit.flags", Offset: alm.SecondUnitFlags, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "group", Label: "editor.unit.field.group", Offset: alm.SecondUnitGroup, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "field08", Label: "editor.second.field.08", Offset: alm.SecondUnitClass, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+	{Key: "field0a", Label: "editor.second.field.0a", Offset: alm.SecondUnitField0A, Width: 2, Min: 0, Max: math.MaxUint16},
+	{Key: "field10", Label: "editor.second.field.10", Offset: alm.SecondUnitFlags10, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "field20", Label: "editor.second.field.20", Offset: alm.SecondUnitField20, Width: 4, Min: 0, Max: math.MaxUint32},
+}
+
+// secondStructureFieldsBase and secondStructureExtFields are the settable
+// fields of a second-game type-4 structure record (R2-ASSET-317, R2-ASSET-318).
+var secondStructureFieldsBase = []Field{
+	{Key: "kind", Label: "editor.plain.type", Offset: alm.ObjectKind, Width: 4, Min: 1, Max: 255, Check: CheckStructureKind},
+	{Key: "owner", Label: "editor.plain.owner", Offset: alm.ObjectOwner, Width: 2, Min: 1, Max: 16, Check: CheckRosterSlot},
+	{Key: "field0c", Label: "editor.second.field.0c", Offset: alm.ObjectPlacement, Width: 2, Min: 0, Max: math.MaxUint16},
+}
+
+var secondStructureExtFields = []Field{
+	{Key: "field14", Label: "editor.second.field.14", Offset: alm.ObjectWidth, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "field18", Label: "editor.second.field.18", Offset: alm.ObjectHeight, Width: 4, Min: 0, Max: math.MaxUint32},
+}
+
+func secondStructureFields(_ *Editor, rec []byte) []Field {
+	if len(rec) <= alm.ObjectSize {
+		return append([]Field(nil), secondStructureFieldsBase...)
+	}
+	return append(append([]Field(nil), secondStructureFieldsBase...), secondStructureExtFields...)
+}
+
+// reshapeSecondStructure adds or drops the 8-byte extension when a structure
+// kind enters or leaves kind 0x21 or bit 24 (R2-ASSET-317).
+func reshapeSecondStructure(rec []byte) []byte {
+	kind := binary.LittleEndian.Uint32(rec[alm.ObjectKind:])
+	ext := kind == alm.ObjectExtKind || kind&alm.SecondObjectExtBit != 0
+	switch {
+	case ext && len(rec) == alm.ObjectSize:
+		return append(rec, make([]byte, alm.ObjectExtSize)...)
+	case !ext && len(rec) > alm.ObjectSize:
+		return rec[:alm.ObjectSize]
+	}
+	return rec
+}
+
+// secondLootFields are the settable fields of a second-game type-8 sack record
+// (R2-ASSET-254, R2-ASSET-319, R2-ENGINE-1513).
+func secondLootFields(e *Editor, rec []byte) []Field {
+	var out []Field
+	head := e.lootHead()
+	if head == alm.LootHeadWide {
+		out = append(out, Field{Key: "field10", Label: "editor.second.field.10", Offset: alm.LootGold, Width: 4, Min: 0, Max: math.MaxUint32})
+	}
+	n := (len(rec) - head) / alm.LootElementSize
+	for k := 0; k < n; k++ {
+		out = append(out,
+			Field{Key: fmt.Sprintf("item%d", k+1), Label: "editor.plain.item",
+				Offset: head + k*alm.LootElementSize, Width: 2, Min: 0, Max: math.MaxUint16, Check: CheckItemCode,
+				Element: alm.LootElementSize, Counter: alm.LootCount},
+			Field{Key: fmt.Sprintf("field04_%d", k+1), Label: "editor.second.item.field04",
+				Offset: head + k*alm.LootElementSize + alm.LootElementField04, Width: 2, Min: 0, Max: math.MaxUint16},
+		)
+	}
+	out = append(out, Field{Key: "additem", Label: "editor.plain.additem", Offset: len(rec), Width: 2, Min: 0, Max: math.MaxUint16,
+		Check: CheckItemCode, Element: alm.LootElementSize, Counter: alm.LootCount})
+	return out
 }
 
 func secondStructureLength(_ *Editor, b []byte) int {

@@ -176,6 +176,29 @@ func RowItemNamer(t *Table, s ItemSubject) []string {
 	return []string{rowName(rows[r.Table], r.Row), scaleName(t.Materials, r.Material), scaleName(t.Shapes, r.Class)}
 }
 
+// Resolves says the rows name a data.bin row of t: the item's table holds the
+// row, so RowItemNamer names it.
+func (r *ItemRows) Resolves(t *Table) bool {
+	if r == nil || t == nil {
+		return false
+	}
+	var c data.Collection
+	switch r.Table {
+	case ItemRowBook:
+		c = t.Spells
+		return c != nil && r.Spell >= 0 && r.Spell < c.Len()
+	case ItemRowMagic:
+		c = t.MagicItems
+	case ItemRowArmor:
+		c = t.Armors
+	case ItemRowShield:
+		c = t.Shields
+	case ItemRowWeapon:
+		c = t.Weapons
+	}
+	return c != nil && r.Row >= 1 && r.Row < c.Len()
+}
+
 func rowName(c data.Collection, i int) string {
 	if c == nil || i < 0 || i >= c.Len() {
 		return ""

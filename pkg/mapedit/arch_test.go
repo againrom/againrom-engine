@@ -63,11 +63,13 @@ var almReferences = nameTable{
 	"section.go/sectionFor":      {"alm.ScriptRecordTypeID"},
 	// The second game's placed-element rows read its record layout from the
 	// format's exported constants.
-	"section.go/(*Editor).insertSectionParts":    {"alm.SecondFormat"},
-	"second.go/(*Editor).secondIDs":              {"alm.SecondUnitTag"},
-	"second.go/(*Editor).secondLists":            {"alm.SecondMeta11Count", "alm.SecondTypeLists"},
-	"second.go/(*Editor).secondMarkers":          {"alm.SecondMarkerCount", "alm.SecondMarkerEntry", "alm.SecondMarkerHead", "alm.SecondMarkerKey", "alm.SecondMarkerMode"},
-	"second.go/" + fileScope:                     {"alm.SecondType11A", "alm.SecondType11B", "alm.SecondType11C", "alm.SecondUnitGroup", "alm.SecondUnitOwner"},
+	"section.go/(*Editor).insertSectionParts": {"alm.SecondFormat"},
+	"second.go/(*Editor).secondIDs":           {"alm.SecondUnitTag"},
+	"second.go/(*Editor).secondLists":         {"alm.SecondMeta11Count", "alm.SecondTypeLists"},
+	"second.go/(*Editor).secondMarkers":       {"alm.SecondMarkerCount", "alm.SecondMarkerEntry", "alm.SecondMarkerHead", "alm.SecondMarkerKey", "alm.SecondMarkerMode"},
+	"second.go/" + fileScope: {"alm.SecondType11A", "alm.SecondType11B", "alm.SecondType11C", "alm.SecondUnitClass", "alm.SecondUnitDef", "alm.SecondUnitField0A", "alm.SecondUnitField20",
+		"alm.SecondUnitFlags", "alm.SecondUnitFlags10", "alm.SecondUnitGroup", "alm.SecondUnitHP", "alm.SecondUnitHPMax", "alm.SecondUnitOwner"},
+	"second.go/reshapeSecondStructure":           {"alm.SecondObjectExtBit"},
 	"second.go/init":                             {"alm.SecondFormat", "alm.SecondUnitSize"},
 	"second.go/secondCloneUnitParts":             {"alm.SecondUnitSack", "alm.SecondUnitTag"},
 	"second.go/secondMoveUnitParts":              {"alm.SecondUnitTag"},

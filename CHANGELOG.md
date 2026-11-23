@@ -53,6 +53,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM2] Редактор карт теперь показывает и меняет поля юнита, строения и мешка на карте второй игры: владельца, определение по названию, здоровье, флаги, тип и предметы; поля, смысл которых не найден, названы по смещению, например «Поле 0x0a», и карточка записи строится из тех же полей.
 - [ROM2] The map editor's Players window now lists the players of a second-game map, renames them, sets their colour and relations and adds a player; two unread roster words stay read-only and a player cannot be deleted there.
 - [ROM2] Редактор карт теперь проверяет карту второй игры, показывает отчёт и отметку о проблемах, спрашивает при сохранении с ошибкой и запускает пробную игру этой карты; правила, опирающиеся на факты первой игры, не выполняются, и отчёт называет их.
 - [ROM2] The map editor now selects with a frame, copies, pastes and groups units, structures and ground sacks on a second-game map, and a pasted unit keeps its own sack; the store and recipe tools and area copy stay off there.

@@ -267,7 +267,6 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
 
 var secondGameFiles = gameFiles{
-	editorUnitWord:       "Flags +10",
 	catalogPalettes:      true,
 	editorTables:         secondEditorTables,
 	shippedPlayerColours: true,
