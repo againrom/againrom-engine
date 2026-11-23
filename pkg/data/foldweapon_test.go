@@ -113,7 +113,7 @@ func TestAMeleeWeaponFoldsAllFourByExactlyItsOwnAmount(t *testing.T) {
 }
 
 // TestRangedAttackTypesChooseOnlyTheirPublishedThirdComponent verifies the
-// exact Weapon::Equip switch: 11 selects Fire, 12 selects Earth, while the
+// exact Weapon::Equip switch: 11 selects Fire, 12 selects Water, while the
 // neighbouring generic ranged type 10 still receives General accuracy but
 // contributes no weapon damage triple.
 func TestRangedAttackTypesChooseOnlyTheirPublishedThirdComponent(t *testing.T) {
@@ -123,7 +123,7 @@ func TestRangedAttackTypesChooseOnlyTheirPublishedThirdComponent(t *testing.T) {
 	}{
 		{10, data.SecondaryDamage{Base: 1, Spread: 2, Selector: 4}},
 		{11, data.SecondaryDamage{Base: 101, Spread: 62, Selector: 0}},
-		{12, data.SecondaryDamage{Base: 101, Spread: 62, Selector: 3}},
+		{12, data.SecondaryDamage{Base: 101, Spread: 62, Selector: 1}},
 	} {
 		w := rangedFixture()
 		w.AttackType = tc.attackType

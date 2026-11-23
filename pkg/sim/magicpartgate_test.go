@@ -24,8 +24,9 @@ func blowRollSeed(t *testing.T, lead int, want func(roll int64) bool) uint64 {
 // the one resolver: in the second game a blow that lands by the band or by
 // AlwaysHits keeps its physical part (absorption skipped under AlwaysHits)
 // and loses its magic part; a hit by to-hit plus the roll, or an empty
-// physical pair, keeps it. The first game adds it on every hit. Every part
-// here has spread 0: the first game draws each, the second game only the roll.
+// physical pair, keeps it. The first game gates it the same (MAGIC-455).
+// Every part here has spread 0: the first game draws each it adds, the
+// second game only the roll.
 func TestTheSecondGameMagicPartNeedsAHitByTheRoll(t *testing.T) {
 	isBand := func(r int64) bool { return r >= autoHitRoll }
 	isLow := func(r int64) bool { return r < 0 }
@@ -38,9 +39,9 @@ func TestTheSecondGameMagicPartNeedsAHitByTheRoll(t *testing.T) {
 		first, rom2 int32
 		wantDraws   int
 	}{
-		{"band hit", true, 10, 0, false, 0, 73, 93, 3},
-		{"band hit with second pair", true, 10, 0, false, 5, 68, 88, 4},
-		{"always hits", false, 10, 0, true, 0, 70, 90, 3},
+		{"band hit", true, 10, 0, false, 0, 93, 93, 2},
+		{"band hit with second pair", true, 10, 0, false, 5, 88, 88, 3},
+		{"always hits", false, 10, 0, true, 0, 90, 90, 2},
 		{"hit by the roll", false, 10, 2000, false, 0, 73, 73, 3},
 		{"empty physical pair on a miss", false, 0, 0, false, 0, 80, 80, 3},
 	}

@@ -68,7 +68,7 @@ var blowDrawCases = []blowDrawCase{
 	{name: "a roll of 90 or more against a defence the sum does not reach", defence: 1000,
 		magic:   SecondaryDamage{Base: 5, Spread: 4},
 		answers: map[int32][]int32{6: {3}, 200: {195}, 4: {2}},
-		second2: []int32{6, 200}, first: []int32{6, 200, 4}, hp2: 89, hp1: 82},
+		second2: []int32{6, 200}, first: []int32{6, 200}, hp2: 89, hp1: 89},
 	{name: "a roll below -90",
 		answers: map[int32][]int32{6: {3}, 200: {5}},
 		second2: []int32{6, 200}, first: []int32{6, 200}, hp2: 100, hp1: 100},
@@ -159,7 +159,8 @@ func TestTheSecondGameBlowDrawsInTheOriginalOrder(t *testing.T) {
 
 // TestTheFirstGameBlowKeepsItsDraws pins the first game's draws for the same
 // blows: the spread first, even at 0, then Bless, then Curse only when Bless
-// failed, then the roll, the second pair and the magic part on any hit.
+// failed, then the roll, the second pair and the magic part on to-hit plus
+// the roll or an empty physical pair (MAGIC-455).
 func TestTheFirstGameBlowKeepsItsDraws(t *testing.T) {
 	for _, tc := range blowDrawCases {
 		t.Run(tc.name, func(t *testing.T) {

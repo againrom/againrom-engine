@@ -845,9 +845,11 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 // that wrapped negative would turn a certain hit into a certain miss.
 //
 // THE ITEM-EFFECT SECONDARY COMPONENT USES THE ORIGINAL THIRD-COMPONENT GATE
-// (HERO-DMG2-029): a successful physical hit admits it, and an EMPTY physical
-// base/spread pair admits it even when that pair's roll missed. A nonempty pair
-// that misses suppresses the main and third components, not the second. The
+// in both games (MAGIC-455, R2-ENGINE-1148): to-hit plus the roll above the
+// defence admits it, and an EMPTY physical base/spread pair admits it even
+// when that pair's roll missed. The auto-hit flag and a roll of 90 or more
+// land only the physical part. A nonempty pair that misses suppresses the
+// main and third components, not the second. The
 // third uses its base/spread pair and one Fire-through-Astral selector; a later kind 44..48
 // effect has already replaced the whole triple during recompute. Ranged weapon
 // types 11/12 now enter that same canonical triple and their General accuracy
@@ -874,7 +876,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	secondaryPresent := secondary.Base != 0 || secondary.Spread != 0
 	secondPresent := a.SecondBase != 0 || a.SecondSpread != 0
 	primaryAdmitted := physicalHit || physicalEmpty && secondaryPresent
-	secondaryAdded := !rule.magicPartNeedsRollHit || rollHit || physicalEmpty
+	secondaryAdded := rollHit || physicalEmpty
 	if !primaryAdmitted && !secondPresent {
 		w.reportPhysicalBlow(*t, ti)
 		w.weaponRiderApply(ai, ti, false, obs)
@@ -977,16 +979,12 @@ type blowRule struct {
 	effectsFirst bool
 	// zeroSpreadNoDraw: a part whose spread is 0 makes no draw (R2-ENGINE-1152).
 	zeroSpreadNoDraw bool
-	// magicPartNeedsRollHit: the triple is drawn and added only on a hit by
-	// to-hit plus the roll or an empty physical pair (R2-ENGINE-1148).
-	magicPartNeedsRollHit bool
 	// absorbsPositiveOnly: absorption comes off a physical part above 0 only
 	// (R2-ENGINE-1148).
 	absorbsPositiveOnly bool
 }
 
-var secondGameBlow = blowRule{effectsFirst: true, zeroSpreadNoDraw: true,
-	magicPartNeedsRollHit: true, absorbsPositiveOnly: true}
+var secondGameBlow = blowRule{effectsFirst: true, zeroSpreadNoDraw: true, absorbsPositiveOnly: true}
 
 // blowValue is the physical pair's value and makes its draws. Bless that
 // takes effect gives base plus spread, Curse the base. The first game draws

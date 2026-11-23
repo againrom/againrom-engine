@@ -182,11 +182,12 @@ func (t Tables) make(it Item, cat Category, src shopstock.Source) (Item, bool) {
 // game's Magic table does, the spells a cast draws from, each effect's
 // points priced on their own, the price cap, and a cast's level within the
 // item's level field (R2-ENGINE-265). The value of an ordinary effect, the
-// add rule, the weighted cast's budget and the effect-repeat rule are the
-// first game's (DIV-4329).
+// add rule and the effect-repeat rule are the first game's; a weighted cast
+// takes ten times the price on every item (DIV-4329).
 func (t Tables) enchant() shopstock.Enchant {
 	e := shopstock.Enchant{
-		CastSpells: castSpells,
+		CastSpells:     castSpells,
+		CastPriceTimes: [2]int64{10, 10},
 		PointsPrice: func(points []int32) int64 {
 			p := int64(0)
 			for _, n := range points {

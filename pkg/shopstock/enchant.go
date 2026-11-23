@@ -53,13 +53,15 @@ const (
 // and from column 4 twenty-four cumulative weight columns, the fighter's
 // slots 1..12 then the others'. Spells is the spell table, whose column 20 is
 // a spell's enchant base. CastSpells are the spells a cast draws from for a
-// mage's item and for a fighter's. PointsPrice prices the ordinary effects'
-// points and PriceCap caps the item's price. CastInCapacity keeps a cast's
-// power within the item's capacity left. Repeat joins an effect of a kind the
-// item holds.
+// mage's item and for a fighter's; CastPriceTimes is, in the same order, the
+// multiple of the price a weighted cast takes as its budget. PointsPrice
+// prices the ordinary effects' points and PriceCap caps the item's price.
+// CastInCapacity keeps a cast's power within the item's capacity left.
+// Repeat joins an effect of a kind the item holds.
 type Enchant struct {
 	Effects, Spells Params
 	CastSpells      [2][]uint16
+	CastPriceTimes  [2]int64
 	PointsPrice     func(points []int32) int64
 	PriceCap        int64
 	CastInCapacity  bool
@@ -148,9 +150,11 @@ func (e Enchant) Apply(b Base, src Source) ([]Effect, int32, bool) {
 			return EffectDraw{}, false
 		}
 		if kind == castSpell {
-			// The weighted route's cast takes ten times the price as its
-			// budget.
-			return e.Cast(b.Fighter, int64(price)*10, remaining, src)
+			times := e.CastPriceTimes[0]
+			if b.Fighter {
+				times = e.CastPriceTimes[1]
+			}
+			return e.Cast(b.Fighter, int64(price)*times, remaining, src)
 		}
 		return e.Ordinary(kind, budget, remaining, src)
 	}

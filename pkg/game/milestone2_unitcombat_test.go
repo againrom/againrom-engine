@@ -313,13 +313,14 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 		} {
 			check(field.name, field.got, field.expected)
 		}
-		// HERO-DMG2-029: only an active third damage component consumes the
-		// raw selector; the full byte is still compared in Document and basis.
+		// Only an active third damage component consumes the raw selector,
+		// in column order (MAGIC-453); the full byte is still compared in
+		// Document and basis.
 		if a[19] != 0 || a[20] != 0 {
 			if a[21] < 1 || a[21] > 5 {
 				differences = append(differences, prefix+": unsupported active elemental selector")
 			} else {
-				check("ElementalSelector", int32(e.SecondaryDamage.Selector), [...]int32{0, 3, 2, 1, 4}[a[21]-1])
+				check("ElementalSelector", int32(e.SecondaryDamage.Selector), int32(a[21])-1)
 			}
 		}
 		for i := range 5 {

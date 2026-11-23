@@ -26,11 +26,11 @@ func TestHumanDerivedElementalSelectorMatchesResolverPermutation(t *testing.T) {
 	}
 }
 
-// ElementalSelectorOrder pins HERO-DMG2-029's exact permutation so a future
-// edit cannot silently drift back toward raw-1 without failing here first.
+// ElementalSelectorOrder pins MAGIC-453's column order: the resolver's table
+// leads raw kind k to the k-th protection word.
 func TestElementalSelectorOrderPinsResolverPermutation(t *testing.T) {
-	want := [5]uint8{0, 3, 2, 1, 4}
+	want := [5]uint8{0, 1, 2, 3, 4}
 	if ElementalSelectorOrder != want {
-		t.Fatalf("ElementalSelectorOrder = %v, want %v (HERO-DMG2-029)", ElementalSelectorOrder, want)
+		t.Fatalf("ElementalSelectorOrder = %v, want %v (MAGIC-453)", ElementalSelectorOrder, want)
 	}
 }

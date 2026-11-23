@@ -83,10 +83,9 @@ func applyOriginalActorProfiles(ms *Mission, source []sav.ActorCurrent, report *
 			if p.ElementalKind < 1 || p.ElementalKind > 5 {
 				return fmt.Errorf("original current profile: MapUnitID %d unsupported elemental selector %d", p.MapUnitID, p.ElementalKind)
 			}
-			// HERO-DMG2-029: raw selectors 1..5 name C4,CA,C8,C6,CC,
-			// not the canonical C4,C6,C8,CA,CC protection-array order.
-			// data.ElementalSelectorOrder is this same permutation, shared
-			// with data.HumanState.Derived's own current-carry path.
+			// MAGIC-453: raw kinds 1..5 read the protection words in
+			// column order. data.ElementalSelectorOrder is the one
+			// conversion, shared with data.HumanState.Derived.
 			secondary.Selector = data.ElementalSelectorOrder[p.ElementalKind-1]
 		}
 		batch = append(batch, sim.OriginalActorProfile{ID: e.ID, ProfileBasis: basis, Reaction: p.Reaction, Mind: p.Mind, Spirit: p.Spirit,

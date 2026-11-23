@@ -118,8 +118,8 @@ type UnitDef struct {
 	AttackRelaxTime  int32
 
 	// Protection and Resistance are fixed arrays in their own COLUMN ORDER.
-	// Protection is Fire through Astral; its component-resolver permutation is
-	// kept separate, as protectionNames explains below. Resistance is already
+	// Protection is Fire through Astral, the order the resolver's elemental
+	// kinds 1..5 read (MAGIC-453). Resistance is already
 	// Blade through Shooting in the SAME order canonical XPSlot values 1..5
 	// select, so resolveBlow reads Resistance[XPSlot-1] without another
 	// permutation (1039). The two families therefore do not share one blanket
@@ -180,9 +180,7 @@ type UnitDef struct {
 //
 // THEY ARE WRONG FOR ANY OTHER ORDER, which is the whole reason this is a
 // package-level list beside the store rather than five strings written at a
-// screen. The damage resolver indexes the same five fields through a different
-// permutation (the Protection field's own comment above), so a consumer holding
-// a resolver-ordered array must not label it with these.
+// screen.
 //
 // The other five — `res.Blade..res.Shooting`, columns 24…28, UnitDef.Resistance
 // — have published titles too, and deliberately have no list here: nothing in
@@ -197,18 +195,14 @@ func ProtectionNames() []string {
 	return append([]string(nil), protectionNames[:]...)
 }
 
-// ElementalSelectorOrder is the damage resolver's own component-resolver
-// permutation the Protection field's comment above promises: it converts a
-// saved raw elemental selector 1..5 to the UnitDef.Protection/
-// SecondaryDamage.Selector index 0..4 (Fire through Astral in column order).
-// HERO-DMG2-029's five-way jump table reads raw 1→+0xc4, 2→+0xca, 3→+0xc8,
-// 4→+0xc6, 5→+0xcc, which — at the same two-byte-per-slot column spacing
-// sourceactor.go's own Protection decode uses — is Fire, Earth, Air, Water,
-// Astral: a permutation, not a plain decrement. Water and Earth (raw 2 and 4)
-// trade places against strict column order. The index is ElementalSelectorOrder
+// ElementalSelectorOrder converts a saved raw elemental kind 1..5 to the
+// UnitDef.Protection/SecondaryDamage.Selector index 0..4 (Fire, Water, Air,
+// Earth, Astral). The resolver's jump table leads kind k to the k-th
+// protection word in column order (MAGIC-453), so kind 2 is Water and kind 4
+// Earth, as a spell's school is. The index is ElementalSelectorOrder
 // [rawKind-1]; callers hold rawKind in 1..5 before indexing (HumanState.
 // ProjectionError, applyOriginalActorProfiles's own range check).
-var ElementalSelectorOrder = [5]uint8{0, 3, 2, 1, 4}
+var ElementalSelectorOrder = [5]uint8{0, 1, 2, 3, 4}
 
 // unitCtorDefaults is the constructor's own value, written ONCE and read-only
 // thereafter. Every -1 cell in a row leaves exactly what stands here, so this is

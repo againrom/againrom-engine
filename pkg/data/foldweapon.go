@@ -29,8 +29,8 @@ package data
 // word into the to-hit modifier, and the ordinary modifier fold adds it to the
 // live to-hit. Its own damage does not join the physical pair. Exact attack
 // types 11 and 12 add the weapon's byte pair to SecondaryDamage and assign the
-// encoded kind 1 or 2. The resolver's published permutation makes those Fire
-// and Earth respectively, represented here by Protection indices 0 and 3.
+// encoded kind 1 or 2, which the resolver reads as Fire and Water (MAGIC-453),
+// represented here by Protection indices 0 and 1.
 // Other ranged attack types still take General accuracy but write no weapon
 // damage triple. Every ranged arm contributes no Defence and clears SkillSlot
 // to General, so the credited slot stays 0.
@@ -61,7 +61,7 @@ func FoldWeapon(c Combat, w *Weapon, general int32) Combat {
 		case 0xb:
 			c.SecondaryDamage = foldRangedDamage(c.SecondaryDamage, *w, 0)
 		case 0xc:
-			c.SecondaryDamage = foldRangedDamage(c.SecondaryDamage, *w, 3)
+			c.SecondaryDamage = foldRangedDamage(c.SecondaryDamage, *w, 1)
 		}
 		return c
 	}

@@ -30,11 +30,14 @@ func generatedOf(g shopstock.EffectDraw, ok bool) (generatedEffect, bool) {
 var shopCastSpells = [2][]uint16{{1, 13, 14, 20, 11}, {20, 11}}
 
 // shopEnchantRules are the first game's enchant rules over t: the Magic and
-// Spells tables, its cast spells, the price of the summed effect points, the
-// price cap 9,999,999 and the effect-repeat rule repeat.
+// Spells tables, its cast spells, a weighted cast's budget of a hundred times
+// the price on a mage's item and ten times on a fighter's (SHOP-156), the
+// price of the summed effect points, the price cap 9,999,999 and the
+// effect-repeat rule repeat.
 func shopEnchantRules(t *mapload.Table, repeat shopstock.Repeat) shopstock.Enchant {
 	e := shopstock.Enchant{
-		CastSpells: shopCastSpells,
+		CastSpells:     shopCastSpells,
+		CastPriceTimes: [2]int64{100, 10},
 		PointsPrice: func(points []int32) int64 {
 			sum := int32(0)
 			for _, p := range points {

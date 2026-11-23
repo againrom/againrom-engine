@@ -270,9 +270,8 @@ func (h HumanState) Derived(weapon *Weapon, rotation int32) Derived {
 	c.Defence, c.Absorption, c.SkillSlot = humanSigned(h.Defence.Defence), humanSigned(h.Defence.Absorption), int32(h.Attack.Active)
 	secondary := SecondaryDamage{Base: h.Attack.ElementalBase, Spread: h.Attack.ElementalSpread, Selector: h.Attack.ElementalKind}
 	if secondary.Base != 0 || secondary.Spread != 0 {
-		// HERO-DMG2-029: raw selectors 1..5 name a permutation of the
-		// canonical Protection index (ElementalSelectorOrder), not raw-1.
-		// ProjectionError is this state's own gate for a raw kind outside
+		// Raw kinds 1..5 name the Protection index through
+		// ElementalSelectorOrder (MAGIC-453). ProjectionError is this state's own gate for a raw kind outside
 		// 1..5 whenever base/spread is nonzero; an already-invalid pair that
 		// reaches here regardless keeps its prior plain decrement rather than
 		// gain a new out-of-range table read.
