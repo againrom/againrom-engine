@@ -60,6 +60,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM1] In the map editor, a unit, structure or sack record card now lists its fields in the same field-list layout as the second game, with localized labels in English and Russian.
 - [ROM2] Редактор карт теперь показывает и меняет поля юнита, строения и мешка на карте второй игры: владельца, определение по названию, здоровье, флаги, тип и предметы; поля, смысл которых не найден, названы по смещению, например «Поле 0x0a», и карточка записи строится из тех же полей.
 - [ROM2] The map editor's Players window now lists the players of a second-game map, renames them, sets their colour and relations and adds a player; two unread roster words stay read-only and a player cannot be deleted there.
 - [ROM2] Редактор карт теперь проверяет карту второй игры, показывает отчёт и отметку о проблемах, спрашивает при сохранении с ошибкой и запускает пробную игру этой карты; правила, опирающиеся на факты первой игры, не выполняются, и отчёт называет их.
@@ -87,6 +88,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the Dialog window a reply's text no longer turns into unreadable letters after you change its When unavailable, Only once or Transition choice or reopen the dialog; the text was converted to the font's encoding twice.
 - [BASE] The Dialog window no longer counts the sex or class word a tag holds as an extra condition on a cell already sorted by that sex or class, so an original message split by the hero's sex opens and applies; a tag attribute such as tips that a dialogue file cannot hold is now named in the refusal, with an x on its Also in the tag row that drops it from the file, and the never-shown, ending and extra-condition refusals each say which button fixes them.
 - The map editor's Dialog window now opens and edits its lines at once on a dialogue with many lines; before, a 21-line dialogue took about five seconds on every open and edit.
+- [ROM1] The map editor's record card for a unit, building or sack in the first game now lists its fields the way the second game's card does.
 
 ## 0.158.0
 

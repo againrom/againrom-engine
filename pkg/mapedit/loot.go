@@ -71,6 +71,32 @@ func lootFields(e *Editor, rec []byte) []Field {
 	return out
 }
 
+func lootCardFields(e *Editor, rec []byte) []Field {
+	out := []Field{
+		{Key: "unitowner", Label: "editor.plain.owner", Offset: alm.LootOwner, Width: 4, Min: 0, Max: math.MaxUint32},
+		{Key: "x", Label: "editor.card.x", Offset: alm.LootX, Width: 4, Min: 0, Max: math.MaxUint32},
+		{Key: "y", Label: "editor.card.y", Offset: alm.LootY, Width: 4, Min: 0, Max: math.MaxUint32},
+	}
+	head := e.lootHead()
+	if head == alm.LootHeadWide {
+		out = append(out, Field{Key: "gold", Label: "editor.plain.gold", Offset: alm.LootGold, Width: 4, Min: 0, Max: math.MaxUint32})
+	}
+	out = append(out, Field{Key: "count", Label: "editor.card.items", Offset: alm.LootCount, Width: 4, Min: 0, Max: math.MaxUint32})
+	n := (len(rec) - head) / alm.LootElementSize
+	for k := 0; k < n; k++ {
+		base := head + k*alm.LootElementSize
+		out = append(out,
+			Field{Key: fmt.Sprintf("item%d", k+1), Label: "editor.plain.item",
+				Offset: base + alm.LootElementCode, Width: 2, Min: 0, Max: math.MaxUint16},
+			Field{Key: fmt.Sprintf("use%d", k+1), Label: "editor.plain.dispatch",
+				Offset: base + alm.LootElementField04, Width: 2, Min: 0, Max: math.MaxUint16},
+			Field{Key: fmt.Sprintf("recipe%d", k+1), Label: "editor.plain.recipe",
+				Offset: base + alm.LootElementMarker, Width: 4, Min: 0, Max: math.MaxUint32},
+		)
+	}
+	return out
+}
+
 func (e *Editor) AddUnitStock(index int) (int, error) {
 	stock, err := e.UnitStock(index)
 	if err != nil {

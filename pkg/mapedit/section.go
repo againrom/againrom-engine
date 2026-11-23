@@ -56,7 +56,9 @@ type section struct {
 	// reshape restores the grammar after a field write; nil keeps the length.
 	reshape func(rec []byte) []byte
 	// fields lists the settable fields of one record.
-	fields        func(e *Editor, rec []byte) []Field
+	fields func(e *Editor, rec []byte) []Field
+	// cardFields lists the fields of one record's card; nil uses fields.
+	cardFields    func(e *Editor, rec []byte) []Field
 	validatePlace func(e *Editor, w walk, rec []byte) error
 	// blank builds the record that becomes record n; nil: the row has no
 	// built-in new record.
@@ -95,18 +97,21 @@ func init() {
 			renumber:    renumberUnit,
 			cloneParts:  cloneUnitStockParts,
 			fields:      func(*Editor, []byte) []Field { return unitFields },
+			cardFields:  func(*Editor, []byte) []Field { return unitCardFields },
 			deleteParts: ownedStockDeletionParts,
 		},
 		KindStructure: {name: "structure", typeID: alm.TypeObjects, count: alm.MetaObjectCount, x: alm.ObjectX, y: alm.ObjectY, create: true, insertAfter: alm.TypeGroups,
-			length:   structureLength,
-			reshape:  reshapeStructure,
-			fields:   structureFields,
-			renumber: renumberStructure,
+			length:     structureLength,
+			reshape:    reshapeStructure,
+			fields:     structureFields,
+			cardFields: structureCardFields,
+			renumber:   renumberStructure,
 		},
 		KindLoot: {name: "sack", typeID: alm.TypeLoot, count: alm.MetaLootCount, x: alm.LootX, y: alm.LootY, create: true, insertAfter: alm.TypeTileMarkers,
 			length:      lootLength,
 			cellless:    func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[alm.LootOwner:]) != 0 },
 			fields:      lootFields,
+			cardFields:  lootCardFields,
 			cloneParts:  cloneSackRecipeParts,
 			removeParts: func(e *Editor, w walk, i int) (edit, error) { return e.lootRemovalParts(w, []int{i}, -1), nil },
 		},

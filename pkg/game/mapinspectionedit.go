@@ -476,30 +476,44 @@ func fieldWordLabel(x *MapInspector, key, wordKey string) string {
 	return label
 }
 
-// recordFieldDetails builds a record card's lines from Fields: each field's
-// plain label and its choice label or value, skipping append-only rows.
+// recordFieldDetails builds a record card's lines from the model's card field
+// table: each field's plain label and its choice label or value.
 func (s *mapInspectionEdits) recordFieldDetails(kind ui.RecordKind, index int) []string {
+	k, err := editKind(kind)
+	if err != nil {
+		return nil
+	}
+	fields, err := s.model.CardFields(k, index)
+	if err != nil {
+		return nil
+	}
+	rec, err := s.model.Record(k, index)
+	if err != nil {
+		return nil
+	}
 	var out []string
-	for _, f := range s.Fields(kind, index) {
-		if f.Key == "additem" || f.ReadOnly && len(f.Lines) > 0 {
+	for _, f := range fields {
+		if f.Key == "additem" || f.Key == "prependitem" || strings.HasPrefix(f.Key, "duplicate") {
 			continue
 		}
+		label := f.Label
+		if strings.HasPrefix(label, "editor.") {
+			label = fieldWordLabel(s.inspector, f.Key, label)
+		}
 		var value string
-		switch {
-		case f.Text:
-			value = s.inspector.inspectionUTF8(f.TextValue)
-		case len(f.Choices) > 0:
-			value = strconv.FormatInt(f.Value, 10)
-			for _, c := range f.Choices {
-				if c.Value == f.Value {
+		if f.Text != nil {
+			value = s.inspector.inspectionUTF8(f.ReadText(rec))
+		} else {
+			v := f.Read(rec)
+			value = strconv.FormatInt(v, 10)
+			for _, c := range s.fieldChoiceOffer(fieldChoiceAsk{kind: kind, index: index, key: f.Key}).Choices {
+				if c.Value == v {
 					value = c.Label
 					break
 				}
 			}
-		default:
-			value = strconv.FormatInt(f.Value, 10)
 		}
-		out = append(out, s.inspector.inspectionUTF8(f.Label)+": "+value)
+		out = append(out, s.inspector.inspectionUTF8(label)+": "+value)
 	}
 	return out
 }

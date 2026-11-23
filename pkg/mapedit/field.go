@@ -110,6 +110,19 @@ var unitFields = []Field{
 	{Key: "npcflag", Label: "NPC flag", Offset: alm.UnitFlags, Width: 4, Min: 0, Max: 1, Check: CheckUnitNPC, Bit: alm.UnitFlagNPC},
 }
 
+var unitCardFields = []Field{
+	{Key: "x", Label: "editor.card.x", Offset: alm.UnitX, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "y", Label: "editor.card.y", Offset: alm.UnitY, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "class", Label: "editor.card.class", Offset: alm.UnitClass, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+	{Key: "sub", Label: "editor.card.sub", Offset: alm.UnitSubID, Width: 2, Min: 0, Max: math.MaxUint16},
+	{Key: "owner", Label: "editor.plain.owner", Offset: alm.UnitOwner, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "unitid", Label: "editor.card.unitid", Offset: alm.UnitID, Width: 2, Min: 0, Max: math.MaxUint16},
+	{Key: "group", Label: "editor.unit.field.group", Offset: alm.UnitGroup, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "flags", Label: "editor.second.unit.flags", Offset: alm.UnitFlags, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "definition", Label: "editor.second.unit.definition", Offset: alm.UnitDefinition, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "hp", Label: "editor.second.unit.hp", Offset: alm.UnitHP, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+}
+
 // overrideByte is one override byte of the type-6 record: 0 keeps the
 // template's value.
 func overrideByte(key, label string, offset int) Field {
@@ -131,6 +144,44 @@ func (e *Editor) Fields(k Kind, i int) ([]Field, error) {
 		}
 	}
 	return fields, nil
+}
+
+// CardFields returns the record-card fields of k's record i.
+func (e *Editor) CardFields(k Kind, i int) ([]Field, error) {
+	w, err := e.walkIndex(k, "list the card fields of", i)
+	if err != nil {
+		return nil, err
+	}
+	at, l := w.at(i)
+	list := w.sec.cardFields
+	if list == nil {
+		list = w.sec.fields
+	}
+	if list == nil {
+		return nil, nil
+	}
+	fields := list(e, e.data[at:at+l])
+	if w.sec.locked != nil {
+		fields = slices.Clone(fields)
+		for j := range fields {
+			fields[j].ReadOnly = w.sec.locked(i, fields[j])
+		}
+	}
+	return fields, nil
+}
+
+func (f Field) Read(rec []byte) int64 {
+	if f.Text != nil || f.Insert || f.CopyOffset > 0 || f.Offset < 0 || f.Offset+f.Width > len(rec) {
+		return 0
+	}
+	return f.decode(rec[f.Offset:])
+}
+
+func (f Field) ReadText(rec []byte) string {
+	if f.Text == nil || f.Offset < 0 || f.Offset+f.Width > len(rec) {
+		return ""
+	}
+	return f.Text.Decode(rec[f.Offset : f.Offset+f.Width])
 }
 
 func fieldByKey(fields []Field, key string) (Field, bool) {

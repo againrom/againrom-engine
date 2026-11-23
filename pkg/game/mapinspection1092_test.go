@@ -169,14 +169,23 @@ func TestReleaseMapInspection1092EveryAuthoredPlacement(t *testing.T) {
 				t.Fatalf("%s missing loot record %d", key, i)
 			}
 			details := strings.Join(rec.Details, "\n")
-			if !strings.Contains(details, fmt.Sprintf("Owner: %d  Gold: %d", owner, gold)) || !strings.Contains(details, fmt.Sprintf("Items: %d", n)) {
-				t.Fatalf("%s loot %d header not inspectable", key, i)
+			wantOwner := fmt.Sprintf("%s: %d", x.inspectionUTF8(x.word("editor.plain.owner")), owner)
+			wantGold := fmt.Sprintf("%s: %d", x.inspectionUTF8(x.word("editor.plain.gold")), gold)
+			wantItems := fmt.Sprintf("%s: %d", x.inspectionUTF8(x.word("editor.card.items")), n)
+			if !strings.Contains(details, wantOwner) || !strings.Contains(details, wantGold) || !strings.Contains(details, wantItems) {
+				t.Fatalf("%s loot %d header not inspectable:\n%s", key, i, details)
 			}
 			for k := 0; k < n; k++ {
 				e := b[20+k*10:]
 				code, raw, link := binary.LittleEndian.Uint16(e), binary.LittleEndian.Uint16(e[4:]), binary.LittleEndian.Uint32(e[6:])
-				if !strings.Contains(details, fmt.Sprintf("%d: code %#04x", k, code)) || !strings.Contains(details, fmt.Sprintf("raw04 %d enchantment %d", raw, link)) {
-					t.Fatalf("%s loot %d element %d not inspectable", key, i, k)
+				wantItem := fmt.Sprintf("%s: %d", x.inspectionUTF8(fmt.Sprintf(x.word("editor.plain.item"), k+1)), code)
+				wantRaw := fmt.Sprintf("%s: %d", x.inspectionUTF8(fmt.Sprintf(x.word("editor.plain.dispatch"), k+1)), raw)
+				wantRecipe := x.inspectionUTF8(fmt.Sprintf(x.word("editor.plain.recipe"), k+1)) + ": "
+				if link == 0 {
+					wantRecipe += x.inspectionUTF8(x.word("editor.inventory.norecipe"))
+				}
+				if !strings.Contains(details, wantItem) || !strings.Contains(details, wantRaw) || !strings.Contains(details, wantRecipe) || (link > 0 && !strings.Contains(details, fmt.Sprintf("%d", link))) {
+					t.Fatalf("%s loot %d element %d not inspectable:\n%s", key, i, k, details)
 				}
 			}
 			if owner == 0 && n > 3 && !multiItemWitness {

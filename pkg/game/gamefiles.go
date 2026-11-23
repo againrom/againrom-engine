@@ -25,13 +25,13 @@ type gameFiles struct {
 	cursorHotspots [28]image.Point
 	table          databin.Layout
 	openMap        func([]byte) (*alm.Map, error)
-	editorUnitWord string
 	// catalogPalettes: the editor's unit and structure palettes list every
 	// data.bin row by its name, and a placement names its row or says it has none.
 	catalogPalettes bool
 	// editorTables are the tables the map editor's routes read.
-	editorTables  editorTables
-	compileScript func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
+	editorTables   editorTables
+	choiceCatalogs editorChoiceCatalogs
+	compileScript  func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
 	// scriptDialect is the dialect compileScript gives the game's Worlds; a
 	// load outside a World asks sim's rules of the game by it.
 	scriptDialect  sim.ScriptDialect
@@ -215,8 +215,8 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32, spells uint32, person
 const terrainCostsAddress = worldPrefix + "data/map.reg"
 
 var firstGameFiles = gameFiles{
-	editorUnitWord:    "Definition",
 	editorTables:      firstEditorTables,
+	choiceCatalogs:    firstChoiceCatalogs,
 	hire:              &tavernHires,
 	hover:             ui.KindRectangleHover,
 	cursorHotspots:    firstCursorHotspots,
@@ -269,6 +269,7 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 var secondGameFiles = gameFiles{
 	catalogPalettes:      true,
 	editorTables:         secondEditorTables,
+	choiceCatalogs:       secondChoiceCatalogs,
 	shippedPlayerColours: true,
 	hire:                 &bankHires,
 	dollSounds: dollSoundProfile{mixed: dollAnyGain,

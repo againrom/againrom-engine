@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -345,10 +344,8 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	if x.table != nil && x.units != nil && len(m.Units) > 0 {
 		missionArt = x.placedArt(model, m.Units, x.testPlayNumber(w))
 	}
-	var fieldEdits *mapInspectionEdits
-	if rowFor(model).fieldCards {
-		fieldEdits = &mapInspectionEdits{inspector: x, model: model}
-	}
+	row := rowFor(model)
+	fieldEdits := &mapInspectionEdits{inspector: x, model: model}
 	for i, u := range m.Units {
 		cell := image.Pt(int(u.X>>8), int(u.Y>>8))
 		r := ui.InspectionRecord{Kind: ui.KindUnit, Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Footprint: feet.units[i], Label: fmt.Sprintf("class %d", u.ClassID), Player: int(u.Owner), Group: int(u.GroupID), ScriptID: int(u.UnitID), SpellLink: int64(u.UnitID)}
@@ -396,32 +393,18 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		}
 		resolved := mapload.Resolve(u, x.table)
 		if !resolved.Found() {
-			if fieldEdits != nil {
-				r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf(x.inspectionUTF8(x.word("editor.unit.norow")), u.ServerID))
-			} else {
-				r.Warning = joinInspectionWarning(r.Warning, "Definition unresolved")
-				if x.catalogPalettes() {
-					r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf(x.inspectionUTF8(x.word("editor.unit.norow")), u.ServerID))
-				}
-			}
+			r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf(x.inspectionUTF8(x.word(row.unitNoRowWord)), row.unitNoRowID(u)))
 		}
 		r.Definition = x.unitDefinition(u, resolved)
 		r.Name = x.unitLabel(u, x.testPlayNumber(w))
-		if fieldEdits != nil {
-			r.Details = fieldEdits.recordFieldDetails(ui.KindUnit, i)
-		} else {
-			r.Details = []string{fmt.Sprintf("X/Y raw: %d / %d", u.X, u.Y), fmt.Sprintf("Class/sub: %d / %d", u.ClassID, u.ClassSubID),
-				fmt.Sprintf("Owner: %d  Unit: %d", u.Owner, u.UnitID), fmt.Sprintf("Group: %d  Flags: %#x", u.GroupID, u.Flags),
-				fmt.Sprintf("%s: %d (%s row %d)", filesOf(x.installGame()).editorUnitWord, u.DefID, resolved.Arm, resolved.Index), fmt.Sprintf("HP raw: %d (-1 = default)", u.CurrentHP),
-				"Authored placement; idle pose, no simulation"}
-		}
+		r.Details = fieldEdits.recordFieldDetails(ui.KindUnit, i)
 		if i < len(sheets) {
 			r.Lines = append(r.Lines, x.sheetLines(u, resolved, sheets[i])...)
 			template := sheets[i]
 			if i < len(templates) {
 				template = templates[i]
 			}
-			if rowFor(model).unitOverrides {
+			if row.unitOverrides {
 				r.Lines = append(r.Lines, x.overrideLines(model, i, template)...)
 			}
 			v := sheets[i].Values
@@ -451,19 +434,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		if counts.Cells.Outside > 0 {
 			r.Warning = joinInspectionWarning(r.Warning, "Footprint crosses map boundary")
 		}
-		if x.catalogPalettes() {
-			r.Name = x.structureCatalogLine(o)
+		if row.structureName != nil {
+			r.Name = row.structureName(x, o)
 			r.Hover = r.Name
 		}
-		if fieldEdits != nil {
-			r.Details = fieldEdits.recordFieldDetails(ui.KindStructure, i)
-		} else {
-			r.Details = []string{fmt.Sprintf("X/Y raw: %d / %d", o.X, o.Y), fmt.Sprintf("Kind: %d (art key %d)", o.Kind, byte(o.Kind)),
-				fmt.Sprintf("Raw 0C/0E/12: %d / %d / %d", o.Field0C, o.Field0E, o.Field12), fmt.Sprintf("Extension: %x", o.Ext), fmt.Sprintf("Frame entries: %d", len(places))}
-			if x.catalogPalettes() {
-				r.Details = append([]string{r.Name}, r.Details...)
-			}
-		}
+		r.Details = fieldEdits.recordFieldDetails(ui.KindStructure, i)
 		add(r)
 	}
 	loot, lootErr := m.Loot()
@@ -481,19 +456,12 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 					r.Warning = "Unresolved sack art; anchor shown"
 				}
 			}
-			if fieldEdits != nil {
-				r.Details = fieldEdits.recordFieldDetails(r.Kind, i)
-			} else {
-				r.Details = []string{fmt.Sprintf("Owner: %d  Gold: %d", l.Owner, l.Gold), fmt.Sprintf("X/Y raw: %d / %d", l.X, l.Y), fmt.Sprintf("Items: %d / I: recipe by item number", len(l.Elements))}
-				for n, e := range l.Elements {
-					name := mapload.ResolveItemName(x.table, mapload.ItemSubject{Code: data.ItemCode(e.ItemCode()), Form: mapload.ItemNameEditorRecord})
-					if !name.Known {
-						r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf("Item %d name unresolved", n))
-					}
-					r.Details = append(r.Details, fmt.Sprintf("Item %d: %s", n+1, name.Text()))
-					r.Details = append(r.Details, fmt.Sprintf("%d: code %#04x class %d index %d", n, e.ItemCode(), alm.ItemClass(e.ItemCode()), alm.ItemIndex(e.ItemCode())), fmt.Sprintf("   raw04 %d enchantment %d", e.Field04, e.TileMarkerIndex))
+			for n, e := range l.Elements {
+				if !mapload.ResolveItemName(x.table, editorItemSubject(x.table, e.ItemCode())).Known {
+					r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf("Item %d name unresolved", n))
 				}
 			}
+			r.Details = fieldEdits.recordFieldDetails(r.Kind, i)
 			add(r)
 		}
 	}

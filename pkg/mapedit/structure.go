@@ -54,6 +54,27 @@ func structureFields(_ *Editor, rec []byte) []Field {
 	return append(append([]Field{structureKindField}, structureExtFields...), structureFieldsBase[1:]...)
 }
 
+var structureCardFieldsBase = []Field{
+	{Key: "x", Label: "editor.card.x", Offset: alm.ObjectX, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "y", Label: "editor.card.y", Offset: alm.ObjectY, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "kind", Label: "editor.plain.type", Offset: alm.ObjectKind, Width: 4, Min: 1, Max: 255},
+	{Key: "owner", Label: "editor.plain.owner", Offset: alm.ObjectOwner, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "identity", Label: "editor.plain.target", Offset: alm.ObjectIdentity, Width: 2, Min: 0, Max: math.MaxUint16},
+	{Key: "placement", Label: "editor.plain.placement", Offset: alm.ObjectPlacement, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+}
+
+var structureCardExtFields = []Field{
+	{Key: "width", Label: "editor.plain.width", Offset: alm.ObjectWidth, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "height", Label: "editor.plain.height", Offset: alm.ObjectHeight, Width: 4, Min: 0, Max: math.MaxUint32},
+}
+
+func structureCardFields(_ *Editor, rec []byte) []Field {
+	if len(rec) <= alm.ObjectSize {
+		return append([]Field(nil), structureCardFieldsBase...)
+	}
+	return append(append([]Field(nil), structureCardFieldsBase...), structureCardExtFields...)
+}
+
 func (e *Editor) structureIdentityParts(index int, old, value int64) ([]part, error) {
 	w, err := e.walkSection(KindStructure, "set a structure identity")
 	if err != nil {

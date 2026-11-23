@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -215,7 +216,9 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 		t.Fatalf("the Objects grid placed nothing (%q)", e.Message())
 	}
 	if !slices.ContainsFunc(e.Document().Records, func(rec ui.InspectionRecord) bool {
-		return rec.Kind == ui.KindStructure && rec.Cell == paletteMapCell && slices.Contains(rec.Details, "Kind: 2 (art key 2)")
+		return rec.Kind == ui.KindStructure && rec.Cell == paletteMapCell && slices.ContainsFunc(rec.Details, func(line string) bool {
+			return line == "Type: 2" || strings.HasPrefix(line, "Type: 2:")
+		})
 	}) {
 		t.Fatalf("the fence placed from the Objects grid is no structure record: %+v", e.Document().Records)
 	}

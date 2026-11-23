@@ -479,3 +479,56 @@ func TestDeleteLootRenumbersUnitLinks(t *testing.T) {
 		t.Errorf("delete on a map without units: %v", err)
 	}
 }
+
+func TestFirstCardFieldsReadAllRecordValues(t *testing.T) {
+	b := recordsFixture(t)
+	e := newEditor(t, b)
+	if _, err := e.Place(mapedit.KindLoot, e.GroundSack(5*256+128, 6*256+64, 0x0101)); err != nil {
+		t.Fatal(err)
+	}
+	readMap := func(k mapedit.Kind, idx int) ([]string, map[string]int64) {
+		fs, err := e.CardFields(k, idx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rec, err := e.Record(k, idx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys := make([]string, len(fs))
+		vals := make(map[string]int64, len(fs))
+		for i, f := range fs {
+			keys[i] = f.Key
+			vals[f.Key] = f.Read(rec)
+		}
+		return keys, vals
+	}
+	uKeys, uVals := readMap(mapedit.KindUnit, 0)
+	if !slices.Equal(uKeys, []string{"x", "y", "class", "sub", "owner", "unitid", "group", "flags", "definition", "hp"}) {
+		t.Fatalf("unit card keys = %v", uKeys)
+	}
+	if uVals["x"] != 2*256+128 || uVals["y"] != 3*256+128 || uVals["class"] != 40 || uVals["sub"] != 2 || uVals["unitid"] != 7 {
+		t.Fatalf("unit card values = %v", uVals)
+	}
+	s0Keys, s0Vals := readMap(mapedit.KindStructure, 0)
+	if !slices.Equal(s0Keys, []string{"x", "y", "kind", "owner", "identity", "placement"}) {
+		t.Fatalf("plain structure card keys = %v", s0Keys)
+	}
+	if s0Vals["x"] != 3*256+128 || s0Vals["y"] != 4*256+128 || s0Vals["kind"] != 5 || s0Vals["owner"] != 2 || s0Vals["identity"] != 7 || s0Vals["placement"] != 11 {
+		t.Fatalf("plain structure card values = %v", s0Vals)
+	}
+	s1Keys, s1Vals := readMap(mapedit.KindStructure, 1)
+	if !slices.Equal(s1Keys, []string{"x", "y", "kind", "owner", "identity", "placement", "width", "height"}) {
+		t.Fatalf("extended structure card keys = %v", s1Keys)
+	}
+	if s1Vals["width"] != 2|0xa1<<8 || s1Vals["height"] != 3|0xb2<<8 {
+		t.Fatalf("extended structure card values = %v", s1Vals)
+	}
+	lKeys, lVals := readMap(mapedit.KindLoot, 0)
+	if !slices.Equal(lKeys, []string{"unitowner", "x", "y", "gold", "count", "item1", "use1", "recipe1"}) {
+		t.Fatalf("loot card keys = %v", lKeys)
+	}
+	if lVals["x"] != 5*256+128 || lVals["y"] != 6*256+64 || lVals["count"] != 1 || lVals["item1"] != 0x0101 {
+		t.Fatalf("loot card values = %v", lVals)
+	}
+}

@@ -30,9 +30,10 @@ type editRow struct {
 	// fields: the record panels list the settable fields of a record.
 	fields bool
 	// fieldKinds are the kinds that list and set fields while fields is off.
-	fieldKinds kindSet
-	// fieldCards: record cards list the record's fields instead of raw lines.
-	fieldCards bool
+	fieldKinds    kindSet
+	unitNoRowWord string
+	unitNoRowID   func(alm.Unit) int64
+	structureName func(*MapInspector, alm.Object) string
 	// planes: the brush paints every plane, not the terrain alone.
 	planes bool
 	// newSteps are the keys of a new record the palettes offer; nil: all.
@@ -76,6 +77,13 @@ type editRow struct {
 var editRows = map[alm.Format]*editRow{
 	alm.FirstFormat: {
 		wholeScripts: true, fields: true, planes: true, manyValues: true,
+		unitNoRowWord: "editor.unit.nodef",
+		unitNoRowID: func(u alm.Unit) int64 {
+			if u.DefID != 0 {
+				return int64(u.DefID)
+			}
+			return int64(u.ClassID)
+		},
 		structureKind: (*MapInspector).checkStructureKind,
 		kindTable:     func(x *MapInspector) bool { return x.structures != nil },
 		allRules:      true,
@@ -84,14 +92,14 @@ var editRows = map[alm.Format]*editRow{
 		unitOverrides: true, spellSets: true, playerRecords: true, structureOwner: true, storedKeys: true, playableRing: true, workspace: true,
 	},
 	alm.SecondFormat: {
-		moves:   placedKinds,
-		adds:    kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true},
-		deletes: placedKinds,
-		sets:    kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true},
-		// Units, structures, sacks and the roster list and edit their fields,
-		// and their record cards are built from those fields.
+		moves:          placedKinds,
+		adds:           kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true},
+		deletes:        placedKinds,
+		sets:           kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true},
 		fieldKinds:     kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindStock: true, ui.KindPlayer: true},
-		fieldCards:     true,
+		unitNoRowWord:  "editor.unit.norow",
+		unitNoRowID:    func(u alm.Unit) int64 { return int64(u.ServerID) },
+		structureName:  (*MapInspector).structureCatalogLine,
 		playerRecords:  true,
 		structureOwner: true,
 		refusal:        "editor.map.secondtool", scriptRefusal: "editor.map.secondscript", undecoded: "editor.map.secondundecoded",

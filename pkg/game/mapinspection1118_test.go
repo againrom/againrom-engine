@@ -144,7 +144,7 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 		t.Fatal("unit drag panned or replaced camera")
 	}
 	movedBytes1118(t, b, d.SourceBytes, 0, image.Pt(13, 14))
-	if !strings.Contains(inspectText1093(d.Records[0]), "X/Y raw: 3456 / 3839") || d.Records[0].Warning == "" {
+	if text := inspectText1093(d.Records[0]); !strings.Contains(text, "X (raw): 3456") || !strings.Contains(text, "Y (raw): 3839") || d.Records[0].Warning == "" {
 		t.Fatal("raw details or unresolved-art warning stale")
 	}
 	ref := inspectRecord1093(t, d, "Condition", 2).References[0]

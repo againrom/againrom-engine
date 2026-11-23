@@ -37,7 +37,7 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 			t.Fatalf("the second game's row lists no fields for %v", k)
 		}
 	}
-	if second.fieldKinds.has(ui.KindScenery) || second.fieldKinds.has(ui.KindEnchantment) || !second.fieldCards || first.fieldCards || !second.playerRecords || !second.structureOwner || !first.structureOwner {
+	if second.fieldKinds.has(ui.KindScenery) || second.fieldKinds.has(ui.KindEnchantment) || first.unitNoRowWord == "" || second.unitNoRowWord == "" || first.unitNoRowID == nil || second.unitNoRowID == nil || !second.playerRecords || !second.structureOwner || !first.structureOwner {
 		t.Fatalf("the second game's row lists the wrong fields: %+v", second)
 	}
 	for _, k := range []ui.RecordKind{ui.KindAction, ui.KindCondition, ui.KindTrigger} {

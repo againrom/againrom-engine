@@ -30,7 +30,7 @@ var itemNameSurfaceDigests = map[string]string{
 	"first/editorCatalog":       "dc8c266da9cc614ea1579dfef8227eafef81368160befbebf994628ff246f2f5",
 	"first/editorItemList":      "64171d6e476d93d6195fdc9e4ecd0ae812e5781cf29c00b4322ef2f635827e38",
 	"first/editorRecipeItems":   "f7714fb5e9b6164a4959df2ac474374f220e176df3c136ee74d7c489617e82f2",
-	"first/editorSack":          "13d70dfcf205f1f11ac27f9f315d45298bd669dca2be8ec20116863d98681455",
+	"first/editorSack":          "42ef3c6c1e24ffcc615b6ed1292e59e00733038c4fe25a5e91b0cea57a4a2998",
 	"first/itemInfoLines":       "5c0c7b5f47568d8728aac8e1c4617b8e40fab4ee81ebe2165e3368a242bc5d1a",
 	"first/itemName":            "2ad0c7549c608b5b395dbb00d8192f56492248f7cecc87a4218748d7dc9441a0",
 	"first/pickup":              "4d3bdf7ec1375f315b445479cc0abc5510fbb8a70fec8b18a05c011f5f517ab0",

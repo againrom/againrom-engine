@@ -48,6 +48,7 @@ var fieldChoiceRows = []fieldChoiceRow{
 	{kinds: []ui.RecordKind{ui.KindEnchantment}, field: "castkind", supply: castKindChoices},
 	{kinds: []ui.RecordKind{ui.KindUnit}, field: "definition", supply: unitDefinitionChoices},
 	{kinds: []ui.RecordKind{ui.KindStructure}, field: "kind", supply: structureKindChoices},
+	{kinds: []ui.RecordKind{ui.KindStructure}, field: "identity", supply: noChoices},
 	{field: "owner", supply: ownerChoices},
 	{field: "face", supply: faceChoices},
 	{field: "sex", supply: wordChoices("editor.unit.look.male", "editor.unit.look.female")},
@@ -364,52 +365,144 @@ func editorItemSubject(t *mapload.Table, code uint16) mapload.ItemSubject {
 	return s
 }
 
-// unitDefinitionChoices are a unit's definition choices: on the second game,
-// the Units or Humans rows keyed by serverID for the unit's current arm
-// (R2-ENGINE-1512, R2-ASSET-316).
-func unitDefinitionChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
-	x := s.inspector
-	if x.table == nil || x.table.ClassPlacementFields() {
-		return x.recordCatalog("definition")
-	}
-	m, err := s.model.Map()
-	if err != nil || a.index < 0 || a.index >= len(m.Units) {
-		return nil
-	}
-	return x.secondUnitDefinitions(m.Units[a.index].Flags&alm.SecondUnitFlagHuman != 0)
+type choiceCatalog struct {
+	cache      string
+	zeroLabel  string
+	rows       func(x *MapInspector, emit func(value int64, name string))
+	currentRow func(s *mapInspectionEdits, a fieldChoiceAsk) (ui.InspectionChoice, bool)
 }
 
-func (x *MapInspector) secondUnitDefinitions(human bool) []ui.InspectionChoice {
-	key := "second-def-units"
-	if human {
-		key = "second-def-humans"
+type editorChoiceCatalogs struct {
+	unitDefinitions func(s *mapInspectionEdits, a fieldChoiceAsk) (choiceCatalog, bool)
+	structureKinds  choiceCatalog
+}
+
+func serverIDCatalog(cache, zeroLabel string, pick func(*mapload.Table) data.Collection, serverID func([]int32) (int32, bool), skipUnnamed, encode bool) choiceCatalog {
+	return choiceCatalog{
+		cache:     cache,
+		zeroLabel: zeroLabel,
+		rows: func(x *MapInspector, emit func(int64, string)) {
+			if x.table == nil {
+				return
+			}
+			c := pick(x.table)
+			for i := 1; c != nil && i < c.Len(); i++ {
+				name := c.EntryName(i)
+				if skipUnnamed && name == "" {
+					continue
+				}
+				sid, ok := serverID(c.EntryParams(i))
+				if !ok {
+					continue
+				}
+				if encode {
+					name = x.inspectionUTF8(name)
+				}
+				emit(int64(uint32(sid)), name)
+			}
+		},
 	}
+}
+
+var (
+	firstDefinitionCatalog = serverIDCatalog("definition", "Use class key", func(t *mapload.Table) data.Collection { return t.Humans }, data.HumanServerID, false, false)
+	secondUnitDefCatalog   = serverIDCatalog("second-def-units", "", func(t *mapload.Table) data.Collection { return t.Units }, data.UnitServerID, true, true)
+	secondHumanDefCatalog  = serverIDCatalog("second-def-humans", "", func(t *mapload.Table) data.Collection { return t.Humans }, data.HumanServerID, true, true)
+)
+
+var firstChoiceCatalogs = editorChoiceCatalogs{
+	unitDefinitions: func(*mapInspectionEdits, fieldChoiceAsk) (choiceCatalog, bool) { return firstDefinitionCatalog, true },
+	structureKinds: choiceCatalog{
+		cache: "kind",
+		rows: func(x *MapInspector, emit func(int64, string)) {
+			if x.structures == nil {
+				return
+			}
+			for id, c := range x.structures.Classes {
+				if id > 0 && id <= math.MaxUint8 && c != nil {
+					emit(int64(id), c.Name)
+				}
+			}
+		},
+	},
+}
+
+var secondChoiceCatalogs = editorChoiceCatalogs{
+	unitDefinitions: secondUnitDefArm,
+	structureKinds: choiceCatalog{
+		cache: "kind",
+		rows: func(x *MapInspector, emit func(int64, string)) {
+			for row := 1; x.table != nil && x.table.Buildings != nil && row < x.table.Buildings.Len(); row++ {
+				if _, name, ok := mapload.BuildingName(x.table, uint32(row)); ok && row <= math.MaxUint8 {
+					emit(int64(row), x.inspectionUTF8(name))
+				}
+			}
+		},
+		currentRow: extendedBuildingChoice,
+	},
+}
+
+func secondUnitDefArm(s *mapInspectionEdits, a fieldChoiceAsk) (choiceCatalog, bool) {
+	m, err := s.model.Map()
+	if err != nil || a.index < 0 || a.index >= len(m.Units) {
+		return choiceCatalog{}, false
+	}
+	if m.Units[a.index].Flags&alm.SecondUnitFlagHuman != 0 {
+		return secondHumanDefCatalog, true
+	}
+	return secondUnitDefCatalog, true
+}
+
+func extendedBuildingChoice(s *mapInspectionEdits, a fieldChoiceAsk) (ui.InspectionChoice, bool) {
+	if a.index < 0 {
+		return ui.InspectionChoice{}, false
+	}
+	m, err := s.model.Map()
+	if err != nil || a.index >= len(m.Objects) {
+		return ui.InspectionChoice{}, false
+	}
+	raw := m.Objects[a.index].Kind
+	if raw == uint32(uint8(raw)) {
+		return ui.InspectionChoice{}, false
+	}
+	if row, name, ok := mapload.BuildingName(s.inspector.table, raw); ok {
+		return ui.InspectionChoice{Value: int64(raw), Label: fmt.Sprintf("%d: %s", row, s.inspector.inspectionUTF8(name))}, true
+	}
+	return ui.InspectionChoice{}, false
+}
+
+// choiceCatalogs are the catalogs of the game whose table the editor reads.
+func (x *MapInspector) choiceCatalogs() editorChoiceCatalogs {
+	if x.table != nil {
+		return tableFiles(x.table).choiceCatalogs
+	}
+	return filesOf(x.installGame()).choiceCatalogs
+}
+
+func (x *MapInspector) buildChoiceList(cat choiceCatalog) []ui.InspectionChoice {
 	if x.recordOptions == nil {
 		x.recordOptions = make(map[string][]ui.InspectionChoice)
 	}
-	if rows, ok := x.recordOptions[key]; ok {
+	if rows, ok := x.recordOptions[cat.cache]; ok {
 		return slices.Clone(rows)
-	}
-	c, serverID := x.table.Units, data.UnitServerID
-	if human {
-		c, serverID = x.table.Humans, data.HumanServerID
 	}
 	var rows []ui.InspectionChoice
 	seen := map[int64]bool{}
-	for i := 1; c != nil && i < c.Len(); i++ {
-		name := c.EntryName(i)
+	add := func(value int64, name string) {
+		if seen[value] {
+			return
+		}
+		seen[value] = true
 		if name == "" {
-			continue
+			name = fmt.Sprintf("raw %s %d", cat.cache, value)
 		}
-		sid, ok := serverID(c.EntryParams(i))
-		if !ok {
-			continue
-		}
-		id := int64(uint32(sid))
-		if !seen[id] {
-			seen[id] = true
-			rows = append(rows, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(name))})
-		}
+		rows = append(rows, ui.InspectionChoice{Value: value, Label: fmt.Sprintf("%d: %s", value, name)})
+	}
+	if cat.zeroLabel != "" {
+		add(0, cat.zeroLabel)
+	}
+	if cat.rows != nil {
+		cat.rows(x, add)
 	}
 	slices.SortFunc(rows, func(a, b ui.InspectionChoice) int {
 		if a.Value < b.Value {
@@ -420,33 +513,36 @@ func (x *MapInspector) secondUnitDefinitions(human bool) []ui.InspectionChoice {
 		}
 		return 0
 	})
-	x.recordOptions[key] = slices.Clone(rows)
+	x.recordOptions[cat.cache] = slices.Clone(rows)
 	return rows
 }
 
-// structureKindChoices are a structure's kind choices, keeping a second-game
-// extended kind word such as 0x1000021 under its Buildings row name until
-// changed (R2-ASSET-317).
-func structureKindChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
-	rows := s.inspector.recordCatalog("kind")
-	if !s.inspector.catalogPalettes() || a.index < 0 {
-		return rows
-	}
-	m, err := s.model.Map()
-	if err != nil || a.index >= len(m.Objects) {
-		return rows
-	}
-	raw := m.Objects[a.index].Kind
-	if raw == uint32(uint8(raw)) {
-		return rows
-	}
-	if row, name, ok := mapload.BuildingName(s.inspector.table, raw); ok {
-		rows = append(rows, ui.InspectionChoice{Value: int64(raw), Label: fmt.Sprintf("%d: %s", row, s.inspector.inspectionUTF8(name))})
+func (s *mapInspectionEdits) choiceList(cat choiceCatalog, a fieldChoiceAsk) []ui.InspectionChoice {
+	rows := s.inspector.buildChoiceList(cat)
+	if cat.currentRow != nil {
+		if extra, ok := cat.currentRow(s, a); ok {
+			rows = append(rows, extra)
+		}
 	}
 	return rows
+}
+
+func unitDefinitionChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
+	cat, ok := s.inspector.choiceCatalogs().unitDefinitions(s, a)
+	if !ok {
+		return nil
+	}
+	return s.choiceList(cat, a)
+}
+
+func structureKindChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
+	return s.choiceList(s.inspector.choiceCatalogs().structureKinds, a)
 }
 
 func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {
+	if category == "kind" {
+		return x.buildChoiceList(x.choiceCatalogs().structureKinds)
+	}
 	if x.recordOptions == nil {
 		x.recordOptions = make(map[string][]ui.InspectionChoice)
 	}
@@ -461,21 +557,6 @@ func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {
 		rows = append(rows, ui.InspectionChoice{Value: value, Label: fmt.Sprintf("%d: %s", value, name)})
 	}
 	switch category {
-	case "kind":
-		if x.catalogPalettes() {
-			// Every Buildings row, by its own name.
-			for row := 1; x.table != nil && row < x.table.Buildings.Len(); row++ {
-				if _, name, ok := mapload.BuildingName(x.table, uint32(row)); ok && row <= math.MaxUint8 {
-					add(int64(row), x.inspectionUTF8(name))
-				}
-			}
-		} else if x.structures != nil {
-			for id, c := range x.structures.Classes {
-				if id > 0 && id <= math.MaxUint8 && c != nil {
-					add(int64(id), c.Name)
-				}
-			}
-		}
 	case "class":
 		if x.units != nil {
 			for id, c := range x.units.Classes {
@@ -491,21 +572,6 @@ func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {
 			for _, code := range mapload.ShippedItemCodes(x.table) {
 				if code != 0 {
 					add(int64(code), mapload.ItemDisplayName(x.table, mapload.ItemSubject{Code: code, Form: mapload.ItemNameEditorList}))
-				}
-			}
-		}
-	case "definition":
-		add(0, "Use class key")
-		if x.table != nil && x.table.Humans != nil {
-			seen := map[int64]bool{0: true}
-			for i := 1; i < x.table.Humans.Len(); i++ {
-				p := x.table.Humans.EntryParams(i)
-				if len(p) > 0x18 {
-					id := int64(uint32(p[0x18]))
-					if !seen[id] {
-						add(id, x.table.Humans.EntryName(i))
-						seen[id] = true
-					}
 				}
 			}
 		}
