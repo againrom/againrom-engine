@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.159.0
+
 ### For players
 
 - [ROM2] Altars now switch on and off when used, units knocked unconscious still count for mission goals until they die, script triggers that name a not-yet-known object now run instead of being dropped, a trap without a source strikes from its own cell, and mission scripts can hand an item from one unit to another or move a unit, after which a computer unit stands guard.
