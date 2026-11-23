@@ -63,6 +63,15 @@ func (w *World) setAttachedEffectDuration(target EntityID, spell int32, duration
 	}
 }
 
+// castStartHiding is the one cast-start rule for the caster's own invisibility
+// (MAGIC-CAST-003): a cast at a cell or at another unit leaves it a remainder
+// of one tick; a cast at oneself leaves it unchanged. Every caster kind uses it.
+func (w *World) castStartHiding(caster, target EntityID, atCell bool) {
+	if atCell || target != caster {
+		w.setAttachedEffectDuration(caster, int32(w.hidingSpell()), 1)
+	}
+}
+
 // HasEffectSpell reports whether target currently carries the lasting effect of
 // spell. It is the exported form of the same canonical lookup the simulation's
 // own arms use, for a presentation tier that must ask about one spell rather

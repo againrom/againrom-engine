@@ -1024,9 +1024,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 		debitBook(caster, rule)
 	}
 	w.refreshAppliedBook(ci, spellID)
-	if victim != caster.ID {
-		w.removeAttachedSpell(caster.ID, w.hidingSpell())
-	}
+	w.castStartHiding(caster.ID, victim, false)
 
 	arm := spellArmOf(rule.arm())
 	w.burst.raised = 0

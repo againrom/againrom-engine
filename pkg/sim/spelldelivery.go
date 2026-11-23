@@ -187,9 +187,7 @@ func (w *World) admitBookPayment(ci int, rule SpellRule) {
 	}
 	debitBook(&w.entities[ci], rule)
 	w.bookCasts[i].Paid = true
-	if w.bookCasts[i].AtCell || w.bookCasts[i].Target != w.entities[ci].ID {
-		w.removeAttachedSpell(w.entities[ci].ID, w.hidingSpell())
-	}
+	w.castStartHiding(w.entities[ci].ID, w.bookCasts[i].Target, w.bookCasts[i].AtCell)
 	if spellArmOf(rule.arm()).prismatic && rule.Delivery == 2 && !w.bookCasts[i].AtCell {
 		ti := indexOfEntity(w.entities, w.bookCasts[i].Target)
 		if ti >= 0 {
