@@ -28,6 +28,8 @@ type editRow struct {
 	refusal string
 	// fields: the record panels list the settable fields of a record.
 	fields bool
+	// fieldKinds are the kinds that list and set fields while fields is off.
+	fieldKinds kindSet
 	// planes: the brush paints every plane, not the terrain alone.
 	planes bool
 	// newSteps are the keys of a new record the palettes offer; nil: all.
@@ -50,12 +52,13 @@ type editRow struct {
 	// admissions are the format's cell admission rows; nil: the shared ones.
 	admissions map[admissionKey]cellAdmission
 	// The inspection of the first game's authoring model.
-	unitOverrides bool // a unit's lines show the overrides of its definition
-	spellSets     bool // cell spells group into sets, and go with their object
-	playerRecords bool // the player records are the first game's rows
-	storedKeys    bool // each record has a key the model keeps
-	playableRing  bool // a new record is refused in the border ring
-	workspace     bool // the map has pages, labels and a save gate beside it
+	unitOverrides  bool // a unit's lines show the overrides of its definition
+	spellSets      bool // cell spells group into sets, and go with their object
+	playerRecords  bool // the Players window lists the player's fields, not a raw record
+	structureOwner bool // a structure record has an owner field
+	storedKeys     bool // each record has a key the model keeps
+	playableRing   bool // a new record is refused in the border ring
+	workspace      bool // the map has pages, labels and a save gate beside it
 }
 
 // editRows is the one table of rows, keyed by the map's format.
@@ -63,21 +66,23 @@ var editRows = map[alm.Format]*editRow{
 	alm.FirstFormat: {
 		wholeScripts: true, fields: true, planes: true, manyValues: true,
 		structureKind: (*MapInspector).checkStructureKind,
-		unitOverrides: true, spellSets: true, playerRecords: true, storedKeys: true, playableRing: true, workspace: true,
+		unitOverrides: true, spellSets: true, playerRecords: true, structureOwner: true, storedKeys: true, playableRing: true, workspace: true,
 	},
 	alm.SecondFormat: {
 		moves:   placedKinds,
-		adds:    placedKinds,
+		adds:    kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true},
 		deletes: placedKinds,
 		sets:    kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true},
+		// The Players window: the roster's name, colour and relations.
+		fieldKinds: kindSet{ui.KindPlayer: true}, playerRecords: true,
 		refusal: "editor.map.secondtool", scriptRefusal: "editor.map.secondscript", undecoded: "editor.map.secondundecoded",
-		newSteps:      map[string]bool{"identity": true, "kind": true, "item": true},
+		newSteps:      map[string]bool{"identity": true, "kind": true, "item": true}, // a new player takes the roster's defaults
 		structureKind: checkBuildingKind,
 		seams: []reflect.Type{
 			reflect.TypeFor[ui.InspectionSaveFolder](), reflect.TypeFor[ui.InspectionInPlace](),
 			reflect.TypeFor[ui.InspectionNewRecords](), reflect.TypeFor[ui.InspectionBrush](),
 			reflect.TypeFor[ui.InspectionBrushFill](), reflect.TypeFor[ui.InspectionBrushIcons](),
-			reflect.TypeFor[ui.InspectionFieldSet](),
+			reflect.TypeFor[ui.InspectionFieldSet](), reflect.TypeFor[ui.InspectionTextFields](),
 			reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups](),
 		},
 		templatePlacing: true, centredCells: true, admissions: secondAdmissions,

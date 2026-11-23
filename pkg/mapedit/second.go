@@ -48,6 +48,19 @@ func init() {
 			cloneParts:  secondCloneSackParts,
 			removeParts: secondRemoveParts,
 		},
+		// The roster row has the first game's layout; its words are read in
+		// secondPlayerBaseFields.
+		KindPlayer: {name: "player", typeID: alm.TypeGroups, count: alm.MetaGroupCount, create: true,
+			length:        func(_ *Editor, b []byte) int { return fixedLength(b, alm.GroupSize) },
+			cellless:      func([]byte) bool { return true },
+			fields:        secondPlayerFields,
+			locked:        secondPlayerLocked,
+			validatePlace: validateSecondPlayerPlacement,
+			blank:         blankSecondPlayer,
+			deleteParts: func(*Editor, walk, int) ([]part, error) {
+				return nil, fmt.Errorf("mapedit: a second-game player is not deleted: the owner words that name it are not renumbered")
+			},
+		},
 	}
 	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second}
 }

@@ -55,7 +55,7 @@ var firstEditorTables = editorTables{
 // units, structures and sacks. No claim names its Objects kinds, mod
 // offer tables, hero words or item suits.
 var secondEditorTables = editorTables{
-	addKinds: []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack},
+	addKinds: []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindPlayer},
 }
 
 // editorTables is the open install's tables.

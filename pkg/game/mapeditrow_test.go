@@ -28,9 +28,12 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 		}
 	}
 	for _, k := range []ui.RecordKind{ui.KindScenery, ui.KindStock, ui.KindEnchantment, ui.KindPlayer, ui.KindAction} {
-		if second.moves.has(k) || second.adds.has(k) || second.deletes.has(k) {
+		if second.moves.has(k) || second.deletes.has(k) || second.adds.has(k) != (k == ui.KindPlayer) {
 			t.Fatalf("the second game's row takes kind %v", k)
 		}
+	}
+	if !second.fieldKinds.has(ui.KindPlayer) || second.fieldKinds.has(ui.KindUnit) || !second.playerRecords || second.structureOwner || !first.structureOwner {
+		t.Fatalf("the second game's row lists the wrong fields: %+v", second)
 	}
 	for _, k := range []ui.RecordKind{ui.KindAction, ui.KindCondition, ui.KindTrigger} {
 		if !second.sets.has(k) {

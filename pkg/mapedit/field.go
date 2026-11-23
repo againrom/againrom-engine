@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -55,6 +56,9 @@ type Field struct {
 	// Toward is a player's relation field's other player, counted from 1;
 	// zero for every other field.
 	Toward int
+	// ReadOnly is set by Fields on a field its section's locked row holds
+	// for that record; SetFields refuses it.
+	ReadOnly bool
 }
 
 // UnitField and UnitFieldCheck are the type-6 names of Field and FieldCheck.
@@ -119,7 +123,14 @@ func (e *Editor) Fields(k Kind, i int) ([]Field, error) {
 		return nil, err
 	}
 	at, l := w.at(i)
-	return w.sec.fields(e, e.data[at:at+l]), nil
+	fields := w.sec.fields(e, e.data[at:at+l])
+	if w.sec.locked != nil {
+		fields = slices.Clone(fields)
+		for j := range fields {
+			fields[j].ReadOnly = w.sec.locked(i, fields[j])
+		}
+	}
+	return fields, nil
 }
 
 func fieldByKey(fields []Field, key string) (Field, bool) {
@@ -191,6 +202,9 @@ func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
 		}
 		if f.Text != nil {
 			return fmt.Errorf("mapedit: %s is a text field", f.Label)
+		}
+		if w.sec.locked != nil && w.sec.locked(i, f) {
+			return fmt.Errorf("mapedit: %s is read-only", f.Label)
 		}
 		if seen[set.Key] {
 			return fmt.Errorf("mapedit: %s field %q is named twice", w.sec.name, set.Key)

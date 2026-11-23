@@ -365,7 +365,7 @@ const newSackFraction = 128
 // Fields lists the settable fields of the record with their current values,
 // in the order of its section's field table.
 func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.InspectionField {
-	if !s.row().fields {
+	if row := s.row(); !row.fields && !row.fieldKinds.has(kind) {
 		return nil
 	}
 	k, err := editKind(kind)
@@ -391,11 +391,13 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			out = append(out, level)
 		}
 	}
+	locked := false
 	for _, f := range fields {
 		if f.Key == "prependitem" || strings.HasPrefix(f.Key, "duplicate") {
 			continue
 		}
-		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward, ValueWidth: fieldValueWidth(f)}
+		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward, ValueWidth: fieldValueWidth(f), ReadOnly: f.ReadOnly}
+		locked = locked || f.ReadOnly
 		if strings.HasPrefix(f.Label, "editor.cast.") {
 			row.Label = s.inspector.word(f.Label)
 		}
@@ -427,6 +429,9 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		if element, part, ok := stockItemField(f.Key); k == mapedit.KindLoot && ok && part == "recipe" {
 			out = append(out, s.stockRecipeFields(index, element)...)
 		}
+	}
+	if locked && k == mapedit.KindPlayer {
+		out = append(out, s.inspector.playerNote())
 	}
 	if k == mapedit.KindUnit {
 		out = append(out, s.nameField(index))
@@ -537,7 +542,7 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 // refused field refuses the set and the model is unchanged.
 func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (_ *ui.InspectionDocument, said error) {
 	defer s.worded(&said)
-	if !s.row().wholeScripts {
+	if row := s.row(); !row.wholeScripts && !(row.fieldKinds != nil && row.fieldKinds.has(kind)) {
 		return s.setScriptWords(kind, index, values)
 	}
 	k, err := editKind(kind)

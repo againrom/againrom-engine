@@ -58,7 +58,13 @@ type section struct {
 	// fields lists the settable fields of one record.
 	fields        func(e *Editor, rec []byte) []Field
 	validatePlace func(e *Editor, w walk, rec []byte) error
-	deleteParts   func(e *Editor, w walk, i int) ([]part, error)
+	// blank builds the record that becomes record n; nil: the row has no
+	// built-in new record.
+	blank func(n int) []byte
+	// locked reports a field of record i that Fields lists and no write
+	// changes.
+	locked      func(i int, f Field) bool
+	deleteParts func(e *Editor, w walk, i int) ([]part, error)
 	// removeParts, when set, builds the whole edit that removes record i in
 	// place of the plain removal: the record, the section's size and count
 	// words and what its removal carries with it.
@@ -112,6 +118,7 @@ func init() {
 			cellless:      func([]byte) bool { return true },
 			fields:        playerFields,
 			validatePlace: validatePlayerPlacement,
+			blank:         blankPlayer,
 			deleteParts:   playerDeleteParts,
 		},
 		KindEnchantment: {name: "enchantment", typeID: alm.TypeTileMarkers, layout: enchantmentLayout, x: 4, y: 8, cellShift: 8,

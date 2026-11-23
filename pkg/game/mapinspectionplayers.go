@@ -43,6 +43,12 @@ func setTextFieldOn(m *mapedit.Editor, k mapedit.Kind, index int, key, value str
 	return err == nil, err
 }
 
+// playerNote is the reason line of a player's read-only words.
+func (x *MapInspector) playerNote() ui.InspectionField {
+	return ui.InspectionField{Key: "note", ReadOnly: true, Lines: []ui.InspectionLine{
+		{Text: x.word("editor.player.note.head"), Role: "heading"}, {Text: x.word("editor.player.note.text")}}}
+}
+
 func inspectionPlayer(model *mapedit.Editor, index int, name string) ui.InspectionRecord {
 	r := ui.InspectionRecord{Kind: ui.KindPlayer, Section: 5, Index: index, Label: fmt.Sprintf("%d: %s", index+1, name)}
 	fields, err := model.Fields(mapedit.KindPlayer, index)

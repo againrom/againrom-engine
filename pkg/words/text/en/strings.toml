@@ -709,6 +709,8 @@
 "editor.relation.ally.help" = "Stays so when attacked."
 "editor.player.title" = "Player %d: %s"
 "editor.player.colour" = "Colour slot"
+"editor.player.note.head" = "Read-only words"
+"editor.player.note.text" = "The two words and a player's own relation are not edited: the original reads no meaning for them, or overwrites them on load."
 "editor.player.relations" = "Relations"
 "editor.player.relations.help" = "This player's relation toward each other player. Neutral: hostile once attacked. Ally: stays so when attacked."
 "editor.place.placed" = "Placed %d"

@@ -44,7 +44,7 @@ func TestSecondEditorTablesHoldOnlyWhatIsNamed(t *testing.T) {
 	if len(got.objectKinds)+len(got.handoutBuildings)+len(got.heroChoices)+len(got.itemSuits) != 0 {
 		t.Errorf("second-game tables hold rows no claim names: %+v", got)
 	}
-	if want := []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack}; !reflect.DeepEqual(got.addKinds, want) {
+	if want := []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindPlayer}; !reflect.DeepEqual(got.addKinds, want) {
 		t.Errorf("second-game add kinds %v, want %v", got.addKinds, want)
 	}
 }

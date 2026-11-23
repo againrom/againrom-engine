@@ -703,6 +703,8 @@
 "editor.relation.ally.help" = "Нападение не меняет."
 "editor.player.title" = "Игрок %d: %s"
 "editor.player.colour" = "Цвет"
+"editor.player.note.head" = "Слова только для чтения"
+"editor.player.note.text" = "Два слова и собственное отношение игрока не правятся: оригинал не читает их смысл или перезаписывает их при загрузке."
 "editor.player.relations" = "Отношения"
 "editor.player.relations.help" = "Отношение этого игрока к каждому другому игроку. Нейтралитет: враг после нападения. Союз: нападение не меняет."
 "editor.place.placed" = "Поставлено: %d"

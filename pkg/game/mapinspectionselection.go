@@ -441,7 +441,7 @@ func (s *mapInspectionEdits) pasteOwner(m *mapedit.Editor, source *mapedit.Edito
 	if r.kind != mapedit.KindUnit && r.kind != mapedit.KindStructure {
 		return nil
 	}
-	if r.kind == mapedit.KindStructure && !rowFor(m).playerRecords {
+	if r.kind == mapedit.KindStructure && !rowFor(m).structureOwner {
 		return nil // the format's structure record names no owner field
 	}
 	owner, err := source.FieldValue(r.kind, r.ref.Index, "owner")
