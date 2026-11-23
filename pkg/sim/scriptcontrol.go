@@ -39,6 +39,7 @@ func NewControlledScriptWorld(base *World, script *Script) (*World, error) {
 	out.latches = [scriptLatches]byte{}
 	out.scriptVars, out.scriptResults, out.latchTail = nil, nil, nil
 	out.fitScriptState()
+	out.seedScriptRegisters()
 	out.won, out.lost, out.outcome = 0, 0, OutcomeUndecided
 	out.casts = nil
 	out.presetRegisters()

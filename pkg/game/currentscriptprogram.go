@@ -9,7 +9,6 @@ import (
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
-	"againrom/pkg/scriptprofile"
 	"againrom/pkg/sim"
 )
 
@@ -45,7 +44,7 @@ func captureCurrentScriptProgram(w *sim.World) *currentScriptProgram {
 }
 
 func (p *currentScriptProgram) compile() (*sim.Script, error) {
-	checks := scriptprofile.FirstRegisters
+	checks := p.Dialect.Profile().Registers
 	if p.Extended != nil {
 		checks = maxCurrentScriptNodes
 	}
@@ -129,7 +128,7 @@ func (p *currentScriptProgram) UnmarshalJSON(raw []byte) error {
 		return err
 	}
 	next := currentScriptProgram{Dialect: fields.Dialect, Extended: fields.Extended}
-	checks := scriptprofile.FirstRegisters
+	checks := next.Dialect.Profile().Registers
 	if next.Extended != nil {
 		checks = maxCurrentScriptNodes
 	}

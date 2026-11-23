@@ -36,6 +36,14 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 			byMapID[uint32(object.Field12)] = append(byMapID[uint32(object.Field12)], i)
 		}
 	}
+	playerSlot := make(map[uint32]uint32)
+	if len(files) != 0 && files[0] != nil {
+		for _, p := range files[0].Players {
+			if key, ok := p.Field("This"); ok && key != 0 {
+				playerSlot[key] = uint32(p.Slot)
+			}
+		}
+	}
 	var structures []sim.Structure
 	var sources []sim.SavedStructure
 	var counts originalStructureCounts
@@ -108,8 +116,12 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 			return fmt.Errorf("original structures: ambiguous source identity %#x", s.Identity)
 		}
 		byKey[s.Identity] = id
+		owner := playerSlot[s.Reference]
+		if owner == 0 && ss.HasAuthored && int(ss.AuthoredIndex) < len(ms.Map.Objects) {
+			owner = uint32(uint16(ms.Map.Objects[ss.AuthoredIndex].Field0E))
+		}
 		structures = append(structures, sim.Structure{ID: id, Field42: s.Health, MaxHealth: s.MaxHealth,
-			Col: int32(s.Col), Row: int32(s.Row), Width: s.Width, Height: s.Height, Attach: s.Attach, Blocking: s.Blocking})
+			Col: int32(s.Col), Row: int32(s.Row), Width: s.Width, Height: s.Height, Attach: s.Attach, Blocking: s.Blocking, Owner: owner})
 		mapload.StructureUseMetadata(&structures[len(structures)-1], uint16(s.Kind), table)
 		sources = append(sources, ss)
 	}

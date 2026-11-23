@@ -7,17 +7,22 @@ import "testing"
 // first game holds no rows.
 func TestScriptOpRowsAreTheSecondGameOps(t *testing.T) {
 	rows := newGameProfile(ScriptROM2).scriptRows
-	for op := ScriptCheckScenario; op <= ScriptCheckCentered; op++ {
+	checkOps := []int32{
+		ScriptCheckPlayerStructures, ScriptCheckCellObject,
+		ScriptCheckScenario, ScriptCheckObjective, ScriptCheckCellEffect,
+		ScriptCheckUnitEffect, ScriptCheckCentered,
+	}
+	for _, op := range checkOps {
 		if rows.check[op] == nil {
 			t.Errorf("check op %d has no second-game row", op)
 		}
 	}
-	if want := int(ScriptCheckCentered-ScriptCheckScenario) + 1; len(rows.check) != want {
-		t.Errorf("check rows = %d, want %d", len(rows.check), want)
+	if len(rows.check) != len(checkOps) {
+		t.Errorf("check rows = %d, want %d", len(rows.check), len(checkOps))
 	}
 	instantOps := []int32{
-		ScriptInstantMessage, ScriptInstantSetScenario, ScriptInstantObjective,
-		ScriptInstantDiagnostic, ScriptInstantTakeItemFromMap,
+		ScriptInstantCounter, ScriptInstantMessage, ScriptInstantSetScenario,
+		ScriptInstantObjective, ScriptInstantDiagnostic, ScriptInstantTakeItemFromMap,
 		ScriptInstantClearGroupActivity, ScriptInstantLose,
 	}
 	for _, op := range instantOps {

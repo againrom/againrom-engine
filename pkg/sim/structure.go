@@ -43,6 +43,7 @@ type Structure struct {
 	Height    uint8
 	Attach    uint32
 	Blocking  uint32
+	Owner     uint32
 }
 
 // rebuildStructureSlots restores explicit saved cell links when present. Legacy

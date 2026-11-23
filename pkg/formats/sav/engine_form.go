@@ -96,6 +96,9 @@ type ProfileKeeps struct {
 	// KillGrades is the local Player's kill-grade block, one byte per
 	// serverID; nil keeps the zero block a new Player holds.
 	KillGrades []byte
+	// SessionResults holds the result slots past the first hundred from the
+	// World's current state; nil falls back to the profile's defaults.
+	SessionResults []int32
 }
 
 // killGrades writes block into the profile's kill-grade raw member of the
@@ -410,8 +413,12 @@ func (p *Profile) worldForm(w *DocumentWorldData, keeps ProfileKeeps) {
 	if len(w.SessionDiplomacy) != p.wideDiplomacy() {
 		w.SessionDiplomacy = make([]byte, p.wideDiplomacy())
 	}
-	for slot, v := range p.form.results {
-		w.SessionResults[slot-triggerResultCount] = v
+	if len(keeps.SessionResults) == p.wideResults() {
+		copy(w.SessionResults, keeps.SessionResults)
+	} else {
+		for slot, v := range p.form.results {
+			w.SessionResults[slot-triggerResultCount] = v
+		}
 	}
 	copy(w.Session.DiplomacyHeader[:], p.form.diplomacyHead)
 	if t := p.form.terrain; t != nil {

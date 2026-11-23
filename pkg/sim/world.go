@@ -2652,6 +2652,7 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	w.classThresholds()
 	w.constructCarriers(false)
 	w.fitScriptState()
+	w.seedScriptRegisters()
 	w.presetRegisters()
 	w.reserveObservableEntityIDs()
 	// THE LOAD IS WRITTEN AT GUARD, unconditionally, and a caller's own value

@@ -62,6 +62,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM2] Mission scripts now run with all 1,000 registers (starting with register 901 at 1, counting each script tick in register 999, and keeping registers 100..999 across save and load) and support the player-buildings check, the occupied-cell relocate check, and the counter action for register 902.
 - [ROM2] In the map editor, opening or editing a mod that replaces install files now reloads the second game's definition table under the second game's layout; before, it read the table under the first game's layout.
 - [ROM1] In the map editor, a unit, structure or sack record card now lists its fields in the same field-list layout as the second game, with localized labels in English and Russian.
 - [ROM2] Редактор карт теперь показывает и меняет поля юнита, строения и мешка на карте второй игры: владельца, определение по названию, здоровье, флаги, тип и предметы; поля, смысл которых не найден, названы по смещению, например «Поле 0x0a», и карточка записи строится из тех же полей.

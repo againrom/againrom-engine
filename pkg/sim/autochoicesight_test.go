@@ -113,7 +113,7 @@ func TestTheAutomaticChoiceSeesAsEachGameDid(t *testing.T) {
 		{name: "first game", want: "sees 110000000101 near 2 far 2 heal 1 support [0 9 11] " +
 			"side 101100111101 own 100000000101 hash 672efb045a66956b"},
 		{name: "second game", second: true, want: "sees 101111111101 near 3 far 3 heal 1 support [0 3 4 6 7 9 11] " +
-			"side 101100111101 own 100000000101 hash a09257093dae208f"},
+			"side 101100111101 own 100000000101 hash 9e497bee9a00d144"},
 	} {
 		games[tc.second] = true
 		t.Run(tc.name, func(t *testing.T) {

@@ -10,17 +10,27 @@ import (
 )
 
 // withoutKindSection is a World byte form as an older build wrote it: the
-// kind section the form's outermost wrapper carries is cut off.
+// wrappers that follow the kind section (structure owners, wide registers) and
+// the kind section itself are cut off.
 func withoutKindSection(t *testing.T, world []byte) []byte {
 	t.Helper()
-	end := len(world)
-	if end < 9 || string(world[end-4:]) != "AKW1" {
+	cut := func(tag string) bool {
+		end := len(world)
+		if end < 9 || string(world[end-4:]) != tag {
+			return false
+		}
+		span := int(binary.LittleEndian.Uint32(world[end-9:]))
+		out := append([]byte(nil), world[:end-9-span]...)
+		out[0] = world[end-5]
+		world = out
+		return true
+	}
+	for cut("SOW1") || cut("WRG1") {
+	}
+	if !cut("AKW1") {
 		t.Fatalf("the World form does not end in a kind section")
 	}
-	span := int(binary.LittleEndian.Uint32(world[end-9:]))
-	out := append([]byte(nil), world[:end-9-span]...)
-	out[0] = world[end-5]
-	return out
+	return world
 }
 
 // A second-game mission SAVE an older build wrote holds no kind section: its

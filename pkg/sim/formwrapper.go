@@ -54,6 +54,8 @@ var formWrappers []formWrapper
 
 func init() {
 	formWrappers = []formWrapper{
+		{structureOwnerFormVersion, "SOW1", trailerSpan32, baseOlder, (*World).unmarshalStructureOwners},
+		{wideRegistersFormVersion, "WRG1", trailerSpan32, baseOlder, (*World).unmarshalWideRegisters},
 		{areaHitFormVersion, "AHC1", trailerSpan32, baseOlder, (*World).unmarshalAreaHitCounts},
 		{beyondBookFormVersion, "BYB1", trailerSpan32, baseOlder, (*World).unmarshalBeyondBooks},
 		{actorKindFormVersion, "AKW1", trailerSpan32, baseOlder, (*World).unmarshalActorKinds},

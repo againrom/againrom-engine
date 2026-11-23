@@ -155,7 +155,7 @@ func init() {
 	worldMethods = append(worldMethods, "RefreshPlayerBooks")
 	worldMethods = append(worldMethods, "EntityAlive")
 	worldMethods = append(worldMethods, "BuildingCellPlanes")
-	worldMethods = append(worldMethods, "RouteCost")
+	worldMethods = append(worldMethods, "RouteCost", "ScriptRegistersBeyond")
 	worldWriters = append(worldWriters, "RefreshPlayerBooks")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")

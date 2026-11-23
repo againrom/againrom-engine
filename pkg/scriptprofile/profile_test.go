@@ -9,11 +9,11 @@ import (
 // table: three pairs, four actions, codes 0..5, 100 registers (1000 in the
 // second game), 1000 latches and triggers, ids up to 5000.
 func TestProfilesHoldTheEnginesLimits(t *testing.T) {
-	want := Profile{Pairs: 3, Actions: 4, MaxCompare: 5, Registers: 100, Latches: 1000, Triggers: 1000, MaxID: 5000}
+	want := Profile{Pairs: 3, Actions: 4, MaxCompare: 5, Registers: 100, TickRegister: 93, Latches: 1000, Triggers: 1000, MaxID: 5000}
 	if First != want {
 		t.Errorf("First = %+v, want %+v", First, want)
 	}
-	want.Registers, want.Ops = 1000, OpsSecond
+	want.Registers, want.TickRegister, want.Ops = 1000, 999, OpsSecond
 	if Second != want {
 		t.Errorf("Second = %+v, want %+v", Second, want)
 	}
@@ -23,7 +23,7 @@ func TestProfilesHoldTheEnginesLimits(t *testing.T) {
 // per trigger in OR-ed groups, 4096 variables apart from the check results,
 // 10000 triggers with a latch each, the original's codes and id cap.
 func TestExtendedProfileHoldsTheOwnersLimits(t *testing.T) {
-	want := Profile{Pairs: 64, Actions: 64, MaxCompare: 5, Latches: 10000, Triggers: 10000, MaxID: 5000,
+	want := Profile{Pairs: 64, Actions: 64, MaxCompare: 5, TickRegister: 93, Latches: 10000, Triggers: 10000, MaxID: 5000,
 		Variables: 4096, Groups: true}
 	if Extended != want {
 		t.Errorf("Extended = %+v, want %+v", Extended, want)

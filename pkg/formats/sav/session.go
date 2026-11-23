@@ -20,11 +20,14 @@ type SessionState struct {
 	// signed phase interpretation belongs to the simulation, not this reader.
 	SubTick, FullTick uint32
 	Registers         [triggerResultCount]int32
-	TriggerLatches    []byte
-	RawHead           [rawHeadLen]byte
-	RawMid            [rawMidLen]byte
-	Diplomacy         []byte
-	Won, Lost         uint32
+	// WideRegisters holds the result slots past the first hundred when the
+	// profile's session block carries them (R2-SESSION-019), else nil.
+	WideRegisters  []int32
+	TriggerLatches []byte
+	RawHead        [rawHeadLen]byte
+	RawMid         [rawMidLen]byte
+	Diplomacy      []byte
+	Won, Lost      uint32
 	// Unheld counts the nonzero result slots past the hundred Registers
 	// hold. Only the second game's block has such slots (DIV-4170).
 	Unheld int
@@ -64,11 +67,17 @@ func (f *File) SessionState() (SessionState, error) {
 		out.Registers[i] = v
 	}
 	l := f.layout()
-	for i := len(out.Registers); i < l.resultCount; i++ {
-		if v, err := f.TriggerResult(i); err != nil {
-			return SessionState{}, err
-		} else if v != 0 {
-			out.Unheld++
+	if n := l.resultCount - len(out.Registers); n > 0 {
+		out.WideRegisters = make([]int32, n)
+		for i := 0; i < n; i++ {
+			v, err := f.TriggerResult(len(out.Registers) + i)
+			if err != nil {
+				return SessionState{}, err
+			}
+			out.WideRegisters[i] = v
+			if v != 0 {
+				out.Unheld++
+			}
 		}
 	}
 	if out.RawHead, err = f.RawHead(); err != nil {

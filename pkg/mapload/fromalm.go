@@ -539,7 +539,7 @@ func Structures(m *alm.Map, t *Table) []sim.Structure {
 	c := t.buildings()
 	out := make([]sim.Structure, len(m.Objects))
 	for i, o := range m.Objects {
-		out[i] = sim.Structure{ID: sim.StructureID(i), Col: int32(o.X >> 8), Row: int32(o.Y >> 8)}
+		out[i] = sim.Structure{ID: sim.StructureID(i), Col: int32(o.X >> 8), Row: int32(o.Y >> 8), Owner: uint32(uint16(o.Field0E))}
 		StructureUseMetadata(&out[i], uint16(byte(o.Kind)), t)
 		if hp, ok := StructureMaxHealth(t, byte(o.Kind)); ok {
 			out[i].Field42 = uint16(hp)

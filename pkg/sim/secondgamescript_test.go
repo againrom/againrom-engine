@@ -260,6 +260,8 @@ func asSecondGame(t *testing.T, w *World) {
 	w.script = secondGameScript(t, nil, nil, nil)
 	w.rom2 = nil
 	w.initializeROM2Script()
+	w.fitScriptState()
+	w.seedScriptRegisters()
 	w.constructSessionClock()
 }
 

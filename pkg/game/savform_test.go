@@ -414,3 +414,96 @@ func documentRawBytes(t *testing.T, r *sav.DocumentRecordData, name string) []by
 	t.Fatalf("%s record holds no %s", r.Class, name)
 	return nil
 }
+
+func TestSecondMissionSaveRoundTripsRegisters900To999(t *testing.T) {
+	f, app, screen, _ := secondBagFrontOf(t, nil, secondBuildingCellMission())
+	secondMageItems(f)
+	secondBuildingCellTable(f)
+	secondBagEnter(t, f, app, screen)
+
+	prog, err := sim.NewROM2Script(nil, []sim.ScriptInstant{
+		{Op: sim.ScriptInstantCounter},
+		{Op: sim.ScriptInstantSetVariable, Args: [10]int32{900, 17}},
+		{Op: sim.ScriptInstantSetVariable, Args: [10]int32{901, 3}},
+		{Op: sim.ScriptInstantSetVariable, Args: [10]int32{950, -12}},
+	}, []sim.ScriptTrigger{{Instants: [4]int32{0, 1, 2, 3}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.live.world.RestoreScriptProgram(prog); err != nil {
+		t.Fatal(err)
+	}
+	for range 32 {
+		sim.Step(f.live.world, nil)
+	}
+	if got := f.live.world.ScriptRegister(999); got != 2 {
+		t.Fatalf("after 32 ticks reg999=%d, want 2", got)
+	}
+	if f.live.world.ScriptRegister(900) != 17 || f.live.world.ScriptRegister(901) != 3 || f.live.world.ScriptRegister(902) != 2 || f.live.world.ScriptRegister(950) != -12 {
+		t.Fatalf("live wide registers: 900=%d 901=%d 902=%d 950=%d",
+			f.live.world.ScriptRegister(900), f.live.world.ScriptRegister(901), f.live.world.ScriptRegister(902), f.live.world.ScriptRegister(950))
+	}
+
+	raw := secondPageSave(t, f, app)
+	sf, err := sav.Open(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess, err := sf.SessionState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range [][2]int32{{900, 17}, {901, 3}, {902, 2}, {950, -12}, {999, 2}} {
+		if got := sess.WideRegisters[want[0]-100]; got != want[1] {
+			t.Errorf("Bsg& session slot %d = %d, want %d", want[0], got, want[1])
+		}
+	}
+
+	for _, tc := range []struct {
+		name string
+		data []byte
+	}{
+		{"engine document leaf", raw},
+		{"native Bsg& records", withoutEngineDocument(t, raw)},
+	} {
+		loaded, _ := secondBuildingCellLoad(t, tc.data)
+		for _, want := range [][2]int32{{900, 17}, {901, 3}, {902, 2}, {950, -12}, {999, 2}} {
+			if got := loaded.live.world.ScriptRegister(want[0]); got != want[1] {
+				t.Errorf("%s LOAD reg %d = %d, want %d", tc.name, want[0], got, want[1])
+			}
+		}
+	}
+}
+
+func TestSecondMissionSaveWritesTickRegisterWithEmptyProgram(t *testing.T) {
+	f, app, screen, _ := secondBagFrontOf(t, nil, secondBuildingCellMission())
+	secondMageItems(f)
+	secondBuildingCellTable(f)
+	secondBagEnter(t, f, app, screen)
+	prog, err := sim.NewROM2Script(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.live.world.RestoreScriptProgram(prog); err != nil {
+		t.Fatal(err)
+	}
+	before := f.live.world.ScriptRegister(999)
+	for range 32 {
+		sim.Step(f.live.world, nil)
+	}
+	got := f.live.world.ScriptRegister(999)
+	if got-before != 2 {
+		t.Fatalf("empty program: reg999 %d -> %d after 32 ticks, want +2", before, got)
+	}
+	sf, err := sav.Open(secondPageSave(t, f, app))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess, err := sf.SessionState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := sess.WideRegisters[999-100]; v != got {
+		t.Errorf("Bsg& session slot 999 = %d, want %d", v, got)
+	}
+}

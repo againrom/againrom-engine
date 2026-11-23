@@ -1648,7 +1648,7 @@ func (w *World) tailCapacity(body int) int {
 // terminal contents, the runtime ids, the script slots and the wide token
 // rows as the outer sections. Hash digests these bytes.
 func (w *World) encodeInto(b []byte) []byte {
-	return w.appendAreaHitCounts(w.appendBeyondBooks(w.appendActorKinds(w.appendDeadRanks(w.appendPurses(w.appendVictimKinds(w.appendBuildingCasters(w.appendDeathItems(w.appendExtendedScript(w.appendRewardMarks(w.appendSummonKeys(w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b))))))))))))))))
+	return w.appendStructureOwners(w.appendWideRegisters(w.appendAreaHitCounts(w.appendBeyondBooks(w.appendActorKinds(w.appendDeadRanks(w.appendPurses(w.appendVictimKinds(w.appendBuildingCasters(w.appendDeathItems(w.appendExtendedScript(w.appendRewardMarks(w.appendSummonKeys(w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b))))))))))))))))))
 }
 
 func (w *World) appendRewardMarks(b []byte) []byte {
@@ -3242,8 +3242,12 @@ func (w *World) unmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
+	registerCap := 0
+	if w.formGame != nil {
+		registerCap = w.formGame.scriptLimits().Registers
+	}
 	st, err := decodeScript(
-		tail[used+gused+sused+cused+eused+tused+pused+spused+iwused+caused+ssused+stused+itemUsed+scrollUsed:])
+		tail[used+gused+sused+cused+eused+tused+pused+spused+iwused+caused+ssused+stused+itemUsed+scrollUsed:], registerCap)
 	if err != nil {
 		return err
 	}

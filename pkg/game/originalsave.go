@@ -386,6 +386,7 @@ func originalSessionState(f *sav.File) (sim.OriginalSession, bool, error) {
 		HasClock:       true,
 		Clock:          sim.SessionClock{SubTick: state.SubTick, FullTick: state.FullTick},
 		Registers:      state.Registers,
+		WideRegisters:  state.WideRegisters,
 		TriggerLatches: state.TriggerLatches,
 		RawHead:        state.RawHead,
 		RawMid:         state.RawMid,
@@ -428,6 +429,9 @@ func applyOriginalSession(ms *Mission, state sim.OriginalSession, present bool,
 		r.DiplomacyCells = len(state.Diplomacy)
 		r.SessionApplied = true
 		r.WinCount, r.LoseCount = state.Won, state.Lost
+		if len(state.WideRegisters) != 0 {
+			r.UnheldResults = nil
+		}
 	}
 	return nil
 }

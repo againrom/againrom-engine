@@ -1,6 +1,10 @@
 package sim
 
-import "fmt"
+import (
+	"fmt"
+
+	"againrom/pkg/scriptprofile"
+)
 
 // OriginalSession is the supported canonical state imported from an original
 // mid-mission save. The Player outcome is independent of the session counters:
@@ -17,6 +21,7 @@ type OriginalSession struct {
 	HasClock       bool
 	Clock          SessionClock
 	Registers      [scriptRegisters]int32
+	WideRegisters  []int32
 	TriggerLatches []byte
 	RawHead        [sessionRawHeadLen]byte
 	RawMid         [sessionRawMidLen]byte
@@ -39,6 +44,10 @@ func ValidateOriginalSession(s OriginalSession) error {
 	}
 	if !s.Outcome.defined() {
 		return fmt.Errorf("sim: original Player outcome %d is not defined", s.Outcome)
+	}
+	if len(s.WideRegisters) != 0 && len(s.WideRegisters) != scriptprofile.SecondRegisters-scriptRegisters {
+		return fmt.Errorf("sim: original session carries %d wide register(s), want 0 or %d",
+			len(s.WideRegisters), scriptprofile.SecondRegisters-scriptRegisters)
 	}
 	if len(s.TriggerLatches) != scriptLatches {
 		return fmt.Errorf("sim: original session carries %d trigger latch byte(s), want %d",
@@ -80,6 +89,10 @@ func (w *World) ImportOriginalSession(s OriginalSession) error {
 	if err := ValidateOriginalSession(s); err != nil {
 		return err
 	}
+	if len(s.WideRegisters) != 0 && (w.script.Extended() || len(s.WideRegisters) != len(w.scriptVars)) {
+		return fmt.Errorf("sim: original session carries %d wide register(s), world holds %d",
+			len(s.WideRegisters), len(w.scriptVars))
+	}
 	var latches [scriptLatches]byte
 	copy(latches[:], s.TriggerLatches)
 	relations, err := NewRelations(s.Diplomacy)
@@ -90,6 +103,9 @@ func (w *World) ImportOriginalSession(s OriginalSession) error {
 
 	// The only mutation point: no validation or allocation follows it.
 	w.registers = s.Registers
+	if len(s.WideRegisters) != 0 {
+		copy(w.scriptVars, s.WideRegisters)
+	}
 	w.presetRegisters()
 	w.latches = latches
 	w.relations = relations

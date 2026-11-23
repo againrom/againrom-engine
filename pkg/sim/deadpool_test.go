@@ -18,6 +18,9 @@ func TestSecondDeadRankByteForm(t *testing.T) {
 	for range 8 {
 		Step(w, nil)
 	}
+	// The tick register is non-default after a step and would add its own
+	// wrapper; this test reads the dead-rank wrapper outermost.
+	w.setRegisterAt(999, 0)
 	if got := w.DeadList(); !reflect.DeepEqual(got, []EntityID{3, 2}) {
 		t.Fatalf("dead list %v, want [3 2]", got)
 	}

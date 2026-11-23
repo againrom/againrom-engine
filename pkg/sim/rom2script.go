@@ -10,11 +10,14 @@ const (
 )
 
 const (
+	ScriptCheckPlayerStructures     int32 = 20
+	ScriptCheckCellObject           int32 = 22
 	ScriptCheckScenario             int32 = 23
 	ScriptCheckObjective            int32 = 24
 	ScriptCheckCellEffect           int32 = 25
 	ScriptCheckUnitEffect           int32 = 26
 	ScriptCheckCentered             int32 = 27
+	ScriptInstantCounter            int32 = 1
 	ScriptInstantSetScenario        int32 = 35
 	ScriptInstantObjective          int32 = 36
 	ScriptInstantDiagnostic         int32 = 37
@@ -59,6 +62,30 @@ var secondGameRows = secondGameScriptRows()
 func secondGameScriptRows() scriptOpRows {
 	return scriptOpRows{
 		check: map[int32]func(*World, ScriptCheck) (int32, bool){
+			// R2-ENGINE-1452: count the player's structures with positive signed +0x42.
+			ScriptCheckPlayerStructures: func(w *World, c ScriptCheck) (int32, bool) {
+				if !c.HasPlayer {
+					return 0, false
+				}
+				var n int32
+				for _, st := range w.structures {
+					if st.Owner == c.Player && int16(st.Field42) > 0 {
+						n++
+					}
+				}
+				return n, true
+			},
+			// R2-ENGINE-1450: cell p1*256+p0; if occupied relocate to (low8 p2, low8 p3) and return 1.
+			ScriptCheckCellObject: func(w *World, c ScriptCheck) (int32, bool) {
+				key := cellKey(c.Args[0], c.Args[1])
+				x, y := int32(key&0xff), int32(key>>8)
+				ground, _ := w.cellLayerOccupants(x, y)
+				if len(ground) == 0 {
+					return 0, true
+				}
+				w.relocateActor(ground[0], c.Args[2]&0xff, c.Args[3]&0xff, nil)
+				return 1, true
+			},
 			ScriptCheckScenario: func(w *World, c ScriptCheck) (int32, bool) {
 				v, _ := w.ROM2ScenarioValue(c.Args[0])
 				return v, true
@@ -101,6 +128,10 @@ func secondGameScriptRows() scriptOpRows {
 			},
 		},
 		instant: map[int32]func(*World, ScriptInstant, *castObs){
+			// R2-ENGINE-1450: add 1 to register 902.
+			ScriptInstantCounter: func(w *World, _ ScriptInstant, _ *castObs) {
+				w.setRegisterAt(902, w.registerAt(902)+1)
+			},
 			ScriptInstantMessage: func(_ *World, in ScriptInstant, obs *castObs) {
 				obs.recordScriptMessage(in.Args[0])
 			},

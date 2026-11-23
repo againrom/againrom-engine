@@ -237,6 +237,43 @@ func TestSecondMissionWorldFollowsTheTerrainAndSessionRules(t *testing.T) {
 	}
 }
 
+func TestSecondMissionSessionResultsRoundTripFromProfileKeeps(t *testing.T) {
+	doc := documentDataFixture(t)
+	if doc.World == nil {
+		t.Fatal("the fixture has no world half")
+	}
+	wide := make([]int32, SecondGame.wideResults())
+	wide[900-triggerResultCount] = 11
+	wide[901-triggerResultCount] = 0
+	wide[902-triggerResultCount] = 7
+	wide[999-triggerResultCount] = 42
+	out, ok, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{SessionResults: wide})
+	if err != nil || !ok {
+		t.Fatalf("DocumentInProfile: %v %v", ok, err)
+	}
+	out.SecondTail = &SecondTail{Pairs: [][2]uint32{{1, 1}}, Locations: []SecondLocation{{ID: 1, Kind: 2}}}
+	raw, err := EncodeDocumentData(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sf, err := Open(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sess, err := sf.SessionState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sess.WideRegisters) != len(wide) {
+		t.Fatalf("WideRegisters len=%d, want %d", len(sess.WideRegisters), len(wide))
+	}
+	for _, want := range [][2]int{{900, 11}, {901, 0}, {902, 7}, {999, 42}} {
+		if got := sess.WideRegisters[want[0]-triggerResultCount]; got != int32(want[1]) {
+			t.Errorf("slot %d = %d, want %d", want[0], got, want[1])
+		}
+	}
+}
+
 // A mission document's key list takes both plane bytes of a cell whose entry
 // names a Building from the World's answer; a unit's cell, a cell with no
 // entry and the input document keep their bytes, and so does every cell

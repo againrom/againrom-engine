@@ -353,7 +353,7 @@ func (tr *ScriptTrace) instantDone(w *World, firing int, slot int32, instant int
 	after := w.Hash()
 	r := ScriptInstantRun{
 		Slot: slot, Instant: instant, Op: in.Op,
-		Supported: scriptInstantSupported(in), BeforeHash: before, AfterHash: after,
+		Supported: w.scriptInstantRuns(in), BeforeHash: before, AfterHash: after,
 	}
 	if in.Op == ScriptInstantGroupOrder {
 		r.HasSubCommand, r.SubCommand = true, in.Args[0]

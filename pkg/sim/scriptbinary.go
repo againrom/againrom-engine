@@ -274,7 +274,7 @@ type scriptState struct {
 // Everything structural is checked by NewScript rather than here, so a script
 // that reaches a world by being decoded is held to exactly what one that reaches
 // a world by being compiled is held to.
-func decodeScript(data []byte) (scriptState, error) {
+func decodeScript(data []byte, registerCap int) (scriptState, error) {
 	var st scriptState
 	if len(data) < scriptStateLen+scriptCountsLen {
 		return st, fmt.Errorf("sim: byte form truncated: the script section needs %d byte(s), %d left",
@@ -329,7 +329,7 @@ func decodeScript(data []byte) (scriptState, error) {
 	if nChecks == 0 && nInstants == 0 && nTriggers == 0 {
 		return st, nil
 	}
-	s, err := NewScript(recs.checks, recs.instants, recs.triggers)
+	s, err := newScriptOn(ScriptROM1, scriptMachine{registerCap: registerCap}, recs.checks, recs.instants, recs.triggers)
 	if err != nil {
 		return st, err
 	}

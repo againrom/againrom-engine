@@ -30,6 +30,10 @@ const (
 	MaxID = 5000
 	// SecondRegisters is the second game's result slots (R2-SESSION-019).
 	SecondRegisters = 1000
+	// FirstTickRegister and SecondTickRegister are the register each script
+	// pass increments (SAV-650, R2-ENGINE-1451).
+	FirstTickRegister  = 93
+	SecondTickRegister = 999
 )
 
 // The extended machine's numbers, an Againrom map script record's limits
@@ -57,6 +61,7 @@ type Profile struct {
 	Pairs, Actions int    // condition pairs and action ids per trigger
 	MaxCompare     uint32 // the highest comparison code
 	Registers      int    // check-result registers, 0 for one result per check
+	TickRegister   int    // register incremented on each script pass
 	Latches        int    // fire-once latch bytes
 	Triggers       int    // triggers a map holds
 	MaxID          uint32 // the highest node id a slot names
@@ -74,11 +79,11 @@ type Profile struct {
 // of their own.
 var (
 	First = Profile{Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
-		Registers: FirstRegisters, Latches: Latches, Triggers: Triggers, MaxID: MaxID}
+		Registers: FirstRegisters, TickRegister: FirstTickRegister, Latches: Latches, Triggers: Triggers, MaxID: MaxID}
 	Second = Profile{Ops: OpsSecond, Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
-		Registers: SecondRegisters, Latches: Latches, Triggers: Triggers, MaxID: MaxID}
+		Registers: SecondRegisters, TickRegister: SecondTickRegister, Latches: Latches, Triggers: Triggers, MaxID: MaxID}
 	Extended = Profile{Pairs: ExtendedConditions, Actions: ExtendedActions, MaxCompare: MaxCompare,
-		Latches: ExtendedTriggers, Triggers: ExtendedTriggers, MaxID: MaxID,
+		TickRegister: FirstTickRegister, Latches: ExtendedTriggers, Triggers: ExtendedTriggers, MaxID: MaxID,
 		Variables: ExtendedVariables, Groups: true}
 )
 
@@ -87,6 +92,14 @@ var (
 func Of(extended bool) Profile {
 	if extended {
 		return Extended
+	}
+	return First
+}
+
+// ForOps returns the non-extended profile for operation vocabulary ops.
+func ForOps(ops Ops) Profile {
+	if ops == OpsSecond {
+		return Second
 	}
 	return First
 }

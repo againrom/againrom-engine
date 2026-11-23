@@ -595,14 +595,22 @@ type ScriptGap struct {
 // cannot be edited after it has been validated — which is what lets the world
 // that holds one rely on the invariants NewScript established.
 type Script struct {
-	dialect  ScriptDialect
-	machine  scriptMachine
-	checks   []ScriptCheck
-	instants []ScriptInstant
-	triggers []ScriptTrigger
+	dialect   ScriptDialect
+	machine   scriptMachine
+	registers int
+	checks    []ScriptCheck
+	instants  []ScriptInstant
+	triggers  []ScriptTrigger
 
 	gaps  []ScriptGap
 	inert []int32
+}
+
+func (s *Script) registerCount() int {
+	if s == nil || s.registers == 0 {
+		return scriptRegisters
+	}
+	return s.registers
 }
 
 // scriptMachine is the extended machine's shape; the zero value is the
@@ -610,9 +618,10 @@ type Script struct {
 // and keeps its variables apart from them (DIV-4602); latches is one
 // past the highest latch position its triggers use.
 type scriptMachine struct {
-	extended  bool
-	variables int32
-	latches   int32
+	extended    bool
+	variables   int32
+	latches     int32
+	registerCap int
 }
 
 // NewExtendedScript compiles an extended program: the first game's opcodes
@@ -674,7 +683,13 @@ func newScript(dialect ScriptDialect, checks []ScriptCheck, instants []ScriptIns
 // its latch positions. m.latches is derived here and any value given is
 // overwritten.
 func newScriptOn(dialect ScriptDialect, m scriptMachine, checks []ScriptCheck, instants []ScriptInstant, triggers []ScriptTrigger) (*Script, error) {
-	registers, latches := scriptRegisters, scriptLatches
+	profile := newGameProfile(dialect)
+	limits := profile.scriptLimits()
+	registers, latches := limits.Registers, limits.Latches
+	if m.registerCap > 0 {
+		registers = m.registerCap
+		m.registerCap = 0
+	}
 	if m.extended {
 		registers, latches = len(checks), scriptprofile.Extended.Latches
 		if len(triggers) > scriptprofile.Extended.Triggers {
@@ -715,7 +730,7 @@ func newScriptOn(dialect ScriptDialect, m scriptMachine, checks []ScriptCheck, i
 	// what the map asked for.
 	poisoned := make([]bool, registers)
 	var gaps []ScriptGap
-	rows := newGameProfile(dialect).scriptRows
+	rows := profile.scriptRows
 	for i := range cp {
 		if scriptCheckSupported(cp[i].Op) || rows.check[cp[i].Op] != nil {
 			continue
@@ -795,7 +810,7 @@ func newScriptOn(dialect ScriptDialect, m scriptMachine, checks []ScriptCheck, i
 	if !m.extended {
 		m.latches = 0
 	}
-	return &Script{dialect: dialect, machine: m, checks: cp, instants: ip, triggers: tp, gaps: gaps, inert: inert}, nil
+	return &Script{dialect: dialect, machine: m, registers: registers, checks: cp, instants: ip, triggers: tp, gaps: gaps, inert: inert}, nil
 }
 
 // checkTriggerLists holds trigger i's lists to machine m: an original trigger
@@ -871,7 +886,7 @@ func (s *Script) WithVIP(unit EntityID) (*Script, error) {
 	}
 	// An extended program's checks own a result slot each, so the new one
 	// takes the slot after the last.
-	slots := scriptRegisters
+	slots := s.registerCount()
 	if machine.extended {
 		slots = len(checks) + 1
 	}
@@ -889,7 +904,7 @@ func (s *Script) WithVIP(unit EntityID) (*Script, error) {
 		}
 	}
 	if register == ScriptNone {
-		return nil, fmt.Errorf("sim: cannot add a VIP check: all %d registers are owned", scriptRegisters)
+		return nil, fmt.Errorf("sim: cannot add a VIP check: all %d registers are owned", slots)
 	}
 	checks = append(checks, ScriptCheck{
 		Op: ScriptCheckVIP, Register: register, Unit: unit, HasUnit: true,
@@ -1013,16 +1028,14 @@ func (w *World) scriptPass(tr *ScriptTrace) { w.scriptPassObserved(tr, nil) }
 
 func (w *World) scriptPassObserved(tr *ScriptTrace, obs *castObs) {
 	s := w.script
-	// The native byte form represents absent and empty programs identically.
-	// The session clock runs this slot even when no checks are compiled; a
-	// second-game World without a program keeps its inert register bank.
-	hasProgram := s != nil && (len(s.checks) != 0 || len(s.instants) != 0 || len(s.triggers) != 0)
-	if w.game.inertWithoutProgram && !hasProgram {
-		return
+	// SAV-650 / R2-ENGINE-1451: the profile's tick register increments before
+	// both evaluators, including its wrapping int32 value.
+	tickReg := int32(w.game.scriptLimits().TickRegister)
+	if tickReg < scriptRegisters {
+		w.registers[tickReg]++
+	} else {
+		w.setRegisterAt(tickReg, w.registerAt(tickReg)+1)
 	}
-	// SAV-650: slot93 increments before both evaluators. Authored time
-	// conditions read this saved int32 counter, including its wrapping value.
-	w.registers[93]++
 	if s == nil {
 		return
 	}
@@ -2444,7 +2457,7 @@ func (w *World) setRegister(r, v int32) {
 		w.scriptResults[r] = v
 		return
 	}
-	w.registers[r] = v
+	w.setRegisterAt(r, v)
 }
 
 // checkResult reads a COMPILED subscript: check r's result. An extended
@@ -2457,7 +2470,7 @@ func (w *World) checkResult(r int32) int32 {
 		}
 		return w.scriptResults[r]
 	}
-	return w.registers[r]
+	return w.registerAt(r)
 }
 
 // latch and setLatch read and write the fire-once latch at map position i,
@@ -2493,7 +2506,11 @@ func (w *World) registerAt(r int32) int32 {
 		return 0
 	}
 	if r >= scriptRegisters {
-		return w.scriptVars[r-scriptRegisters]
+		i := int(r - scriptRegisters)
+		if i >= len(w.scriptVars) {
+			return 0
+		}
+		return w.scriptVars[i]
 	}
 	return w.registers[r]
 }
@@ -2503,7 +2520,13 @@ func (w *World) setRegisterAt(r, v int32) {
 		return
 	}
 	if r >= scriptRegisters {
-		w.scriptVars[r-scriptRegisters] = v
+		i := int(r - scriptRegisters)
+		if i >= len(w.scriptVars) {
+			w.fitScriptState()
+		}
+		if i < len(w.scriptVars) {
+			w.scriptVars[i] = v
+		}
 		return
 	}
 	w.registers[r] = v
@@ -2514,15 +2537,14 @@ func (w *World) variableCount() int32 {
 	if w.script.Extended() {
 		return w.script.machine.variables
 	}
-	return scriptRegisters
+	return int32(w.game.scriptLimits().Registers)
 }
 
-// fitScriptState sizes the extended machine's state to w's program, keeping
-// what fits of the state it had: the variables past the hundred registers,
-// one result per check and the latches past the thousand. An original
-// program's are empty.
+// fitScriptState sizes the extra script state to w's profile and program,
+// keeping what fits of the state it had: registers past the first hundred,
+// one result per check and latches past the thousand.
 func (w *World) fitScriptState() {
-	vars, results, tail := 0, 0, 0
+	vars, results, tail := max(0, w.game.scriptLimits().Registers-scriptRegisters), 0, 0
 	if s := w.script; s.Extended() {
 		vars, results = max(0, int(s.machine.variables)-scriptRegisters), len(s.checks)
 		tail = max(0, int(s.machine.latches)-scriptLatches)
@@ -2530,6 +2552,21 @@ func (w *World) fitScriptState() {
 	w.scriptVars = fitSlice(w.scriptVars, vars)
 	w.scriptResults = fitSlice(w.scriptResults, results)
 	w.latchTail = fitSlice(w.latchTail, tail)
+}
+
+// seedScriptRegisters writes the profile's session-start register value
+// (R2-SESSION-265).
+func (w *World) seedScriptRegisters() {
+	if seed := w.game.scriptSeed; seed.value != 0 {
+		w.setRegisterAt(seed.register, seed.value)
+	}
+}
+
+func (w *World) defaultWideRegister(r int32) int32 {
+	if seed := w.game.scriptSeed; seed.value != 0 && r == seed.register {
+		return seed.value
+	}
+	return 0
 }
 
 // fitSlice is s at length n, s itself when it already is, else a new slice
@@ -2604,6 +2641,15 @@ func (w *World) ScriptRegister(r int32) int32 { return w.registerAt(r) }
 // it. A native mission SAVE (docs/1130/story.md) is its intended reader.
 func (w *World) ScriptRegisters() [scriptRegisters]int32 { return w.registers }
 
+// ScriptRegistersBeyond returns a copy of the registers past the first
+// hundred for a non-extended program, or nil when the profile holds none.
+func (w *World) ScriptRegistersBeyond() []int32 {
+	if w.script.Extended() {
+		return nil
+	}
+	return slices.Clone(w.scriptVars)
+}
+
 // RawSessionHead and RawSessionMid return the two opaque session-block spans
 // ImportOriginalSession carried in, byte for byte, from an original save
 // (SAV-SESS-031). Both are the zero array for a world that never imported
@@ -2658,6 +2704,9 @@ type ScriptExtendedState struct {
 // ScriptExtendedState returns a copy of w's extended state; it is empty for
 // an original program.
 func (w *World) ScriptExtendedState() ScriptExtendedState {
+	if !w.script.Extended() {
+		return ScriptExtendedState{}
+	}
 	return ScriptExtendedState{Variables: slices.Clone(w.scriptVars), Results: slices.Clone(w.scriptResults),
 		Latches: slices.Clone(w.latchTail)}
 }
@@ -2666,16 +2715,23 @@ func (w *World) ScriptExtendedState() ScriptExtendedState {
 // have the lengths w's program gives it and latches of 0 or 1. An error
 // leaves w unchanged.
 func (w *World) RestoreScriptExtendedState(s ScriptExtendedState) error {
-	if len(s.Variables) != len(w.scriptVars) || len(s.Results) != len(w.scriptResults) || len(s.Latches) != len(w.latchTail) {
+	var vars, results, latches int
+	if w.script.Extended() {
+		vars, results, latches = len(w.scriptVars), len(w.scriptResults), len(w.latchTail)
+	}
+	if len(s.Variables) != vars || len(s.Results) != results || len(s.Latches) != latches {
 		return fmt.Errorf("sim: extended script state holds %d variables, %d results and %d latches, the program %d, %d and %d",
-			len(s.Variables), len(s.Results), len(s.Latches), len(w.scriptVars), len(w.scriptResults), len(w.latchTail))
+			len(s.Variables), len(s.Results), len(s.Latches), vars, results, latches)
 	}
 	if slices.ContainsFunc(s.Latches, func(b byte) bool { return b > 1 }) {
 		return fmt.Errorf("sim: an extended script latch is neither 0 nor 1")
 	}
-	w.scriptVars = fitSlice(slices.Clone(s.Variables), len(w.scriptVars))
-	w.scriptResults = fitSlice(slices.Clone(s.Results), len(w.scriptResults))
-	w.latchTail = fitSlice(slices.Clone(s.Latches), len(w.latchTail))
+	if !w.script.Extended() {
+		return nil
+	}
+	w.scriptVars = fitSlice(slices.Clone(s.Variables), vars)
+	w.scriptResults = fitSlice(slices.Clone(s.Results), results)
+	w.latchTail = fitSlice(slices.Clone(s.Latches), latches)
 	return nil
 }
 
@@ -2694,4 +2750,10 @@ func sortedGaps(gs []ScriptGap) []ScriptGap {
 		return out[i].Index < out[j].Index
 	})
 	return out
+}
+
+// scriptInstantRuns reports whether w's game runs the instant, by the shared
+// table or by the game's own rows.
+func (w *World) scriptInstantRuns(in ScriptInstant) bool {
+	return scriptInstantSupported(in) || w.game.scriptRows.instant[in.Op] != nil
 }

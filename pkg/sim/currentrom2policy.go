@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
+	"againrom/pkg/scriptprofile"
 )
 
 type CurrentROM2GroupActivity struct {
@@ -13,14 +15,16 @@ type CurrentROM2GroupActivity struct {
 }
 
 type CurrentROM2Policy struct {
-	Scenario [1024]int32
-	Groups   []CurrentROM2GroupActivity
+	Scenario  [1024]int32
+	Groups    []CurrentROM2GroupActivity
+	Registers []int32 `json:",omitempty"`
 }
 
 func (p *CurrentROM2Policy) UnmarshalJSON(raw []byte) error {
 	var fields struct {
-		Scenario json.RawMessage
-		Groups   json.RawMessage
+		Scenario  json.RawMessage
+		Groups    json.RawMessage
+		Registers json.RawMessage
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
@@ -35,7 +39,15 @@ func (p *CurrentROM2Policy) UnmarshalJSON(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	next := CurrentROM2Policy{Groups: groups}
+	var registers []int32
+	if len(fields.Registers) != 0 {
+		limit := scriptprofile.SecondRegisters - scriptRegisters
+		registers, err = currentROM2Rows[int32](fields.Registers, limit)
+		if err != nil {
+			return err
+		}
+	}
+	next := CurrentROM2Policy{Groups: groups, Registers: registers}
 	copy(next.Scenario[:], bank)
 	if err := next.validate(); err != nil {
 		return err
@@ -56,6 +68,9 @@ func (p *CurrentROM2Policy) validate() error {
 			}
 		}
 	}
+	if want := scriptprofile.SecondRegisters - scriptRegisters; len(p.Registers) != 0 && len(p.Registers) != want {
+		return fmt.Errorf("sim: current ROM2 registers must hold %d values, got %d", want, len(p.Registers))
+	}
 	return nil
 }
 
@@ -63,7 +78,7 @@ func (w *World) currentROM2Policy() *CurrentROM2Policy {
 	if w.rom2 == nil {
 		return nil
 	}
-	p := &CurrentROM2Policy{Scenario: w.rom2.Scenario}
+	p := &CurrentROM2Policy{Scenario: w.rom2.Scenario, Registers: w.ScriptRegistersBeyond()}
 	for _, g := range w.rom2.Groups {
 		p.Groups = append(p.Groups, CurrentROM2GroupActivity{g.Owner, g.Group, g.Forced})
 	}
@@ -80,11 +95,17 @@ func (w *World) restoreCurrentROM2Policy(p *CurrentROM2Policy) error {
 	if err := p.validate(); err != nil {
 		return err
 	}
+	if len(p.Registers) != 0 && len(p.Registers) != len(w.scriptVars) {
+		return fmt.Errorf("sim: current ROM2 registers hold %d values, world holds %d", len(p.Registers), len(w.scriptVars))
+	}
 	state := &rom2ScriptState{Scenario: p.Scenario}
 	for _, g := range p.Groups {
 		state.Groups = append(state.Groups, rom2GroupActivity{g.Owner, g.Group, g.Forced})
 	}
 	w.rom2 = state
+	if len(p.Registers) != 0 {
+		copy(w.scriptVars, p.Registers)
+	}
 	return nil
 }
 

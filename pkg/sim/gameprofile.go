@@ -1,6 +1,9 @@
 package sim
 
-import "againrom/pkg/rules"
+import (
+	"againrom/pkg/rules"
+	"againrom/pkg/scriptprofile"
+)
 
 // gameProfile is every rule the World decides by the game it runs, one field
 // per difference. newGameProfile is its one chooser and the only code that
@@ -31,8 +34,17 @@ type gameProfile struct {
 	// scriptRows: the second game's script op bodies, added to the shared ones;
 	// a dialect without rows runs the shared bodies only.
 	scriptRows scriptOpRows
-	// inertWithoutProgram: a script slot without a program leaves its bank inert.
-	inertWithoutProgram bool
+	// dialect is the script dialect this profile serves.
+	dialect ScriptDialect
+	// scriptProfile holds the dialect's register count and tick register
+	// (R2-SESSION-019, R2-ENGINE-1451); zero takes the first game's profile.
+	scriptProfile scriptprofile.Profile
+	// scriptSeed is the non-zero register written at session start
+	// (R2-SESSION-265); zero value writes none.
+	scriptSeed scriptRegisterSeed
+	// structureOwners: the byte form keeps structure owners; only the second
+	// game's check 20 reads them.
+	structureOwners bool
 	// outcomeReport: how the outcome reads the lose and win counters
 	// (outcomeReports).
 	outcomeReport outcomeRule
@@ -217,6 +229,30 @@ type gameProfile struct {
 	showMapFullCard bool
 }
 
+type scriptRegisterSeed struct{ register, value int32 }
+
+var dialectProfiles = [...]scriptprofile.Profile{
+	ScriptROM1: scriptprofile.ForOps(scriptprofile.OpsFirst),
+	ScriptROM2: scriptprofile.ForOps(scriptprofile.OpsSecond),
+}
+
+// Profile returns the script profile of dialect d.
+func (d ScriptDialect) Profile() scriptprofile.Profile {
+	if int(d) < len(dialectProfiles) {
+		return dialectProfiles[d]
+	}
+	return scriptprofile.First
+}
+
+// scriptLimits returns the script profile of g, defaulting a zero profile
+// to the first game's.
+func (g gameProfile) scriptLimits() scriptprofile.Profile {
+	if g.scriptProfile.Registers == 0 {
+		return scriptprofile.First
+	}
+	return g.scriptProfile
+}
+
 // diaryCap is the largest kill count the profile's Diary stores.
 func (g gameProfile) diaryCap() uint32 {
 	if g.diaryCountCap == 0 {
@@ -258,6 +294,8 @@ var secondGameCardWindow = cardWindow{lastType: 107, lastFace: 7}
 func newGameProfile(d ScriptDialect) gameProfile {
 	if d != ScriptROM2 {
 		return gameProfile{
+			dialect:          ScriptROM1,
+			scriptProfile:    scriptprofile.First,
 			scoreEffectSpell: 20,
 			skillAward:       firstGameSkillAward,
 			computerSupport:  supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, hold: supportHeldInCombat, shield: shieldNone},
@@ -274,7 +312,10 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		tickClock:                  nativeTickClock,
 		buildingCasters:            true,
 		scriptRows:                 secondGameRows,
-		inertWithoutProgram:        true,
+		dialect:                    ScriptROM2,
+		scriptProfile:              scriptprofile.ForOps(scriptprofile.OpsSecond),
+		scriptSeed:                 scriptRegisterSeed{register: 901, value: 1},
+		structureOwners:            true,
 		outcomeReport:              outcomeAtNonzero,
 		groupActivity:              groupActivityByMask,
 		activityMask:               true,
