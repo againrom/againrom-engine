@@ -35,10 +35,7 @@ func (w *World) preparedSpellPayload(rule SpellRule, power int32, target int) Sa
 func (w *World) NativeSpellDeliverySaveStates() []SpellDeliverySaveState {
 	out := make([]SpellDeliverySaveState, 0, len(w.deliveries))
 	for _, d := range w.deliveries {
-		a := AreaSaveState{Key: cellKey(d.X, d.Y), Spell: d.Rule.ID, Radius: d.Rule.Radius, Mode: areaModeFor(d.Rule), Direction: areaDirection(d.FromX, d.FromY, d.X, d.Y)}
-		if d.FixedFacing {
-			a.Direction = uint8(FacingDir(d.Facing))
-		}
+		a := AreaSaveState{Key: cellKey(d.X, d.Y), Spell: d.Rule.ID, Radius: d.Rule.Radius, Mode: areaModeFor(d.Rule), Direction: w.areaHeading(d.FromX, d.FromY, d.X, d.Y, d.Facing, d.FixedFacing)}
 		if a.Mode == areaModeCloud {
 			a.Remaining = spellDurationOf(w.rules, d.Rule, d.Power, durationArea) - 1
 		}

@@ -93,6 +93,8 @@ type gameProfile struct {
 	// projectileAim: the point a projectile aims at a unit
 	// (projectileAimPoints, AI-674).
 	projectileAim projectileAimRule
+	// areaHeading: where an area's heading comes from (areaHeadings).
+	areaHeading areaHeadingRule
 	// fleeOrigin: the point the withdrawal measures a unit from (fleePoints).
 	fleeOrigin fleeOriginRule
 	// castDropsLoadedStep: a manual cast or cast approach ends a loaded
@@ -289,6 +291,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		bookWalkNoFallback:         true,
 		postKeepsDying:             true,
 		projectileAim:              aimAtSavedPoint,
+		areaHeading:                areaHeadingCells,
 		fleeOrigin:                 fleeFromCentre,
 		castDropsLoadedStep:        true,
 		withdrawAnchorCells:        true,

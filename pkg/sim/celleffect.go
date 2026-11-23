@@ -338,10 +338,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 		return false
 	}
 	e := cellEffect{Key: cellKey(anchorX, anchorY), Spell: rule.ID, Caster: caster, HasCaster: hasCaster, Power: power, Mode: mode,
-		Direction: areaDirection(fromX, fromY, x, y)}
-	if fixedFacing {
-		e.Direction = uint8(FacingDir(facing))
-	}
+		Direction: w.areaHeading(fromX, fromY, x, y, facing, fixedFacing)}
 	if current != nil {
 		e.Direction = current.Direction
 		e.Current = &CurrentAreaPayload{Radius: current.Radius, Payload: current.Payload}
@@ -479,6 +476,36 @@ func (w *World) setWallCells(cells []uint16, set bool) {
 // so a cast on the caster's own cell gives 224, index 7.
 func areaDirection(fromX, fromY, x, y int32) uint8 {
 	return cellHeading(fromX, fromY, x, y) >> 5
+}
+
+// areaHeadingRule is where an area's heading comes from when its caller
+// supplies the caster's facing (areaHeadings).
+type areaHeadingRule uint8
+
+const (
+	areaHeadingFacing areaHeadingRule = iota
+	areaHeadingCells
+)
+
+// areaHeadings: the first game takes a supplied facing; the second takes the
+// octant from the caster's cell to the aimed cell at every area build
+// (R2-ENGINE-792, R2-ENGINE-1545).
+var areaHeadings = [...]func(fromX, fromY, x, y int32, facing uint8, fixed bool) uint8{
+	areaHeadingFacing: func(fromX, fromY, x, y int32, facing uint8, fixed bool) uint8 {
+		if fixed {
+			return uint8(FacingDir(facing))
+		}
+		return areaDirection(fromX, fromY, x, y)
+	},
+	areaHeadingCells: func(fromX, fromY, x, y int32, _ uint8, _ bool) uint8 {
+		return areaDirection(fromX, fromY, x, y)
+	},
+}
+
+// areaHeading is the heading 0..7 an area built at (x, y) from the caster's
+// cell (fromX, fromY) takes in the World's game.
+func (w *World) areaHeading(fromX, fromY, x, y int32, facing uint8, fixed bool) uint8 {
+	return areaHeadings[w.game.areaHeading](fromX, fromY, x, y, facing, fixed)
 }
 
 // canonicalCells is a cell list in the byte form's own order: ascending key,

@@ -53,6 +53,7 @@ modder or developer can notice gets no entry.
 - [ROM1] Заклинание на предмете мага в магазине, выпавшее не обязательным, а случайным выбором, теперь получает бюджет в сто раз больше цены предмета, как в оригинале; раньше в десять раз, и такие заклинания были слабее или не выпадали.
 - [ROM2] Эффекты заклинаний на склоне (картинки Телепорта, молния и летящие заряды) стоят на высоте земли в своей точке клетки, как в оригинале, а не на средней высоте клетки.
 - [ROM2] Ядовитое облако и Проклятие, наложенные героем или существом, больше не рисуют собственную картинку заклинания; видна только метка на юните, как в оригинале.
+- [ROM2] An area spell cast on a unit, such as Acid Stream, now heads from the caster's cell toward the target's cell, as in the original; before, it followed the caster's facing and could miss the target.
 
 ### For map makers and modders
 
