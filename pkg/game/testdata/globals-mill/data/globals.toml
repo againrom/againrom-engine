@@ -1,0 +1,15 @@
+[[global]]
+id = 1
+name = "goblins_driven"
+en = "1 once the mill quest began."
+ru = "1, когда задание мельницы началось."
+
+[[global]]
+id = 2
+name = "mill_coins"
+initial = 5
+
+[[global]]
+id = 3
+name = "near_wrap"
+initial = 2147483646

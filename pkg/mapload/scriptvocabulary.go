@@ -59,21 +59,20 @@ func AgainromScriptOperation(condition bool) uint32 {
 	return opUndying
 }
 
-// ScriptAgainromOnly reports that a script holds an Againrom operation, which
-// is what marks its map as Againrom-only: the original builds such a node and
-// its dispatch does nothing with it (TRIG-COND-003, TRIG-ACT-004).
+// ScriptAgainromOnly reports that a script holds an Againrom operation, a
+// row of the op table marked Again, which is what marks its map as
+// Againrom-only: the original builds such a node and its dispatch does
+// nothing with it (TRIG-COND-003, TRIG-ACT-004).
 func ScriptAgainromOnly(sc alm.Script) bool {
-	for _, n := range sc.Conditions {
-		if n.Opcode == AgainromScriptOperation(true) {
-			return true
+	again := func(condition bool, nodes []alm.ScriptNode) bool {
+		for _, n := range nodes {
+			if row, ok := scriptprofile.OpRow(scriptprofile.OpsFirst, condition, n.Opcode); ok && row.Again {
+				return true
+			}
 		}
+		return false
 	}
-	for _, n := range sc.Actions {
-		if n.Opcode == AgainromScriptOperation(false) {
-			return true
-		}
-	}
-	return false
+	return again(true, sc.Conditions) || again(false, sc.Actions)
 }
 
 var ScriptParameterNames = [...]string{"None", "Int/Enum", "Group", "Player", "Unit", "X", "Y", "Const", "Item", "Structure"}

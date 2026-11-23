@@ -92,6 +92,7 @@ var almReferences = nameTable{
 	"scriptform.go/(*Editor).ExtendScript":       {"alm.FrameScriptRecord", "alm.ScriptRecord"},
 	"scriptform.go/(*Editor).FoldScript":         {"alm.DecodeScriptRecord", "alm.ScriptRecordTypeID"},
 	"scriptform.go/countInteractive":             {"alm.ScriptNode"},
+	"scriptform.go/countGlobalNodes":             {"alm.Script"},
 	"meta.go/(*Editor).SetDescription":           {"alm.EncodeDescription"},
 	"newmap.go/NewMap":                           {"alm.NewMap", "alm.NewMapSpec"},
 	"brush.go/(Brush).heights":                   {"alm.MaxHeight"},

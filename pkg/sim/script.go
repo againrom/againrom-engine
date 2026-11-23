@@ -68,6 +68,10 @@ const (
 	// ScriptCheckHealthBelow is Againrom's own condition (DIV-4009): 1 iff
 	// the unit's current health is below p0, else 0. ROM1 has no such arm.
 	ScriptCheckHealthBelow int32 = 0x4101
+
+	// ScriptCheckGlobal is Againrom's own condition (DIV-5108): the value of
+	// the mod global p0, 0 for a global the World does not hold.
+	ScriptCheckGlobal int32 = 0x4102
 )
 
 // The instant opcodes this build runs, out of a 34-arm table.
@@ -213,6 +217,13 @@ const (
 	// ScriptInstantUndying is Againrom's own action (DIV-4009): p0 = 1 sets
 	// the unit's undying state, p0 = 0 clears it. ROM1 has no such arm.
 	ScriptInstantUndying int32 = 0x4100
+
+	// ScriptInstantSetGlobal and ScriptInstantAddGlobal are Againrom's own
+	// actions (DIV-5108): mod global p0 becomes p1, or p1 is added to it,
+	// wrapping as a register does. A global the World does not hold takes
+	// no write.
+	ScriptInstantSetGlobal int32 = 0x4103
+	ScriptInstantAddGlobal int32 = 0x4104
 )
 
 // The three PROPERTY SELECTORS instant 34 defines. They are the arm's own three
@@ -239,7 +250,7 @@ func scriptCheckSupported(op int32) bool {
 		ScriptCheckSackAt, ScriptCheckNearest, ScriptCheckItemDistance, ScriptCheckItemTest,
 		ScriptCheckVIP,
 		ScriptCheckVariable, ScriptCheckStructField, ScriptCheckConstant,
-		ScriptCheckHealthBelow:
+		ScriptCheckHealthBelow, ScriptCheckGlobal:
 		return true
 	}
 	return false
@@ -261,7 +272,7 @@ func scriptInstantSupported(in ScriptInstant) bool {
 		ScriptInstantCastAtCell, ScriptInstantCastAtUnit, ScriptInstantCellEffectAge,
 		ScriptInstantFormation, ScriptInstantDropAll, ScriptInstantCellTail,
 		ScriptInstantUnitEffectAge, ScriptInstantProperty, ScriptInstantStructField,
-		ScriptInstantUndying:
+		ScriptInstantUndying, ScriptInstantSetGlobal, ScriptInstantAddGlobal:
 		return true
 	case ScriptInstantGroupOrder:
 		return groupOrderSupported(in.Args[0])
@@ -1288,6 +1299,10 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 		write(w.registerAt(c.Args[0]))
 		return
 
+	case ScriptCheckGlobal:
+		write(w.globalAt(c.Args[0]))
+		return
+
 	case ScriptCheckSackAt:
 		// THE SACK QUERY. It belongs HERE, beside ScriptCheckVariable, and not in
 		// the second switch below: a check-14 node carries two plain X/Y
@@ -1693,6 +1708,10 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 		w.setRegisterAt(in.Args[0], in.Args[1])
 	case ScriptInstantIncVariable:
 		w.setRegisterAt(in.Args[0], w.registerAt(in.Args[0])+1)
+	case ScriptInstantSetGlobal:
+		w.setGlobal(in.Args[0], in.Args[1])
+	case ScriptInstantAddGlobal:
+		w.setGlobal(in.Args[0], w.globalAt(in.Args[0])+in.Args[1])
 	case ScriptInstantWin:
 		w.won++
 	case ScriptInstantLose:
@@ -2729,25 +2748,28 @@ func (w *World) ScriptLatched(i int32) bool {
 // ScriptExtendedState is an extended program's state past the original's
 // session fields: the variables from subscript 100 on, one result per check,
 // and the fire-once latches from position 1000 on, each latch 0 or 1.
+// Globals are the mod globals w holds, by id, under any program; their
+// carrier keeps them apart from the program's state, so the tag drops them.
 type ScriptExtendedState struct {
-	Variables []int32 `json:",omitempty"`
-	Results   []int32 `json:",omitempty"`
-	Latches   []byte  `json:",omitempty"`
+	Variables []int32        `json:",omitempty"`
+	Results   []int32        `json:",omitempty"`
+	Latches   []byte         `json:",omitempty"`
+	Globals   []ScriptGlobal `json:"-"`
 }
 
-// ScriptExtendedState returns a copy of w's extended state; it is empty for
-// an original program.
+// ScriptExtendedState returns a copy of w's extended state and globals; the
+// program's part is empty for an original program.
 func (w *World) ScriptExtendedState() ScriptExtendedState {
-	if !w.script.Extended() {
-		return ScriptExtendedState{}
+	s := ScriptExtendedState{Globals: w.ScriptGlobals()}
+	if w.script.Extended() {
+		s.Variables, s.Results, s.Latches = slices.Clone(w.scriptVars), slices.Clone(w.scriptResults), slices.Clone(w.latchTail)
 	}
-	return ScriptExtendedState{Variables: slices.Clone(w.scriptVars), Results: slices.Clone(w.scriptResults),
-		Latches: slices.Clone(w.latchTail)}
+	return s
 }
 
-// RestoreScriptExtendedState replaces w's extended state with s, which must
-// have the lengths w's program gives it and latches of 0 or 1. An error
-// leaves w unchanged.
+// RestoreScriptExtendedState replaces w's extended state and globals with s,
+// which must have the lengths w's program gives it, latches of 0 or 1 and
+// globals in range and ascending by id. An error leaves w unchanged.
 func (w *World) RestoreScriptExtendedState(s ScriptExtendedState) error {
 	var vars, results, latches int
 	if w.script.Extended() {
@@ -2759,6 +2781,13 @@ func (w *World) RestoreScriptExtendedState(s ScriptExtendedState) error {
 	}
 	if slices.ContainsFunc(s.Latches, func(b byte) bool { return b > 1 }) {
 		return fmt.Errorf("sim: an extended script latch is neither 0 nor 1")
+	}
+	if err := validScriptGlobals(s.Globals); err != nil {
+		return err
+	}
+	w.globals = nil
+	if len(s.Globals) != 0 {
+		w.globals = slices.Clone(s.Globals)
 	}
 	if !w.script.Extended() {
 		return nil

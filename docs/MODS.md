@@ -29,6 +29,7 @@ mission number. Only the manifest is required.
 | body sheets | `data/bodies.toml`, `assets/bodies/**/*.png` | TOML subset; PNG sheets | held file; row heroes and heroes_l | shared |
 | weapon bodies | `data/wpnbodies.toml`, `data/weapon-bodies.toml` | TOML subset | held file | shared |
 | terrain | `data/terrain.toml` | TOML subset; 8-bit BMP strips | held file; strip group via install path | shared |
+| globals | `data/globals.toml` | TOML subset | held file | shared; a note per language |
 | missions | `data/missions.toml` | TOML subset | held file; row map and texts | shared; {lang} in map |
 | towns | `data/towns.toml`, `assets/towns/**/*.json`, `assets/towns/**/*.bmp` | TOML subset; JSON; BMP; UTF-8 TXT | held file; description; mod: art; talk install path | shared; talk texts per language |
 | speakers | `data/speakers.toml`, `assets/speakers/*.png` | TOML subset; PNG faces | held file; row picture | shared |
@@ -155,6 +156,7 @@ catalog. Every held data file is read automatically before the optional entry sc
 | body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
 | weapon bodies | `data/wpnbodies.toml` (also `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
 | terrain | `data/terrain.toml` | `group` | configuration | no: a group is one mod's | New terrain tiles, `docs/1573/story.md`, `DIV-4412`, `DIV-4413` |
+| globals | `data/globals.toml` | `id`, from 1 to 1024, within the mod | configuration | no: a global is its mod's own, and a map sees the globals of the mod that plays it | Global variables, `DIV-5108`, `docs/1750/story.md` |
 | missions | `data/missions.toml` | `number`; `key` within the mod | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win | Missions, `docs/1408/story.md`, `docs/1508/story.md`, `DIV-4001` |
 | towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc`; a shop or school row by `town`, `chapter` and `mission`; an inn row by `topic` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town, a tavern row or an inn row off | Towns, Tavern rows, Inn rows, `docs/1486/story.md`, `docs/1513/story.md`, `docs/1532/story.md` |
 | speakers | `data/speakers.toml` | `id`, a record number from 20000 to 99999 | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a record off | Speakers, `docs/1624/story.md` |
@@ -162,6 +164,48 @@ catalog. Every held data file is read automatically before the optional entry sc
 
 The base dump writes layer 0 of towns only; the other catalog kinds have no
 dump yet (`docs/1496/story.md`).
+
+## Global variables
+
+A mod declares global variables in `data/globals.toml`, one `[[global]]`
+table each, at most 1024 per mod:
+
+```toml
+[[global]]
+id = 2
+name = "mill_coins"
+initial = 5
+en = "Coins the miller owes."
+```
+
+`id` is an integer from 1 to 1024, unique within the mod; a map names the
+global by this id. `name` is a lower-case letter followed by at most 31
+lower-case letters, digits or `_`, unique within the mod; the editor and the
+checks show it. `initial` is the value a mission starts with, an int32,
+0 when absent. A note per language code (`en`, `ru`) is optional. A refusal
+names the file and the line.
+
+A map's script reads and writes a global through three nodes:
+
+| node | kind | slots | effect |
+|---|---|---|---|
+| Read global | check | global | writes the global's value as its result |
+| Set global | action | global, value | the global takes the value |
+| Add to global | action | global, delta | the global takes its value plus the signed delta, wrapping at the int32 range as a variable does |
+
+A trigger and a dialogue reply (`when`, `do`) use them as any other node. A
+map sees the globals of the mod that plays its mission, seated with their
+initials when the mission starts; a map outside a mod sees none. A global
+the mod does not declare reads 0 and takes no write. `againrom -check`, the
+launch and the editor's Save refuse a map naming one, with the map, the
+trigger or reply, and the id; the editor's check lists it. A map whose script holds a global node runs
+only as an extended map (`.almx`); the original has no such node
+(`DIV-5108`).
+
+Scope is one mission: loss, exit and restart discard the mission's writes,
+and the values are not yet carried to the next mission or the save's
+campaign; that carry is pending (story 1751). A save taken in the mission
+keeps the values, and its load gives them back.
 
 ## mod.toml
 

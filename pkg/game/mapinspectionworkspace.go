@@ -743,7 +743,7 @@ func (s *mapInspectionEdits) currentPages() *mod.MissionPages {
 		}
 	}
 	m := s.workspace.Package.mission(s.model.Bytes(), p.Files(), s.place())
-	m.Mod = p.Entry.Mod
+	m.Mod, m.DialogueFiles = p.Entry.Mod, s.workspace.dialogueFiles()
 	p.Entry = m
 	return p
 }

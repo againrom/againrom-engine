@@ -1307,6 +1307,9 @@ type ModContext struct {
 	// Terrain are the tile groups the mods add, each with its land kind and
 	// the frames of its strips.
 	Terrain mod.TerrainData
+	// Globals are the global variables each mod declares; a mission seats
+	// the initials of the mod that plays it.
+	Globals mod.GlobalData
 }
 
 // ModItem is an item a mod added, in the form the save writer and the shop

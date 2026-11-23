@@ -323,8 +323,8 @@ func TestModsDocListsFixedTree(t *testing.T) {
 	}
 	part, _, _ = strings.Cut(part, "<!-- fixed-tree:end -->")
 	rows := []string{"| kind | paths | formats | found by | language |", "|---|---|---|---|---|"}
-	if len(TreeKinds()) != 25 {
-		t.Fatalf("%d tree kinds, want 25", len(TreeKinds()))
+	if len(TreeKinds()) != 26 {
+		t.Fatalf("%d tree kinds, want 26", len(TreeKinds()))
 	}
 	for _, k := range TreeKinds() {
 		paths := append(slices.Clone(k.Files), k.Paths...)

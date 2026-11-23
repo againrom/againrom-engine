@@ -1,0 +1,8 @@
+id = "millglobals"
+title = "Mill globals"
+version = "1.0.0"
+author = "Againrom"
+description = "Mission 10 on a map whose triggers and reply read, set and add mod globals."
+api = 1
+applies-to = ["rom1"]
+entry = "main.star"

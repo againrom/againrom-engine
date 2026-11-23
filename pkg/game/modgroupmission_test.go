@@ -45,7 +45,13 @@ func groupMissionMod(t *testing.T, mapBytes []byte, group20 bool) string {
 // served, the set and the rules taken, then every kind of their data.
 func launchMods(t *testing.T, f *FrontEnd, dir string) (modrt.Result, error) {
 	t.Helper()
-	res, err := modrt.Load([]mod.Entry{mod.Load(dir)}, "rom1-en", nil, modrt.Options{})
+	return launchModsOn(t, f, dir, "rom1-en")
+}
+
+// launchModsOn is launchMods over the base named base.
+func launchModsOn(t *testing.T, f *FrontEnd, dir, base string) (modrt.Result, error) {
+	t.Helper()
+	res, err := modrt.Load([]mod.Entry{mod.Load(dir)}, base, nil, modrt.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -78,6 +78,15 @@ func (f *FrontEnd) missionIdentity(n int) missionIdentity {
 // one whose map a mod replaces.
 func (id missionIdentity) modMap() bool { return id.own != nil || id.replaced != nil }
 
+// mapMission is the mod mission whose map the mission plays: a mod's own
+// mission, else the one whose map replaces n's; nil for an install map.
+func (id missionIdentity) mapMission() *mod.Mission {
+	if id.own != nil {
+		return id.own
+	}
+	return id.replaced
+}
+
 // entry is the party and purse the guest's mission opens with.
 func (id missionIdentity) entry() ([]mapload.PartyMember, uint32, bool) {
 	if !id.guest {

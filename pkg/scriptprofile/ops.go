@@ -120,6 +120,16 @@ func AddressesRegister(condition bool, id uint32) bool {
 	return false
 }
 
+// globalRole is the role of the slot that names a mod global.
+const globalRole = "global"
+
+// AddressesGlobal reports that first-game operation id of the family names
+// a mod global in its first parameter (DIV-5108).
+func AddressesGlobal(condition bool, id uint32) bool {
+	o, ok := OpRow(OpsFirst, condition, id)
+	return ok && len(o.Signature) > 0 && o.Signature[0].Role == globalRole
+}
+
 func unit(role string) []Slot   { return []Slot{{slotUnit, role}} }
 func number(role string) []Slot { return []Slot{{slotInt, role}} }
 func cell(role string) []Slot   { return []Slot{{slotX, role}, {slotY, ""}} }
@@ -146,6 +156,9 @@ const (
 	formOp      = 0x10003
 	healthBelow = 0x4101
 	undying     = 0x4100
+	readGlobal  = 0x4102
+	setGlobal   = 0x4103
+	addGlobal   = 0x4104
 )
 
 // groupCommands are the commands action 6 can be authored with, in order.
@@ -177,6 +190,7 @@ var firstChecks = []Op{
 	{Condition: true, ID: 22, Name: "Move object check", Word: "editor.check.op22", Decoded: true, Signature: sig(cell("cell"), cell("cell2"))},                                                  // TRIG-CELLRESULT-133
 	{Condition: true, ID: constantOp, Name: "Constant / variable preset", Word: "editor.check.op65538", Decoded: true, Offered: true, Signature: sig(number("value"))},                           // TRIG-COND-003
 	{Condition: true, ID: healthBelow, Name: "Health below (Againrom)", Word: "editor.check.op16641", Decoded: true, Offered: true, Again: true, Signature: sig(unit("unit"), number("health"))}, // DIV-4009
+	{Condition: true, ID: readGlobal, Name: "Read global (Againrom)", Word: "editor.check.op16642", Decoded: true, Again: true, Signature: sig(number("global"))},                                // DIV-5108
 }
 
 var firstActions = []Op{
@@ -214,6 +228,8 @@ var firstActions = []Op{
 	{ID: constantOp, Name: "Drop location (build time)", Word: "editor.action.op65538", Decoded: true, Offered: true, Signature: sig(cell("cell"))},                         // TRIG-DROP-013
 	{ID: formOp, Name: "Object form (build time)", Offered: true},
 	{ID: undying, Name: "Set undying (Againrom)", Word: "editor.action.op16640", Decoded: true, Offered: true, Again: true, Signature: sig(unit("unit"), number("undying"))}, // DIV-4009
+	{ID: setGlobal, Name: "Set global (Againrom)", Word: "editor.action.op16643", Decoded: true, Again: true, Signature: sig(number("global"), number("value"))},             // DIV-5108
+	{ID: addGlobal, Name: "Add to global (Againrom)", Word: "editor.action.op16644", Decoded: true, Again: true, Signature: sig(number("global"), number("delta"))},          // DIV-5108
 }
 
 // The second game's rows: the operations a claim reads the effect of. An id

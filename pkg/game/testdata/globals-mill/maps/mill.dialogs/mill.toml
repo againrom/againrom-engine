@@ -1,0 +1,14 @@
+[[node]]
+id = 1
+name = "start"
+en = "Goblins hold the old mill. Will you drive them out?"
+ru = "Гоблины заняли старую мельницу. Прогоните их?"
+
+[[reply]]
+en = "I will drive them out."
+ru = "Я прогоню их."
+do = [21]
+
+[[reply]]
+en = "Not now."
+ru = "Не сейчас."

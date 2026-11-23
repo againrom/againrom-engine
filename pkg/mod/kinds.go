@@ -17,6 +17,7 @@ const (
 	CompanionsFile       = "data/companions.toml"
 	FilesDir             = "files"
 	CommonFiles          = "common"
+	GlobalsFile          = "data/globals.toml"
 	ItemsFile            = "data/items.toml"
 	ManifestName         = "mod.toml"
 	MapsFolder           = "maps"
@@ -309,6 +310,22 @@ var dataKinds = []DataKind{
 			return fmt.Sprintf("terrain groups=%d", len(d.Terrain.Groups))
 		},
 	},
+	// The globals apply before the missions: the missions' map check reads
+	// the ids each mod declares.
+	{
+		Format: "TOML subset", Language: "shared; a note per language", Found: "held file", State: true,
+		Name: "globals", Files: []string{GlobalsFile}, Key: "`id`, from 1 to 1024, within the mod",
+		Class: ConfigurationData, Layer: LayerOwn,
+		Base:   "a global is a variable of its mod that the mod's maps read, set and add; the base has none",
+		Shared: "no: a global is its mod's own, and a map sees the globals of the mod that plays it",
+		read:   readGlobals, write: writeGlobals,
+		summary: func(d Data) string {
+			if d.Globals.Empty() {
+				return ""
+			}
+			return fmt.Sprintf("globals=%d", len(d.Globals.Globals))
+		},
+	},
 	{
 		Format: "TOML subset", Language: "shared; {lang} in map", Found: "held file; row map and texts", State: true,
 		references: []Reference{MissionMap, MissionTexts},
@@ -572,6 +589,8 @@ type Data struct {
 	Before   DataBefore
 	Terrain  TerrainData
 	Speakers SpeakerData
+	// Globals are the global variables each mod declares.
+	Globals GlobalData
 	// Settings are the knobs the mod declares.
 	Settings SettingData
 	// Strings are the text of each language by its code, as the editor

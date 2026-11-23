@@ -109,6 +109,10 @@ func (e *MapEditor) roleWord(role string) (string, bool) {
 		return e.word("editor.role.health"), true
 	case "undying":
 		return e.word("editor.role.undying"), true
+	case "global":
+		return e.word("editor.role.global"), true
+	case "delta":
+		return e.word("editor.role.delta"), true
 	}
 	return "", false
 }

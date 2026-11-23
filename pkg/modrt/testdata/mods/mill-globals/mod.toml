@@ -1,0 +1,8 @@
+id          = "mill-globals"
+title       = "Mill globals"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Declares two global variables."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

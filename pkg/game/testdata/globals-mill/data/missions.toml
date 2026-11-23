@@ -1,0 +1,5 @@
+[[mission]]
+kind = "replace"
+key = "mill"
+number = 10
+map = "maps/mill.almx"

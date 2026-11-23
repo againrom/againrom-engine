@@ -54,6 +54,9 @@ func init() {
 	// Native LOAD restores an extended program's state past the session block.
 	worldMethods = append(worldMethods, "ScriptExtendedState", "RestoreScriptExtendedState")
 	worldWriters = append(worldWriters, "RestoreScriptExtendedState")
+	// A mission's entry seats its mod's global variables.
+	worldMethods = append(worldMethods, "ScriptGlobals", "SeatScriptGlobals")
+	worldWriters = append(worldWriters, "SeatScriptGlobals")
 	// Mission completion is an explicit boundary writer, never a tick API.
 	worldMethods = append(worldMethods, "NormalizeMissionSurvivors")
 	worldWriters = append(worldWriters, "NormalizeMissionSurvivors")

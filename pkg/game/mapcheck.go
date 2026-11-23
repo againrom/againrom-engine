@@ -86,6 +86,10 @@ var mapRules = []mapRule{
 		Authority: "ALM-CLS-036, ALM-CLS-053",
 		Meaning:   "a structure has a kind the installed structures.reg does not hold",
 		run:       (*mapCheck).structureKind},
+	{ID: "global-undeclared", Error: true,
+		Authority: "DIV-5108; data/globals.toml of the mission's mod",
+		Meaning:   "a script node names a global its mod does not declare: it reads 0 and writes nothing",
+		run:       (*mapCheck).globalUndeclared},
 	{ID: ruleExtendedName, Error: false,
 		Authority: "ALM-REQ-055; the .almx name gate",
 		Meaning:   "the map carries the extended script record under a name other than .almx: it plays here with the record, and the original game does not run its triggers",
@@ -192,6 +196,9 @@ type mapCheck struct {
 	terrainErr error
 	world      *sim.World
 	worldRan   bool
+
+	// globals is what the global rule reads of a mod's mission; nil skips it.
+	globals *modMapGlobals
 }
 
 // sourceMission is the campaign mission an installed scenario map belongs to,
@@ -219,18 +226,23 @@ func (x *MapInspector) CheckModMap(m mod.Mission, source string) []ui.Inspection
 	if err != nil {
 		return []ui.InspectionFinding{{Error: true, Rule: ruleMapDecode, Text: err.Error()}}
 	}
-	return x.reportNamed(model, source, m.Map, m.HeldPages())
+	return x.reportNamed(model, source, m.Map, m.HeldPages(), x.modMapGlobals(m))
 }
 
 // report answers the findings for the map the model holds, a failed check being
-// one error of the rule that names where it stopped.
+// one error of the rule that names where it stopped. The pages' mission row
+// names the mod whose globals the global rule reads, as CheckModMap reads them.
 func (x *MapInspector) report(model *mapedit.Editor, source string, pages *mod.MissionPages) []ui.InspectionFinding {
-	return x.reportNamed(model, source, "", pages)
+	var globals *modMapGlobals
+	if pages != nil {
+		globals = x.modMapGlobals(pages.Entry)
+	}
+	return x.reportNamed(model, source, "", pages, globals)
 }
 
 // reportNamed is report with the mission's map name; empty skips extended-name.
-func (x *MapInspector) reportNamed(model *mapedit.Editor, source, name string, pages *mod.MissionPages) []ui.InspectionFinding {
-	rows, err := x.checkNamedMap(model, source, name, pages)
+func (x *MapInspector) reportNamed(model *mapedit.Editor, source, name string, pages *mod.MissionPages, globals *modMapGlobals) []ui.InspectionFinding {
+	rows, err := x.checkNamedMap(model, source, name, pages, globals)
 	if err != nil {
 		rule := "mission-build"
 		if stop := (*mapStop)(nil); errors.As(err, &stop) {
@@ -245,10 +257,10 @@ func (x *MapInspector) reportNamed(model *mapedit.Editor, source, name string, p
 }
 
 func (x *MapInspector) checkMapPages(model *mapedit.Editor, source string, pages *mod.MissionPages) ([]ui.InspectionFinding, error) {
-	return x.checkNamedMap(model, source, "", pages)
+	return x.checkNamedMap(model, source, "", pages, nil)
 }
 
-func (x *MapInspector) checkNamedMap(model *mapedit.Editor, source, name string, pages *mod.MissionPages) ([]ui.InspectionFinding, error) {
+func (x *MapInspector) checkNamedMap(model *mapedit.Editor, source, name string, pages *mod.MissionPages, globals *modMapGlobals) ([]ui.InspectionFinding, error) {
 	if pages != nil && pages.Err != nil {
 		return nil, &mapStop{Rule: ruleTextsFolder, Err: pages.Err}
 	}
@@ -256,7 +268,7 @@ func (x *MapInspector) checkNamedMap(model *mapedit.Editor, source, name string,
 	if err != nil {
 		return nil, &mapStop{Rule: ruleMapDecode, Err: err}
 	}
-	c := &mapCheck{x: x, model: model, m: m, source: source, name: name, pages: pages}
+	c := &mapCheck{x: x, model: model, m: m, source: source, name: name, pages: pages, globals: globals}
 	c.script, c.scriptErr = m.Script()
 	c.loot, c.lootErr = m.Loot()
 	var errs, warnings []ui.InspectionFinding

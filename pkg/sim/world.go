@@ -1997,6 +1997,10 @@ type World struct {
 	scriptResults []int32
 	latchTail     []byte
 
+	// globals are the mod's global variables the mission was seated with,
+	// sorted by id (scriptglobal.go); nil outside a mod that declares one.
+	globals []ScriptGlobal
+
 	// rawSessionHead and rawSessionMid are the two opaque session-block spans
 	// ImportOriginalSession carries in from an original save and nothing in
 	// this package reads (SAV-SESS-031, docs/1130/story.md).

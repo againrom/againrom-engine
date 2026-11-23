@@ -46,6 +46,13 @@ const (
 	ExtendedTriggers   = 10000
 )
 
+// The ids a mod's global variable takes (owner decision): a map names a
+// global by its id, and one mod declares at most LastGlobal of them.
+const (
+	FirstGlobal = 1
+	LastGlobal  = 1024
+)
+
 // Ops names which game's operation ids a profile's nodes use: the same
 // number is a different operation in each game.
 type Ops uint8

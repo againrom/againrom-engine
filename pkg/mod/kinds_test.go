@@ -24,6 +24,7 @@ var kindFixtures = map[string]string{
 	"speakers":      "speaker-records",
 	"terrain":       "snow-field",
 	"settings":      "skill-cap",
+	"globals":       "mill-globals",
 }
 
 // Every declared kind has a name, a file a packed mod can hold, a key, a

@@ -131,6 +131,10 @@ func wizardRoom(t ui.WizardTrigger, extended bool) error {
 		}
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitDialogue, Got: int64(n)}
 		return lifted(limit, "editor.script.limit.dialogue", n)
+	case !extended && wizardGlobalNodes(t) > 0:
+		n := wizardGlobalNodes(t)
+		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGlobal, Got: int64(n)}
+		return lifted(limit, "editor.script.limit.global", n)
 	default:
 		return nil
 	}
@@ -138,6 +142,24 @@ func wizardRoom(t ui.WizardTrigger, extended bool) error {
 		return lifted(limit, "editor.script.triggerfullx", limits.Pairs, limits.Actions)
 	}
 	return lifted(limit, "editor.script.triggerfull")
+}
+
+// wizardGlobalNodes is how many of the plan's nodes name a mod global.
+func wizardGlobalNodes(t ui.WizardTrigger) int {
+	n := 0
+	for _, p := range t.Pairs {
+		for _, side := range []ui.WizardNode{p.Left, p.Right} {
+			if scriptprofile.AddressesGlobal(true, side.Opcode) {
+				n++
+			}
+		}
+	}
+	for _, a := range t.Actions {
+		if scriptprofile.AddressesGlobal(false, a.Opcode) {
+			n++
+		}
+	}
+	return n
 }
 
 func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {

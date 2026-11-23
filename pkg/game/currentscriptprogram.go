@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/sim"
 )
 
@@ -18,12 +19,17 @@ import (
 // Extended is present for an extended program alone: its variable count and
 // its state past the session block, which holds the first hundred variables
 // and the first thousand latches (DIV-4602, DIV-4604).
+//
+// Globals are the live values of the mod globals the World holds, under any
+// program (DIV-5108); absent, as in an older save, the mission's entry seats
+// the initials.
 type currentScriptProgram struct {
 	Dialect  sim.ScriptDialect `json:",omitempty"`
 	Checks   []sim.ScriptCheck
 	Instants []sim.ScriptInstant
 	Triggers []sim.ScriptTrigger
 	Extended *currentExtendedScript `json:",omitempty"`
+	Globals  []sim.ScriptGlobal     `json:",omitempty"`
 }
 
 // currentExtendedScript is an extended program's machine and state.
@@ -36,9 +42,10 @@ const maxCurrentScriptNodes = 65536
 
 func captureCurrentScriptProgram(w *sim.World) *currentScriptProgram {
 	p := w.Script()
-	out := &currentScriptProgram{Dialect: p.Dialect(), Checks: p.Checks(), Instants: p.Instants(), Triggers: p.Triggers()}
+	state := w.ScriptExtendedState()
+	out := &currentScriptProgram{Dialect: p.Dialect(), Checks: p.Checks(), Instants: p.Instants(), Triggers: p.Triggers(), Globals: state.Globals}
 	if p.Extended() {
-		out.Extended = &currentExtendedScript{Variables: p.Variables(), State: w.ScriptExtendedState()}
+		out.Extended = &currentExtendedScript{Variables: p.Variables(), State: state}
 	}
 	return out
 }
@@ -121,13 +128,17 @@ func (p *currentScriptProgram) UnmarshalJSON(raw []byte) error {
 		Dialect                    sim.ScriptDialect
 		Checks, Instants, Triggers json.RawMessage
 		Extended                   *currentExtendedScript
+		Globals                    []sim.ScriptGlobal
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
 	if err := d.Decode(&fields); err != nil {
 		return err
 	}
-	next := currentScriptProgram{Dialect: fields.Dialect, Extended: fields.Extended}
+	if len(fields.Globals) > scriptprofile.LastGlobal {
+		return fmt.Errorf("current script program holds %d globals", len(fields.Globals))
+	}
+	next := currentScriptProgram{Dialect: fields.Dialect, Extended: fields.Extended, Globals: fields.Globals}
 	checks := next.Dialect.Profile().Registers
 	if next.Extended != nil {
 		checks = maxCurrentScriptNodes
@@ -209,8 +220,13 @@ func restoreCurrentScriptProgram(ms *Mission, table *mapload.Table, p *currentSc
 	if err := ms.World.RestoreScriptProgram(program); err != nil {
 		return err
 	}
-	if p.Extended == nil {
+	if p.Extended == nil && p.Globals == nil {
 		return nil
 	}
-	return ms.World.RestoreScriptExtendedState(p.Extended.State)
+	var state sim.ScriptExtendedState
+	if p.Extended != nil {
+		state = p.Extended.State
+	}
+	state.Globals = p.Globals
+	return ms.World.RestoreScriptExtendedState(state)
 }

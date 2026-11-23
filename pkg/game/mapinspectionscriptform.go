@@ -103,6 +103,8 @@ func limitWords(l *mapedit.ScriptLimitError, word func(string) string) string {
 		return fmt.Sprintf(word("editor.script.limit.variables"), l.Max-1, l.Got)
 	case mapedit.LimitDialogue:
 		return fmt.Sprintf(word("editor.script.limit.dialogue"), l.Got)
+	case mapedit.LimitGlobal:
+		return fmt.Sprintf(word("editor.script.limit.global"), l.Got)
 	}
 	return fmt.Sprintf(word("editor.script.limit.id"), l.Max, l.Got)
 }

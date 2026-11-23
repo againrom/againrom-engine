@@ -51,6 +51,12 @@ var modDataAppliers = map[string]modDataApply{
 		r.override(overrides)
 		return err
 	},
+	"globals": func(f *FrontEnd, d mod.Data, _ *ModDataReport) error {
+		if f.Table != nil {
+			f.Table.Mods.Globals = d.Globals
+		}
+		return nil
+	},
 	"missions": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
 		overrides, warnings, err := f.setModMissions(d.Missions)
 		r.override(overrides)

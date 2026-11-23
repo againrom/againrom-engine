@@ -258,6 +258,24 @@ func countInteractive(nodes []alm.ScriptNode) int {
 	return n
 }
 
+// countGlobalNodes is how many of the script's nodes name a mod global,
+// which the original record cannot run: the original reads such a check
+// as 0 and skips such an action (DIV-5108).
+func countGlobalNodes(sc alm.Script) int {
+	n := 0
+	for _, c := range sc.Conditions {
+		if scriptprofile.AddressesGlobal(true, c.Opcode) {
+			n++
+		}
+	}
+	for _, a := range sc.Actions {
+		if scriptprofile.AddressesGlobal(false, a.Opcode) {
+			n++
+		}
+	}
+	return n
+}
+
 // ExtendScript moves the map's type-7 triggers into the Againrom script
 // record as one edit, in map order, each as extended reads it, with the
 // hundred registers as the record's first variables; the type-7 record
@@ -329,6 +347,9 @@ func (e *Editor) FoldScript() error {
 		if sc, err := m.Script(); err == nil {
 			if n := countInteractive(sc.Actions); n > 0 {
 				return &ScriptLimitError{Limit: LimitDialogue, Got: int64(n)}
+			}
+			if n := countGlobalNodes(sc); n > 0 {
+				return &ScriptLimitError{Limit: LimitGlobal, Got: int64(n)}
 			}
 		}
 	}

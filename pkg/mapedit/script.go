@@ -199,6 +199,7 @@ const (
 	LimitChecks                       // check registers; Got is the checks held
 	LimitVariables                    // the highest variable a node addresses
 	LimitDialogue                     // an interactive dialogue: only the extended record runs one
+	LimitGlobal                       // a mod global: only the extended record runs a node that names one
 )
 
 // Lifted reports a limit the Againrom script record lifts: the value fits
@@ -210,7 +211,7 @@ func (e *ScriptLimitError) Lifted() bool {
 		return e.Got <= int64(x.Pairs)
 	case LimitActions:
 		return e.Got <= int64(x.Actions)
-	case LimitGroups, LimitChecks, LimitDialogue:
+	case LimitGroups, LimitChecks, LimitDialogue, LimitGlobal:
 		return true
 	case LimitTriggers:
 		return e.Got < int64(x.Triggers)
@@ -245,6 +246,8 @@ func (e *ScriptLimitError) Error() string {
 		return fmt.Sprintf("mapedit: a variable is 0..%d, not %d", e.Max-1, e.Got)
 	case LimitDialogue:
 		return fmt.Sprintf("mapedit: %d message action(s) ask for an interactive dialogue, which only the extended script runs", e.Got)
+	case LimitGlobal:
+		return fmt.Sprintf("mapedit: %d node(s) read or write a mod global, which only the extended script runs", e.Got)
 	}
 	return fmt.Sprintf("mapedit: a trigger slot names a node id up to %d, not %d", e.Max, e.Got)
 }

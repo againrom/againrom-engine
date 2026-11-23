@@ -211,6 +211,9 @@ type carrierLoad struct {
 type carrierSeat struct {
 	r     missionRequest
 	rules campaignService
+	// table is the definition table of entrySeat, whose mod context names
+	// the mod that plays the mission.
+	table *mapload.Table
 	ms    *Mission
 	// mw is the opened driver of settleSeat.
 	mw *mapWorld
@@ -261,6 +264,8 @@ func worldCarrierSet() []worldCarrier {
 		{home: "World ROM2 scenario state, the second game's Scenario bank",
 			seat: map[carrierSeatPoint]func(carrierSeat) error{
 				entrySeat: func(c carrierSeat) error { return c.rules.seatWorld(c.r, c.ms) }}},
+		{home: "World mod globals, the initials of the mod that plays the mission (DIV-5108)",
+			seat: map[carrierSeatPoint]func(carrierSeat) error{entrySeat: seatModGlobals}},
 		{home: "World purse of the local Player, unless the loaded record binds the Player purses",
 			seat: map[carrierSeatPoint]func(carrierSeat) error{entrySeat: seatTownPurse, lineSeat: seatTownPurse}},
 		{home: "World saved Diaries, by owner (sim.CompareSavedDiaryOwners)",
@@ -364,6 +369,29 @@ func seatTownPurse(c carrierSeat) error {
 	}
 	ms.World.SetPurse(sim.SelfSlot, gold)
 	return nil
+}
+
+// seatModGlobals gives the mission the globals the mod that plays it
+// declares, each at the value a loaded SAV restored for its id, else at its
+// initial; a map outside a mod sees none.
+func seatModGlobals(c carrierSeat) error {
+	if c.table == nil {
+		return nil
+	}
+	m := c.r.town.missionIdentity(c.r.n, tableMissions(c.table)).mapMission()
+	if m == nil {
+		return nil
+	}
+	held := c.ms.World.ScriptGlobals()
+	var list []sim.ScriptGlobal
+	for _, g := range c.table.Mods.Globals.Of(m.Mod) {
+		v := g.Initial
+		if i := slices.IndexFunc(held, func(h sim.ScriptGlobal) bool { return h.ID == g.ID }); i >= 0 {
+			v = held[i].Value
+		}
+		list = append(list, sim.ScriptGlobal{ID: g.ID, Value: v})
+	}
+	return c.ms.World.SeatScriptGlobals(list)
 }
 
 // seatTownDiaries gives a fresh mission the Diaries the town's knowledge
