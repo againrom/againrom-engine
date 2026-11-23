@@ -32,7 +32,10 @@ type mapRule struct {
 	Error     bool
 	Authority string
 	Meaning   string
-	run       func(*mapCheck) []mapHit
+	// Second says the rule holds on a second-game map; a rule resting on a
+	// first-game fact is left off there and the report names it.
+	Second bool
+	run    func(*mapCheck) []mapHit
 }
 
 // mapHit is where a rule found its record: Kind and Index address an
@@ -47,23 +50,23 @@ type mapHit struct {
 
 // mapRules is the one rule table. The report reads nothing else.
 var mapRules = []mapRule{
-	{ID: "terrain-planes", Error: true,
+	{ID: "terrain-planes", Error: true, Second: true,
 		Authority: "TERR-PASS-049, TERR-PASS-050; mapload.OriginalTerrainPlanes",
 		Meaning:   "the installed terrain refuses the map: a side outside 8..256 or a terrain pair never initialised",
 		run:       (*mapCheck).terrainPlanes},
-	{ID: ruleTextsFolder, Error: true,
+	{ID: ruleTextsFolder, Error: true, Second: true,
 		Authority: "MISSION-TEXT-005; mod.Mission.ReadTexts",
 		Meaning:   "the map's texts folder cannot be read, for instance a file whose name is not a-z, 0-9 and '_' with .txt; the other rules did not run",
 		run:       (*mapCheck).stopped},
-	{ID: ruleMapDecode, Error: true,
+	{ID: ruleMapDecode, Error: true, Second: true,
 		Authority: "mapedit.New, mapedit.Editor.Map",
 		Meaning:   "the editor cannot decode the map; the other rules did not run",
 		run:       (*mapCheck).stopped},
-	{ID: "mission-build", Error: true,
+	{ID: "mission-build", Error: true, Second: true,
 		Authority: "StartMissionFrom, the mission build",
 		Meaning:   "the mission build refuses the map",
 		run:       (*mapCheck).missionBuild},
-	{ID: "record-outside", Error: true,
+	{ID: "record-outside", Error: true, Second: true,
 		Authority: "ALM-UNIT-040, ALM-OBJ-019, ALM-SACK-065",
 		Meaning:   "a unit, structure or ground sack lies outside the map",
 		run:       (*mapCheck).recordOutside},
@@ -75,11 +78,11 @@ var mapRules = []mapRule{
 		Authority: "ALM-OWN-039",
 		Meaning:   "a unit or structure names an owner slot the roster does not hold",
 		run:       (*mapCheck).ownerSlot},
-	{ID: "item-code", Error: true,
+	{ID: "item-code", Error: true, Second: true,
 		Authority: "ALM-SACK-065, ITEM-NAMEPOP-038",
 		Meaning:   "a sack or stock item has a code the installed item names do not hold",
 		run:       (*mapCheck).itemCode},
-	{ID: "structure-kind", Error: true,
+	{ID: "structure-kind", Error: true, Second: true,
 		Authority: "ALM-CLS-036, ALM-CLS-053",
 		Meaning:   "a structure has a kind the installed structures.reg does not hold",
 		run:       (*mapCheck).structureKind},
@@ -131,7 +134,10 @@ const (
 	ruleMapDecode   = "map-decode"
 )
 
-const ruleExtendedName = "extended-name"
+const (
+	ruleExtendedName = "extended-name"
+	ruleSkipped      = "rules-skipped"
+)
 
 // mapStop is the error of a check that stopped before the rules ran: Rule is
 // the table row that names the cause.
@@ -254,7 +260,13 @@ func (x *MapInspector) checkNamedMap(model *mapedit.Editor, source, name string,
 	c.script, c.scriptErr = m.Script()
 	c.loot, c.lootErr = m.Loot()
 	var errs, warnings []ui.InspectionFinding
+	row := rowFor(model)
+	var skipped []string
 	for _, rule := range x.ruleTable() {
+		if !row.allRules && !rule.Second {
+			skipped = append(skipped, rule.ID)
+			continue
+		}
 		for _, h := range rule.run(c) {
 			f := ui.InspectionFinding{Error: rule.Error, Rule: rule.ID, Kind: h.Kind, Index: h.Index, Cell: h.Cell, HasCell: h.HasCell, Text: h.Text}
 			if rule.Error {
@@ -263,6 +275,9 @@ func (x *MapInspector) checkNamedMap(model *mapedit.Editor, source, name string,
 				warnings = append(warnings, f)
 			}
 		}
+	}
+	if len(skipped) > 0 {
+		warnings = append(warnings, ui.InspectionFinding{Rule: ruleSkipped, Text: fmt.Sprintf(x.word("editor.report.skipped"), strings.Join(skipped, ", "))})
 	}
 	return append(errs, warnings...), nil
 }
@@ -514,12 +529,13 @@ func (c *mapCheck) itemCode() []mapHit {
 }
 
 func (c *mapCheck) structureKind() []mapHit {
-	if c.x.structures == nil {
+	row := rowFor(c.model)
+	if !row.kindTable(c.x) {
 		return nil
 	}
 	var out []mapHit
 	for i, o := range c.m.Objects {
-		if err := c.x.checkStructureKind(int64(byte(o.Kind))); err != nil {
+		if err := row.structureKind(c.x, int64(byte(o.Kind))); err != nil {
 			out = append(out, mapHit{Kind: ui.KindStructure, Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), HasCell: true, Text: err.Error()})
 		}
 	}

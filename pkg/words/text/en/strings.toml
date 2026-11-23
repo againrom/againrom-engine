@@ -690,6 +690,7 @@
 "editor.palette.nodecoration" = "No decoration structure lists here."
 "editor.palette.notrees" = "No tree lists here."
 "editor.report.checked" = "Check complete"
+"editor.report.skipped" = "Not run on a second-game map, whose rules this check does not know: %s."
 "editor.report.saved" = "Map saved"
 "editor.report.refused" = "Save refused"
 "editor.report.copyhint" = "Ctrl+C: copy the selected row"

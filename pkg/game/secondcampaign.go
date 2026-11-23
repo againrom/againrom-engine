@@ -114,6 +114,14 @@ func (c *secondCampaign) gateOpen() bool {
 	return c.current.id != 1 || c.bank[769] != 0
 }
 
+// reach makes mission n an available destination with the party in no place.
+func (c *secondCampaign) reach(n int) {
+	c.current = partyPlace{}
+	if place := (partyPlace{kind: placeMission, id: n}); !c.has(place) {
+		c.available = append(c.available, place)
+	}
+}
+
 func (c *secondCampaign) canEnter(n int) bool {
 	return c.current == (partyPlace{}) && c.has(partyPlace{kind: placeMission, id: n})
 }

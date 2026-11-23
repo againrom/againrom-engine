@@ -49,6 +49,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [ROM2] The map editor's Players window now lists the players of a second-game map, renames them, sets their colour and relations and adds a player; two unread roster words stay read-only and a player cannot be deleted there.
+- [ROM2] Редактор карт теперь проверяет карту второй игры, показывает отчёт и отметку о проблемах, спрашивает при сохранении с ошибкой и запускает пробную игру этой карты; правила, опирающиеся на факты первой игры, не выполняются, и отчёт называет их.
 - [ROM2] The map editor now selects with a frame, copies, pastes and groups units, structures and ground sacks on a second-game map, and a pasted unit keeps its own sack; the store and recipe tools and area copy stay off there.
 - [BASE] The mod window has a "Move old paths" button that carries every file a row names on an old path into the mod's `assets` and `maps` folders and rewrites the rows; it refuses, naming both files, when a target holds a different file.
 - [BASE] A mod whose numbered map files replace no mission of the install marks no save again, and the override line of a mission replaced by a map file names the file without a line number.

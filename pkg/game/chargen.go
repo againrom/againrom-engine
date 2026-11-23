@@ -524,15 +524,28 @@ func (f *FrontEnd) ChargenParty(res ui.ChargenResult) []mapload.PartyMember {
 // NewGameBegin is what an accepted new-game generator result does: the start
 // its game's generator row names.
 func (f *FrontEnd) NewGameBegin(n int) func(ui.ChargenResult) (ui.MapOpener, error) {
-	return f.generatorBegin(f.generatorRow().start, n)
+	return f.generatorBegin(f.generatorRow().start, n, false)
+}
+
+// MissionBegin is NewGameBegin for a start the command line names a mission
+// for: a game that starts in a town commits its campaign there, makes mission
+// n reachable from it and opens that mission.
+func (f *FrontEnd) MissionBegin(n int) func(ui.ChargenResult) (ui.MapOpener, error) {
+	return f.generatorBegin(f.generatorRow().start, n, true)
 }
 
 // generatorBegin is what an accepted result begins under start: mission n
 // opened with the generated party, or a new campaign committed at its first
-// town with no map opened.
-func (f *FrontEnd) generatorBegin(start generatorStart, n int) func(ui.ChargenResult) (ui.MapOpener, error) {
+// town with no map opened; with reach, the town start then opens mission n.
+func (f *FrontEnd) generatorBegin(start generatorStart, n int, reach bool) func(ui.ChargenResult) (ui.MapOpener, error) {
 	if start == generatorStartTown {
-		return func(res ui.ChargenResult) (ui.MapOpener, error) { return nil, f.startGeneratedTown(res) }
+		return func(res ui.ChargenResult) (ui.MapOpener, error) {
+			if err := f.startGeneratedTown(res); err != nil || !reach {
+				return nil, err
+			}
+			f.Town.second.reach(n)
+			return f.MissionOpener(n), nil
+		}
 	}
 	return func(res ui.ChargenResult) (ui.MapOpener, error) { return f.NewGameOpener(n, res), nil }
 }

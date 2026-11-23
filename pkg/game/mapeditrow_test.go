@@ -44,14 +44,14 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 		t.Fatalf("the second game's row is wider than its tools: %+v", second)
 	}
 	offered := func(r *editRow, seam reflect.Type) bool { return r.seams == nil || slices.Contains(r.seams, seam) }
-	for _, seam := range []reflect.Type{reflect.TypeFor[ui.InspectionBrush](), reflect.TypeFor[ui.InspectionNewRecords](), reflect.TypeFor[ui.InspectionFieldSet](),
+	for _, seam := range []reflect.Type{reflect.TypeFor[ui.InspectionChecker](), reflect.TypeFor[ui.InspectionTestPlay](), reflect.TypeFor[ui.InspectionBrush](), reflect.TypeFor[ui.InspectionNewRecords](), reflect.TypeFor[ui.InspectionFieldSet](),
 		reflect.TypeFor[ui.InspectionInPlace](), reflect.TypeFor[ui.InspectionSaveFolder](),
 		reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups]()} {
 		if !offered(second, seam) || !offered(first, seam) {
 			t.Fatalf("seam %v is not offered", seam)
 		}
 	}
-	for _, seam := range []reflect.Type{reflect.TypeFor[ui.InspectionRecords](), reflect.TypeFor[ui.InspectionMessages](), reflect.TypeFor[ui.InspectionChecker](),
+	for _, seam := range []reflect.Type{reflect.TypeFor[ui.InspectionRecords](), reflect.TypeFor[ui.InspectionMessages](),
 		reflect.TypeFor[ui.InspectionMapSet](), reflect.TypeFor[ui.InspectionAreaCopy](), reflect.TypeFor[ui.InspectionScript]()} {
 		if offered(second, seam) || !offered(first, seam) {
 			t.Fatalf("seam %v is offered wrongly", seam)

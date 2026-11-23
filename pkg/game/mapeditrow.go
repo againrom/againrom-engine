@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/mod"
 	"againrom/pkg/ui"
 )
 
@@ -43,6 +44,14 @@ type editRow struct {
 	scriptRefusal, undecoded string
 	// structureKind refuses a structure kind the format has no building for.
 	structureKind func(*MapInspector, int64) error
+	// kindTable says the install holds the table structureKind reads.
+	kindTable func(*MapInspector) bool
+	// allRules: the report runs every rule; off, only the rules marked Second.
+	allRules bool
+	// guestTest: test play plays a guest mission, which the campaign may refuse.
+	guestTest bool
+	// testMission is the mission row the test mod plays the map under.
+	testMission func(x *MapInspector, source string) (mod.Mission, error)
 	// seams are the optional host seams the editor may use; nil: all.
 	seams []reflect.Type
 	// templatePlacing: a new unit or structure is a copy of one the map holds.
@@ -66,6 +75,10 @@ var editRows = map[alm.Format]*editRow{
 	alm.FirstFormat: {
 		wholeScripts: true, fields: true, planes: true, manyValues: true,
 		structureKind: (*MapInspector).checkStructureKind,
+		kindTable:     func(x *MapInspector) bool { return x.structures != nil },
+		allRules:      true,
+		guestTest:     true,
+		testMission:   func(x *MapInspector, _ string) (mod.Mission, error) { return x.testPlayGuestMission() },
 		unitOverrides: true, spellSets: true, playerRecords: true, structureOwner: true, storedKeys: true, playableRing: true, workspace: true,
 	},
 	alm.SecondFormat: {
@@ -78,7 +91,10 @@ var editRows = map[alm.Format]*editRow{
 		refusal: "editor.map.secondtool", scriptRefusal: "editor.map.secondscript", undecoded: "editor.map.secondundecoded",
 		newSteps:      map[string]bool{"identity": true, "kind": true, "item": true}, // a new player takes the roster's defaults
 		structureKind: checkBuildingKind,
+		kindTable:     func(x *MapInspector) bool { return x.table != nil },
+		testMission:   (*MapInspector).testPlayReplaceMission,
 		seams: []reflect.Type{
+			reflect.TypeFor[ui.InspectionChecker](), reflect.TypeFor[ui.InspectionErrorSave](), reflect.TypeFor[ui.InspectionTestPlay](),
 			reflect.TypeFor[ui.InspectionSaveFolder](), reflect.TypeFor[ui.InspectionInPlace](),
 			reflect.TypeFor[ui.InspectionNewRecords](), reflect.TypeFor[ui.InspectionBrush](),
 			reflect.TypeFor[ui.InspectionBrushFill](), reflect.TypeFor[ui.InspectionBrushIcons](),

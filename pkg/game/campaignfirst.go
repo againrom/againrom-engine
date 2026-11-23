@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"againrom/pkg/base"
+	"againrom/pkg/campaignset"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
+	"againrom/pkg/vfs"
 )
 
 // firstCampaignRules is the first game's campaign service: numbered chapters
@@ -172,6 +174,12 @@ func (firstCampaignRules) ownsGame(g base.Game) error {
 }
 
 func (firstCampaignRules) testPlayRefusal() error { return nil }
+
+func (firstCampaignRules) loadCampaign(fsys *vfs.FS) (Campaign, error) { return LoadCampaign(fsys) }
+
+func (firstCampaignRules) missionNumbers(c Campaign, _ *vfs.FS) campaignset.Numbers {
+	return campaignset.Numbers{Main: c.Main, Side: c.Side, Offered: c.Offered}
+}
 
 // testPlayParty are the campaign's companions in the order they join: the
 // three the towns grant, each at the level of the town that grants him and

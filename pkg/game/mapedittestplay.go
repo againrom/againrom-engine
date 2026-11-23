@@ -231,10 +231,11 @@ func TestPlayArgs(root, modsDir string, n int, hero string, ids ...string) ([]st
 // else a guest mission of testPlayGuest.
 func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPackageSpec) (mod.Mission, error) {
 	var m mod.Mission
+	model, err := mapedit.New(b)
 	if pkg == nil {
-		var err error
-		if m, err = x.testPlayGuestMission(); err != nil {
-			return mod.Mission{}, err
+		var rowErr error
+		if m, rowErr = rowFor(model).testMission(x, source); rowErr != nil {
+			return mod.Mission{}, rowErr
 		}
 	}
 	pages := map[string][]byte{}
@@ -248,7 +249,6 @@ func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPacka
 			}
 		}
 	}
-	model, err := mapedit.New(b)
 	place := missionPlace(source, err == nil && model.Extended())
 	if pkg != nil {
 		m = pkg.mission(b, pages, place)
@@ -270,6 +270,29 @@ func (x *MapInspector) testPlayGuestMission() (mod.Mission, error) {
 		return mod.Mission{}, err
 	}
 	return testPlayGuest(c, x.archives.Containers)
+}
+
+// testPlayReplaceMission is the mission row a second-game test mod plays its
+// map under: it replaces the campaign mission the source map is, else the
+// campaign's first.
+func (x *MapInspector) testPlayReplaceMission(source string) (mod.Mission, error) {
+	if x.archives == nil {
+		return mod.Mission{}, wordErr("editor.err.noinstall")
+	}
+	rules := campaignOf(x.archives.Game())
+	c, err := rules.loadCampaign(x.archives.Containers)
+	if err != nil {
+		return mod.Mission{}, err
+	}
+	held := rules.missionNumbers(c, x.archives.Containers)
+	n := sourceMission(source)
+	if !slices.Contains(held.Main, n) && !slices.Contains(held.Side, n) && !slices.Contains(held.Offered, n) {
+		if len(held.Main) == 0 {
+			return mod.Mission{}, wordErr("editor.err.tp.noguest")
+		}
+		n = held.Main[0]
+	}
+	return mod.Mission{Mod: TestPlayModID, File: mod.MissionsFile, Kind: mod.MissionReplace, Key: "map", Number: n}, nil
 }
 
 // testPlayNumber is the mission number test play starts the map of
@@ -668,7 +691,7 @@ func (s *mapInspectionEdits) TestPlayParty(hero int, choice []ui.TestPlayMember)
 // TestPlayRefusal is the campaign's refusal of every test play, nil when the
 // install's campaign allows it or no install is open.
 func (s *mapInspectionEdits) TestPlayRefusal() error {
-	if s.inspector.archives == nil {
+	if s.inspector.archives == nil || !s.row().guestTest {
 		return nil
 	}
 	return campaignOf(s.inspector.archives.Game()).testPlayRefusal()

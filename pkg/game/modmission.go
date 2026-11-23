@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"againrom/pkg/campaignset"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/herokind"
@@ -172,7 +171,10 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 	if err != nil {
 		return nil, nil, err
 	}
-	c, err := f.Campaign.Value().withModMissions(d)
+	spine := f.Campaign.Value()
+	held := campaignOf(f.Archives.Game()).missionNumbers(spine, f.Archives.Containers)
+	spine.Main, spine.Side, spine.Offered = held.Main, held.Side, held.Offered
+	c, err := spine.withModMissions(d)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -684,8 +686,8 @@ func (f *FrontEnd) campaignMap(n int) error {
 // installedCampaignMap refuses a number that is no mission of this install's
 // campaign, or whose map at address the install does not hold.
 func (f *FrontEnd) installedCampaignMap(n int, address string) error {
-	c := f.Campaign.Value()
-	return campaignset.Numbers{Main: c.Main, Side: c.Side, Offered: c.Offered}.Check(f.Archives.Containers, n, address)
+	numbers := campaignOf(f.Archives.Game()).missionNumbers(f.Campaign.Value(), f.Archives.Containers)
+	return numbers.Check(f.Archives.Containers, n, address)
 }
 
 // startGuestMission is the guest half of the win of mission n: when a mod

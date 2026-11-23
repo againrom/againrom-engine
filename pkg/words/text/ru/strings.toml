@@ -684,6 +684,7 @@
 "editor.palette.nodecoration" = "Здесь нет ни одной украшающей постройки."
 "editor.palette.notrees" = "Здесь нет ни одного дерева."
 "editor.report.checked" = "Проверка завершена"
+"editor.report.skipped" = "Не выполнялись на карте второй игры, чьих правил эта проверка не знает: %s."
 "editor.report.saved" = "Карта сохранена"
 "editor.report.refused" = "Сохранение отклонено"
 "editor.report.copyhint" = "Ctrl+C: копия выбранной строки"

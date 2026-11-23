@@ -644,6 +644,7 @@ func armNewGameDoor(app *ui.App, front *game.FrontEnd, o options) error {
 	}
 	begin := front.NewGameBegin(o.startMission(front))
 	if o.missionSet {
+		begin = front.MissionBegin(o.startMission(front))
 		if err := app.OpenChargen(ui.NewChargen(front.ChargenSetup()), begin); err != nil {
 			return err
 		}

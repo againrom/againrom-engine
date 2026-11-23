@@ -4,9 +4,11 @@ import (
 	"errors"
 
 	"againrom/pkg/base"
+	"againrom/pkg/campaignset"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
+	"againrom/pkg/vfs"
 )
 
 // campaignService is the campaign behaviour the two games differ in and that
@@ -99,6 +101,12 @@ type campaignService interface {
 	// censusRefusal refuses a census of the campaign's maps: the census
 	// reports each map of a destination bank.
 	censusRefusal() error
+	// loadCampaign reads the campaign spine the install states; a game that
+	// states none answers the empty campaign.
+	loadCampaign(fsys *vfs.FS) (Campaign, error)
+	// missionNumbers are the numbers a mod mission may name as a campaign
+	// mission, over campaign c and the install's maps.
+	missionNumbers(c Campaign, fsys *vfs.FS) campaignset.Numbers
 	// testPlayRefusal refuses the map editor's test play, which plays a map
 	// as a guest mission after a won chapter mission.
 	testPlayRefusal() error

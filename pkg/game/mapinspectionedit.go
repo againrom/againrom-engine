@@ -989,10 +989,8 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 		return "", err
 	}
 	bare := !s.row().workspace
-	if !bare {
-		if err := s.gate(true); err != nil {
-			return "", err
-		}
+	if err := s.gate(true); err != nil {
+		return "", err
 	}
 	b, err := s.encodeForSave()
 	if err != nil {

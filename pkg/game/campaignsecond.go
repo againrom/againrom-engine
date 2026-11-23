@@ -5,11 +5,13 @@ import (
 	"fmt"
 
 	"againrom/pkg/base"
+	"againrom/pkg/campaignset"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
+	"againrom/pkg/vfs"
 )
 
 // secondCampaignRules is the second game's campaign service: a scenario bank
@@ -325,6 +327,22 @@ func (secondCampaignRules) ownsGame(g base.Game) error {
 func (secondCampaignRules) censusRefusal() error { return nil }
 
 func (secondCampaignRules) testPlayParty() []testPlayCompanion { return nil }
+
+// loadCampaign: the second game states no scenario registry.
+func (secondCampaignRules) loadCampaign(*vfs.FS) (Campaign, error) { return Campaign{}, nil }
+
+// missionNumbers are the ordinary mission ids whose map the install holds.
+func (secondCampaignRules) missionNumbers(_ Campaign, fsys *vfs.FS) campaignset.Numbers {
+	var held campaignset.Numbers
+	for n := 1; secondContinues(n); n++ {
+		if address, _ := MissionMap(n); fsys != nil {
+			if _, err := fsys.ReadFile(address); err == nil {
+				held.Main = append(held.Main, n)
+			}
+		}
+	}
+	return held
+}
 
 func (secondCampaignRules) testPlayRefusal() error {
 	return errors.New("Test play plays first-game maps only: this campaign has no guest missions")

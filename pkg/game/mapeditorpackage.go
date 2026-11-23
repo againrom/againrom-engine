@@ -57,7 +57,7 @@ func missionPackageFiles(title, description string, m mod.Mission, game base.Gam
 // one, that the open install does not bear out. Save mod package and test play
 // both stop on it before they write a file.
 func (x *MapInspector) checkMissionRoute(m mod.Mission) error {
-	c, err := LoadCampaign(x.archives.Containers)
+	c, err := campaignOf(x.archives.Game()).loadCampaign(x.archives.Containers)
 	if err != nil {
 		return err
 	}

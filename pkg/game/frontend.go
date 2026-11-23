@@ -1122,7 +1122,7 @@ func (f *FrontEnd) newGameChargen(row int) *ui.ChargenEntry {
 		// A picked mission row opens that mission. The previous
 		// campaign survives a failed open. The successful candidate replaces
 		// its session fields and town UI together.
-		Begin: f.generatorBegin(generatorStartMission, n),
+		Begin: f.generatorBegin(generatorStartMission, n, false),
 	}
 }
 
