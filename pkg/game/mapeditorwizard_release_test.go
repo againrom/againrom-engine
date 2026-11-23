@@ -117,7 +117,7 @@ func TestReleaseTriggerWizardFrames(t *testing.T) {
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	e := x.Editor()
-	e.Layout(1280, 800)
+	e.Layout(1920, 1080)
 	if err := e.Open("scenario/10.alm"); err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestReleaseTriggerWizardFrames(t *testing.T) {
 	clearPopup(e, from, to)
 	e.Pointer(ui.Input{CursorX: from.X, CursorY: from.Y, PrimaryDown: true}, now)
 	e.Pointer(ui.Input{CursorX: to.X, CursorY: to.Y, PrimaryDown: true}, now)
-	editorShot(t, e, dir, "wizard-draw-on-map", image.Rectangle{})
+	editorShotSized(t, e, dir, "wizard-draw-on-map", image.Rectangle{}, image.Pt(1920, 1080))
 	e.Pointer(ui.Input{CursorX: to.X, CursorY: to.Y}, now)
 	wizPress(t, e, "+action", 0)
 	wizPress(t, e, "+action", 0)
@@ -143,9 +143,9 @@ func TestReleaseTriggerWizardFrames(t *testing.T) {
 	if !strings.Contains(strings.Join(e.PopupLines(), "\n"), "60,60,70,66") {
 		t.Fatalf("the drawn area is not in the row:\n%s", trigLines(e))
 	}
-	editorShot(t, e, dir, "wizard-example", image.Rectangle{})
+	editorShotSized(t, e, dir, "wizard-example", image.Rectangle{}, image.Pt(1920, 1080))
 	wizApply(t, e)
-	editorShot(t, e, dir, "wizard-example-applied", image.Rectangle{})
+	editorShotSized(t, e, dir, "wizard-example-applied", image.Rectangle{}, image.Pt(1920, 1080))
 
 	_ = e.Key("escape")
 	_ = e.Key("drop")

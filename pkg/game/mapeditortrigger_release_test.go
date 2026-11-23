@@ -280,3 +280,14 @@ func editorShot(t *testing.T, e *ui.MapEditor, dir, name string, cover image.Rec
 	}
 	writeEditorFrame(t, e, filepath.Join(dir, name+".png"), dir != "", cover)
 }
+
+// editorShotSized is editorShot for an editor laid out at size.
+func editorShotSized(t *testing.T, e *ui.MapEditor, dir, name string, cover image.Rectangle, size image.Point) {
+	t.Helper()
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeEditorFrameSized(t, e, filepath.Join(dir, name+".png"), dir != "", cover, size)
+}
