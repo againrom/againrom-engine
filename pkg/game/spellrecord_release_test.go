@@ -217,7 +217,7 @@ func TestReleaseSpellbookPopupStatesTheCastAtTheActorsPower(t *testing.T) {
 // binary64 byte fold states a different pair on some installed row and power.
 func TestReleaseSecondGameSpellbookPopupStatesTheCastPair(t *testing.T) {
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

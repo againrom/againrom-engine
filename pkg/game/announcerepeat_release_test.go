@@ -13,7 +13,7 @@ import (
 func TestReleaseAnnouncerRepeatingTriggersOfShippedMissions(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
-	defs, err := LoadDefinitions(f.Archives.Containers)
+	defs, err := LoadDefinitionsOf(f.Archives.Containers, f.Archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

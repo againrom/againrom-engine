@@ -30,7 +30,7 @@ func secondGameRoot(t *testing.T) *Archives {
 // TestReleaseSecondGameMissionTenOpens runs once against each second-game root.
 func TestReleaseSecondGameMissionTenOpens(t *testing.T) {
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestReleaseSecondGameMissionTenOpens(t *testing.T) {
 // carries.
 func TestReleaseSecondGameCampaignMapsDecode(t *testing.T) {
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

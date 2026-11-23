@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/game"
@@ -49,9 +50,9 @@ func TestThePartyMemberIsNoLongerDrawnAsAnUnarmedMan(t *testing.T) {
 		{Name: "Placeholder", Params: []int32{-1, -1, -1, -1, -1, data.SkillBlade, 10, 20, 0, 0, -1, 1, 6, 4, -1}},
 		{Name: "fixture sword", Params: []int32{-1, -1, -1, -1, -1, data.SkillBlade, 10, 20, 0, 0, -1, 1, 6, 4, -1}},
 	}
-	d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+	d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: db.Bytes()}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -126,9 +127,9 @@ func TestMovingTheWeaponMovesTheDerivedBody(t *testing.T) {
 		weaponRow("Sword"),       // row 3
 		weaponRow("Bow"),         // row 4
 	}
-	d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+	d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: db.Bytes()}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}

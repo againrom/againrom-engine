@@ -168,7 +168,7 @@ func TestReleaseTriggerWizardMapPlaysTheTrigger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defs, err := LoadDefinitions(archives.Containers)
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

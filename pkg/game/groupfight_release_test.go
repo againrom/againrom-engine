@@ -35,7 +35,7 @@ func TestReleaseAnAttackedGroupAtKadaganPostFightsAsAGroup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenArchives: %v", err)
 	}
-	defs, err := game.LoadDefinitions(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}

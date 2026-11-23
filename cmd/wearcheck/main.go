@@ -55,7 +55,7 @@ func run(args []string, out io.Writer) error {
 	// SAME databin.Parse of the SAME archive member the placement loader
 	// itself reads (table.go's tableAddress), so this tool measures the
 	// install the game would load, never a second read of its own invention.
-	defs, err := game.LoadDefinitions(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		return err
 	}

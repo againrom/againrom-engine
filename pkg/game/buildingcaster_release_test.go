@@ -12,7 +12,7 @@ import (
 // holds 27 towers' records, which the world holds as 27 casters.
 func TestReleaseSecondMissionTowersCastAtTheParty(t *testing.T) {
 	f := secondGameFront(t)
-	defs, err := LoadDefinitionsFor(f.Archives.Containers, f.Archives.Game())
+	defs, err := LoadDefinitionsOf(f.Archives.Containers, f.Archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -70,7 +70,7 @@ func TestReleaseSecondDeathDropUnitsRows(t *testing.T) {
 	if arch.Game() != base.GameROM2 {
 		t.Skip("the root holds the first game")
 	}
-	defs, err := LoadDefinitionsFor(arch.Containers, arch.Game())
+	defs, err := LoadDefinitionsOf(arch.Containers, arch.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

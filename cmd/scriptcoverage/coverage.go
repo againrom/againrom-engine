@@ -239,7 +239,7 @@ func loadCoverage(root string) (*coverageResult, []*loadedMap, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	defs, err := game.LoadDefinitions(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -15,7 +15,7 @@ import (
 func secondSpellMission(t *testing.T, mission int) (*sim.World, *mapload.Table, sim.EntityID) {
 	t.Helper()
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func secondSpellRule(t *testing.T, w *sim.World, id uint16) sim.SpellRule {
 // spells past its blank trailing entries, and every row carries its arm.
 func TestReleaseSecondGameSpellTableLoads(t *testing.T) {
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -308,7 +308,7 @@ func secondSpellNearestHostile(t *testing.T, w *sim.World, hero sim.EntityID) si
 func secondSpellBookCastWorld(t *testing.T, id uint16) *sim.World {
 	t.Helper()
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

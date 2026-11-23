@@ -79,7 +79,7 @@ func run(args []string, out io.Writer) error {
 	// LoadDefinitions rather than LoadTable, missionrun's own reason: the
 	// party's hero is armed out of the SAME walk of the same file the
 	// placements resolve against, so the tool and the game start one party.
-	defs, err := game.LoadDefinitions(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		return err
 	}

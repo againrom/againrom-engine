@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/game"
 	"againrom/pkg/ui"
@@ -60,9 +61,9 @@ func bowTables() []byte {
 // and it is resolved rather than written down: 23 and 40 through a shape factor
 // of 0.2 give (5, 3), which the retracted ladder would have made (23, 17).
 func TestLoadDefinitionsResolvesTheStartingWeapon(t *testing.T) {
-	d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+	d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: itemTables(true)}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -97,7 +98,7 @@ func TestATableWithNoStartingWeaponIsNotFatal(t *testing.T) {
 		[]synth.File{{Path: "data/data.bin", Data: itemTables(false)}},
 		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}})
 
-	d, err := game.LoadDefinitions(fsys)
+	d, err := game.LoadDefinitionsOf(fsys, base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -190,9 +191,9 @@ func TestChargenPartyResolvesTheChosenSlotsOwnWeapon(t *testing.T) {
 		Params: []int32{-1, -1, -1, -1, -1, data.SkillAxe, 10, 20, 0, 0, -1, 1, 6, 4, -1},
 	}}
 
-	d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+	d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: db.Bytes()}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -238,9 +239,9 @@ func TestMissionPartyCarriesTheGeneratedHero(t *testing.T) {
 		{Name: "Placeholder", Params: []int32{-1, -1, -1, -1, -1, data.SkillBlade, 10, 20, 0, 0, -1, 1, 6, 4, -1}},
 		{Name: "Short Sword", Params: []int32{-1, -1, -1, -1, -1, data.SkillBlade, 23, 40, 0, 0, -1, 1, 9, 5, -1}},
 	}
-	d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+	d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: db.Bytes()}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -310,9 +311,9 @@ func TestMissionPartyAsResolvesTheMageArmsOwnWeapon(t *testing.T) {
 		{Name: "Staff", Params: []int32{-1, -1, -1, -1, -1, data.SkillBlade, 10, 20, 0, 0, -1, 1, 6, 4, -1}},
 		{Name: "Short Sword", Params: []int32{-1, -1, -1, -1, -1, data.SkillBlade, 23, 40, 0, 0, -1, 1, 9, 5, -1}},
 	}
-	d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+	d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: db.Bytes()}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -455,9 +456,9 @@ func TestThePartySpreadIsTheRulesUniqueAnswer(t *testing.T) {
 // player's own unit fights at. It is the story's own claim, asserted once at
 // full length — nothing between the file's bytes and the band is stubbed.
 func TestAnInstalledTableBecomesTheHerosBand(t *testing.T) {
-	d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+	d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: itemTables(true)}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -491,9 +492,9 @@ func TestAnInstalledTableBecomesTheHerosBand(t *testing.T) {
 // partyCharacters performs, on TestAnInstalledTableBecomesTheHerosBand's own
 // precedent for the eight combat numbers beside these three.
 func TestAPartyMembersCharacterCarriesTheRecomputesFamilies(t *testing.T) {
-	d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+	d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: itemTables(true)}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -534,9 +535,9 @@ func TestAPartyMembersCharacterCarriesTheRecomputesFamilies(t *testing.T) {
 // derived reach follows the weapon above 1.
 func TestSetPartySkillGeneratesAnArmedHero(t *testing.T) {
 	t.Run("unset yields today's hero exactly", func(t *testing.T) {
-		d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+		d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 			[]synth.File{{Path: "data/data.bin", Data: itemTables(true)}},
-			[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+			[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 		if err != nil {
 			t.Fatalf("LoadDefinitions: %v", err)
 		}
@@ -563,9 +564,9 @@ func TestSetPartySkillGeneratesAnArmedHero(t *testing.T) {
 		if err := game.SetPartySkill(data.SkillShoot); err != nil {
 			t.Fatalf("SetPartySkill(SkillShoot): %v", err)
 		}
-		d, err := game.LoadDefinitions(worldAndScenarioFS(t,
+		d, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 			[]synth.File{{Path: "data/data.bin", Data: bowTables()}},
-			[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}))
+			[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(nil)}}), base.Profile{})
 		if err != nil {
 			t.Fatalf("LoadDefinitions: %v", err)
 		}

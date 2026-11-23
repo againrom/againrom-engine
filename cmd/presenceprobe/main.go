@@ -22,7 +22,7 @@ func main() {
 		fmt.Println("archives:", err)
 		return
 	}
-	defs, err := game.LoadDefinitions(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		fmt.Println("definitions:", err)
 		return

@@ -69,7 +69,7 @@ const tableAddress = worldPrefix + "data/data.bin"
 // every test still green, which is exactly the shape of failure the
 // paragraph above exists to close.
 func LoadTable(fsys *vfs.FS) (*mapload.Table, error) {
-	d, err := LoadDefinitions(fsys)
+	d, err := LoadDefinitionsOf(fsys, base.Profile{})
 	if err != nil {
 		return nil, err
 	}
@@ -114,28 +114,20 @@ type Definitions struct {
 	Bodies data.BodyList
 }
 
-// LoadDefinitions reads the placeable-definition table once and returns
-// everything this package takes from it, plus the one thing that is not part
-// of that walk: the shipped body list, read straight off fsys because it
-// lives in a different archive (main.res, not world.res). LoadTable is this
-// function's first field.
-func LoadDefinitions(fsys *vfs.FS) (*Definitions, error) {
-	return LoadDefinitionsFor(fsys, "")
-}
-
-// LoadDefinitionsOf is LoadDefinitionsFor with the straight Acid Stream rows of
-// the build p.
+// LoadDefinitionsOf reads the placeable-definition table once under p's game
+// and returns everything this package takes from it, plus the shipped body
+// list read straight off main.res and the build's straight Acid Stream rows.
+// LoadTable is this function's first field.
 func LoadDefinitionsOf(fsys *vfs.FS, p base.Profile) (*Definitions, error) {
-	d, err := LoadDefinitionsFor(fsys, p.GameOf())
+	d, err := loadDefinitionsFor(fsys, p.GameOf())
 	if err == nil {
 		d.Table.StraightCone = sim.StraightCone(p.StraightCone)
 	}
 	return d, err
 }
 
-// LoadDefinitionsFor is LoadDefinitions over the table layout of g; the empty
-// game is the first.
-func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
+// loadDefinitionsFor reads the table layout of g; the empty game is the first.
+func loadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	b, err := fsys.ReadFile(tableAddress)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", tableAddress, err)

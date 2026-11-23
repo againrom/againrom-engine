@@ -147,7 +147,7 @@ func writeMapListHint(f *game.FrontEnd, font *text.Font, path string, out *os.Fi
 // fallback path says so in its own printed line so a reader never mistakes
 // it for a found monster.
 func writeMonsterSpellHint(f *game.FrontEnd, font *text.Font, path string, missionLimit int, out *os.File) error {
-	defs, err := game.LoadDefinitions(f.Archives.Containers)
+	defs, err := game.LoadDefinitionsOf(f.Archives.Containers, f.Archives.Base.Profile)
 	if err != nil {
 		return fmt.Errorf("load definitions: %w", err)
 	}

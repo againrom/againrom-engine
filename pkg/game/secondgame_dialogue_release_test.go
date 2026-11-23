@@ -14,7 +14,7 @@ import (
 
 func TestReleaseSecondGameMissionTenAuthoredDialogueIsReadable(t *testing.T) {
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestReleaseSecondGameInitialDialogueAppears(t *testing.T) {
 
 func TestReleaseSecondGameAuthoredNewTriggersHaveNoGaps(t *testing.T) {
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

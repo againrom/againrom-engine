@@ -155,7 +155,7 @@ func TestItemRowKeysResolveAsTheyDidForTheInstalls(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defs, err := LoadDefinitionsFor(a.Containers, a.Game())
+		defs, err := LoadDefinitionsOf(a.Containers, a.Base.Profile)
 		if err != nil {
 			t.Fatal(err)
 		}

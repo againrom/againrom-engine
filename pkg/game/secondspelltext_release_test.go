@@ -27,7 +27,7 @@ func TestReleaseSecondGameSpellTextIsItsOwnLines(t *testing.T) {
 			t.Errorf("row %d item name %q, spell.txt line %d %q", r, got, r-1, shipped)
 		}
 	}
-	defs, err := LoadDefinitionsFor(f.Archives.Containers, f.Archives.Game())
+	defs, err := LoadDefinitionsOf(f.Archives.Containers, f.Archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

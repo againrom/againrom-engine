@@ -34,7 +34,7 @@ const (
 var itemNameAllowed = map[string]string{
 	"pkg/game/mapinspectionedit.go (*MapInspector).checkItem " + itemNameShippedLookup:            "existence check: refuses a code the shipped table does not name (DIV-3134)",
 	"pkg/game/mapinspectionequipment.go (*mapInspectionEdits).setEquipment " + itemNameNamesTable: "existence check: refuses a worn variant the shipped table does not name",
-	"pkg/game/table.go LoadDefinitionsFor " + itemNameNamesTable:                                  "the loader stores the shipped table",
+	"pkg/game/table.go loadDefinitionsFor " + itemNameNamesTable:                                  "the loader stores the shipped table",
 	"pkg/game/itemnames.go readItemNamesAt " + itemNameNamesTable:                                 "the loader builds the shipped table",
 	"pkg/game/moditemlayer.go (*FrontEnd).setModItems " + itemNameNamesTable:                      "the mod layer adds its items' names to the table the resolver reads",
 	"pkg/game/mapeditormodcontrols.go (*mapInspectionEdits).partyItemName " + itemNameWeaponName:  "a character cell's data name, matched against the cell text",

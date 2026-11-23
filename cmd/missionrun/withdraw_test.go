@@ -75,7 +75,7 @@ func TestReleaseRangedWithdrawalMissionWitness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defs, err := game.LoadDefinitions(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

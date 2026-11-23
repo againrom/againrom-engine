@@ -16,7 +16,7 @@ import (
 func dragonClanMission(t *testing.T, move uint16, classBooks bool) (*sim.World, sim.EntityID) {
 	t.Helper()
 	f := releaseFront(t)
-	defs, err := LoadDefinitionsFor(f.Archives.Containers, f.Archives.Game())
+	defs, err := LoadDefinitionsOf(f.Archives.Containers, f.Archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

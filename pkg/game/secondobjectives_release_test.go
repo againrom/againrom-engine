@@ -25,7 +25,7 @@ var secondMapObjectiveActions = map[int]map[int][][2]int32{
 // the empty-box mark.
 func TestReleaseSecondMapObjectiveWiring(t *testing.T) {
 	archives := secondGameRoot(t)
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

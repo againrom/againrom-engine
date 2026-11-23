@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
@@ -53,7 +54,7 @@ func npcNameEntries(maleFighter, femaleFighter, maleMage, femaleMage string) []s
 // RU install's own name is code page 866 bytes, which no pass may re-encode.
 func TestMissionPartyNamesTheHeroAfterHisPicture(t *testing.T) {
 	const maleFighter, maleMage = "\x84\xa0\xad\xa0\xe1", "\x94\xa5\xe0\xa3\xa0\xe0\xa4"
-	d, err := game.LoadDefinitions(heroNamesFS(t, npcNameEntries(maleFighter, "female fighter", maleMage, "female mage")))
+	d, err := game.LoadDefinitionsOf(heroNamesFS(t, npcNameEntries(maleFighter, "female fighter", maleMage, "female mage")), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
@@ -73,11 +74,11 @@ func TestMissionPartyNamesTheHeroAfterHisPicture(t *testing.T) {
 // install with no name file, and a name file that lacks one of the four
 // pictures' entries, which the table then treats as no names at all.
 func TestMissionPartyNamesTheHeroDanathWithoutInstalledNames(t *testing.T) {
-	noMain, err := game.LoadDefinitions(worldFS(t, []synth.File{{Path: "data/data.bin", Data: synth.DataBin{}.Bytes()}}))
+	noMain, err := game.LoadDefinitionsOf(worldFS(t, []synth.File{{Path: "data/data.bin", Data: synth.DataBin{}.Bytes()}}), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
-	partial, err := game.LoadDefinitions(heroNamesFS(t, npcNameEntries("first", "second", "third", "fourth")[:22]))
+	partial, err := game.LoadDefinitionsOf(heroNamesFS(t, npcNameEntries("first", "second", "third", "fourth")[:22]), base.Profile{})
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}

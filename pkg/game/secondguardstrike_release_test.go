@@ -58,7 +58,7 @@ const (
 // after each tick of the attack, and after each group tick that follows.
 func runGuardStrike(t *testing.T, archives *Archives) guardStrikeRun {
 	t.Helper()
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

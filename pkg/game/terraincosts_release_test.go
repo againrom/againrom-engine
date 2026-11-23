@@ -20,7 +20,7 @@ func TestReleaseInstalledTerrainCostTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

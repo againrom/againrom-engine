@@ -55,7 +55,7 @@ func TestReleaseMessageReaderCompatibility(t *testing.T) {
 			}
 		}
 	}
-	defs, err := LoadDefinitions(src)
+	defs, err := LoadDefinitionsOf(src, f.Archives.Base.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}
