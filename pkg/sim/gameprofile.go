@@ -103,8 +103,8 @@ type gameProfile struct {
 	// withdrawAnchorCells: the withdrawal square lists each hostile once by
 	// its anchor cell (AI-697).
 	withdrawAnchorCells bool
-	// classThresholds: a computer Human's Withdraw and Wimpy come from its
-	// class at mission start (classThresholds).
+	// classThresholds: every Human's Withdraw and Wimpy come from its class
+	// at mission start (classThresholds).
 	classThresholds bool
 	// retreatMode: the rule that turns a retreat setting into thresholds
 	// (retreatModeRules).

@@ -57,14 +57,17 @@ func (w *World) withdrawalClass(i int) int {
 	}
 }
 
-// classThresholds sets the computer Humans' thresholds at mission start.
+// classThresholds sets every Human's thresholds at mission start, a player's
+// Human included: the setter is the template loader's last call and tests
+// only the Human kind (R2-ENGINE-1606). A player's Retreat setting rewrites
+// them later (byClassRetreatMode).
 func (w *World) classThresholds() {
 	if !w.game.classThresholds {
 		return
 	}
 	for i := range w.entities {
 		e := &w.entities[i]
-		if !e.Humanoid || w.playerControlledUnit(*e) {
+		if !e.Humanoid {
 			continue
 		}
 		switch w.withdrawalClass(i) {

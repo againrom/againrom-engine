@@ -54,6 +54,9 @@ func TestASecondGameCreatureDealsTheDamageItsRowBytesHold(t *testing.T) {
 		{"edge of the bytes", 127, 382, -1, [2]int32{127, 255}, [2]int32{127, 255}, false},
 		{"spread past a byte under the minimum plus 255", 100, 400, -1, [2]int32{100, 44}, [2]int32{100, 300}, false},
 		{"always hits", 20, 50, 3, [2]int32{20, 30}, [2]int32{20, 30}, true},
+		// The card digits of R2-ASSET-343 (Medium): Troll.5 and Spider.5.
+		{"Troll.5 row", 492, 747, -1, [2]int32{480, 255}, [2]int32{492, 255}, false},
+		{"Spider.5 row, always hits past a byte", 131, 262, 3, [2]int32{45, 1965}, [2]int32{131, 131}, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, game := range []struct {
