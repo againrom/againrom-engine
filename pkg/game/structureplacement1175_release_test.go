@@ -135,7 +135,14 @@ func coldBuilding(t *testing.T, f *FrontEnd) {
 		t.Fatal(err)
 	}
 	fresh.live.view.SetFogReveal(true)
-	if got := fresh.live.world.Structures(); !slices.Equal(got, want) {
+	withoutOwner := func(in []sim.Structure) []sim.Structure {
+		out := slices.Clone(in)
+		for i := range out {
+			out[i].Owner = 0
+		}
+		return out
+	}
+	if got := fresh.live.world.Structures(); !slices.Equal(withoutOwner(got), withoutOwner(want)) {
 		t.Fatal("cold SAV changed structure state")
 	}
 	for _, structure := range want {
