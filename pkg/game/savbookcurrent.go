@@ -46,12 +46,15 @@ func projectCurrentBookGraph(b *generatedDocumentBuilder, state *SnapshotSAVDocu
 		}
 		if e.Book.State == sim.BookLegacy {
 			e.Book.State = sim.BookPresent
-			e.KnownSpells &= 0x1ffffffe
+			// The legacy mask keeps the ids the game's book holds: the
+			// second game's book holds a 29th spell past the record's
+			// first 28 slots.
+			e.KnownSpells &= uint32(1)<<(sim.BookSpellCount(world.SpellGame())+1) - 2
 			for _, rule := range world.Spells() {
-				if rule.ID >= 1 && rule.ID <= sim.BookWireSlots && e.KnownSpells&(1<<rule.ID) != 0 {
-					e.Book.Slots[rule.ID-1].ManaCost = uint16(rule.ManaCost)
+				if slot := e.Book.Slot(rule.ID); slot != nil && e.KnownSpells&(1<<rule.ID) != 0 {
+					slot.ManaCost = uint16(rule.ManaCost)
 					if rule.Defensive {
-						e.Book.Slots[rule.ID-1].Defensive = 1
+						slot.Defensive = 1
 					}
 				}
 			}

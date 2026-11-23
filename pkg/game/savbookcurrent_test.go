@@ -205,3 +205,35 @@ func TestCurrentBookProjectionUpdatesSlotsWithoutChangingSharedSpell(t *testing.
 		}
 	}
 }
+
+// A second-game hero whose book is the legacy mask keeps the 29th spell
+// through the book projection: the second game's book holds 29 spells, the
+// last one past the entity record's first 28 slots (R2-SESSION-237).
+func TestCurrentLegacyBookKeepsTheSecondGameTwentyNinthSpell(t *testing.T) {
+	doc, binding, _ := actorProjectionFixture(t, "Human")
+	var known uint32
+	var table []sim.SpellRule
+	for id := uint16(1); id <= 29; id++ {
+		known |= 1 << id
+		table = append(table, sim.SpellRule{ID: id, School: 1, MaxRange: 10, ManaCost: 4})
+	}
+	e := sim.Entity{ID: binding.EntityID, X: 3, Y: 4, HP: 10, MaxHP: 10, Mind: 10, KnownSpells: known, Skill: [6]int32{0, 110}}
+	script, err := sim.NewROM2Script(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	world, err := sim.NewStockedSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, sim.Terrain{}, []sim.Entity{e}, script,
+		sim.Relations{}, nil, nil, table)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := generatedDocumentBuilder{doc: doc}
+	state := &SnapshotSAVDocument{Document: &b.doc, Actors: []SnapshotSAVActor{binding}}
+	if err := projectCurrentBookGraph(&b, state, world, true); err != nil {
+		t.Fatal(err)
+	}
+	refs, _ := savedObjectRefs(&b.doc.Objects[binding.ObjectIndex-1], "Spells")
+	if len(refs) != 29 || refs[28] == 0 {
+		t.Fatalf("the saved book holds %d slots, want 29 with the last one set: %v", len(refs), refs)
+	}
+}
