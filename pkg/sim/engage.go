@@ -620,8 +620,9 @@ const groupScorerReach = 1
 //
 // The two modifiers apply unless preferenceWithheld answers true.
 //
-// The flat 127 a candidate carrying one active spell id costs is applied only
-// where the profile names that spell (scoreEffectSpell); the first game does not.
+// The flat 127 a candidate carrying one active spell id costs is applied where
+// the profile names that spell (scoreEffectSpell): spell 20 in the first game
+// (AI-COST-071) and 18 in the second (R2-ENGINE-1495, R2-ENGINE-1496).
 //
 // THE NOTICE CIRCLE IS NOT TOUCHED AT ALL BY EITHER TASK — not the jitter,
 // not the margin, not noticeBase's own freeze. Measured on the tenth mission
@@ -744,7 +745,8 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 		}
 	}
 	// The ordinary scorer, not the stand-ground one, adds a flat cost to a
-	// candidate under the profile's effect (R2-ENGINE-1495, R2-ENGINE-1496).
+	// candidate under the profile's effect (AI-COST-071, R2-ENGINE-1495,
+	// R2-ENGINE-1496).
 	if spell := w.game.scoreEffectSpell; spell != 0 && order != orderStandGround && w.hasAttachedSpell(c.ID, spell) {
 		cost = max(cost+scoreEffectCost, 1)
 	}

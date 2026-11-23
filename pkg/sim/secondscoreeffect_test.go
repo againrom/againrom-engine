@@ -4,7 +4,7 @@ import "testing"
 
 // R2-ENGINE-1495 and R2-ENGINE-1496: the ordinary scorer adds 0x7f for a
 // candidate under effect 18; the stand-ground scorer reads no effect; the
-// first game's scorer adds nothing here.
+// first game's scorer adds nothing for effect 18.
 func TestTheSecondGameOrdinaryScoreAddsTheEffectCost(t *testing.T) {
 	t.Parallel()
 	for _, second := range []bool{true, false} {
@@ -12,7 +12,11 @@ func TestTheSecondGameOrdinaryScoreAddsTheEffectCost(t *testing.T) {
 		self.Facing, self.Mind = 64, 0
 		w := asWorld(t, second, self, asFighter(asFoeA, SelfSlot, 30, 39))
 		base, standing := w.candidateCost(0, 1, orderGuard), w.candidateCost(0, 1, orderStandGround)
-		w.attached = append(w.attached, attachedEffect{Target: asFoeA, Spell: 20, Remaining: 100})
+		other := uint16(19)
+		if second {
+			other = 20
+		}
+		w.attached = append(w.attached, attachedEffect{Target: asFoeA, Spell: other, Remaining: 100})
 		if w.candidateCost(0, 1, orderGuard) != base {
 			t.Fatalf("second %v: another effect changed the score", second)
 		}

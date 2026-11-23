@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] Юниты под управлением компьютера теперь выбирают целью юнита под заклинанием номер 20 в последнюю очередь, как в оригинале; раньше это заклинание не меняло выбор цели.
 - [BASE] Существо с несколькими видами оружия теперь бьёт на сумму их дальностей, как в оригинале; раньше учитывалось только первое оружие.
 - [BASE] Невидимый маг, колдующий на другую цель или в клетку, теперь не теряет невидимость сразу, а сохраняет её ещё на один шаг, как в оригинале; заклинание на себя невидимость не меняет.
 - [ROM2] Units now step as in the original: a diagonal step keeps the first game's position correction and the slowest diagonal step stands still for 256 ticks, a struck guard steps away ten cells along the longer axis, and computer units rank a target under Stone Curse lower.

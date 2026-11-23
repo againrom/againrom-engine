@@ -181,7 +181,8 @@ type gameProfile struct {
 	// actor's size and Mind (R2-ENGINE-503), not the candidate's.
 	memberScoreGate bool
 	// scoreEffectSpell: the lasting effect whose bearer the ordinary score
-	// adds scoreEffectCost for, 0 for none (R2-ENGINE-1495, R2-ENGINE-1496).
+	// adds scoreEffectCost for, 0 for none (AI-COST-071, R2-ENGINE-1495,
+	// R2-ENGINE-1496).
 	scoreEffectSpell uint16
 	// blow: the blow's draws and gates (resolveBlow).
 	blow blowRule
@@ -239,8 +240,11 @@ var secondGameCardWindow = cardWindow{lastType: 107, lastFace: 7}
 // form and the second game's wrapper).
 func newGameProfile(d ScriptDialect) gameProfile {
 	if d != ScriptROM2 {
-		return gameProfile{skillAward: firstGameSkillAward,
-			computerSupport: supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, victimHolds: true, shield: shieldNone}}
+		return gameProfile{
+			scoreEffectSpell: 20,
+			skillAward:       firstGameSkillAward,
+			computerSupport:  supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, victimHolds: true, shield: shieldNone},
+		}
 	}
 	return gameProfile{
 		spellGame:                  rules.SpellGameSecond,
