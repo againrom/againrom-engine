@@ -725,6 +725,7 @@ func TestRenderObjectsOverlay(t *testing.T) {
 // TestRenderWithEmptyArchive - AC-7: an archive holding no terrain strips still
 // renders, reporting every cell as a placeholder rather than failing.
 func TestRenderWithEmptyArchive(t *testing.T) {
+	t.Setenv("AGAINROM_ASSETS", "")
 	dir := t.TempDir()
 	_, mapPath := writeFixtures(t, dir)
 

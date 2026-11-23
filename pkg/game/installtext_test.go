@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
@@ -504,6 +505,7 @@ func TestInstallWordsOverALawfulInstall(t *testing.T) {
 }
 
 func TestOriginalSixteenTextTableCountsOverBothLawfulInstalls(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	paths := []string{
 		"main/text/main.txt", "main/text/heropicture.txt", "main/text/stats.txt",
 		"main/text/spells.txt", "main/text/spell.txt", "main/text/dialogs.txt",

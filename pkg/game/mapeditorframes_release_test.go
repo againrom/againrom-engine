@@ -22,7 +22,12 @@ import (
 // replaces, and writes the frame as a PNG to path when write is set. A glyph its own window's parts hide fails.
 func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, cover image.Rectangle) {
 	t.Helper()
-	screen := ebiten.NewImage(1280, 800)
+	writeEditorFrameSized(t, e, path, write, cover, image.Pt(1280, 800))
+}
+
+func writeEditorFrameSized(t *testing.T, e *ui.MapEditor, path string, write bool, cover image.Rectangle, size image.Point) {
+	t.Helper()
+	screen := ebiten.NewImage(size.X, size.Y)
 	e.Draw(screen)
 	screen.Dispose()
 	var menu image.Rectangle

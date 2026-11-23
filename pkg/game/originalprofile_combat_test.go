@@ -9,7 +9,7 @@ import (
 	"againrom/pkg/sim"
 )
 
-// Literal wire selectors and independent outcomes from HERO-DMG2-029 and
+// Literal wire selectors and independent outcomes from MAGIC-453 and
 // HERO-CLAMP-030. These are new blows, not an assertion that LOAD retained a
 // protection word. Both App doors then ordinary SAVE/fresh LOAD exercise the
 // production join, canonical selector, combat consumer and native action.
@@ -21,9 +21,9 @@ func TestOriginalProfile1107ElementalBlowAppAndNativeContinuation(t *testing.T) 
 		wantHP     int32
 	}{
 		{"raw1 Fire", 1, 0, [5]int16{10, 20, 30, 40, 50}, 82},
-		{"raw2 Earth", 2, 3, [5]int16{10, 20, 30, 40, 50}, 88},
+		{"raw2 Water", 2, 1, [5]int16{10, 20, 30, 40, 50}, 84},
 		{"raw3 Air", 3, 2, [5]int16{10, 20, 30, 40, 50}, 86},
-		{"raw4 Water", 4, 1, [5]int16{10, 20, 30, 40, 50}, 84},
+		{"raw4 Earth", 4, 3, [5]int16{10, 20, 30, 40, 50}, 88},
 		{"raw5 Astral", 5, 4, [5]int16{10, 20, 30, 40, 50}, 90},
 		{"negative Fire", 1, 0, [5]int16{-50, 20, 30, 40, 50}, 70},
 	} {

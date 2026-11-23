@@ -133,6 +133,7 @@ const censusWant = "units: 6 entities, 3 sprites, 2 no-class, 1 no-frame\n"
 // TestUnitsCensusLine — SC-9: the subcommand prints exactly the census line,
 // through each of the three archive-locating paths render's own flags take.
 func TestUnitsCensusLine(t *testing.T) {
+	t.Setenv("AGAINROM_ASSETS", "")
 	dir := t.TempDir()
 	writeCensusArchive(t, dir)
 	mapPath := writeCensusMap(t, dir)

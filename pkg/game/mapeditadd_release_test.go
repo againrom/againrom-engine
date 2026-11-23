@@ -111,7 +111,7 @@ func TestReleaseMapEditorPlacementPaletteFrames(t *testing.T) {
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	shot := func(e *ui.MapEditor, name string) {
 		t.Helper()
-		writeEditorFrame(t, e, filepath.Join(dir, name+".png"), dir != "", image.Rectangle{})
+		writeEditorFrameSized(t, e, filepath.Join(dir, name+".png"), dir != "", image.Rectangle{}, image.Pt(1920, 1080))
 	}
 	clicker := &editorClicker{t: t}
 	for _, bar := range []string{"units", "structures", "objects", "sacks", "cellspells", "groups", "players", "scripts"} {
