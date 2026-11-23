@@ -974,9 +974,8 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 // blowRule is a game's draws and gates in resolveBlow; the zero value is the
 // first game's.
 type blowRule struct {
-	// effectsFirst: Bless draws, then Curse whatever Bless gave, then the
-	// spread when neither took effect (R2-ENGINE-1149).
-	effectsFirst bool
+	// draw: the order of the physical pair's draws (blowDraws).
+	draw blowDrawRule
 	// zeroSpreadNoDraw: a part whose spread is 0 makes no draw (R2-ENGINE-1152).
 	zeroSpreadNoDraw bool
 	// absorbsPositiveOnly: absorption comes off a physical part above 0 only
@@ -984,23 +983,48 @@ type blowRule struct {
 	absorbsPositiveOnly bool
 }
 
-var secondGameBlow = blowRule{effectsFirst: true, zeroSpreadNoDraw: true, absorbsPositiveOnly: true}
+var secondGameBlow = blowRule{draw: blowDrawsEffectsFirst, zeroSpreadNoDraw: true,
+	absorbsPositiveOnly: true}
 
-// blowValue is the physical pair's value and makes its draws. Bless that
-// takes effect gives base plus spread, Curse the base. The first game draws
-// the spread first, then Bless, then Curse only when Bless failed.
+// blowValue is the physical pair's value and makes its draws, in the order
+// the rule holds. Bless that takes effect gives base plus spread, Curse the
+// base.
 func (w *World) blowValue(a Entity, rule blowRule) int64 {
+	return blowDraws[rule.draw](w, a, rule)
+}
+
+// blowDrawRule is the order of the physical pair's draws.
+type blowDrawRule uint8
+
+const (
+	blowDrawsSpreadFirst blowDrawRule = iota
+	blowDrawsEffectsFirst
+)
+
+var blowDraws = [...]func(w *World, a Entity, rule blowRule) int64{
+	blowDrawsSpreadFirst:  (*World).spreadFirstBlowValue,
+	blowDrawsEffectsFirst: (*World).effectsFirstBlowValue,
+}
+
+// spreadFirstBlowValue is the first game's order: the spread, then Bless,
+// then Curse only when Bless failed.
+func (w *World) spreadFirstBlowValue(a Entity, _ blowRule) int64 {
 	base, top := int64(a.DamageBase), int64(a.DamageBase)+int64(a.DamageSpread)
-	if !rule.effectsFirst {
-		v := base + int64(w.rng.uniform(a.DamageSpread))
-		if chance, ok := w.attachedMagnitude(a.ID, w.blessingSpell()); ok && w.rng.uniform(100) < chance {
-			return top
-		}
-		if chance, ok := w.attachedMagnitude(a.ID, w.cursingSpell()); ok && w.rng.uniform(100) < chance {
-			return base
-		}
-		return v
+	v := base + int64(w.rng.uniform(a.DamageSpread))
+	if chance, ok := w.attachedMagnitude(a.ID, w.blessingSpell()); ok && w.rng.uniform(100) < chance {
+		return top
 	}
+	if chance, ok := w.attachedMagnitude(a.ID, w.cursingSpell()); ok && w.rng.uniform(100) < chance {
+		return base
+	}
+	return v
+}
+
+// effectsFirstBlowValue is the second game's order: Bless draws, then Curse
+// whatever Bless gave, then the spread when neither took effect
+// (R2-ENGINE-1149).
+func (w *World) effectsFirstBlowValue(a Entity, rule blowRule) int64 {
+	base, top := int64(a.DamageBase), int64(a.DamageBase)+int64(a.DamageSpread)
 	blessed, cursed := false, false
 	if chance, ok := w.attachedMagnitude(a.ID, w.blessingSpell()); ok {
 		blessed = w.rng.uniform(100) < chance

@@ -34,9 +34,9 @@ type gameProfile struct {
 	scriptRows scriptOpRows
 	// inertWithoutProgram: a script slot without a program leaves its bank inert.
 	inertWithoutProgram bool
-	// countedOutcome: the outcome reads the lose and win counters as nonzero;
-	// the first game reads each as exactly one.
-	countedOutcome bool
+	// outcomeReport: how the outcome reads the lose and win counters
+	// (outcomeReports).
+	outcomeReport outcomeRule
 	// activityMask: Group and actor activity come from the second game's
 	// script activity mask; no first-game activity cover holds an actor.
 	activityMask bool
@@ -90,12 +90,11 @@ type gameProfile struct {
 	bookWalkNoFallback bool
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
 	postKeepsDying bool
-	// savedProjectileAim: a projectile aims at the saved target point, not
-	// the mover's fine point (AI-674).
-	savedProjectileAim bool
-	// withdrawMoverPoint: the withdrawal measures from the mover's fine
-	// point, not the saved target point.
-	withdrawMoverPoint bool
+	// projectileAim: the point a projectile aims at a unit
+	// (projectileAimPoints, AI-674).
+	projectileAim projectileAimRule
+	// fleeOrigin: the point the withdrawal measures a unit from (fleePoints).
+	fleeOrigin fleeOriginRule
 	// castDropsLoadedStep: a manual cast or cast approach ends a loaded
 	// step between cells instead of waiting for its centre.
 	castDropsLoadedStep bool
@@ -104,10 +103,15 @@ type gameProfile struct {
 	withdrawAnchorCells bool
 	// classThresholds: a computer Human's Withdraw and Wimpy come from its
 	// class at mission start (classThresholds).
-	classThresholds       bool
-	classRetreatMode      bool
-	stopRefusedFlee       bool
-	roundUphillTowardZero bool
+	classThresholds bool
+	// retreatMode: the rule that turns a retreat setting into thresholds
+	// (retreatModeRules).
+	retreatMode retreatModeRule
+	// refusedFlee: the answer to a withdrawal move whose far search found no
+	// route (refusedFleeAnswers).
+	refusedFlee refusedFleeRule
+	// slope: the rounding of the ground rate's slope term (slopeRules).
+	slope slopeRule
 	// fleeSightExtra: the Wimpy test's hostile square is this many rings wider
 	// than the mover's search radius (R2-ENGINE-506); the first game adds none.
 	fleeSightExtra int64
@@ -127,11 +131,10 @@ type gameProfile struct {
 	// a computer mage's Group, at the admission or the release; the spell's
 	// range alone bounds it (R2-ENGINE-1136, R2-ENGINE-1143).
 	castsUnseen bool
-	// autoCastSideSight: the automatic choice takes an actor a living unit of
-	// the caster's player or of a player allied to it sees for a cast, not
-	// the cells the caster lights (autoCastObservers); its cast's admission
-	// and release ask none (owner, DIV-4872).
-	autoCastSideSight bool
+	// autoCastSight: whose sight the automatic choice takes (autoCastSights).
+	// Under the side's sight its cast's admission and release ask none
+	// (owner, DIV-4872).
+	autoCastSight autoCastSightRule
 	// keepsWeaponSpell: a worn Weapon always holds its spell, and an
 	// unequip keeps it (MAGIC-379).
 	keepsWeaponSpell bool
@@ -246,7 +249,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		return gameProfile{
 			scoreEffectSpell: 20,
 			skillAward:       firstGameSkillAward,
-			computerSupport:  supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, victimHolds: true, shield: shieldNone},
+			computerSupport:  supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, hold: supportHeldInCombat, shield: shieldNone},
 		}
 	}
 	return gameProfile{
@@ -261,7 +264,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		buildingCasters:            true,
 		scriptRows:                 secondGameRows,
 		inertWithoutProgram:        true,
-		countedOutcome:             true,
+		outcomeReport:              outcomeAtNonzero,
 		activityMask:               true,
 		cullClearsActionClock:      true,
 		formHoldsConstructedGroups: true,
@@ -285,21 +288,21 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		paysFacingAim:              true,
 		bookWalkNoFallback:         true,
 		postKeepsDying:             true,
-		savedProjectileAim:         true,
-		withdrawMoverPoint:         true,
+		projectileAim:              aimAtSavedPoint,
+		fleeOrigin:                 fleeFromCentre,
 		castDropsLoadedStep:        true,
 		withdrawAnchorCells:        true,
 		classThresholds:            true,
-		classRetreatMode:           true,
-		stopRefusedFlee:            true,
-		roundUphillTowardZero:      true,
+		retreatMode:                retreatModeByClass,
+		refusedFlee:                refusedFleeStops,
+		slope:                      slopeShiftsMagnitude,
 		fleeSightExtra:             5,
 		fleeBlockRadius:            5,
 		fleeTeleports:              true,
 		keepsSuppressedAcquirer:    true,
 		noHealArmReach:             true,
 		castsUnseen:                true,
-		autoCastSideSight:          true,
+		autoCastSight:              autoCastAlliedSight,
 		keepsWeaponSpell:           true,
 		autoCastFullDefault:        true,
 		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, yieldsToWithdrawal: true, shield: shieldAfterCandidateHeal},

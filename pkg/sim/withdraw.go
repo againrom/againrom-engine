@@ -224,30 +224,49 @@ func (w *World) teleportEscape(i int, hostile []int, reach int64, needLiving boo
 	return w.castOrder(i, CastAt(e.ID, SpellID(id), CellPoint{X: tx, Y: ty}))
 }
 
-// answerRefusedFlee ends a withdrawal move whose far search found no route.
-// The second game stops at the unit's cell (R2-ENGINE-1498). The first game
-// reacquires within reach between cycles and leaves patrols to their own arm
-// (AI-ROUTE-045, AI-327, DIV-1555, DIV-1565).
-func (w *World) answerRefusedFlee(i int) {
+// answerRefusedFlee ends a withdrawal move whose far search found no route,
+// by the answer the profile holds.
+func (w *World) answerRefusedFlee(i int) { refusedFleeAnswers[w.game.refusedFlee](w, i) }
+
+// refusedFleeRule is the answer to a refused withdrawal move.
+type refusedFleeRule uint8
+
+const (
+	refusedFleeReacquires refusedFleeRule = iota
+	refusedFleeStops
+)
+
+var refusedFleeAnswers = [...]func(*World, int){
+	refusedFleeReacquires: (*World).reacquireAfterRefusedFlee,
+	refusedFleeStops:      (*World).stopAfterRefusedFlee,
+}
+
+// reacquireAfterRefusedFlee is the first game's answer: it reacquires within
+// reach between cycles and leaves patrols to their own arm (AI-ROUTE-045,
+// AI-327, DIV-1555, DIV-1565).
+func (w *World) reacquireAfterRefusedFlee(i int) {
 	e := &w.entities[i]
-	if !w.game.stopRefusedFlee && e.ActorState == actorStatePatrol {
-		return
-	}
-	if !w.fleeRefused(i) {
-		return
-	}
-	if w.game.stopRefusedFlee {
-		w.clearEscort(i)
-		e.clearPatrol()
-		e.Retreat = RetreatContinuation{}
-		w.stopWalkOrder(i, true)
-		w.syncSavedActorCommand(i)
+	if e.ActorState == actorStatePatrol || !w.fleeRefused(i) {
 		return
 	}
 	w.clearOrder(i)
 	if e.AttackPhase == AttackReady {
 		w.reacquireWithinReach(i)
 	}
+}
+
+// stopAfterRefusedFlee is the second game's answer: the unit stops at its
+// cell (R2-ENGINE-1498).
+func (w *World) stopAfterRefusedFlee(i int) {
+	e := &w.entities[i]
+	if !w.fleeRefused(i) {
+		return
+	}
+	w.clearEscort(i)
+	e.clearPatrol()
+	e.Retreat = RetreatContinuation{}
+	w.stopWalkOrder(i, true)
+	w.syncSavedActorCommand(i)
 }
 
 // fleeRefused reports whether the far search that serves actor i's destination
@@ -415,14 +434,25 @@ func (w *World) fleeCellAt(i int, hostile []int, cells int64) (tx, ty int32, ok 
 	return clampPlayable(px>>8, int64(w.bounds.Width)), clampPlayable(py>>8, int64(w.bounds.Height)), true
 }
 
-// fleePoint is where the flee pick reads e: its raw position record in the
-// first game, its footprint centre in the second.
-func (w *World) fleePoint(e Entity) (int64, int64) {
-	if w.game.withdrawMoverPoint {
-		return w.moverFinePoint(e)
-	}
-	x, y := w.savedProjectileTargetPoint(e)
-	return int64(x), int64(y)
+// fleePoint is where the flee pick reads e, by the point the profile holds.
+func (w *World) fleePoint(e Entity) (int64, int64) { return fleePoints[w.game.fleeOrigin](w, e) }
+
+// fleeOriginRule is the point the flee pick reads a unit at.
+type fleeOriginRule uint8
+
+const (
+	fleeFromRecord fleeOriginRule = iota
+	fleeFromCentre
+)
+
+// fleePoints: the first game reads the raw position record, the second the
+// footprint centre.
+var fleePoints = [...]func(*World, Entity) (int64, int64){
+	fleeFromRecord: func(w *World, e Entity) (int64, int64) {
+		x, y := w.savedProjectileTargetPoint(e)
+		return int64(x), int64(y)
+	},
+	fleeFromCentre: (*World).moverFinePoint,
 }
 
 // moverFinePoint is e's centre on the 8.8 grid. A mover of side n stores its

@@ -24,15 +24,31 @@ func (w *World) autoChoiceSees(ci, ti int, s *autoChoiceSight) bool {
 }
 
 // autoCastObservers is the observers and purpose of caster ci's automatic
-// choice: the cells the caster lights, or under autoCastSideSight the cast
-// sight of the side of its player and its allies (ownOrAllied, DIV-4872).
+// choice, by the sight the profile holds.
 func (w *World) autoCastObservers(ci int) (observerSet, perceptionPurpose) {
-	c := w.entities[ci]
-	if !w.game.autoCastSideSight {
-		return w.observersOf(c.Owner, func(j int, _ *Entity) bool { return j == ci }), perceiveLit
-	}
-	side := func(_ int, e *Entity) bool { return e.Owner == c.Owner || w.ownOrAllied(&c, e) }
-	return w.observersOf(c.Owner, side), perceiveCast
+	return autoCastSights[w.game.autoCastSight](w, ci)
+}
+
+// autoCastSightRule is whose sight the automatic choice takes.
+type autoCastSightRule uint8
+
+const (
+	autoCastCasterLight autoCastSightRule = iota
+	autoCastAlliedSight
+)
+
+// autoCastSights: the first game takes the cells the caster lights; the
+// second the cast sight of the side of its player and its allies
+// (ownOrAllied, DIV-4872).
+var autoCastSights = [...]func(w *World, ci int) (observerSet, perceptionPurpose){
+	autoCastCasterLight: func(w *World, ci int) (observerSet, perceptionPurpose) {
+		return w.observersOf(w.entities[ci].Owner, func(j int, _ *Entity) bool { return j == ci }), perceiveLit
+	},
+	autoCastAlliedSight: func(w *World, ci int) (observerSet, perceptionPurpose) {
+		c := w.entities[ci]
+		side := func(_ int, e *Entity) bool { return e.Owner == c.Owner || w.ownOrAllied(&c, e) }
+		return w.observersOf(c.Owner, side), perceiveCast
+	},
 }
 
 // secondGameSpareMageTypes are the second game's Necromancer (99) and Druid

@@ -37,15 +37,13 @@ func (w *World) applyPlayerParameter(player uint32, selector PlayerParameter, va
 	}
 }
 
-// setRetreatMode writes one player's thresholds. The first game applies the
-// percentage uniformly to Withdraw (AI-CLASS-030). The second game uses the
-// unit's class for Withdraw and the setting's percentage for Wimpy
-// (R2-ENGINE-1499, R2-ENGINE-1421).
+// setRetreatMode writes one player's thresholds by the rule the profile
+// holds. A mode outside the three settings is percent 0, not known.
 func (w *World) setRetreatMode(player uint32, mode int32) {
 	if player >= relationSlots {
 		return
 	}
-	percent := int64(0)
+	percent, known := int64(0), true
 	switch mode {
 	case RetreatModeOff:
 	case RetreatModeLow:
@@ -53,22 +51,48 @@ func (w *World) setRetreatMode(player uint32, mode int32) {
 	case RetreatModeHigh:
 		percent = 30
 	default:
-		if !w.game.classRetreatMode {
-			return
-		}
+		known = false
+	}
+	retreatModeRules[w.game.retreatMode](w, player, percent, known)
+}
+
+// retreatModeRule is the rule that turns a retreat setting into thresholds.
+type retreatModeRule uint8
+
+const (
+	retreatModeUniform retreatModeRule = iota
+	retreatModeByClass
+)
+
+var retreatModeRules = [...]func(w *World, player uint32, percent int64, known bool){
+	retreatModeUniform: (*World).uniformRetreatMode,
+	retreatModeByClass: (*World).byClassRetreatMode,
+}
+
+// uniformRetreatMode is the first game's rule: the percentage applies
+// uniformly to Withdraw, Wimpy is 0, and an unknown mode changes nothing
+// (AI-CLASS-030).
+func (w *World) uniformRetreatMode(player uint32, percent int64, known bool) {
+	if !known {
+		return
 	}
 	for i := range w.entities {
-		e := &w.entities[i]
-		if e.Owner != player {
-			continue
+		if e := &w.entities[i]; e.Owner == player {
+			e.Withdraw, e.Wimpy = int32(int64(e.MaxHP)*percent/100), 0
 		}
-		base := int64(e.MaxHP) * percent
-		withdraw, wimpy := base, int64(0)
-		if w.game.classRetreatMode {
-			withdraw = base * [...]int64{0, 2, 3}[w.withdrawalClass(i)]
-			wimpy = base
+	}
+}
+
+// byClassRetreatMode is the second game's rule: the unit's class scales
+// Withdraw and the setting's percentage is Wimpy; an unknown mode clears both
+// (R2-ENGINE-1499, R2-ENGINE-1421).
+func (w *World) byClassRetreatMode(player uint32, percent int64, _ bool) {
+	for i := range w.entities {
+		if e := &w.entities[i]; e.Owner == player {
+			base := int64(e.MaxHP) * percent
+			withdraw := base * [...]int64{0, 2, 3}[w.withdrawalClass(i)]
+			e.Withdraw, e.Wimpy = int32(withdraw/100), int32(base/100)
 		}
-		e.Withdraw, e.Wimpy = int32(withdraw/100), int32(wimpy/100)
 	}
 }
 

@@ -135,23 +135,35 @@ type supportCastPolicy struct {
 	// drawsOne: candidates are Heal's area list, and support past Heal goes
 	// to one drawn candidate (AI-785, AI-786, R2-ENGINE-1244).
 	drawsOne bool
-	// victimHolds: a living hostile holding the caster as its unit victim
-	// keeps the idle-only policy from running, besides the caster's own
-	// attack target and cast (R2-ENGINE-1420 tests only the member's own target).
-	victimHolds bool
+	// hold: the idle-only policy's hold (supportHolds).
+	hold supportHoldRule
 	// yieldsToWithdrawal: a unit whose withdrawal step walks or casts it now
 	// prepares no heal, since the step overwrites it on the pass (R2-ENGINE-1442).
 	yieldsToWithdrawal bool
 	shield             supportShield
 }
 
-// supportHeld is the idle-only policy's hold: the caster's own cast, its own
-// attack target, and for a policy with victimHolds the inCombat predicate.
+// supportHeld is the idle-only policy's hold, by the rule the policy holds.
 func (w *World) supportHeld(ci int, policy supportCastPolicy) bool {
-	if policy.victimHolds {
-		return w.inCombat(ci)
-	}
-	return w.castHolds(ci, waitIdleHeal) || w.entities[ci].HasAttackTarget
+	return supportHolds[policy.hold](w, ci)
+}
+
+// supportHoldRule is what keeps the idle-only support policy from running.
+type supportHoldRule uint8
+
+const (
+	supportHeldByOwnOrders supportHoldRule = iota
+	supportHeldInCombat
+)
+
+// supportHolds: the caster's own cast and attack target (R2-ENGINE-1420
+// tests only the member's own target), or the inCombat predicate, where a
+// living hostile holding the caster as its unit victim holds it too.
+var supportHolds = [...]func(w *World, ci int) bool{
+	supportHeldByOwnOrders: func(w *World, ci int) bool {
+		return w.castHolds(ci, waitIdleHeal) || w.entities[ci].HasAttackTarget
+	},
+	supportHeldInCombat: (*World).inCombat,
 }
 
 // supportShield is where the sequence tries Shield at the caster.

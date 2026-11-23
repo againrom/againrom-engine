@@ -28,13 +28,13 @@ type creatureAimProfile struct {
 	absentSkipsDraw bool
 	scanMasks       [3]byte
 	stepOffsets     *[8][2]int32
-	packedStep      bool
+	stepEdge        stepEdgeRule
 }
 
 var firstGameCreatureAim = creatureAimProfile{}
 
 var secondGameCreatureAim = creatureAimProfile{aims: secondCreatureAims[:], scanBeyond: 2,
-	absentSkipsDraw: true, scanMasks: [3]byte{0x41, 0x44, 0x82}, stepOffsets: &stepOf, packedStep: true}
+	absentSkipsDraw: true, scanMasks: [3]byte{0x41, 0x44, 0x82}, stepOffsets: &stepOf, stepEdge: stepPacksKey}
 
 func (p *creatureAimProfile) byArm() bool { return p.aims == nil }
 
@@ -125,13 +125,24 @@ func (w *World) creatureStepCell(caster, victim Entity) (int32, int32) {
 		offsets = &stepOf
 	}
 	step := offsets[w.headingBetween(caster, victim)>>5]
-	x, y := caster.X+step[0], caster.Y+step[1]
-	if p.packedStep {
-		return keyCell(uint16(y<<8 | x))
-	}
-	x = max(0, min(x, w.bounds.Width-1))
-	y = max(0, min(y, w.bounds.Height-1))
-	return x, y
+	return stepEdges[p.stepEdge](w, caster.X+step[0], caster.Y+step[1])
+}
+
+// stepEdgeRule is how the creature step treats a cell past the map edge.
+type stepEdgeRule uint8
+
+const (
+	stepClampsAxes stepEdgeRule = iota
+	stepPacksKey
+)
+
+// stepEdges: the first game clamps each axis to the map; the second packs
+// the cell into its 16-bit key and reads it back.
+var stepEdges = [...]func(w *World, x, y int32) (int32, int32){
+	stepClampsAxes: func(w *World, x, y int32) (int32, int32) {
+		return max(0, min(x, w.bounds.Width-1)), max(0, min(y, w.bounds.Height-1))
+	},
+	stepPacksKey: func(_ *World, x, y int32) (int32, int32) { return keyCell(uint16(y<<8 | x)) },
 }
 
 // creatureAimOperands resolves a drawn spell's arm against the caster and the

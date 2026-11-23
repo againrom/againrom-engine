@@ -2296,21 +2296,36 @@ func (w *World) scriptReport() {
 	if w.outcome == OutcomeLost {
 		return
 	}
-	if w.game.countedOutcome {
+	outcomeReports[w.game.outcomeReport](w)
+}
+
+// outcomeRule is how the report reads the lose and win counters.
+type outcomeRule uint8
+
+const (
+	outcomeAtOne outcomeRule = iota
+	outcomeAtNonzero
+)
+
+// outcomeReports: the first game reads each counter as exactly one; the
+// second reads the lose counter as positive and the win counter as nonzero.
+var outcomeReports = [...]func(*World){
+	outcomeAtOne: func(w *World) {
+		if w.lost == 1 {
+			w.outcome = OutcomeLost
+			return
+		}
+		if w.won == 1 {
+			w.outcome = OutcomeWon
+		}
+	},
+	outcomeAtNonzero: func(w *World) {
 		if int32(w.lost) > 0 {
 			w.outcome = OutcomeLost
 		} else if w.won != 0 {
 			w.outcome = OutcomeWon
 		}
-		return
-	}
-	if w.lost == 1 {
-		w.outcome = OutcomeLost
-		return
-	}
-	if w.won == 1 {
-		w.outcome = OutcomeWon
-	}
+	},
 }
 
 // scriptEntity resolves a compiled reference to a held entity or a departed one.

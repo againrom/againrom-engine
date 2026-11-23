@@ -108,11 +108,7 @@ func (g gameProfile) rateOf(d Domain, speed int32, costSrc, costDst, hSrc, hDst 
 		if rise < -slopeLimit {
 			rise = -slopeLimit
 		}
-		if g.roundUphillTowardZero && rise < 0 {
-			v -= (v * -rise) >> slopeShift
-		} else {
-			v += (v * rise) >> slopeShift
-		}
+		v = slopeRules[g.slope](v, rise)
 
 		// A byte-wide add: two costly cells CAN sum past 255 and wrap, and the
 		// law does not guard it. The mean is that wrapped byte halved, and a
@@ -131,6 +127,27 @@ func (g gameProfile) rateOf(d Domain, speed int32, costSrc, costDst, hSrc, hDst 
 		return rateCeil
 	}
 	return int32(v)
+}
+
+// slopeRule is the slope term's rounding: the rate v tilted by the saturated
+// rise.
+type slopeRule uint8
+
+const (
+	slopeShiftsSigned slopeRule = iota
+	slopeShiftsMagnitude
+)
+
+// slopeRules: the first game shifts the signed product; the second shifts
+// the magnitude of an uphill term before subtracting it.
+var slopeRules = [...]func(v, rise int64) int64{
+	slopeShiftsSigned: func(v, rise int64) int64 { return v + (v*rise)>>slopeShift },
+	slopeShiftsMagnitude: func(v, rise int64) int64 {
+		if rise < 0 {
+			return v - (v*-rise)>>slopeShift
+		}
+		return v + (v*rise)>>slopeShift
+	},
 }
 
 // diagonalStep is the per-axis step of a DIAGONAL move at rate v: the

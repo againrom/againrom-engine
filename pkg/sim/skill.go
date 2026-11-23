@@ -95,9 +95,8 @@ type skillAwardProfile struct {
 	// skill that is neither the actor's main skill nor freeSkill.
 	offMainDivisor int64
 	freeSkill      int32
-	// raiseAtNext raises a skill when its experience reaches the next
-	// level's threshold; otherwise when it passes its own level's.
-	raiseAtNext bool
+	// raise: the test that raises a skill (skillRaises).
+	raise skillRaiseRule
 	// standingVictim: a blow pays only for a victim whose health was above
 	// zero before it; computerVictim: only for a computer player's victim.
 	standingVictim, computerVictim bool
@@ -125,7 +124,7 @@ var firstGameSkillAward = skillAwardProfile{victimRow: true}
 // secondGameSkillAward is the second game's award (R2-ENGINE-480,
 // R2-ENGINE-486, R2-ENGINE-488, R2-ENGINE-1156, R2-ENGINE-1157,
 // R2-ENGINE-1158).
-var secondGameSkillAward = skillAwardProfile{offMainDivisor: 8, freeSkill: 5, raiseAtNext: true,
+var secondGameSkillAward = skillAwardProfile{offMainDivisor: 8, freeSkill: 5, raise: raiseAtNextLevel,
 	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true, standingKiller: true,
 	victimRow: true, victimKinds: maxVictimKinds}
 
@@ -136,10 +135,22 @@ func (w *World) raisesSkill(xp, level int32) bool {
 }
 
 func (p skillAwardProfile) raises(r Rules, xp, level int32) bool {
-	if p.raiseAtNext {
-		return xp >= r.SkillXP(level+1)
-	}
-	return xp > r.SkillXP(level)
+	return skillRaises[p.raise](r, xp, level)
+}
+
+// skillRaiseRule is the experience test that raises a trained level.
+type skillRaiseRule uint8
+
+const (
+	raisePastOwnLevel skillRaiseRule = iota
+	raiseAtNextLevel
+)
+
+// skillRaises: the first game raises a skill when its experience passes its
+// own level's threshold; the second when it reaches the next level's.
+var skillRaises = [...]func(r Rules, xp, level int32) bool{
+	raisePastOwnLevel: func(r Rules, xp, level int32) bool { return xp > r.SkillXP(level) },
+	raiseAtNextLevel:  func(r Rules, xp, level int32) bool { return xp >= r.SkillXP(level+1) },
 }
 
 // HeldSkillLevel is the trained level experience xp holds in the game of

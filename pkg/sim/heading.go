@@ -113,9 +113,23 @@ func (w *World) turnToStep(i int, x, y int32) bool {
 // projectileAimPoint supplies the cached-centre geometry for actor targets.
 // AI-674, AI-675
 func (w *World) projectileAimPoint(e Entity) (int32, int32) {
-	if w.game.savedProjectileAim {
-		return w.savedProjectileTargetPoint(e)
-	}
-	x, y := w.moverFinePoint(e)
-	return int32(x), int32(y)
+	return projectileAimPoints[w.game.projectileAim](w, e)
+}
+
+// projectileAimRule is the point a projectile aims at a unit.
+type projectileAimRule uint8
+
+const (
+	aimAtCentre projectileAimRule = iota
+	aimAtSavedPoint
+)
+
+// projectileAimPoints: the first game aims at the mover's fine point, the
+// second at the saved target point.
+var projectileAimPoints = [...]func(*World, Entity) (int32, int32){
+	aimAtCentre: func(w *World, e Entity) (int32, int32) {
+		x, y := w.moverFinePoint(e)
+		return int32(x), int32(y)
+	},
+	aimAtSavedPoint: (*World).savedProjectileTargetPoint,
 }
