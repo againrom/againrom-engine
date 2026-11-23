@@ -58,6 +58,19 @@ func TestSecondGameMatchStatement(t *testing.T) {
 	}
 }
 
+func TestStraightConeRowsBelongToTheEnglishSecondGameBuild(t *testing.T) {
+	en, _ := Find(ROM2EN)
+	ru, _ := Find(ROM2RU)
+	if got := en.StraightCone[2]; len(got) != 5 || got[0] != -1 || got[1] != -1 || got[4] != 2 {
+		t.Errorf("english pulse 2 row = %v, want -1 -1 0 1 2", got)
+	}
+	for stage, row := range ru.StraightCone {
+		if row != nil {
+			t.Errorf("russian pulse %d row = %v, want none", stage, row)
+		}
+	}
+}
+
 func TestCreatureResistanceHeadingFollowsEdition(t *testing.T) {
 	if got := (Profile{}).CreatureResistanceHeading(); !got {
 		t.Fatal("the default profile does not keep the first game's creature heading")

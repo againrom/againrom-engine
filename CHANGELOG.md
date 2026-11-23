@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Юниты идут по склону с той же скоростью, что в оригинале; юнит, которому некуда бежать, останавливается на месте; порог отступления у юнитов игрока теперь зависит от класса, как в оригинале: в одном режиме воин не отступает, а стрелок и маг отступают раньше, в другом порог здоровья общий для всех.
 - [BASE] Существо с несколькими видами оружия теперь бьёт на сумму их дальностей, как в оригинале; раньше учитывалось только первое оружие.
 - [BASE] Невидимый маг, колдующий на другую цель или в клетку, теперь не теряет невидимость сразу, а сохраняет её ещё на один шаг, как в оригинале; заклинание на себя невидимость не меняет.
+- [ROM2] In the English version, the second pulse of a straight Acid Stream now strikes one cell twice and skips the cell on the far side, as the original does; the Russian version keeps its own cone.
 - [ROM2] Units now step as in the original: a diagonal step keeps the first game's position correction and the slowest diagonal step stands still for 256 ticks, a struck guard steps away ten cells along the longer axis, and computer units rank a target under Stone Curse lower.
 - [ROM2] Порядок товаров в магазинах второй игры проверен по русской версии клиента оригинала: он тот же, что в английской, так что обе версии показывают полки одинаково.
 - [ROM2] Заклинание второй игры, летящее в сохранении, после загрузки попадает без заклинателя: цель теряет здоровье, но не помнит нападавшего, враждебность не включается и опыт за убийство не начисляется.

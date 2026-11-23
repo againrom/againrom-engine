@@ -228,7 +228,7 @@ func SecondGameCensus(archives *Archives) ([]SecondMapCensus, error) {
 	if err := campaignOf(archives.Game()).censusRefusal(); err != nil {
 		return nil, err
 	}
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		return nil, err
 	}

@@ -597,7 +597,7 @@ func NewModFrontEnd(root string, files mod.FileData) (*FrontEnd, error) {
 	}
 	archives := share.archives
 	// Before the map list is scanned, so a root with no table lists no map.
-	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	defs, err := LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		return nil, err
 	}

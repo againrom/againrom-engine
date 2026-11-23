@@ -127,6 +127,9 @@ type Table struct {
 	// World; nil, the first game's, gives none.
 	DeathItems sim.DeathItemDraw
 
+	// StraightCone is the build's straight Acid Stream rows.
+	StraightCone sim.StraightCone
+
 	// DocumentCellPlanes marks a World whose cell planes a loaded document
 	// supplies: Planes names no installed base, so the World is built without
 	// planes and the LOAD import builds them (SAV-LOAD-057).
@@ -1256,6 +1259,7 @@ func (t *Table) bindTableInputs(w *sim.World) {
 	w.SetRules(t.rules())
 	if t != nil {
 		w.SetDeathItemDraw(t.DeathItems)
+		w.SetStraightCone(t.StraightCone)
 	}
 }
 

@@ -175,16 +175,30 @@ func fireSacrificeStage(_ *World, _ cellEffect, stage int) [][2]int32 {
 	return nil
 }
 
+// StraightCone is the x offsets of a straight Acid Stream at each pulse; a nil
+// row is the symmetric wedge (R2-ENGINE-797).
+type StraightCone [5][]int32
+
+func (w *World) SetStraightCone(c StraightCone) { w.straightCone = c }
+
+func (w *World) StraightCone() StraightCone { return w.straightCone }
+
 // Acid Stream: alternating straight and diagonal wedges.
-func acidStreamStage(_ *World, e cellEffect, stage int) [][2]int32 {
+func acidStreamStage(w *World, e cellEffect, stage int) [][2]int32 {
 	var offsets [][2]int32
 	if stage < 0 || stage >= 6 {
 		return nil
 	}
 	if e.Direction&1 == 0 {
 		if stage < 5 {
-			for x := -stage; x <= stage; x++ {
-				offsets = append(offsets, [2]int32{int32(x), int32(stage)})
+			xs := w.straightCone[stage]
+			if xs == nil {
+				for x := -stage; x <= stage; x++ {
+					xs = append(xs, int32(x))
+				}
+			}
+			for _, x := range xs {
+				offsets = append(offsets, [2]int32{x, int32(stage)})
 			}
 		}
 	} else {

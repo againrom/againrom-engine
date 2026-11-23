@@ -3337,6 +3337,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		sourceDerive:      w.sourceDerive,
 		mergeOperands:     w.mergeOperands,
 		deathItems:        w.deathItems,
+		straightCone:      w.straightCone,
 		burst:             burstState{phases: w.burst.phases},
 		flightInputs:      w.flightInputs,
 		rules:             w.rules,

@@ -109,7 +109,7 @@ func NewMapInspector(root string) (*MapInspector, error) {
 	if x.units, err = LoadUnits(a.Containers); err != nil {
 		return nil, err
 	}
-	defs, err := LoadDefinitionsFor(a.Containers, a.Game())
+	defs, err := LoadDefinitionsOf(a.Containers, a.Base.Profile)
 	if err != nil {
 		return nil, err
 	}

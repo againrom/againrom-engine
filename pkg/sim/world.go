@@ -1945,10 +1945,12 @@ type World struct {
 	// deathItems is the death item draw (SetDeathItemDraw), install-derived
 	// input like ghost, carried across a decode and never encoded.
 	deathItems DeathItemDraw
-	safeMode   bool
-	carried    [][]ItemStack
-	equipment  [][EquipSlots]ItemInstance
-	purses     [relationSlots]uint32
+	// straightCone is install-derived input, carried across a decode.
+	straightCone StraightCone
+	safeMode     bool
+	carried      [][]ItemStack
+	equipment    [][EquipSlots]ItemInstance
+	purses       [relationSlots]uint32
 
 	smoothRegen bool
 

@@ -105,6 +105,10 @@ type Profile struct {
 	Builds []Build
 
 	Limits Limits
+
+	// StraightCone is the build's straight Acid Stream x offsets per pulse; a
+	// nil row is the symmetric wedge.
+	StraightCone [5][]int32
 }
 
 // GameOf is the profile's game.
@@ -172,6 +176,8 @@ var Profiles = []Profile{
 		Language: "english",
 		Builds:   []Build{{Size: 6619459, SHA256: "27b841ab71e6132eff7acc4fb75a6a2294260c0696b93ceec7f96773fae2d857"}},
 		Limits:   rom2Limits,
+		// R2-ENGINE-797: pulse 2 repeats -1 and omits -2.
+		StraightCone: [5][]int32{2: {-1, -1, 0, 1, 2}},
 	},
 	{
 		ID:       ROM2RU,

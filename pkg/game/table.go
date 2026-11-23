@@ -11,6 +11,7 @@ import (
 	"againrom/pkg/formats/itempkt"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/vfs"
 )
 
@@ -120,6 +121,16 @@ type Definitions struct {
 // function's first field.
 func LoadDefinitions(fsys *vfs.FS) (*Definitions, error) {
 	return LoadDefinitionsFor(fsys, "")
+}
+
+// LoadDefinitionsOf is LoadDefinitionsFor with the straight Acid Stream rows of
+// the build p.
+func LoadDefinitionsOf(fsys *vfs.FS, p base.Profile) (*Definitions, error) {
+	d, err := LoadDefinitionsFor(fsys, p.GameOf())
+	if err == nil {
+		d.Table.StraightCone = sim.StraightCone(p.StraightCone)
+	}
+	return d, err
 }
 
 // LoadDefinitionsFor is LoadDefinitions over the table layout of g; the empty

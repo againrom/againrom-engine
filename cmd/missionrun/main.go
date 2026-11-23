@@ -480,7 +480,7 @@ func run(args []string, out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		defs, err := game.LoadDefinitionsFor(archives.Containers, archives.Game())
+		defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 		if err != nil {
 			return err
 		}

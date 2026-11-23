@@ -110,6 +110,7 @@ var nstPinned = []struct {
 		{"mergeOperands", "[]sim.ItemWeight"},
 		// The death item draw: install-derived input like ghost.
 		{"deathItems", "sim.DeathItemDraw"},
+		{"straightCone", "sim.StraightCone"},
 		{"safeMode", "bool"},
 		{"carried", "[][]sim.ItemStack"},
 		{"equipment", "[][12]sim.ItemInstance"},

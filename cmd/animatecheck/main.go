@@ -27,7 +27,7 @@ func run(root string) error {
 	if err != nil {
 		return err
 	}
-	d, err := game.LoadDefinitionsFor(a.Containers, a.Game())
+	d, err := game.LoadDefinitionsOf(a.Containers, a.Base.Profile)
 	if err != nil {
 		return err
 	}
