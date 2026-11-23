@@ -3,3 +3,10 @@ kind = "replace"
 key = "mill"
 number = 10
 map = "maps/mill.almx"
+AutoGetMission = 20
+
+[[mission]]
+kind = "replace"
+key = "yard"
+number = 20
+map = "maps/yard.almx"

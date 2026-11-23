@@ -40,3 +40,24 @@ func TestReleaseGlobalsMillPlaysOnTheInstall(t *testing.T) {
 	}
 	t.Logf("globals %v, World hash %016x", w.ScriptGlobals(), w.Hash())
 }
+
+// The globals mill mod's campaign over the lawful install: the mill's win
+// carries its globals to mission 20, whose trigger and reply compare them.
+func TestReleaseGlobalsMillCarriesToTheYard(t *testing.T) {
+	f := releaseFront(t)
+	base := BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS")))
+	if _, err := launchModsOn(t, f, globalsMillFolder, base); err != nil {
+		t.Fatal(err)
+	}
+	playMill(t, f)
+	winIntoYard(t, f)
+	if got := f.live.world.ScriptGlobals(); !reflect.DeepEqual(got, millWonGlobals) {
+		t.Fatalf("mission 20 seated %v, want %v", got, millWonGlobals)
+	}
+	playYard(t, f)
+	w := f.live.world
+	if w.ScriptRegister(50) != 1 || w.ScriptRegister(51) != 1 {
+		t.Fatalf("the yard's trigger and reply gave variables 50=%d 51=%d", w.ScriptRegister(50), w.ScriptRegister(51))
+	}
+	t.Logf("yard globals %v, World hash %016x", w.ScriptGlobals(), w.Hash())
+}

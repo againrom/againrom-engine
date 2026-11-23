@@ -99,7 +99,7 @@ func TestTheModMarkCarriesLayersAndRefusesBadOnes(t *testing.T) {
 	}
 	set := modTestSet(150)
 	layers := []modMarkLayer{{Member: "hero", Code: 0x071f}, {Member: "hero", Code: 0x0210}}
-	if err := markDocumentForMods(&doc, set, nil, layers); err != nil {
+	if err := markDocumentForMods(&doc, set, nil, layers, nil); err != nil {
 		t.Fatal(err)
 	}
 	mark, present, err := readModMark(doc)
@@ -110,7 +110,7 @@ func TestTheModMarkCarriesLayersAndRefusesBadOnes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := markDocumentForMods(&plain, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&plain, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	if m, _, _ := readModMark(plain); len(m.Layers) != 0 {

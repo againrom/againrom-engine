@@ -73,7 +73,7 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if marked.Empty() {
 		projectOriginalAttack(&doc)
 	}
-	if err := markDocumentForMods(&doc, marked, f.modContext().Items, modMarkLayers(s.Party, f.Table)); err != nil {
+	if err := markDocumentForMods(&doc, marked, f.modContext().Items, modMarkLayers(s.Party, f.Table), s.globals); err != nil {
 		return nil, err
 	}
 	// The zero session writes no leaf, so a game that never chose a seed

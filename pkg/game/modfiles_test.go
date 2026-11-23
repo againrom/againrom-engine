@@ -142,13 +142,13 @@ func TestStateFreeModsDoNotCountAgainstTheModMark(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := markDocumentForMods(&doc, pictureOnly.Marked(), nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, pictureOnly.Marked(), nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	if after, err := sav.EncodeDocumentData(doc); err != nil || !bytes.Equal(after, plain) {
 		t.Fatalf("a picture mod marked the save: %v", err)
 	}
-	if err := markDocumentForMods(&doc, modTestSet(150), nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, modTestSet(150), nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	marked, err := sav.EncodeDocumentData(doc)
@@ -174,7 +174,7 @@ func TestMarkNamingAStateFreeModLoadsWhileItIsActive(t *testing.T) {
 		t.Fatal(err)
 	}
 	set := modTestSet(150)
-	if err := markDocumentForMods(&doc, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	marked, err := sav.EncodeDocumentData(doc)

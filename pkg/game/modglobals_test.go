@@ -84,7 +84,8 @@ func readGlobalsMill(t *testing.T, rel string) []byte {
 func globalsMillCopy(t *testing.T, mapBytes, globals []byte) string {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "millglobals")
-	for _, rel := range []string{"mod.toml", "main.star", "data/missions.toml", "data/globals.toml", "maps/mill.almx", "maps/mill.dialogs/mill.toml"} {
+	for _, rel := range []string{"mod.toml", "main.star", "data/missions.toml", "data/globals.toml", "maps/mill.almx", "maps/mill.dialogs/mill.toml",
+		"maps/yard.almx", "maps/yard.dialogs/yard.toml"} {
 		b := readGlobalsMill(t, rel)
 		switch {
 		case rel == "maps/mill.almx" && mapBytes != nil:
@@ -97,11 +98,11 @@ func globalsMillCopy(t *testing.T, mapBytes, globals []byte) string {
 	return dir
 }
 
-// globalsMillFront is the mission-10 fixture front with the mod at dir
+// globalsMillFront is the two-map fixture front with the mod at dir
 // launched over it.
 func globalsMillFront(t *testing.T, dir string) *FrontEnd {
 	t.Helper()
-	f := extendedScriptFront(t, readGlobalsMill(t, "maps/mill.almx"))
+	f := globalsMillBase(t, readGlobalsMill(t, "maps/mill.almx"))
 	if _, err := launchMods(t, f, dir); err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +203,7 @@ func TestGlobalsMillReplayIsEqual(t *testing.T) {
 // reply and the id; the same map run outside the check reads it as 0.
 func TestGlobalsMillUndeclaredIDIsRefused(t *testing.T) {
 	dir := globalsMillCopy(t, globalsMillMap(t, 7), nil)
-	_, err := launchMods(t, extendedScriptFront(t, globalsMillMap(t, 7)), dir)
+	_, err := launchMods(t, globalsMillBase(t, globalsMillMap(t, 7)), dir)
 	if err == nil {
 		t.Fatal("the launch admitted a map naming global 7")
 	}
@@ -216,13 +217,13 @@ func TestGlobalsMillUndeclaredIDIsRefused(t *testing.T) {
 	m := globalsMillMap(t, 7)
 	dir = globalsMillCopy(t, m, nil)
 	writeFileAll(t, filepath.Join(dir, "maps", "mill.dialogs", "mill.toml"), []byte(dialog))
-	_, err = launchMods(t, extendedScriptFront(t, m), dir)
+	_, err = launchMods(t, globalsMillBase(t, m), dir)
 	if err == nil || !strings.Contains(err.Error(), "dialog mill, node 1, reply 1 names global 7") {
 		t.Fatalf("the reply's refusal: %v", err)
 	}
 	// Declared, the same map passes.
 	globals := append(readGlobalsMill(t, mod.GlobalsFile), "\n[[global]]\nid = 7\nname = \"late\"\n"...)
-	if _, err := launchMods(t, extendedScriptFront(t, m), globalsMillCopy(t, m, globals)); err != nil {
+	if _, err := launchMods(t, globalsMillBase(t, m), globalsMillCopy(t, m, globals)); err != nil {
 		t.Fatalf("a declared global 7 is refused: %v", err)
 	}
 	// Run without the check, the undeclared global reads 0 and takes no

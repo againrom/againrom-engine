@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM1] In the map editor's Dialog window, a dialogue reply now takes as many conditions and actions as a trigger: every condition must hold, the actions run in their order, and each row can be added, removed or moved with Alt and the arrow keys; before, a reply showed one condition and one action, and a dialogue file with longer lists was refused.
 - [ROM1] A mod can declare its own global variables, each with a number, a name and a starting value, and the triggers and dialogue replies of its maps can read, set and add to them during a mission, and a save taken in the mission keeps them; a map that names a variable its mod does not declare is refused.
+- [ROM1] A mod's global variables now last for its whole campaign: a won mission passes its values to the next mission, a lost, left or restarted mission throws away what it wrote, town and mission saves keep the values, and an original or older save starts at the declared values.
 
 ## 0.159.0
 

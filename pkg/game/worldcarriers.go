@@ -183,6 +183,9 @@ const (
 	townCarry
 	// townWrite writes a Snapshot's family into its city document.
 	townWrite
+	// townWin keeps on the town what a won mission's World holds, at the win
+	// alone: a mission left, lost or restarted takes no such step.
+	townWin
 )
 
 // carrierTown is what a town step reads. A field the point does not have is
@@ -196,6 +199,8 @@ type carrierTown struct {
 	// table is the definition table an original city LOAD reads the second
 	// game's kill-grade block through.
 	table *mapload.Table
+	// mod is the mod whose map the won mission of townWin played.
+	mod string
 }
 
 // carrierLoad is what a LOAD transform reads: the loaded World, its map and
@@ -264,8 +269,12 @@ func worldCarrierSet() []worldCarrier {
 		{home: "World ROM2 scenario state, the second game's Scenario bank",
 			seat: map[carrierSeatPoint]func(carrierSeat) error{
 				entrySeat: func(c carrierSeat) error { return c.rules.seatWorld(c.r, c.ms) }}},
-		{home: "World mod globals, the initials of the mod that plays the mission (DIV-5108)",
-			seat: map[carrierSeatPoint]func(carrierSeat) error{entrySeat: seatModGlobals}},
+		{home: "World mod globals, from the campaign store on the town or the initials of the mod that plays the mission (DIV-5108)",
+			seat: map[carrierSeatPoint]func(carrierSeat) error{entrySeat: seatModGlobals},
+			town: map[carrierTownPoint]func(carrierTown) error{
+				townCapture: func(c carrierTown) error { c.s.globals = c.t.globals; return nil },
+				townRestore: func(c carrierTown) error { c.t.globals = c.s.globals; return nil },
+				townWin:     carryModGlobals}},
 		{home: "World purse of the local Player, unless the loaded record binds the Player purses",
 			seat: map[carrierSeatPoint]func(carrierSeat) error{entrySeat: seatTownPurse, lineSeat: seatTownPurse}},
 		{home: "World saved Diaries, by owner (sim.CompareSavedDiaryOwners)",
@@ -372,8 +381,9 @@ func seatTownPurse(c carrierSeat) error {
 }
 
 // seatModGlobals gives the mission the globals the mod that plays it
-// declares, each at the value a loaded SAV restored for its id, else at its
-// initial; a map outside a mod sees none.
+// declares, each at the value a loaded SAV restored for its id, else at the
+// campaign store's value, else at its initial; a map outside a mod sees none.
+// The store changes only at a win, so a restart seats the entry values again.
 func seatModGlobals(c carrierSeat) error {
 	if c.table == nil {
 		return nil
@@ -382,16 +392,28 @@ func seatModGlobals(c carrierSeat) error {
 	if m == nil {
 		return nil
 	}
-	held := c.ms.World.ScriptGlobals()
+	held, stored := c.ms.World.ScriptGlobals(), c.r.town.modGlobals()[m.Mod]
 	var list []sim.ScriptGlobal
 	for _, g := range c.table.Mods.Globals.Of(m.Mod) {
 		v := g.Initial
-		if i := slices.IndexFunc(held, func(h sim.ScriptGlobal) bool { return h.ID == g.ID }); i >= 0 {
-			v = held[i].Value
+		for _, from := range [][]sim.ScriptGlobal{stored, held} {
+			if i := slices.IndexFunc(from, func(h sim.ScriptGlobal) bool { return h.ID == g.ID }); i >= 0 {
+				v = from[i].Value
+			}
 		}
 		list = append(list, sim.ScriptGlobal{ID: g.ID, Value: v})
 	}
 	return c.ms.World.SeatScriptGlobals(list)
+}
+
+// carryModGlobals keeps on the town, as its mod's entry in the campaign
+// store, the globals the won mission's World holds; a World that holds none
+// leaves the store as it is.
+func carryModGlobals(c carrierTown) error {
+	if c.t != nil && c.w != nil && c.mod != "" {
+		c.t.globals = c.t.globals.with(c.mod, c.w.ScriptGlobals())
+	}
+	return nil
 }
 
 // seatTownDiaries gives a fresh mission the Diaries the town's knowledge

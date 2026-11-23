@@ -102,6 +102,23 @@ func (f *FrontEnd) winRows(seam bool) winRowSet {
 // mission to open, zero beside the sentence that states what follows, or -1
 // beside the refusal.
 func (f *FrontEnd) finishWin(in winInput) (int, string) {
+	// The won World's mod globals enter the campaign store before the rows
+	// run, so a waiting party's stash written on the way holds them; a win
+	// the rows refuse puts the store back.
+	town := f.Town
+	kept := town.modGlobals()
+	if m := f.missionIdentity(in.n).mapMission(); m != nil {
+		_ = seatTownCarriers(townWin, carrierTown{t: town, w: in.w, mod: m.Mod})
+	}
+	next, line := f.finishWinRows(in)
+	if next < 0 && town != nil {
+		town.globals = kept
+	}
+	return next, line
+}
+
+// finishWinRows runs the first row of the win's row set whose guard holds.
+func (f *FrontEnd) finishWinRows(in winInput) (int, string) {
 	set := f.winRows(in.seam)
 	id := f.missionIdentity(in.n)
 	for _, row := range set.rows {
@@ -231,8 +248,9 @@ func guestNext(f *FrontEnd, in winInput, s *winState) (int, string) {
 
 // guestHome brings the waiting party back through the one town LOAD of the
 // stash, which records the guest who joins beside it so the town's grant
-// takes her as she is now; nothing else of the chain carries back. Only a
-// campaign mission's win is then the campaign's.
+// takes her as she is now. Of the rest of the chain only the campaign's mod
+// globals carry back, as the chain's win left them. Only a campaign
+// mission's win is then the campaign's.
 func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 	g, member := s.id.record, s.member
 	campaign := g.mission.Campaign()
@@ -247,9 +265,11 @@ func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 		}
 		back = &guestMission{mission: s.joiner, start: start, member: member}
 	}
+	globals := f.Town.modGlobals()
 	if _, _, _, err := f.restoreOriginal(g.stash, back); err != nil {
 		return -1, fmt.Sprintf("mission %d won - the waiting party did not come back: %v", in.n, err)
 	}
+	f.Town.globals = globals
 	if campaign {
 		if member == nil {
 			f.Town.guest = f.Town.guest.previous

@@ -1,0 +1,15 @@
+[[node]]
+id = 1
+name = "start"
+en = "The miller remembers who drove the goblins out. Will you take his thanks?"
+ru = "Мельник помнит, кто прогнал гоблинов. Примете его благодарность?"
+
+[[reply]]
+en = "Gladly."
+ru = "С радостью."
+when = [{ left = 3, right = 4, cmp = 0 }]
+do = [21, 32]
+
+[[reply]]
+en = "Not now."
+ru = "Не сейчас."

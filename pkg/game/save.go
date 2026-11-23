@@ -67,6 +67,9 @@ type Snapshot struct {
 	// knowledge is the town's carried Player Diary at capture (UNIT-148,
 	// SAV-847). The town SAV writes it into the Player's Diary record.
 	knowledge []sim.SavedDiary
+	// globals is the town's store of mod globals at capture; the mod mark
+	// writes it.
+	globals modGlobalStore
 	// townOptions are the loaded town's option and view leaves, captured with
 	// the Snapshot as a mission captures its application state.
 	townOptions []sav.CityStateRecordData

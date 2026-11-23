@@ -409,7 +409,7 @@ func TestATownSaveLoadsWithItsSkillsHeldToTheLoweredCap(t *testing.T) {
 	for _, i := range modTestActors(t, doc) {
 		raiseActor(t, &doc, i, 120)
 	}
-	if err := markDocumentForMods(&doc, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := sav.EncodeDocumentData(doc)
@@ -509,7 +509,7 @@ func TestChangedModsStillRefuseAMissionSaveAndAnotherSet(t *testing.T) {
 		t.Fatal(err)
 	}
 	set := modTestSet(150)
-	if err := markDocumentForMods(&doc, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	town, err := sav.EncodeDocumentData(doc)

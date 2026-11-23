@@ -181,7 +181,7 @@ en = "Coins the miller owes."
 `id` is an integer from 1 to 1024, unique within the mod; a map names the
 global by this id. `name` is a lower-case letter followed by at most 31
 lower-case letters, digits or `_`, unique within the mod; the editor and the
-checks show it. `initial` is the value a mission starts with, an int32,
+checks show it. `initial` is the value a campaign starts with, an int32,
 0 when absent. A note per language code (`en`, `ru`) is optional. A refusal
 names the file and the line.
 
@@ -202,10 +202,23 @@ trigger or reply, and the id; the editor's check lists it. A map whose script ho
 only as an extended map (`.almx`); the original has no such node
 (`DIV-5108`).
 
-Scope is one mission: loss, exit and restart discard the mission's writes,
-and the values are not yet carried to the next mission or the save's
-campaign; that carry is pending (story 1751). A save taken in the mission
-keeps the values, and its load gives them back.
+Scope is one campaign run. A new campaign starts at the initials. A mission
+starts with the values the campaign holds; a won mission gives its values
+back to the campaign, and the next mission starts with them. Loss, exit and
+restart discard the mission's writes: a restarted mission starts with the
+values it started with. When a guest chain wins, the waiting party's
+campaign takes the chain's values.
+
+A save keeps the campaign's values per mod (`globals` in the save's mod
+record). A town save and its load keep them. A mission save keeps the live
+values and the values the mission started with: its load gives the live
+values back, and a restart after that load starts with the entry values. A
+save without the record, such as an original save or one written before,
+starts at the initials. When the mod's declaration changed since the save, a
+kept id keeps its value, a new id takes its initial, and a dropped id is
+gone. Values the record holds for a mod outside the active set stay in the
+record and are written back unchanged; the mod mark's set comparison still
+refuses a save made under another mod set.
 
 ## mod.toml
 

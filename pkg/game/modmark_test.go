@@ -98,7 +98,7 @@ func TestTheModMarkProjectsAndRestoresTrueSkillState(t *testing.T) {
 	_, hasXP, _ := readModObject(&doc.Objects[k])
 	true130 := raiseActor(t, &doc, k, 130)
 	set := modTestSet(150)
-	if err := markDocumentForMods(&doc, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	projected, _, _ := readModObject(&doc.Objects[k])
@@ -135,7 +135,7 @@ func TestTheModMarkProjectsAndRestoresTrueSkillState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := markDocumentForMods(&again, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&again, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	reencoded, err := sav.EncodeDocumentData(again)
@@ -153,7 +153,7 @@ func TestAMarkedSaveThatNeedsNoRestoreLoadsAsWritten(t *testing.T) {
 		t.Fatal(err)
 	}
 	set := modTestSet(150)
-	if err := markDocumentForMods(&doc, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	mark, ok, err := readModMark(doc)
@@ -180,7 +180,7 @@ func TestWithoutModsTheDocumentIsLeftExactlyAsItIs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := markDocumentForMods(&doc, mod.Set{}, nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, mod.Set{}, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	after, err := sav.EncodeDocumentData(doc)
@@ -215,7 +215,7 @@ func TestLoadRefusalsNameTheMods(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := markDocumentForMods(&d, set, nil, nil); err != nil {
+		if err := markDocumentForMods(&d, set, nil, nil, nil); err != nil {
 			t.Fatal(err)
 		}
 		b, err := sav.EncodeDocumentData(d)
@@ -260,7 +260,7 @@ func TestAMarkThatDoesNotBelongToTheSaveIsRefused(t *testing.T) {
 	k := modTestActors(t, doc)[0]
 	raiseActor(t, &doc, k, 130)
 	set := modTestSet(150)
-	if err := markDocumentForMods(&doc, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&doc, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	// Change the projected field the mark describes.
@@ -340,7 +340,7 @@ func TestTheModMarkHoldsAModItemsStandInAndRestoresIt(t *testing.T) {
 	item := mapload.ModItem{Mod: "skill-cap", Key: "x", Code: uint16(trueCode), Row: uint8(trueRow), StandInCode: 0x0a07, StandInRow: 15}
 	set := modTestSet(150)
 	before := doc.Objects[k]
-	if err := markDocumentForMods(&doc, set, []mapload.ModItem{item}, nil); err != nil {
+	if err := markDocumentForMods(&doc, set, []mapload.ModItem{item}, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := savedStructureValue(&doc.Objects[k], "F40"); got != 0x0a07 {
@@ -380,7 +380,7 @@ func TestTheModMarkHoldsAModItemsStandInAndRestoresIt(t *testing.T) {
 		t.Fatal("restoring changed the document it was copied from")
 	}
 	// A second SAVE of the restored document marks the same object the same way.
-	if err := markDocumentForMods(&cold, set, items, nil); err != nil {
+	if err := markDocumentForMods(&cold, set, items, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	if again, _, _ := readModMark(cold); len(again.Items) != 1 || again.Items[0] != mark.Items[0] {
@@ -430,7 +430,7 @@ func TestTheModMarkHoldsAModItemsStandInAndRestoresIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	pk := modTestAddArmor(t, &plain, 0x071f, 31)
-	if err := markDocumentForMods(&plain, set, nil, nil); err != nil {
+	if err := markDocumentForMods(&plain, set, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	plainMark, _, _ := readModMark(plain)
@@ -455,7 +455,7 @@ func TestLoadRefusalsCarryTheirDifferencesAsData(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := markDocumentForMods(&d, set, nil, nil); err != nil {
+		if err := markDocumentForMods(&d, set, nil, nil, nil); err != nil {
 			t.Fatal(err)
 		}
 		b, err := sav.EncodeDocumentData(d)

@@ -34,6 +34,9 @@ type modMark struct {
 	// Layers are the clothing layers party members wear. The document holds
 	// the pack unit of each as an ordinary item; only the leaf says it is worn.
 	Layers []modMarkLayer `json:"layers,omitempty"`
+	// Globals are the campaign store of mod globals by mod; in a mission
+	// save, the values the mission entered with.
+	Globals map[string][]modMarkGlobal `json:"globals,omitempty"`
 }
 
 // modMarkLayer is one worn clothing layer: the party member's identity, the
@@ -267,9 +270,9 @@ func projectModDomain(doc *sav.DocumentData) ([]modMarkObject, error) {
 
 // markDocumentForMods writes the mod mark into a document that is about to be
 // encoded: every actor field is projected into the original domain and the true
-// values go into the AgainromMods leaf. Without an active mod set the document
-// is left exactly as it is.
-func markDocumentForMods(doc *sav.DocumentData, set mod.Set, items []mapload.ModItem, layers []modMarkLayer) error {
+// values go into the AgainromMods leaf, beside the campaign store of mod
+// globals. Without an active mod set the document is left exactly as it is.
+func markDocumentForMods(doc *sav.DocumentData, set mod.Set, items []mapload.ModItem, layers []modMarkLayer, globals modGlobalStore) error {
 	if set.Empty() {
 		return nil
 	}
@@ -281,7 +284,8 @@ func markDocumentForMods(doc *sav.DocumentData, set mod.Set, items []mapload.Mod
 	if err != nil {
 		return err
 	}
-	mark := modMark{Format: modMarkFormat, SetDigest: set.Digest(), SetRecord: set.Record(), Domain: domain, Items: standIns, Layers: layers}
+	mark := modMark{Format: modMarkFormat, SetDigest: set.Digest(), SetRecord: set.Record(), Domain: domain, Items: standIns, Layers: layers,
+		Globals: globals.mark()}
 	payload, err := json.Marshal(mark)
 	if err != nil {
 		return err
@@ -433,6 +437,11 @@ func applyModMark(saved []byte, ctx mapload.ModContext, skills rules.Rules) (mod
 				strings.Join(mod.Differences(saw, active), "; ")}
 	}
 	load := modMarkLoad{saved: saved, layers: mark.Layers, changed: changed}
+	globals, err := markedGlobals(mark.Globals)
+	if err != nil {
+		return modMarkLoad{}, modMarkRefusal("%v", err)
+	}
+	load.globals = globals.admitted(ctx)
 	if len(mark.Domain) == 0 && len(mark.Items) == 0 {
 		return load, nil
 	}
@@ -458,6 +467,9 @@ type modMarkLoad struct {
 	saved   []byte
 	layers  []modMarkLayer
 	changed bool
+	// globals is the campaign store of mod globals the mark holds, as the
+	// active mods admit it.
+	globals modGlobalStore
 	lowered []modLoweredSkill
 	// gone are the stamped item objects whose mod and key no active mod
 	// declares now; each still holds its stand-in, and the town takes it away.

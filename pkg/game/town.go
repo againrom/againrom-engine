@@ -84,6 +84,9 @@ type TownOffer struct {
 // any town building has opened; entering a side mission does not replace it.
 type Town struct {
 	second *secondCampaign
+	// globals is the campaign's store of mod globals (modGlobalStore); nil
+	// at a new campaign, whose globals are at their initials.
+	globals modGlobalStore
 	// talk is the one town talk cursor of both games: the page cursor of the
 	// open conversation, whose part is the last attempted, including a failed
 	// lookup. It lives here, not on a town screen, because the second game
