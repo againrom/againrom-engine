@@ -11,11 +11,11 @@ import (
 	"againrom/pkg/ui"
 )
 
-// TestReleaseSecondTestPlayBuildsTheEditedMapHeadless runs test play on an
+// TestReleaseSecondMapTestPlayBuildsTheEditedMapHeadless runs test play on an
 // installed second-game map edited in the window, then builds what the
 // launched game builds from the test mod: the second-game session opens the
 // mission the map replaces and its world holds the edited map's units.
-func TestReleaseSecondTestPlayBuildsTheEditedMapHeadless(t *testing.T) {
+func TestReleaseSecondMapTestPlayBuildsTheEditedMapHeadless(t *testing.T) {
 	x, started := f5Inspector(t)
 	sources, _ := installedSecondMaps(t, x)
 	source := sources[0]

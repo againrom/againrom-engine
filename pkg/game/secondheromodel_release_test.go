@@ -34,7 +34,7 @@ var secondSheet = map[string][4]int32{
 // at 20 and skill 5 at 10, a chosen skill 5 at 10 (R2-ENGINE-320), the
 // experience their curve gives, and health and mana by R2-ENGINE-290; at the
 // templates' statistics with 7320 experience, the claim's sheet.
-func TestReleaseSecondNewHeroLevelOneSheet(t *testing.T) {
+func TestReleaseSecondGameNewHeroLevelOneSheet(t *testing.T) {
 	f := secondGameFront(t)
 	for _, h := range f.generator().PreCreate.Heroes {
 		row, _, ok := generatorTemplate(missionHumans(f.Table), h.Template)
@@ -142,7 +142,7 @@ func secondHeroRecordDiffers(ours, orig sav.DocumentRecordData, extra []string) 
 // Start_MM file differs also in its map word T08, U6C and the mana floor
 // UA0 (75 there, 95% of 75 here), which no claim sources. A LOAD of
 // game0000 and our SAVE write game0000's record again.
-func TestReleaseSecondNewHeroRecordIsTheOriginals(t *testing.T) {
+func TestReleaseSecondGameNewHeroRecordIsTheOriginals(t *testing.T) {
 	cases := []struct {
 		file  string
 		hero  ui.ChargenResult
@@ -203,7 +203,7 @@ func secondHeroXP(t *testing.T, raw []byte) ([sav.CharacterSkillSlots]uint32, ui
 // A new hero's experience crosses a town SAVE and a cold LOAD; an original
 // mission file whose experience runs ahead of the levels keeps it through
 // LOAD and our SAVE.
-func TestReleaseSecondHeroExperienceCrossesSaveAndLoad(t *testing.T) {
+func TestReleaseSecondGameHeroExperienceCrossesSaveAndLoad(t *testing.T) {
 	f, app := secondTownNew(t, false, false)
 	if err := f.startGeneratedTown(ui.ChargenResult{Name: "Hero", Choices: []int{0, 1, 0}, Stats: []int{19, 23, 30, 42}}); err != nil {
 		t.Fatal(err)
@@ -248,7 +248,7 @@ func TestReleaseSecondHeroExperienceCrossesSaveAndLoad(t *testing.T) {
 
 // Every Human record of the original-written corpus files holds at +0x1c
 // the rule secondRowExperience gives for its Humans row.
-func TestReleaseSecondRowExperienceIsTheOriginals(t *testing.T) {
+func TestReleaseSecondGameRowExperienceIsTheOriginals(t *testing.T) {
 	f := secondGameFront(t)
 	records := 0
 	for _, dir := range []string{"rom2-gog-original", "rom2-gog-original-2"} {

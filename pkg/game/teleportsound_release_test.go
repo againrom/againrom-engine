@@ -24,7 +24,7 @@ func installClassRun(c *data.UnitClass) (run int, delay int32) {
 // Every installed class the second game's Teleport caster arm can run: the
 // sound slot exists, and a class with attack phases has a run its AttackDelay
 // falls inside (R2-ENGINE-704).
-func TestReleaseSecondTeleportCasterClassesSound(t *testing.T) {
+func TestReleaseSecondGameTeleportCasterClassesSound(t *testing.T) {
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: needs lawful install")
@@ -69,7 +69,7 @@ func (c *requestCounter) RequestSample(_ audio.Sample, r audio.Request) audio.Vo
 // A second-game hero of the installed mission uses an installed Teleport scroll
 // at rest, and a second one while the first cast runs: the frontend sound route
 // receives the Teleport sound once per cast.
-func TestReleaseSecondHeroTeleportScrollSounds(t *testing.T) {
+func TestReleaseSecondGameHeroTeleportScrollSounds(t *testing.T) {
 	for _, queued := range []bool{false, true} {
 		f, _ := secondPersonsMission(t, 30)
 		mw := f.live

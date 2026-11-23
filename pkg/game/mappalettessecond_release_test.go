@@ -24,7 +24,7 @@ func realChoices(cs []ui.InspectionChoice) []ui.InspectionChoice {
 	return out
 }
 
-func TestReleaseSecondPalettesListTheCatalogAndNameEveryPlacement(t *testing.T) {
+func TestReleaseSecondMapPalettesListTheCatalogAndNameEveryPlacement(t *testing.T) {
 	x := installedInspector(t)
 	if x.installGame() != base.GameROM2 {
 		t.Skip("requires a second-game install")
