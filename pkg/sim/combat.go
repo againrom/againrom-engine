@@ -462,6 +462,9 @@ func (w *World) answerRefusedWalk(i int, by routeSearch) {
 			return
 		case walkArmNone:
 			return
+		case walkArmPatrol:
+			w.patrolRefusedTail(i)
+			return
 		}
 	}
 	if e.ActorState == actorStateRetreat && e.PendingOrder.Kind == PendingNone {
@@ -480,6 +483,7 @@ const (
 	walkArmNone walkArm = iota
 	walkArmStandDown
 	walkArmPick
+	walkArmPatrol
 )
 
 // refusedWalkArm selects the profile's empty-route answer from member order.
@@ -518,7 +522,9 @@ func (w *World) repickRefusedWalkArm(i int) walkArm {
 		state = o.State
 	}
 	switch state {
-	case 0xa, 0x18:
+	case 0xa:
+		return walkArmPatrol
+	case 0x18:
 		return walkArmNone
 	default:
 		if o := w.savedOrder(e.ID); state == 1 || w.walksAtStateOne(i) || o != nil && w.savedGroups.atStandDown(o) {

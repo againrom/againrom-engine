@@ -193,3 +193,36 @@ func TestCollectMarkSurvivesTheByteForm(t *testing.T) {
 		t.Fatalf("byte form lost the collect mark: %+v", e.PendingOrder)
 	}
 }
+
+// R2-ENGINE-1625: a ring cell needs the taker's footprint open to his domain;
+// the centre takes the sack test alone. The first game has no collect search.
+func TestCollectRingCellNeedsTheTakersFootprintOpen(t *testing.T) {
+	closed := func(w *World, x, y int32) {
+		at, ok := cellIndexIn(w.bounds, x, y)
+		if !ok {
+			t.Fatal("cell outside the fixture")
+		}
+		w.grid[at] |= blockGround
+	}
+	w := collectWorld(t, []Sack{{X: 11, Y: 10, Gold: 1}, {X: 12, Y: 10, Gold: 2}})
+	closed(w, 11, 10)
+	if order, ok := w.OrderSackCollect(7); !ok || order.X != 12 || order.Y != 10 {
+		t.Fatalf("collect %+v/%v, want the open ring-2 cell (12,10)", order, ok)
+	}
+	w = collectWorld(t, []Sack{{X: 10, Y: 10, Gold: 1}})
+	closed(w, 10, 10)
+	if order, ok := w.OrderSackCollect(7); !ok || order.X != 10 || order.Y != 10 {
+		t.Fatalf("collect %+v/%v, want the centre sack", order, ok)
+	}
+	first, err := NewSpelledWorld(1, Bounds{Width: 24, Height: 24}, ModeCanonical, nil,
+		[]Entity{{ID: 7, X: 10, Y: 10, TypeID: HumanTypeID, Humanoid: true, Owner: SelfSlot, HP: 100, MaxHP: 100, ScanRange: 3}}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := first.ReplaceGroundSacks([]Sack{{X: 11, Y: 10, Gold: 1}, {X: 12, Y: 10, Gold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	if order, ok := first.OrderSackCollect(7); ok {
+		t.Fatalf("first game collected %+v", order)
+	}
+}

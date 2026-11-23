@@ -48,3 +48,37 @@ func TestLookAroundRespectsPrimaryAndPlayerReplacement(t *testing.T) {
 		t.Fatal("look-around replaced a player move")
 	}
 }
+
+// R2-ENGINE-1630: with facing equal to heading and the hit flag clear, a draw
+// below 205 turns to facing + 33 + 0..189, any other draw stands.
+func TestLookAroundTurnsOnADrawBelow205By33AndMore(t *testing.T) {
+	t.Parallel()
+	w := asWorld(t, true, asFighter(asHero, asSide, 30, 40))
+	turns, stands := 0, 0
+	for n := 0; n < 20000 && (turns < 3 || stands < 3); n++ {
+		e := &w.entities[0]
+		e.clearTurn()
+		probe := w.rng
+		draw := probe.raw()
+		want := e.Facing + 0x21 + uint8(probe.aiRange(190))
+		stood := w.rng
+		stood.raw()
+		w.stepIdleTurn(0)
+		e = &w.entities[0]
+		if draw >= 0xcd {
+			if w.rng != stood || e.Turning() {
+				t.Fatalf("draw %d: drew again or turned", draw)
+			}
+			stands++
+			continue
+		}
+		if w.rng != probe || e.DesiredFacing != want && e.Facing != want {
+			t.Fatalf("draw %d: heading %d/%d, want %d", draw, e.DesiredFacing, e.Facing, want)
+		}
+		e.Facing = want
+		turns++
+	}
+	if turns < 3 || stands < 3 {
+		t.Fatalf("turns %d stands %d", turns, stands)
+	}
+}

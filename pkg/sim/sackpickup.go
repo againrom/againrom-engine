@@ -68,7 +68,9 @@ func (w *World) OrderSackPickup(taker EntityID, at CellPoint) (order Command, ok
 
 // OrderSackCollect plans one hero's collect key through the pickup admission:
 // the collect pickup of the found sack; refused when the search finds none.
-// SettleSackPickup calls it again after each collect take.
+// SettleSackPickup calls it again after each collect take. The centre takes
+// the sack test alone; a ring cell also needs the taker's footprint open to
+// its domain there, with no route or occupancy test (R2-ENGINE-1625).
 // DIV-4882, DIV-4883, DIV-4884.
 func (w *World) OrderSackCollect(taker EntityID) (order Command, ok bool) {
 	e, ok := w.collectTaker(taker)
@@ -80,6 +82,9 @@ func (w *World) OrderSackCollect(taker EntityID) (order Command, ok bool) {
 	}
 	probe := func(x, y int64) bool {
 		if x < 0 || y < 0 || x >= int64(w.bounds.Width) || y >= int64(w.bounds.Height) {
+			return false
+		}
+		if !w.terrainOpenFootprint(e, int32(x), int32(y)) {
 			return false
 		}
 		at := CellPoint{X: int32(x), Y: int32(y)}

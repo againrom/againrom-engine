@@ -446,6 +446,38 @@ func (w *World) savedPatrol(i int, o *SavedActorOrder) {
 	w.savedMove(i, o)
 }
 
+// patrolTailReach is the Chebyshev distance below which an empty route
+// moves a patrol on to its next point (R2-ENGINE-1624).
+const patrolTailReach = 3
+
+// patrolRefusedTail is the order-0xa tail for an empty route: the latch is
+// set, the activity cleared, and the patrol point advances only when the
+// actor stands within patrolTailReach of it; farther away it stays and the
+// next patrol entry walks to the same point (R2-ENGINE-1624). An authored
+// patrol keeps its point as PatrolLeg, a loaded one in its order block.
+func (w *World) patrolRefusedTail(i int) {
+	e := &w.entities[i]
+	if w.nativePatrol(i) {
+		if cellOf(e).chebyshevTo(cell{x: e.legX(), y: e.legY()}) < patrolTailReach {
+			e.PatrolLeg ^= 1
+		}
+		w.syncNativePatrol(i)
+		return
+	}
+	o := w.savedOrder(e.ID)
+	if o == nil || o.State != uint32(actorStatePatrol) {
+		return
+	}
+	binary.LittleEndian.PutUint32(o.Raw[4:], 1)
+	o.Raw[8] = 0
+	cursor := binary.LittleEndian.Uint16(o.Raw[2:])
+	at := slices.Index(o.Patrol, cursor)
+	point := cell{x: int32(cursor & 0xff), y: int32(cursor >> 8)}
+	if at >= 0 && cellOf(e).chebyshevTo(point) < patrolTailReach {
+		binary.LittleEndian.PutUint16(o.Raw[2:], o.Patrol[(at+1)%len(o.Patrol)])
+	}
+}
+
 func (w *World) savedActorDispatch(i int) {
 	if _, using := w.structureUseIndex(w.entities[i].ID); using {
 		return
