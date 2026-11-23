@@ -109,9 +109,6 @@ func (w *World) withdrawalArm(i int) (withdrawArm, []int) {
 	// ROM1 reads HP as a signed WORD here (`AI-WITHDRAW-026`); this
 	// build compares canonical Entity.HP as int32. The shipped bounds and
 	// the unrepresentable high-health edge are recorded by DIV-352.
-	if e.MaxHP > 0 && e.HP >= e.MaxHP {
-		return withdrawNone, nil
-	}
 	if e.HP <= e.Wimpy {
 		if hostile := w.withdrawalHostiles(i, w.fleeRadius(i)+w.game.fleeSightExtra); len(hostile) != 0 {
 			return withdrawFlee, hostile

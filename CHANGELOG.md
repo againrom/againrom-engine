@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A unit at full health now backs away or flees from a nearby enemy when its health is at or below its withdrawal point, as in the original; bats and archers no longer stand still at full health.
 - [ROM2] A spell rolled on a mage's item in a shop now gets a budget of a hundred times the item's price, as in the first game; before, it got ten times, leaving those spells weaker or absent.
 - [ROM1] Юниты под управлением компьютера теперь выбирают целью юнита под заклинанием номер 20 в последнюю очередь, как в оригинале; раньше это заклинание не меняло выбор цели.
 - [ROM2] Юниты идут по склону с той же скоростью, что в оригинале; юнит, которому некуда бежать, останавливается на месте; порог отступления у юнитов игрока теперь зависит от класса, как в оригинале: в одном режиме воин не отступает, а стрелок и маг отступают раньше, в другом порог здоровья общий для всех.

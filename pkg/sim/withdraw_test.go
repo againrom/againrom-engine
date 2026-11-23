@@ -492,7 +492,7 @@ func TestBlockedWithdrawalTargetUsesTheOrdinaryReachableSubstitute(t *testing.T)
 	}
 }
 
-func TestFullHealthHoldsACreatureOutOfBothWithdrawalArms(t *testing.T) {
+func TestWithdrawalFollowsTheThresholdsAtAnyHealth(t *testing.T) {
 	for _, game := range []struct {
 		name   string
 		second bool
@@ -506,9 +506,12 @@ func TestFullHealthHoldsACreatureOutOfBothWithdrawalArms(t *testing.T) {
 			withdraw, wimpy, heroGap int32
 			want                     bool
 		}{
-			{"at its maximum under Withdraw", 12, 12, 15, 2, 2, false},
-			{"at its maximum under Wimpy", 12, 12, 0, 12, 4, false},
-			{"above its maximum", 13, 12, 15, 2, 2, false},
+			{"at its maximum under Withdraw", 12, 12, 15, 2, 2, true},
+			{"at its maximum under Wimpy", 12, 12, 0, 12, 4, true},
+			{"at its maximum on the threshold", 12, 12, 12, 2, 2, true},
+			{"at its maximum above the threshold", 12, 12, 11, 2, 2, false},
+			{"above its maximum under Withdraw", 13, 12, 15, 2, 2, true},
+			{"above its maximum above the threshold", 13, 12, 12, 2, 2, false},
 			{"one below under Withdraw", 11, 12, 15, 2, 2, true},
 			{"one below under Wimpy", 11, 12, 0, 12, 4, true},
 			{"with no health system", 5, 0, 15, 2, 2, true},
@@ -529,7 +532,7 @@ func TestFullHealthHoldsACreatureOutOfBothWithdrawalArms(t *testing.T) {
 						got.HasTarget, tc.want, tc.hp, tc.maxHP, tc.withdraw, tc.wimpy)
 				}
 				if !tc.want && !reflect.DeepEqual(got, before) {
-					t.Fatal("full-health gate changed the prior decision")
+					t.Fatal("a held unit changed state")
 				}
 				if tc.want && (got.TargetX != 17 || got.TargetY != 20) {
 					t.Fatalf("withdrawal destination = (%d,%d), want (17,20)", got.TargetX, got.TargetY)
