@@ -36,6 +36,8 @@ func killGradeTable() *mapload.Table {
 		units[row] = dbEntry{name: "creature", params: make([]int32, 56)}
 		units[row].params[55] = killGradeServerID(row)
 	}
+	// One row is a victim of class 0x21..0x3f, which goes to +0xa4c.
+	units[killGradeOtherRow].params[29] = 0x30
 	t.Units = units
 	return t
 }
@@ -192,5 +194,47 @@ func TestOriginalMissionLoadFillsTheDiaryFromTheBlock(t *testing.T) {
 		d[0].Entries[0].Index != killGradeRow || d[0].Entries[0].Count != 14 ||
 		d[0].Entries[1].Index != killGradeOtherRow || d[0].Entries[1].Count != 2 {
 		t.Fatalf("Diaries %+v", d)
+	}
+}
+
+// killGradeLocalKills is the local Player's F48 of raw.
+func killGradeLocalKills(t *testing.T, raw []byte) uint32 {
+	t.Helper()
+	doc, err := sav.DecodeDocumentData(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range doc.Objects {
+		r := &doc.Objects[i]
+		if p, _ := savedStructureValue(r, "Participant"); r.Class == "Player" && p == 0 {
+			v, err := savedStructureValue(r, "F48")
+			if err != nil {
+				t.Fatal(err)
+			}
+			return v
+		}
+	}
+	t.Fatal("no local Player record")
+	return 0
+}
+
+// The Player's kill count has no cap, the grade byte stops at 14, and a victim
+// of class 0x21..0x3f counts into +0xa4c, not the kill count (R2-ENGINE-772).
+func TestSecondSaveKillCountPastTheGradeCap(t *testing.T) {
+	diary := []sim.SavedDiary{{Owner: sim.SavedDiaryOwner{Player: true}, Length: 100,
+		Entries: []sim.SavedDiaryEntry{
+			{Index: killGradeRow, Count: 14, Remaining: 1024 - 30},
+			{Index: killGradeOtherRow, Count: 5, Remaining: 1024 - 5},
+		}}}
+	raw := killGradeTownSave(t, diary)
+	if got := killGradeLocalKills(t, raw); got != 30 {
+		t.Fatalf("F48 = %d, want 30", got)
+	}
+	block := killGradeBlockOf(t, raw)
+	if g := block[killGradeServerID(killGradeRow)]; g != 14 {
+		t.Fatalf("grade %d, want 14", g)
+	}
+	if g := block[killGradeServerID(killGradeOtherRow)]; g != 5 {
+		t.Fatalf("band victim grade %d, want 5", g)
 	}
 }

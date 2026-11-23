@@ -194,6 +194,8 @@ type savedFormHolder struct {
 	value func(h *formHolding, i int) (uint32, bool)
 	// text is a holderText field's text, as value is a value's.
 	text func(h *formHolding, i int) (string, bool)
+	// block is a holderRawBlock field's bytes.
+	block func(h *formHolding, i int) ([]byte, bool)
 	// records writes a holderRecords field's records.
 	records func(h *formHolding) error
 }
@@ -213,6 +215,8 @@ const (
 	holderRecords
 	// holderText is a text every record of the class holds.
 	holderText
+	// holderRawBlock is a raw block the source writes whole.
+	holderRawBlock
 )
 
 // formHolding is what the holders' sources read: the document being
@@ -242,16 +246,26 @@ var secondFormHolders = []savedFormHolder{
 	// R2-ENGINE-319, R2-ENGINE-320: the experience block opens with the main
 	// skill.
 	{class: "Human", field: "H1CC", site: holderFirstWord, value: secondMainSkillHeld},
-	// R2-ENGINE-320: template load alone writes the hero's +0x1c.
-	{class: "Human", field: "T1C", site: holderValue, value: secondHeroRowExperience},
+	// R2-ENGINE-320: template load alone writes a Human's +0x1c; every
+	// party Human of the originals' town files holds his row's value.
+	{class: "Human", field: "T1C", site: holderValue, value: secondRowExperienceHeld},
 	// R2-ENGINE-410: the bag constructor's insert index, which appends.
 	{class: "Human", field: "Inventory1C", site: holderPresentValue, value: holderConstant(0x7fff)},
 	// DIV-4153: the campaign's bag in the hero's Inventory.
 	{class: "Human", field: "Inventory", site: holderRecords, records: secondCampaignBag},
-	// A Player's obfuscated F48 holds 0, the originals' value (DIV-4305);
-	// an Effect the constructor's +0xe = 0 (R2-ENGINE-403).
-	{class: "Player", field: "F48", site: holderValue, value: holderConstant(0)},
+	// R2-ENGINE-772: a kill adds 1 to the owner's +0xa48 and to the victim's
+	// grade byte, so +0xa48 is the grade block's sum (DIV-4305).
+	{class: "Player", field: "F48", site: holderValue, value: secondPlayerKills},
+	// The first Player's raw 8 at +0x10 is the loaded file's, else zero
+	// (DIV-4305).
+	{class: "Player", field: "Raw10", site: holderRawBlock, block: secondPlayerRaw},
+	// An Effect holds the constructor's +0xe = 0 (R2-ENGINE-403); an Item
+	// constructor stores none, and the originals hold 0 in most.
 	{class: "Effect", field: "T0E", site: holderValue, value: holderConstant(0)},
+	{class: "Armor", field: "T0E", site: holderValue, value: holderConstant(0)},
+	{class: "Weapon", field: "T0E", site: holderValue, value: holderConstant(0)},
+	{class: "Shield", field: "T0E", site: holderValue, value: holderConstant(0)},
+	{class: "Item", field: "T0E", site: holderValue, value: holderConstant(0)},
 	// R2-ENGINE-403: an Item holds its row at +0xc, from which LOAD
 	// rebuilds its descriptor; a magic item's ID names that row.
 	{class: "Item", field: "T0C", site: holderValue, value: secondMagicItemRow},
@@ -272,6 +286,8 @@ var secondFormHolders = []savedFormHolder{
 	// R2-ENGINE-402: a bag's weight is the sum of its Items' unit weight
 	// times quantity.
 	{class: "Human", field: "Inventory20", site: holderPresentValue, value: secondBagWeight},
+	// R2-SESSION-322: a town file's selection holds the hero's +4.
+	{field: "Selection", site: holderRecords, records: secondTownSelection},
 	// R2-ENGINE-614, R2-SESSION-245: the selection and a projectile's
 	// target name an object by its +4.
 	{field: "RuntimeID", site: holderRecords, records: secondKeyEdges},
@@ -470,6 +486,14 @@ func writeSecondTownHolders(doc *sav.DocumentData, holders []savedFormHolder, s 
 				}
 				continue
 			}
+			if holder.site == holderRawBlock {
+				if b, ok := holder.block(h, i); ok {
+					if err := savedStructureSetRaw(r, holder.field, b); err != nil {
+						return err
+					}
+				}
+				continue
+			}
 			if _, err := savedStructureValue(r, holder.field); holder.site == holderPresentValue && err != nil {
 				continue
 			}
@@ -526,10 +550,11 @@ func secondMainSkillHeld(h *formHolding, i int) (uint32, bool) {
 	return 0, true
 }
 
-// secondHeroRowExperience is the hero's +0x1c from the Humans row his record
-// names (secondRowExperience). Any other record keeps its field.
-func secondHeroRowExperience(h *formHolding, i int) (uint32, bool) {
-	if uint16(i+1) != h.hero {
+// secondRowExperienceHeld is a Human's +0x1c from the Humans row his record
+// names (secondRowExperience): the hero's, and in a town every member's. A
+// mission's other Human keeps his field.
+func secondRowExperienceHeld(h *formHolding, i int) (uint32, bool) {
+	if uint16(i+1) != h.hero && h.s.Mission != 0 {
 		return 0, false
 	}
 	row, err := savedStructureValue(&h.doc.Objects[i], "T0C")
@@ -556,6 +581,59 @@ func secondRowExperience(t *mapload.Table, row uint32) (uint32, bool) {
 		sum += int64(data.SkillXPFor(max(0, d.Skill[s])))
 	}
 	return uint32(0.01 * float64(sum)), true
+}
+
+// localSecondPlayer reports that record i is the local Player's, the one whose
+// Participant word is 0.
+func localSecondPlayer(h *formHolding, i int) bool {
+	v, err := savedStructureValue(&h.doc.Objects[i], "Participant")
+	return err == nil && v == 0
+}
+
+// secondPlayerKills is the local Player's +0xa48: every counted kill of a
+// victim outside class 0x21..0x3f adds 1 to it with no cap, while the
+// victim's grade byte rises only below 14 (R2-ENGINE-772). It is the kill
+// count of the record the grade block comes from. In the 26 original files
+// read it equals the sum of that block. Any other Player holds the
+// constructor's 0.
+func secondPlayerKills(h *formHolding, i int) (uint32, bool) {
+	if !localSecondPlayer(h, i) {
+		return 0, true
+	}
+	_, kills, err := secondKillRecord(h.doc, h.table)
+	return kills, err == nil
+}
+
+// secondPlayerRaw is the local Player's raw 8 at +0x10, which no current state
+// and no claim produces: the loaded file's, else the zero a new Player holds
+// (R2-ENGINE-675).
+func secondPlayerRaw(h *formHolding, i int) ([]byte, bool) {
+	if !localSecondPlayer(h, i) || h.s.second.Kept == nil {
+		return nil, false
+	}
+	raw := h.s.second.Kept.PlayerRaw
+	return raw, len(raw) == 8
+}
+
+// secondTownSelection writes a town file's selection as the hero's +4 where
+// the engine holds none: the original's town files hold that one key in ten
+// of eleven (R2-SESSION-322). A mission's selection is the client's.
+func secondTownSelection(h *formHolding) error {
+	if h.s.Mission != 0 || h.hero == 0 {
+		return nil
+	}
+	key, err := savedStructureValue(&h.doc.Objects[h.hero-1], "RuntimeID")
+	if err != nil || key == 0 {
+		return nil
+	}
+	st := &h.doc.State
+	_, err = patchStateLeaf(st.RootKind, st.DirectoryRecords, st.ValueRecords, "/Objects/Selection", func(leaf *sav.CityStateValueData) error {
+		if len(leaf.Bytes) == 0 {
+			leaf.Bytes = binary.LittleEndian.AppendUint32(nil, key)
+		}
+		return nil
+	})
+	return err
 }
 
 // secondCampaignBag writes the items the campaign's party carries as the

@@ -31,11 +31,13 @@ type currentSecondCampaign struct {
 // location record's 16 raw bytes (R2-SESSION-032), which no current state
 // and no claim produces and a SAVE writes back (DIV-4306), and the two Hall
 // words after the pair list (R2-SESSION-384), which a SAVE takes from the
-// session's counters.
+// session's counters. PlayerRaw is the first Player's nonzero raw 8 at +0x10,
+// which no current state and no claim produces (R2-ENGINE-675).
 type secondTailKept struct {
 	Pairs     [][2]uint32
 	PairTail  [2]uint32
 	Locations []secondKeptLocation `json:",omitempty"`
+	PlayerRaw []byte               `json:",omitempty"`
 }
 
 type secondKeptLocation struct {
@@ -47,7 +49,7 @@ func (k *secondTailKept) clone() *secondTailKept {
 	if k == nil {
 		return nil
 	}
-	return &secondTailKept{Pairs: slices.Clone(k.Pairs), PairTail: k.PairTail, Locations: slices.Clone(k.Locations)}
+	return &secondTailKept{Pairs: slices.Clone(k.Pairs), PairTail: k.PairTail, Locations: slices.Clone(k.Locations), PlayerRaw: slices.Clone(k.PlayerRaw)}
 }
 
 // secondNewPairs is the pair list every original town holds, written when no
@@ -81,7 +83,7 @@ func (k *secondTailKept) withHall(time, events uint32) *secondTailKept {
 // new game's tail that withHall builds from the Hall words alone, so a loaded
 // new game holds the state the saved one did and a SAVE builds it again.
 func (k *secondTailKept) held() *secondTailKept {
-	if k != nil && len(k.Locations) == 0 && slices.Equal(k.Pairs, secondNewPairs) && k.PairTail != [2]uint32{} {
+	if k != nil && len(k.Locations) == 0 && slices.Equal(k.Pairs, secondNewPairs) && k.PairTail != [2]uint32{} && !slices.ContainsFunc(k.PlayerRaw, func(b byte) bool { return b != 0 }) {
 		return nil
 	}
 	return k.clone()
@@ -166,6 +168,9 @@ func decodeSecondAux(raw json.RawMessage) (*secondAux, error) {
 func (c *currentSecondCampaign) validate() error {
 	if err := validateSecondParty(c.Party); err != nil {
 		return err
+	}
+	if c.Kept != nil && len(c.Kept.PlayerRaw) != 0 && len(c.Kept.PlayerRaw) != 8 {
+		return fmt.Errorf("current second campaign keeps a %d-byte Player block", len(c.Kept.PlayerRaw))
 	}
 	if c.Kept != nil && (len(c.Kept.Pairs) > maxSecondAvailable || len(c.Kept.Locations) > maxSecondAvailable) {
 		return fmt.Errorf("current second campaign keeps too many tail records")
@@ -357,6 +362,11 @@ func secondFileSession(sf *sav.File) (*currentSessionData, error) {
 		Shop: captureSecondShop(shop, nil), Kept: &secondTailKept{Pairs: slices.Clone(tail.Pairs), PairTail: tail.PairTail}}
 	if uint64(len(tail.Locations)) > maxSecondAvailable {
 		return nil, fmt.Errorf("second-game save holds %d locations", len(tail.Locations))
+	}
+	if player, err := sf.Walk(); err == nil && player != nil {
+		if raw := player.Raw["Raw10"]; len(raw) == 8 && slices.ContainsFunc(raw, func(b byte) bool { return b != 0 }) {
+			c.Kept.PlayerRaw = slices.Clone(raw)
+		}
 	}
 	for _, l := range tail.Locations {
 		c.Available = append(c.Available, currentSecondLocation{int(l.Kind), int(l.ID)})

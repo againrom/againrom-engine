@@ -28,12 +28,20 @@ func identityDollTable() *mapload.Table {
 // gold, missions 30 and 31 open.
 func identityTownSave(t *testing.T) []byte {
 	t.Helper()
+	return identityTownSaveOf(t, func(*mapload.Table, *secondCampaign) {})
+}
+
+// identityTownSaveOf is identityTownSave with the table and the campaign the
+// caller adjusts before the SAVE.
+func identityTownSaveOf(t *testing.T, adjust func(*mapload.Table, *secondCampaign)) []byte {
+	t.Helper()
 	f, _, _ := secondCampaignFixtureFiles(t, false, identityNames())
 	f.Table = identityDollTable()
 	f.Carried = []mapload.PartyMember{{ID: "hero", Name: "Aldor", PlayerCharacter: true, StartingHero: true}}
 	c := newSecondCampaign()
 	c.current, c.available = partyPlace{2, 2}, []partyPlace{{2, 2}, {1, 30}, {1, 31}}
 	c.bank[768] = 30
+	adjust(f.Table, c)
 	f.Town.second, f.Town.gold = c, 500
 	f.Town.settleCityGroups(f.Carried)
 	if !f.CampaignSession.addPartyIdentity(f.townInstall(), 22) {

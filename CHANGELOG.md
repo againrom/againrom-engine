@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Units now step as in the original: a diagonal step keeps the first game's position correction and the slowest diagonal step stands still for 256 ticks, a struck guard steps away ten cells along the longer axis, and computer units rank a target under Stone Curse lower.
 - [ROM2] Порядок товаров в магазинах второй игры проверен по русской версии клиента оригинала: он тот же, что в английской, так что обе версии показывают полки одинаково.
 - [ROM2] Заклинание второй игры, летящее в сохранении, после загрузки попадает без заклинателя: цель теряет здоровье, но не помнит нападавшего, враждебность не включается и опыт за убийство не начисляется.
+- [ROM2] Сохранение города теперь пишет опыт каждого члена отряда по его строке, число убийств игрока по записанным убийствам и выбор на герое; блок игрока из загруженного оригинала сохраняется как есть.
 - [ROM2] The Kaarg inn taverner now runs its long animation for the original's 95 steps with its holds, a shop's second tip shows once the deal table holds an item, and the druid inn's lower-right edge starts as HumanBackL.
 - [ROM2] A mission's step costs on layered cells now follow the original's cell slots: after a second walker shares a cell, the cell keeps its decayed cost, and a mission SAVE keeps those slots.
 - [ROM2] A dead unit's body now sinks through its corpse stages and leaves the world as fast as in the original; before, it did so one and a half times slower, which also kept it raisable longer.

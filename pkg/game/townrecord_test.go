@@ -195,13 +195,13 @@ func TestTownStateAndArtRecord(t *testing.T) {
 	}
 	want := map[string]string{
 		"bank/entry":              "6d7c529090e2fc7dcaf75a942954de73fc842cae2f6a440bc313d23e60e47f6d",
-		"bank/entry/sav":          "d2dd26c59ec9bd48c3d804fb81f9d27040191a4867f8fed75ec4badb21853e56",
+		"bank/entry/sav":          "673449397aff38086537af34f89855d9516bda44267cc1cf3c65a05538c7ade0",
 		"bank/mission-return":     "547b7b1245345639bfa00f4a07c45c737ba19dc2a76d5230f7d80bac210235e1",
-		"bank/mission-return/sav": "52b0c76958685171872ceb3105258fb4fff72e1ffbb877da06e67522b012969e",
+		"bank/mission-return/sav": "7288955eb3a1830e70dace05ed1ca590e6e43d9233338407b8704130a268ec57",
 		"bank/return":             "365859704d53f4f2da2dc4d149ef8b7a1e3b5753fbea9f737862766d3b6bbd95",
-		"bank/return/sav":         "d0cf7fd6d0a9cb498c8eb419e0514b806e857b17e789a28107197b3b6ba46715",
+		"bank/return/sav":         "5604226f99691795293d0910d77e41f4fb57e3606d5edf25daabaff53a491241",
 		"bank/travel":             "b62cf863696d74813be085bc7d1632fb53bb466f60125bf9c531ec1d107b3b08",
-		"bank/travel/sav":         "78cf6fba7fd5bb76db8d394737385325773e9fe54b7b29fbf43b18b8bb24c0e2",
+		"bank/travel/sav":         "b1725c86ef1fb92146b4a52c86c910b63e92f8d29064c3a872d162d76def748b",
 		"chapters/east":           "1c12c9ad5825c0a5f36628b2a4b93e9281f937b1bb7fdb98e8f3edb60f15f1df",
 		"chapters/east/sav":       "2a119b68b397dc79f5850d8ef67272c82bf0e051b5807dc097103f8e5c01cf20",
 		"chapters/entry":          "a31c10aa2138e0b7d4537f982fc090d2bd891a77c1c152264a37ed704276b3f9",
