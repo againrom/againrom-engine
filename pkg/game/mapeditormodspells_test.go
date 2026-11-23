@@ -276,8 +276,8 @@ func TestSpellsPageRemoveButtonTakesTheChosenSpellOut(t *testing.T) {
 	if s := e.Document().Edits.(*mapInspectionEdits).spell; s != c {
 		t.Fatalf("the click chose %q, want %s", s, c)
 	}
-	if buttons := e.PopupButtons(); len(buttons) != 4 {
-		t.Fatalf("window buttons %q, want Open, Save, Publish and Close", buttons)
+	if buttons := e.PopupButtons(); len(buttons) != 5 {
+		t.Fatalf("window buttons %q, want Open, Save, Publish, Move old paths and Close", buttons)
 	}
 	spellsPointer(e, spellsBookCell(t, e, 5), catalogCell(t, e, "Curse"))
 	if src := spellsSource(e); !strings.Contains(src, "target = \""+c+"\"\noff = true\n") {
