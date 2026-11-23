@@ -327,7 +327,7 @@ func TestSecondLeaveAfterFortyAddsIdentityTwentyThree(t *testing.T) {
 	s := &CampaignSession{Town: NewTown(Campaign{}), Carried: []mapload.PartyMember{identityHero()}}
 	s.Town.second = c
 	in := townInstall{table: table}
-	s.leftLocation(in)
+	s.leftLocation(in, true)
 	if len(s.Carried) != 1 {
 		t.Fatal("a leave with slot 773 zero added a member")
 	}
@@ -335,8 +335,8 @@ func TestSecondLeaveAfterFortyAddsIdentityTwentyThree(t *testing.T) {
 	if c.bank[773] != 23 {
 		t.Fatal("mission 40's departure slot 773", c.bank[773])
 	}
-	s.leftLocation(in)
-	s.leftLocation(in)
+	s.leftLocation(in, true)
+	s.leftLocation(in, true)
 	if got := carriedIdentities(s.Carried, table); len(got) != 2 || got[1] != 23 {
 		t.Fatalf("identities %v after the leave, want 21 and 23", got)
 	}

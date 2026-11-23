@@ -16,17 +16,20 @@ import (
 // takes into a mission and brings back (DIV-4191).
 
 // leftLocation follows a departure from a location: the bag joins the
-// hero's pack, and a nonzero slot 773 asks the addition producer for that
-// identity (R2-ENGINE-106, R2-ENGINE-379). Every ordinary departure zeroes
-// the slot before its case (R2-SESSION-047), and the producer reuses a
-// carried identity.
-func (s *CampaignSession) leftLocation(in townInstall) {
+// hero's pack. The leave of a won mission also asks the addition producer
+// for the identity a nonzero slot 773 holds (R2-ENGINE-744); a town's gate
+// leave asks nobody (R2-ENGINE-634, R2-ENGINE-1592). Every ordinary
+// departure zeroes the slot before its case (R2-SESSION-047), and the
+// producer reuses a carried identity.
+func (s *CampaignSession) leftLocation(in townInstall, won bool) {
 	c := secondOf(s)
 	if c == nil {
 		return
 	}
 	s.partyItems(in.table).leaveLocation()
-	s.addLeaveIdentities(in, &c.bank)
+	if won {
+		s.addLeaveIdentities(in, &c.bank)
+	}
 }
 
 // secondHeroIndex is the campaign party's starting hero, else its first

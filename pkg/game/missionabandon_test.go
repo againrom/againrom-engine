@@ -355,7 +355,9 @@ func TestAbandonKeepsTheDepartureCompanion(t *testing.T) {
 	f.Table = identityTable()
 	f.Carried = []mapload.PartyMember{identityHero()}
 	c := f.Town.second
-	c.current, c.bank[773] = secondTown(2), 23
+	c.bank[773] = 23
+	f.CampaignSession.leftLocation(f.townInstall(), true)
+	c.current = secondTown(2)
 	destinationTownCampaign{screen}.leave()
 	if len(f.Carried) != 2 || f.Carried[1].CompanionNPC != 23 {
 		t.Fatal("departure did not add its companion")

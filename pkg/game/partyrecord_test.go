@@ -89,12 +89,12 @@ func partyJoinRecord(t *testing.T) string {
 	state("rom2 talk", g, true)
 	g.addTalkIdentities(g.townInstall(), 22, 30)
 	state("rom2 repeated talk", g, true)
-	g.leftLocation(g.townInstall())
+	g.leftLocation(g.townInstall(), true)
 	state("rom2 empty leave", g, true)
 	g.Town.second.bank[773] = 23
-	g.leftLocation(g.townInstall())
+	g.leftLocation(g.townInstall(), true)
 	state("rom2 leave", g, true)
-	g.leftLocation(g.townInstall())
+	g.leftLocation(g.townInstall(), true)
 	state("rom2 repeated leave", g, true)
 	return b.String()
 }

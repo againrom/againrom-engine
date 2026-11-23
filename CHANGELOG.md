@@ -55,6 +55,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Ядовитое облако и Проклятие, наложенные героем или существом, больше не рисуют собственную картинку заклинания; видна только метка на юните, как в оригинале.
 - [ROM2] An area spell cast on a unit, such as Acid Stream, now heads from the caster's cell toward the target's cell, as in the original; before, it followed the caster's facing and could miss the target.
 - [ROM2] Your Humans now take their class retreat and flee thresholds at mission start, as the computer's Humans do; with the retreat option unset, a wounded mage steps back from a near enemy and flees at a quarter of health.
+- [ROM2] Leaving a town through its gate no longer adds Dina to the party; as in the original, only the win of mission 40 brings her in.
 
 ### For map makers and modders
 

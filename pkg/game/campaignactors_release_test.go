@@ -59,7 +59,7 @@ func TestReleaseCampaignActorLossControls(t *testing.T) {
 			name := "controlled"
 			if dina {
 				f.Town.second.bank[773] = 23
-				f.CampaignSession.leftLocation(f.townInstall())
+				f.CampaignSession.leftLocation(f.townInstall(), true)
 				name += "-dina"
 			}
 			actorWitnessReceipt(t, name+"-party", f.Carried)

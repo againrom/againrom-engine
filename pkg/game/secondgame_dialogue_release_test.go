@@ -5,6 +5,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"againrom/pkg/mapload"
@@ -56,6 +57,31 @@ func TestReleaseSecondGameFailureUsesInstalledFallback(t *testing.T) {
 				t.Fatalf("failure%d = %q/%v/%v, outcome=%v; want installed slot%d %q", tc.reason, body, kind, shown, w.Outcome(), tc.slot, want)
 			}
 		})
+	}
+}
+
+// The failure entries of reasons 2..4 come from each campaign mission's own
+// text, except reasons 3 and 4 of missions 10 and 20 and reason 4 of
+// missions 30, 32 and 40, which take the shared rows 283 and 284
+// (R2-ENGINE-1591).
+func TestReleaseSecondGameFailureSourceByMission(t *testing.T) {
+	archives := secondGameRoot(t)
+	code := InstallTextCode(archives.Containers, archives.Game().Edition())
+	shared := map[int][]int32{10: {3, 4}, 20: {3, 4}, 30: {4}, 32: {4}, 40: {4}}
+	maps := 0
+	for n := 1; n <= 300; n++ {
+		address, _ := MissionMap(n)
+		if _, err := archives.Containers.ReadFile(address); err != nil {
+			continue
+		}
+		maps++
+		labels, slots := secondGameFailureEntries(archives.Containers, code, n)
+		if len(labels) < 3 || !slices.Equal(slots, shared[n]) {
+			t.Errorf("mission %d: %d failure entries, shared rows for reasons %v; want 3 or more, %v", n, len(labels), slots, shared[n])
+		}
+	}
+	if maps != 46 {
+		t.Fatalf("%d campaign maps, want 46", maps)
 	}
 }
 

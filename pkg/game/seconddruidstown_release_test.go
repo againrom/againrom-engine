@@ -196,7 +196,7 @@ func TestReleaseSecondDinaJoinsAtMissionFortysLeave(t *testing.T) {
 			if got := carriedIdentities(f.Carried, f.Table); !slices.Equal(got, []int{21, 22, 23}) {
 				t.Fatalf("the leave carries identities %v, want 21, 22 and 23", got)
 			}
-			f.CampaignSession.leftLocation(f.townInstall())
+			f.CampaignSession.leftLocation(f.townInstall(), true)
 			if got := carriedIdentities(f.Carried, f.Table); len(got) != 3 {
 				t.Fatalf("a second leave carries identities %v", got)
 			}

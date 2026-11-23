@@ -496,7 +496,7 @@ func (c destinationTownCampaign) leave() {
 		if s.leaveTown() {
 			in := c.t.in.townInstall()
 			c.t.sess.partyItems(in.table).keepEntry()
-			c.t.sess.leftLocation(in)
+			c.t.sess.leftLocation(in, false)
 		}
 		s.room = secondTownSquare
 	}

@@ -195,9 +195,9 @@ func partyCrossings(t *testing.T) string {
 	partyCrossingPack(t, f, 0, []sim.ItemInstance{secondBagWeapon})
 	partyCrossingGraph(t, f)
 	partyCrossingState(w, 1, 0, f)
-	f.CampaignSession.leftLocation(f.townInstall())
+	f.CampaignSession.leftLocation(f.townInstall(), true)
 	partyCrossingState(w, 1, 20, f)
-	f.CampaignSession.leftLocation(f.townInstall())
+	f.CampaignSession.leftLocation(f.townInstall(), true)
 	partyCrossingState(w, 1, 40, f)
 
 	// 2: arrival with a pack holding units with and without a bag form.
@@ -315,7 +315,7 @@ func partyCrossings(t *testing.T) string {
 	// has no bag, and its shop writes a member's pack as the units are.
 	first := &townScreen{shopController: shopController{sess: &CampaignSession{Town: NewTown(Campaign{}),
 		Carried: []mapload.PartyMember{{ID: "hero"}}}, in: &InstallResources{Table: shopTable()}}}
-	first.sess.leftLocation(townInstall{table: first.in.Table})
+	first.sess.leftLocation(townInstall{table: first.in.Table}, true)
 	if err := first.sess.partyItems(first.in.Table).arriveTown(); err != nil {
 		t.Fatal(err)
 	}
