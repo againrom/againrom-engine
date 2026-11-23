@@ -58,9 +58,50 @@ func (w *World) initializeActionClocks() {
 	}
 }
 
-// The book/scroll runner waits for its admitted turn before consuming wind-up.
-// The run end uses the action's base wind-up/recovery, not later recovery RNG.
-func (w *World) startSpellAction(i int) {
-	e := &w.entities[i]
-	e.startAction(w.tick, int64(e.TurnRemaining)+int64(castWindupTicks(*e))+w.castRecoveryTicks(i, originEstimate, SpellRule{}))
+// startSpellAction stores a book or scroll cast's activity stamp at moment m,
+// where the game's castStamp row stamps one.
+func (w *World) startSpellAction(i int, m castMoment) {
+	if d, ok := castStamps[w.game.castStamp](w, i, m); ok {
+		w.entities[i].startAction(w.tick, d)
+	}
+}
+
+// castMoment is a point of a cast's run that may stamp its activity.
+type castMoment uint8
+
+const (
+	// castBookAdmitted: a book order is admitted and its turn set.
+	castBookAdmitted castMoment = iota
+	// castScrollStarted: a scroll cast starts and its turn is set.
+	castScrollStarted
+	// castBookPaid: a book cast pays its cost.
+	castBookPaid
+	// castScrollWindup: a scroll cast's wind-up runs its first tick, its
+	// reader facing the aim.
+	castScrollWindup
+)
+
+// castStampRule is when a cast stamps its activity and how far ahead.
+type castStampRule uint8
+
+const (
+	// castStampsRunEnd: the first game's book/scroll runner waits for its
+	// admitted turn before consuming wind-up, so the stamp is the run end:
+	// turn, base wind-up and base recovery, not later recovery RNG.
+	castStampsRunEnd castStampRule = iota
+	// castStampsRoutine: the second game's cast routine runs once the caster
+	// faces the aim, and its sender stores the bare session counter
+	// (R2-ENGINE-543, R2-ENGINE-926, R2-ENGINE-1565): a book cast on the
+	// tick it pays, a scroll cast on its wind-up's first tick, the turn's end.
+	castStampsRoutine
+)
+
+var castStamps = [...]func(*World, int, castMoment) (int64, bool){
+	castStampsRunEnd: func(w *World, i int, m castMoment) (int64, bool) {
+		e := w.entities[i]
+		return int64(e.TurnRemaining) + int64(castWindupTicks(e)) + w.castRecoveryTicks(i, originEstimate, SpellRule{}), m == castBookAdmitted || m == castScrollStarted
+	},
+	castStampsRoutine: func(w *World, i int, m castMoment) (int64, bool) {
+		return 0, m == castBookPaid || m == castScrollWindup
+	},
 }

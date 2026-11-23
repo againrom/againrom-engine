@@ -44,14 +44,15 @@ func spellDeliveryTicks(rule SpellRule, x, y, toX, toY int32) uint16 {
 	return uint16(distance / int64(rule.EffectSpeed))
 }
 
-// spellDeliveryRemaining is the countdown a new delivery starts at. A Fire_Ball
-// transport waits the truncated Euclidean distance in 1/256 cell units from the
-// caster's current point to the aimed actor's cell and fine position over the
-// row's speed (SAV-1155). An actor wider than one cell is aimed at its footprint
-// centre less one sub-unit per axis, and a cast at a cell at the cell's centre
-// (MAGIC-245). Other deliveries keep the Chebyshev distance (DIV-1271).
+// spellDeliveryRemaining is the countdown a new delivery starts at. A transport
+// the game's flight row names waits the truncated Euclidean distance in 1/256
+// cell units from the caster's current point to the aimed actor's cell and fine
+// position over the row's speed (SAV-1155, R2-ENGINE-1568). An actor wider than
+// one cell is aimed at its footprint centre less one sub-unit per axis, and a
+// cast at a cell at the cell's centre (MAGIC-245). Other deliveries keep the
+// Chebyshev distance (DIV-1271).
 func (w *World) spellDeliveryRemaining(d spellDelivery) uint16 {
-	if !rowIDFliesBySpeed(d.Rule.ID) || d.Rule.EffectSpeed <= 0 {
+	if !flightsBySpeed[w.game.flight](d.Rule) || d.Rule.EffectSpeed <= 0 {
 		return spellDeliveryTicks(d.Rule, d.FromX, d.FromY, d.X, d.Y)
 	}
 	fx, fy := d.FromX*256+128, d.FromY*256+128
@@ -70,6 +71,22 @@ func (w *World) spellDeliveryRemaining(d spellDelivery) uint16 {
 	}
 	dx, dy := int64(tx)-int64(fx), int64(ty)-int64(fy)
 	return uint16(min(isqrt64(dx*dx+dy*dy)/int64(d.Rule.EffectSpeed), 0xffff))
+}
+
+// flightRule names the transports that wait the Euclidean distance.
+type flightRule uint8
+
+const (
+	// flightNamedRows: the first game's rows that carry speedFlight.
+	flightNamedRows flightRule = iota
+	// flightEveryRow: every second-game flight row; Lightning and Prismatic
+	// Spray keep their fixed wait (R2-ENGINE-1262, R2-ENGINE-1567).
+	flightEveryRow
+)
+
+var flightsBySpeed = [...]func(SpellRule) bool{
+	flightNamedRows: func(r SpellRule) bool { return rowIDFliesBySpeed(r.ID) },
+	flightEveryRow:  func(r SpellRule) bool { return spellArmOf(r.arm()).form == formFlight },
 }
 
 func (w *World) queueSpellDelivery(d spellDelivery) {
@@ -187,6 +204,7 @@ func (w *World) admitBookPayment(ci int, rule SpellRule) {
 	}
 	debitBook(&w.entities[ci], rule)
 	w.bookCasts[i].Paid = true
+	w.startSpellAction(ci, castBookPaid)
 	w.castStartHiding(w.entities[ci].ID, w.bookCasts[i].Target, w.bookCasts[i].AtCell)
 	if spellArmOf(rule.arm()).prismatic && rule.Delivery == 2 && !w.bookCasts[i].AtCell {
 		ti := indexOfEntity(w.entities, w.bookCasts[i].Target)

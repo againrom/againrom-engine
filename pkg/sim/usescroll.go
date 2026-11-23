@@ -373,13 +373,16 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 			}
 			atCell := c.AtCell || indexOfEntity(w.entities, c.Target) < 0
 			w.turnToCastAim(ci, c.Target, atCell, c.X, c.Y)
-			w.startSpellAction(ci)
+			w.startSpellAction(ci, castScrollStarted)
 			k++
 			continue
 		}
 		if e.Turning() {
 			k++
 			continue
+		}
+		if c.Remaining == castWindupTicks(*e) {
+			w.startSpellAction(ci, castScrollWindup)
 		}
 		if c.Remaining > 0 {
 			c.Remaining--

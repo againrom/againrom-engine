@@ -1566,7 +1566,7 @@ func withinCellCastReach(a, b castReachEnd, reach int64) bool {
 // ends. Its release reports no second cast.
 func (w *World) chargeBookCast(ci int, rule SpellRule) {
 	w.admitBookPayment(ci, rule)
-	w.startSpellAction(ci)
+	w.startSpellAction(ci, castBookAdmitted)
 	if s := w.orderStateAt(ci); s.charging() && !w.castHeldNextTick(ci, w.bookCasts[s.bookAt]) {
 		w.presentBookCast(ci, w.bookCasts[s.bookAt], rule)
 	}

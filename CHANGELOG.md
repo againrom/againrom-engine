@@ -56,6 +56,7 @@ modder or developer can notice gets no entry.
 - [ROM2] An area spell cast on a unit, such as Acid Stream, now heads from the caster's cell toward the target's cell, as in the original; before, it followed the caster's facing and could miss the target.
 - [ROM2] Your Humans now take their class retreat and flee thresholds at mission start, as the computer's Humans do; with the retreat option unset, a wounded mage steps back from a near enemy and flees at a quarter of health.
 - [ROM2] Leaving a town through its gate no longer adds Dina to the party; as in the original, only the win of mission 40 brings her in.
+- [ROM2] After a book or scroll spell, a mage again regains mana three times faster 81 ticks after turning to the target and starting the spell, as in the original; flying spells such as Fire Arrow now travel the straight distance to the target, so they arrive later on a diagonal, while Lightning and Prismatic Spray still strike after 10 ticks.
 
 ### For map makers and modders
 

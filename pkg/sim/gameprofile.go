@@ -82,6 +82,10 @@ type gameProfile struct {
 	// castRecovery: cast recovery narrowing rule (castRecoveryRules,
 	// R2-ENGINE-1261).
 	castRecovery castRecoveryRule
+	// castStamp: the activity stamp a started cast stores (castStamps).
+	castStamp castStampRule
+	// flight: the transports that wait the Euclidean distance (flightsBySpeed).
+	flight flightRule
 	// paysFacingAim: a book cast at another unit or a cell pays when its
 	// wind-up starts facing the aim, not at the order (R2-ENGINE-543,
 	// R2-ENGINE-544, R2-ENGINE-926).
@@ -290,6 +294,8 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		nativeWalkRefusal:          true,
 		castReach:                  castReachCell,
 		castRecovery:               castRecoveryLowByte,
+		castStamp:                  castStampsRoutine,
+		flight:                     flightEveryRow,
 		paysFacingAim:              true,
 		bookWalkNoFallback:         true,
 		postKeepsDying:             true,

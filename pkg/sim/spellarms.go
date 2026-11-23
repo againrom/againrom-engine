@@ -397,9 +397,10 @@ var (
 	burstArm      = armWith(func(a spellArm) bool { return a.burst })
 )
 
-// rowIDBursts and rowIDFliesBySpeed read a row id as an arm in both games,
-// as the area walk and the delivery always read it: whatever arm a row
-// runs, only the id of Fire Ball's arm bursts and flies by its speed.
+// rowIDBursts and rowIDFliesBySpeed read a row id as an arm: whatever arm a
+// row runs, only the id of Fire Ball's arm bursts and flies by its speed. The
+// area walk reads rowIDBursts in both games; the first game's delivery reads
+// rowIDFliesBySpeed, the second game's reads the arm's form (flightsBySpeed).
 func rowIDBursts(id uint16) bool       { return spellArmOf(id).burst }
 func rowIDFliesBySpeed(id uint16) bool { return spellArmOf(id).speedFlight }
 
