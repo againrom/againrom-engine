@@ -80,6 +80,12 @@ func secondStaffStrike(t *testing.T, f *FrontEnd, app *ui.App, victim sim.Entity
 	t.Helper()
 	mw := f.live
 	id := mw.mission.ids[0]
+	for range 200 {
+		if err := app.HeadlessStep(); err != nil {
+			t.Fatal(err)
+		}
+		dismissSecondMissionDialogue(t, app, mw)
+	}
 	v, _ = mw.world.Entity(victim)
 	if err := mw.world.HeadlessPlace(id, v.X-1, v.Y); err != nil {
 		t.Fatal(err)

@@ -167,7 +167,7 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 	// Ids built as a literal prefix plus a key (`"editor.mod." + key`) are
 	// read by prefix; the scan cannot see which keys reach them.
 	var prefixes []string
-	for _, dir := range []string{"../ui", "../game", "../mapload", "../scriptprofile"} {
+	for _, dir := range []string{"../ui", "../game", "../mapload", "../mapedit", "../scriptprofile"} {
 		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 		if err != nil {
 			t.Fatal(err)
@@ -188,6 +188,16 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 						switch {
 						case key.Name == "word" || strings.HasSuffix(key.Name, "Word"):
 							args = append(args, n.Value)
+						case key.Name == "Label" || key.Name == "save" || key.Name == "refusal" || key.Name == "scriptRefusal" || key.Name == "undecoded":
+							args = append(args, n.Value)
+						case key.Name == "itemSuits":
+							if list, ok := n.Value.(*ast.CompositeLit); ok {
+								for _, suit := range list.Elts {
+									if pair, ok := suit.(*ast.CompositeLit); ok && len(pair.Elts) == 2 {
+										args = append(args, pair.Elts[1])
+									}
+								}
+							}
 						case strings.HasSuffix(key.Name, "Words"):
 							if list, ok := n.Value.(*ast.CompositeLit); ok {
 								args = append(args, list.Elts...)
@@ -196,6 +206,9 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					}
 				case *ast.CallExpr:
 					sel, ok := n.Fun.(*ast.SelectorExpr)
+					if ok && sel.Sel.Name == "modGone" && len(n.Args) >= 1 {
+						args = append(args, n.Args[0])
+					}
 					if ok && len(n.Args) == 1 && (sel.Sel.Name == "Text" || sel.Sel.Name == "word" || sel.Sel.Name == "plainWord" || sel.Sel.Name == "menuWord") {
 						args = append(args, n.Args[0])
 					}
@@ -330,7 +343,7 @@ func screenWordIDs(doc any) []string {
 		for k, x := range v {
 			switch k {
 			case "title", "titleHelp", "label", "hint", "help", "word":
-				if id, ok := x.(string); ok {
+				if id, ok := x.(string); ok && id != "" {
 					ids = append(ids, id)
 				}
 				continue

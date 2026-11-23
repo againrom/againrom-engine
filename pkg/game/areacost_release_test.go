@@ -80,7 +80,7 @@ func (r *areaCostRig) world(t *testing.T, a, b [2]int, cost []byte) *sim.World {
 		ents = append(ents, mover(areaCostFirst, a), mover(areaCostSecond, b))
 	}
 	w, err := sim.NewStructuredWorld(2020, sim.Bounds{Width: int32(r.width), Height: int32(r.height)}, sim.ModeCanonical,
-		sim.Terrain{Block: r.block, Cost: cost, Height: nil}, ents, nil, sim.Relations{}, nil, nil,
+		sim.Terrain{Block: r.block, Cost: cost, Height: nil, StartSlots: true}, ents, nil, sim.Relations{}, nil, nil,
 		mapload.SpellRules(r.f.Table), sim.GhostTemplate{}, nil)
 	if err != nil {
 		t.Fatal(err)

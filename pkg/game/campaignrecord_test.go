@@ -25,8 +25,8 @@ var campaignRecordBaseDigests = map[string]string{
 	// at the Units length.
 	"mission progress/sav":               "d959651b195ec8172e290369",
 	"mission progress/snapshot campaign": "d1b0dad36e60fe233e101fa6",
-	"second mission file/resave":         "3a5b921aec3dbac8d3e0cfad",
-	"second mission file/sav":            "3a5b921aec3dbac8d3e0cfad",
+	"second mission file/resave":         "33d5a117c2530f5f080936a9",
+	"second mission file/sav":            "33d5a117c2530f5f080936a9",
 	"town chapter/sav":                   "e389207f3b64c63e1b653762",
 	"town chapter/snapshot campaign":     "be2e971a485a96bdb461ac08",
 	"town chapter/snapshot labels":       "0ca964b9fe0dc5fa909b358c",
