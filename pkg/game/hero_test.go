@@ -89,10 +89,9 @@ func TestLoadDefinitionsResolvesTheStartingWeapon(t *testing.T) {
 	}
 }
 
-// A TABLE THAT DOES NOT YIELD IT IS NOT FATAL: the reason is carried, the table
-// still comes out, and LoadTable — which is this function's first field — is
-// unaffected. That is the FontErr shape and it is deliberate: an install whose
-// archive opens must not stop being a game over one row.
+// A TABLE THAT DOES NOT YIELD IT IS NOT FATAL: the reason is carried and the
+// table still comes out. That is the FontErr shape and it is deliberate: an
+// install whose archive opens must not stop being a game over one row.
 func TestATableWithNoStartingWeaponIsNotFatal(t *testing.T) {
 	fsys := worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: itemTables(false)}},
@@ -110,9 +109,6 @@ func TestATableWithNoStartingWeaponIsNotFatal(t *testing.T) {
 	}
 	if d.Table == nil {
 		t.Error("a table that cannot arm the hero yielded no table either")
-	}
-	if _, err := game.LoadTable(fsys); err != nil {
-		t.Errorf("LoadTable: %v — an absent weapon must not reach it", err)
 	}
 }
 

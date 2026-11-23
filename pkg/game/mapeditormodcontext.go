@@ -82,11 +82,11 @@ func (x *MapInspector) admittedFork(result modrt.Result) (*FrontEnd, ModDataRepo
 		if err := x.serveModFiles(f, result.Files); err != nil {
 			return nil, ModDataReport{}, err
 		}
-		t, err := LoadTable(f.Archives.Containers)
+		defs, err := LoadDefinitionsOf(f.Archives.Containers, f.Archives.Base.Profile)
 		if err != nil {
 			return nil, ModDataReport{}, err
 		}
-		f.Table, f.Humans = t, t.Humans
+		f.Table, f.Humans = defs.Table, defs.Table.Humans
 	}
 	if err := f.SetMods(result.Rules, result.Set, false); err != nil {
 		return nil, ModDataReport{}, err

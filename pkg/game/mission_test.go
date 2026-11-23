@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
@@ -192,12 +193,13 @@ func TestStartMissionWithNoFilesystem(t *testing.T) {
 func TestLoadTableCarriesTheNPCLookup(t *testing.T) {
 	units := []synth.DataBinRow{{Name: "one", Params: make([]int32, 38)}}
 	humans := []synth.DataBinRow{{Name: "a-human", Params: make([]int32, 38)}}
-	tbl, err := game.LoadTable(worldAndScenarioFS(t,
+	defs, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: synth.DataBinUnitsTable(units, humans)}},
-		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(map[int32]int32{51: 509, 52: 510})}}))
+		[]synth.File{{Path: "npc.reg", Data: synth.NPCReg(map[int32]int32{51: 509, 52: 510})}}), base.Profile{})
 	if err != nil {
-		t.Fatalf("LoadTable: %v", err)
+		t.Fatalf("LoadDefinitionsOf: %v", err)
 	}
+	tbl := defs.Table
 	if got, ok := tbl.NPC.ServerID(51); !ok || got != 509 {
 		t.Errorf("ServerID(51) = %d, %v; want 509, true", got, ok)
 	}
@@ -211,9 +213,9 @@ func TestLoadTableCarriesTheNPCLookup(t *testing.T) {
 // and not a table a caller may go on without.
 func TestLoadTableRefusesAnInstallWithNoNPCRegistry(t *testing.T) {
 	units := []synth.DataBinRow{{Name: "one", Params: make([]int32, 38)}}
-	_, err := game.LoadTable(worldAndScenarioFS(t,
+	_, err := game.LoadDefinitionsOf(worldAndScenarioFS(t,
 		[]synth.File{{Path: "data/data.bin", Data: synth.DataBinUnitsTable(units, nil)}},
-		[]synth.File{{Path: "scenario.reg", Data: []byte("something else")}}))
+		[]synth.File{{Path: "scenario.reg", Data: []byte("something else")}}), base.Profile{})
 	if err == nil {
 		t.Fatal("an install with no npc.reg was accepted")
 	}

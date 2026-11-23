@@ -44,10 +44,11 @@ func main() {
 	if err != nil {
 		die(err)
 	}
-	table, err := game.LoadTable(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		die(err)
 	}
+	table := defs.Table
 	projectiles, err := game.LoadProjectiles(archives.Containers)
 	if err != nil {
 		die(err)

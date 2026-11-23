@@ -60,6 +60,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM2] In the map editor, opening or editing a mod that replaces install files now reloads the second game's definition table under the second game's layout; before, it read the table under the first game's layout.
 - [ROM1] In the map editor, a unit, structure or sack record card now lists its fields in the same field-list layout as the second game, with localized labels in English and Russian.
 - [ROM2] Редактор карт теперь показывает и меняет поля юнита, строения и мешка на карте второй игры: владельца, определение по названию, здоровье, флаги, тип и предметы; поля, смысл которых не найден, названы по смещению, например «Поле 0x0a», и карточка записи строится из тех же полей.
 - [ROM2] The map editor's Players window now lists the players of a second-game map, renames them, sets their colour and relations and adds a player; two unread roster words stay read-only and a player cannot be deleted there.

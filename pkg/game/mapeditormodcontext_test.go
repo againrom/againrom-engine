@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -8,11 +9,13 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/sim"
 )
 
 // contextInspector is an editor over the test play install whose table
@@ -155,4 +158,59 @@ func TestEditorModContextReadsTheKindsTheGameApplies(t *testing.T) {
 			t.Fatal("the context does not hold the rows the game edits")
 		}
 	})
+}
+
+func TestEditorModContextFollowsSecondGameProfile(t *testing.T) {
+	x := contextInspector(t)
+	profile := base.Profile{Game: base.GameROM2, StraightCone: [5][]int32{2: {-1, -1, 0, 1, 2}}}
+	x.archives.Base.Profile = profile
+
+	// Build a second-game data.bin: widen the armor entry's raw block from 10
+	// to 14 bytes so ROM1Layout refuses it and ROM2Layout accepts it.
+	var db synth.DataBin
+	db.Rows[synth.DataBinArmors] = []synth.DataBinRow{{Name: "Mail", Params: []int32{1}}}
+	raw := db.Bytes()
+	marker := []byte("Mail")
+	at := bytes.Index(raw, marker)
+	if at < 0 {
+		t.Fatal("fixture: armor row missing")
+	}
+	// After name: u16 param count (2) + 1*i32 (4) + 10 raw bytes.
+	insertAt := at + len(marker) + 2 + 4 + 10
+	rom2DataBin := append(append(append([]byte(nil), raw[:insertAt]...), 0, 0, 0, 0), raw[insertAt:]...)
+
+	x.archives.Containers.Overlay("world/data/data.bin", func() ([]byte, error) { return rom2DataBin, nil })
+	x.archives.Containers.Overlay("world/data/itemname.pkt", func() ([]byte, error) { return make([]byte, 9), nil })
+	x.archives.Containers.Overlay("main/text/note.txt", func() ([]byte, error) { return []byte("base"), nil })
+
+	res := modrt.Result{
+		Files: mod.FileData{
+			Files: []mod.InstallFile{{
+				Mod:     "test-mod",
+				File:    "files/common/main/text/note.txt",
+				Address: "main/text/note.txt",
+				Kind:    mod.FileText,
+				Bytes:   []byte("modded"),
+			}},
+		},
+	}
+	f, _, err := x.admittedFork(res)
+	if err != nil {
+		t.Fatalf("admittedFork: %v", err)
+	}
+	if f == nil || f.Table == nil {
+		t.Fatal("admittedFork returned no table")
+	}
+	if got := mapload.TableEdition(f.Table).Game; got != base.GameROM2 {
+		t.Errorf("table game = %q, want %q", got, base.GameROM2)
+	}
+	if got := f.Table.Armors.EntryName(1); got != "Mail" {
+		t.Errorf("Armors[1] = %q, want Mail", got)
+	}
+	if f.Table.ItemRecords == nil {
+		t.Error("ItemRecords = nil, want parsed itemname.pkt")
+	}
+	if !reflect.DeepEqual(f.Table.StraightCone, sim.StraightCone(profile.StraightCone)) {
+		t.Errorf("StraightCone = %+v, want %+v", f.Table.StraightCone, sim.StraightCone(profile.StraightCone))
+	}
 }

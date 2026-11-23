@@ -31,7 +31,7 @@ func TestATenthMissionHostileNeverHoldsItsOwnPostAfterBeingCommanded(t *testing.
 	if err != nil {
 		t.Fatalf("OpenArchives: %v", err)
 	}
-	// LoadDefinitions, not LoadTable — the same walk main.go's own run() takes,
+	// The same walk main.go's own run() takes,
 	// so this fixture starts the identical party the game and the milestone
 	// test both would.
 	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)

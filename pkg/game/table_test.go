@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/game"
 	"againrom/pkg/vfs"
 )
@@ -47,12 +48,13 @@ func TestLoadTableReadsTheTwoSearchedCollections(t *testing.T) {
 	}
 	humans := []synth.DataBinRow{{Name: "a-human", Params: make([]int32, 38)}}
 
-	tbl, err := game.LoadTable(worldFS(t, []synth.File{
+	defs, err := game.LoadDefinitionsOf(worldFS(t, []synth.File{
 		{Path: "data/data.bin", Data: synth.DataBinUnitsTable(units, humans)},
-	}))
+	}), base.Profile{})
 	if err != nil {
-		t.Fatalf("LoadTable: %v", err)
+		t.Fatalf("LoadDefinitionsOf: %v", err)
 	}
+	tbl := defs.Table
 
 	// Three slots: the reserved entry 0 and the two written rows.
 	if got := tbl.Units.Len(); got != 3 {
@@ -101,12 +103,12 @@ func TestEveryWayTheTableCanFailIsAFailure(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			tbl, err := game.LoadTable(worldFS(t, tc.files))
+			defs, err := game.LoadDefinitionsOf(worldFS(t, tc.files), base.Profile{})
 			if err == nil {
-				t.Fatalf("LoadTable accepted it and returned %+v", tbl)
+				t.Fatalf("LoadDefinitionsOf accepted it and returned %+v", defs)
 			}
-			if tbl != nil {
-				t.Errorf("LoadTable returned a non-nil table alongside an error")
+			if defs != nil {
+				t.Errorf("LoadDefinitionsOf returned non-nil definitions alongside an error")
 			}
 			if !strings.Contains(err.Error(), "data.bin") {
 				t.Errorf("error %q does not name what failed to read", err)

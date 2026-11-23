@@ -134,8 +134,8 @@ type Mission struct {
 // The table is an ARGUMENT and not something loaded here, for the reason the
 // world builder takes one: what a placement resolves to is a property of the
 // installed files, and a loader that reached for them itself would give one
-// mission two worlds depending on when it was called. LoadTable is what builds
-// one, once, at front-end construction.
+// mission two worlds depending on when it was called. LoadDefinitionsOf is what builds
+// it, once, at front-end construction.
 //
 // Every failure names the address it happened at. A number naming no entry, an
 // entry that will not decode and a world the builder refuses are three different

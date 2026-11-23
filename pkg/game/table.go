@@ -19,63 +19,6 @@ import (
 // identity segment and the entry path below it.
 const tableAddress = worldPrefix + "data/data.bin"
 
-// LoadTable reads the placeable-definition table out of the container
-// filesystem and returns the two collections a world builder resolves against.
-//
-// It is the ONE place this package reads that file, and it is called once, at
-// front-end construction, so the walk runs once per process rather than once per
-// trip through the map picker.
-//
-// EVERY WAY IT CAN FAIL IS A STARTUP FAILURE, not a table a caller may go on
-// without. The archive being absent is already fatal, and what lies behind that
-// archive is the movement domain and the per-class health of every placed unit —
-// so an archive that opens but yields no table, or yields bytes that will not
-// walk, has to be fatal too. Were it not, the archive check would guard nothing:
-// the same all-ground, one-health world would lie behind both doors, and only
-// one of them would say so.
-//
-// It returns the collections and not the parsed file. A world builder resolves
-// against Units, Humans and Buildings and reads none of the other eight, and
-// handing over the whole file would let a later caller reach for a collection
-// whose meaning nothing in this tree has established. Three more of the eight
-// now have one — Shapes, Materials and Weapons, which between them say what an
-// item of a given name carries — and they are read HERE, once, by
-// LoadDefinitions below. They now ride on the returned table as well, because a
-// scenario human names his own equipment and the world builder is what has to
-// resolve it; the walk is still one walk.
-//
-// THE BUILDINGS COLLECTION IS THE THIRD, and it was missing here for four
-// stories while every builder downstream already took the table it rides on.
-// What resolves against it is the placed-structure footprint pass, which is
-// the second stage of the block plane every world routes on: with no
-// collection it resolves nothing, so a placed building closed no cell and
-// — worse, because it is the arm nobody looks for — the SUBTRACTIVE arm
-// never ran and every bridge deck kept the blocked terrain the ingest stage
-// gave it. The defect looked like two (buildings do not collide; the bridge
-// is impassable) and like a fault of the map screen, because that is the
-// screen it was seen on; it was one missing field, and it broke the mission
-// path identically.
-//
-// It is read here and not somewhere structure-shaped for the reason the other
-// two are read here: what a placement is worth is a property of the installed
-// file, this is the one place this package reads that file, and a second reader
-// would be a second answer.
-//
-// THE SCENARIO NPC REGISTRY IS READ HERE TOO, and its absence is fatal for
-// this function's own reason. It is not a second table: it is the first rung
-// of the humans band, and what lies behind it is WHO fifteen shipped
-// placements are. A front-end that ran without it would put a generic
-// peasant where a mission's own dialogue names a witch — silently, with
-// every test still green, which is exactly the shape of failure the
-// paragraph above exists to close.
-func LoadTable(fsys *vfs.FS) (*mapload.Table, error) {
-	d, err := LoadDefinitionsOf(fsys, base.Profile{})
-	if err != nil {
-		return nil, err
-	}
-	return d.Table, nil
-}
-
 // Definitions is everything this package reads before a mission's party can
 // be assembled: the collections a world builder resolves against, the weapon
 // character generation hands the party's hero, and — since 0105 — the
@@ -117,7 +60,6 @@ type Definitions struct {
 // LoadDefinitionsOf reads the placeable-definition table once under p's game
 // and returns everything this package takes from it, plus the shipped body
 // list read straight off main.res and the build's straight Acid Stream rows.
-// LoadTable is this function's first field.
 func LoadDefinitionsOf(fsys *vfs.FS, p base.Profile) (*Definitions, error) {
 	d, err := loadDefinitionsFor(fsys, p.GameOf())
 	if err == nil {
@@ -269,7 +211,7 @@ func readUnder(g base.Game, t *mapload.Table) *mapload.Table {
 // filesystem once. The placement table, the dialogue portraits and the map
 // editor's speaker list all ask the one catalog it answers (data.NPCCatalog).
 //
-// It is a function of its own beside LoadTable, rather than inline in it,
+// It is a function of its own beside LoadDefinitionsOf, rather than inline in it,
 // because the two files live in two different archives and a developer tool
 // pointed at one of them must be able to load the other's half without being
 // handed a whole install.

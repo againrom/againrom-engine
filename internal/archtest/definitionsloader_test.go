@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -16,20 +17,43 @@ func exportedDefinitionLoaders(name string, src []byte) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	maploadNames, dotMapload := maploadImportBindings(f)
 	var out []string
 	for _, decl := range f.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
 		if !ok || !fn.Name.IsExported() {
 			continue
 		}
-		if strings.HasPrefix(fn.Name.Name, "LoadDefinitions") || returnsDefinitions(fn.Type.Results) {
+		if strings.HasPrefix(fn.Name.Name, "LoadDefinitions") || returnsDefinitionsOrTable(fn.Type.Results, maploadNames, dotMapload) {
 			out = append(out, name+":"+fn.Name.Name)
 		}
 	}
 	return out, nil
 }
 
-func returnsDefinitions(results *ast.FieldList) bool {
+func maploadImportBindings(f *ast.File) (names map[string]bool, dot bool) {
+	names = map[string]bool{}
+	for _, imp := range f.Imports {
+		path, err := strconv.Unquote(imp.Path.Value)
+		if err != nil || path != "againrom/pkg/mapload" {
+			continue
+		}
+		if imp.Name == nil {
+			names["mapload"] = true
+			continue
+		}
+		switch imp.Name.Name {
+		case ".":
+			dot = true
+		case "_":
+		default:
+			names[imp.Name.Name] = true
+		}
+	}
+	return names, dot
+}
+
+func returnsDefinitionsOrTable(results *ast.FieldList, maploadNames map[string]bool, dotMapload bool) bool {
 	if results == nil {
 		return false
 	}
@@ -38,8 +62,15 @@ func returnsDefinitions(results *ast.FieldList) bool {
 		if star, ok := t.(*ast.StarExpr); ok {
 			t = star.X
 		}
-		if id, ok := t.(*ast.Ident); ok && id.Name == "Definitions" {
-			return true
+		switch t := t.(type) {
+		case *ast.Ident:
+			if t.Name == "Definitions" || (dotMapload && t.Name == "Table") {
+				return true
+			}
+		case *ast.SelectorExpr:
+			if id, ok := t.X.(*ast.Ident); ok && maploadNames[id.Name] && t.Sel.Name == "Table" {
+				return true
+			}
 		}
 	}
 	return false
@@ -84,20 +115,30 @@ func TestDefinitionLoaderHasOneExportedEntry(t *testing.T) {
 
 func TestDefinitionLoaderGuardSeesEachShape(t *testing.T) {
 	const src = `package game
+import (
+	"againrom/pkg/mapload"
+	ml "againrom/pkg/mapload"
+	"other/pkg"
+)
 type Definitions struct{}
 func LoadDefinitionsOf() (*Definitions, error) { return nil, nil }
 func LoadDefinitions() (*Definitions, error) { return nil, nil }
 func LoadDefinitionsFor() (*Definitions, error) { return nil, nil }
 func OpenDefinitions() (*Definitions, error) { return nil, nil }
 func CopyDefinitions() Definitions { return Definitions{} }
+func LoadTable() (*mapload.Table, error) { return nil, nil }
+func OpenTable() (mapload.Table, error) { return mapload.Table{}, nil }
+func ReadAlias() (*ml.Table, error) { return nil, nil }
 func loadDefinitionsFor() (*Definitions, error) { return nil, nil }
-func LoadTable() (int, error) { return 0, nil }
+func loadTable() (*mapload.Table, error) { return nil, nil }
+func OtherTable() (*pkg.Table, error) { return nil, nil }
+func LoadInt() (int, error) { return 0, nil }
 `
 	got, err := exportedDefinitionLoaders("table.go", []byte(src))
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "table.go:LoadDefinitionsOf table.go:LoadDefinitions table.go:LoadDefinitionsFor table.go:OpenDefinitions table.go:CopyDefinitions"
+	want := "table.go:LoadDefinitionsOf table.go:LoadDefinitions table.go:LoadDefinitionsFor table.go:OpenDefinitions table.go:CopyDefinitions table.go:LoadTable table.go:OpenTable table.go:ReadAlias"
 	if strings.Join(got, " ") != want {
 		t.Fatalf("loaders = %q, want %q", strings.Join(got, " "), want)
 	}

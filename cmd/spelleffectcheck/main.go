@@ -30,11 +30,12 @@ func main() {
 		fmt.Fprintln(os.Stderr, "spelleffectcheck:", err)
 		os.Exit(1)
 	}
-	table, err := game.LoadTable(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "spelleffectcheck:", err)
 		os.Exit(1)
 	}
+	table := defs.Table
 	spells, err := data.LoadSpells(table.Spells)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "spelleffectcheck:", err)

@@ -67,10 +67,11 @@ func sweep(root, missions string) error {
 	if err != nil {
 		return err
 	}
-	table, err := game.LoadTable(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		return err
 	}
+	table := defs.Table
 	fmt.Println("mission entity  spell level  mana      arm")
 	for _, field := range strings.Split(missions, ",") {
 		m, err := strconv.Atoi(strings.TrimSpace(field))
@@ -101,10 +102,11 @@ func run(root string, mission int, entityID sim.EntityID, ticks int) error {
 	if err != nil {
 		return err
 	}
-	table, err := game.LoadTable(archives.Containers)
+	defs, err := game.LoadDefinitionsOf(archives.Containers, archives.Base.Profile)
 	if err != nil {
 		return err
 	}
+	table := defs.Table
 	started, err := game.StartMission(archives.Containers, mission, table, mapload.DifficultyNormal, nil)
 	if err != nil {
 		return err

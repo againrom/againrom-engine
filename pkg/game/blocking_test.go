@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -80,8 +81,8 @@ func blockTableBytes() []byte {
 }
 
 // blockTable loads that table the way the front-end loads its own: through
-// LoadTable, out of a container filesystem over a synthetic world archive and
-// the scenario archive beside it that the load also reads.
+// LoadDefinitionsOf, out of a container filesystem over a synthetic world
+// archive and the scenario archive beside it that the load also reads.
 func blockTable(t *testing.T) *mapload.Table {
 	t.Helper()
 	dir := t.TempDir()
@@ -97,11 +98,11 @@ func blockTable(t *testing.T) *mapload.Table {
 	if err != nil {
 		t.Fatalf("vfs.Open: %v", err)
 	}
-	tbl, err := LoadTable(fsys)
+	defs, err := LoadDefinitionsOf(fsys, base.Profile{})
 	if err != nil {
-		t.Fatalf("LoadTable: %v", err)
+		t.Fatalf("LoadDefinitionsOf: %v", err)
 	}
-	return tbl
+	return defs.Table
 }
 
 // blockMap assembles the fixture map with the given placements: the open
