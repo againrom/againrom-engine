@@ -187,6 +187,21 @@ func (p Projection) AnchorHeight(col, row int) int {
 	return (h00 + h10 + h01 + h11) / 4
 }
 
+// PointHeight is the ground height under fine point (x, y), 256 units per
+// cell: the four corner altitudes of the point's cell blended by 5-bit weights
+// fx = (x>>3)&31 and fy = (y>>3)&31, first along x on both edges, then along y,
+// each step divided by 32 toward zero (R2-ENGINE-1518). A cell corner answers
+// its own altitude. The corners clamp as Altitude clamps.
+func (p Projection) PointHeight(x, y int) int {
+	col, row := x>>8, y>>8
+	fx, fy := (x>>3)&31, (y>>3)&31
+	a, b := p.Altitude(col, row), p.Altitude(col+1, row)
+	c, d := p.Altitude(col, row+1), p.Altitude(col+1, row+1)
+	top := a + (b-a)*fx/32
+	bottom := c + (d-c)*fx/32
+	return top + (bottom-top)*fy/32
+}
+
 // Vertex returns V(c,r), the destination row mesh vertex (c,r) projects to
 // before the canvas is translated:
 //

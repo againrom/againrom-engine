@@ -35,12 +35,14 @@ import (
 // art is centred on the point by subtracting them, and where they disagree with
 // the frame the sprite shifts rather than clipping. Sprite effects with no sheet
 // or an invalid frame draw nothing. Background deformation carries no sheet.
-// Raise draws the frame that many screen pixels above its point.
+// Raise draws the frame that many screen pixels above its point. PointLift
+// takes the relief from the ground blended at Pos instead of from the cells.
 type SpellBolt struct {
 	Cell             image.Point
 	To               image.Point
 	Pos              image.Point
 	AbsolutePosition bool
+	PointLift        bool
 	Display          bool
 	Sheet            *terrain.EffectSheet
 	Frame            int
@@ -98,13 +100,11 @@ func GroundPixel(pos image.Point) image.Point {
 // boltStampCentre is the path drawer's centring immediate (ANIM-BOLTDRAW-034).
 const boltStampCentre = 8
 
-// DisplayHeight is the terrain height a cell's display point subtracts:
-// AnchorHeight in the displaced view, zero in the flat view.
-func (v *Viewer) DisplayHeight(cell image.Point) int {
-	if v.Mode() != ModeDisplaced {
-		return 0
-	}
-	return v.proj.AnchorHeight(cell.X, cell.Y)
+// DisplayHeight is the terrain height a display point at cell-relative pos in
+// cell subtracts: the cell's AnchorHeight, or with point the ground blended at
+// pos, in the displaced view; zero in the flat view.
+func (v *Viewer) DisplayHeight(cell, pos image.Point, point bool) int {
+	return v.cellSpace().groundHeight(cell, finePoint(pos, false), point)
 }
 
 // displayLift moves a native display pixel into the camera world.
@@ -140,6 +140,15 @@ func (b SpellBolt) groundPoint() image.Point {
 		point = point.Add(image.Pt(terrain.CellSize/2, terrain.CellSize/2))
 	}
 	return point
+}
+
+// finePoint is pos as an absolute ShotScale point: a cell-relative point
+// stands half a cell further on each axis, as groundPoint draws it.
+func finePoint(pos image.Point, absolute bool) image.Point {
+	if absolute {
+		return pos
+	}
+	return pos.Add(image.Pt(ShotScale/2, ShotScale/2))
 }
 
 // effectScreenRect is one spell object placed in the current view: where its
@@ -206,6 +215,9 @@ func (v *Viewer) spellArtPlacements() []effectScreenRect {
 // height above the caster's ground point (MAGIC-261). A still object takes
 // its one cell's lift.
 func (v *Viewer) spellBoltLift(b SpellBolt) int {
+	if b.PointLift {
+		return v.cellSpace().groundLift(b.Cell, finePoint(b.Pos, b.AbsolutePosition), true)
+	}
 	from := v.cellLift(b.Cell)
 	if b.To == b.Cell {
 		return from

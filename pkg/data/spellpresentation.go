@@ -29,7 +29,11 @@ type SpellPresentation struct {
 	// DrainLifeAliasRow is the row a language's Drain Life alias names
 	// (DIV-2177); zero names none, and every row keeps its `spell.txt` line.
 	DrainLifeAliasRow int
-	effects           []EffectPresentation
+	// PointLift raises an effect record and a path's ends by the ground
+	// blended at their own point; false raises them by their cell's mean
+	// corner height.
+	PointLift bool
+	effects   []EffectPresentation
 }
 
 // LightStep is one light stamp: a radius in cells and a level.
@@ -267,9 +271,12 @@ var firstSpellPresentation = SpellPresentation{
 // than the chain's 13 and Blizzard's 16, the trail-free travel of 18 and
 // 40, the overlay join and LastSoundRow's silent slots are chosen:
 // DIV-3102..3104, DIV-3106. Teleport's two records of 21 updates are
-// R2-ENGINE-703's; Heal's and Drain Life's one update R2-ENGINE-691's.
+// R2-ENGINE-703's; Heal's and Drain Life's one update R2-ENGINE-691's, and a
+// unit caster's Poison Cloud and Curse object ends on its first update
+// (R2-ENGINE-691, R2-ENGINE-1520). An effect stands at the ground blended at
+// its point (R2-ENGINE-1518).
 var secondSpellPresentation = SpellPresentation{
-	Game: rules.SpellGameSecond, LastSoundRow: len(rules.SpellProfile(rules.SpellGameSecond)), SoundBase: 500,
+	Game: rules.SpellGameSecond, LastSoundRow: len(rules.SpellProfile(rules.SpellGameSecond)), SoundBase: 500, PointLift: true,
 	BurstLight: burstLightSteps, BurstLightTail: LightStep{3, 0}, HasBurstLightTail: true,
 	PathLightStep: 10, NamedRows: len(rules.SpellProfile(rules.SpellGameSecond)), BookRows: rules.SpellBookRows(rules.SpellGameSecond),
 	effects: []EffectPresentation{
@@ -279,7 +286,7 @@ var secondSpellPresentation = SpellPresentation{
 		{ID: 15, Overlay: true},
 		{ID: 16, LifePhases: true, UnitLifeZero: true},
 		{ID: 18, LifeDivisor: 200, LightKind: LightPoint, Light: LightStep{0, 16}},
-		{ID: 20, LifePhases: true},
+		{ID: 20, LifePhases: true, UnitLifeZero: true},
 		{ID: 21, Overlay: true},
 		// The original's counter starts at -1 and voices at 8, with frame 8
 		// (R2-ENGINE-446), so the cue waits 9.
@@ -296,6 +303,6 @@ var secondSpellPresentation = SpellPresentation{
 		{ID: 56, LifeTicks: 1, Hidden: true},
 		{ID: 60, LifeTicks: 1},
 		{ID: 62, LifePhases: true, UnitLifeZero: true},
-		{ID: 64, LifePhases: true},
+		{ID: 64, LifePhases: true, UnitLifeZero: true},
 	},
 }

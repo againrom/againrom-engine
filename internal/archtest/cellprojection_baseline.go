@@ -22,7 +22,7 @@ var CellProjectionDebt = map[string]int{
 	"pkg/ui/qolkeys.go":                 1,
 	"pkg/ui/saveapplication.go":         4,
 	"pkg/ui/shadow.go":                  1,
-	"pkg/ui/spellbolt.go":               3,
+	"pkg/ui/spellbolt.go":               2,
 	"pkg/ui/statics.go":                 1,
 	"pkg/ui/tippanel.go":                1,
 	"pkg/ui/viewer.go":                  9,

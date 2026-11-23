@@ -108,13 +108,14 @@ func (mw *mapWorld) pathFigure(b spellBolt) (*terrain.EffectSheet, int, []image.
 }
 
 // boltDisplayPoint is a cell-relative ShotScale point as a native display
-// pixel: its ground pixel less the cell's terrain height, which is zero in
-// the flat view. Both producer endpoints are such points (MAGIC-275).
+// pixel: its ground pixel less the terrain height, the cell's or, where the
+// game's set says so, the ground blended at the point (R2-ENGINE-1516); zero
+// in the flat view. Both producer endpoints are such points (MAGIC-275).
 func (mw *mapWorld) boltDisplayPoint(pos, cell image.Point) (int32, int32) {
 	p := ui.GroundPixel(pos)
 	height := 0
 	if mw.view != nil {
-		height = mw.view.DisplayHeight(cell)
+		height = mw.view.DisplayHeight(cell, pos, mw.spells().PointLift)
 	}
 	return int32(p.X), int32(p.Y - height)
 }

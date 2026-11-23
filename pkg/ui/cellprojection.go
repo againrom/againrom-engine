@@ -46,10 +46,28 @@ func (s cellSpace) corner(c, r int) (float64, float64) {
 // lift is the vertical world offset a point anchored in cell carries over the
 // flat lattice: -AnchorHeight - MinV when displaced, 0 when flat.
 func (s cellSpace) lift(cell image.Point) int {
+	return s.groundLift(cell, image.Point{}, false)
+}
+
+// groundHeight is the terrain height an effect at fine point pos in cell
+// stands at: the cell's anchor height, or with point the ground blended at
+// pos (terrain.Projection.PointHeight); zero when flat.
+func (s cellSpace) groundHeight(cell, pos image.Point, point bool) int {
+	switch {
+	case s.proj == nil:
+		return 0
+	case point:
+		return s.proj.PointHeight(pos.X, pos.Y)
+	}
+	return s.proj.AnchorHeight(cell.X, cell.Y)
+}
+
+// groundLift is groundHeight as lift's vertical world offset.
+func (s cellSpace) groundLift(cell, pos image.Point, point bool) int {
 	if s.proj == nil {
 		return 0
 	}
-	return -s.proj.AnchorHeight(cell.X, cell.Y) - s.proj.MinV
+	return -s.groundHeight(cell, pos, point) - s.proj.MinV
 }
 
 // centre is the world point in the middle of cell: the flat lattice's centre

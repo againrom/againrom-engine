@@ -19,8 +19,8 @@ import (
 // shapes:
 //   - a multiplication by the cell size (an identifier or field named CellSize,
 //     or the integer literal 32): a cell coordinate turned into world pixels;
-//   - a call of WorldCorner or AnchorHeight: a mesh corner or a cell's anchor
-//     height read past the family.
+//   - a call of WorldCorner, AnchorHeight or PointHeight: a mesh corner, a
+//     cell's anchor height or a point's ground height read past the family.
 var cellProjectionRoots = []string{"pkg/ui", "pkg/render"}
 
 // CellProjectionOwners are the two files that compute cell geometry.
@@ -141,7 +141,7 @@ func CellProjectionFindings(rel, src string) ([]CellProjectionFinding, error) {
 				add(n.OpPos, shapeCellSizeProduct)
 			}
 		case *ast.CallExpr:
-			if sel, ok := n.Fun.(*ast.SelectorExpr); ok && (sel.Sel.Name == "WorldCorner" || sel.Sel.Name == "AnchorHeight") {
+			if sel, ok := n.Fun.(*ast.SelectorExpr); ok && (sel.Sel.Name == "WorldCorner" || sel.Sel.Name == "AnchorHeight" || sel.Sel.Name == "PointHeight") {
 				add(n.Pos(), shapeMeshRead)
 			}
 		}

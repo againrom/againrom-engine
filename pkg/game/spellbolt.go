@@ -675,7 +675,8 @@ func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 		if !ok {
 			continue
 		}
-		out = append(out, ui.SpellBolt{Cell: cell, To: cell, Pos: image.Pt(int(p.X), int(p.Y)), AbsolutePosition: true, Sheet: sheet, Frame: frame, Mirror: mirror, Owner: owners[p.ID], Raise: raise})
+		out = append(out, ui.SpellBolt{Cell: cell, To: cell, Pos: image.Pt(int(p.X), int(p.Y)), AbsolutePosition: true, PointLift: set.PointLift,
+			Sheet: sheet, Frame: frame, Mirror: mirror, Owner: owners[p.ID], Raise: raise})
 		if trails {
 			out = append(out, mw.savedProjectileTrail(p)...)
 		}
