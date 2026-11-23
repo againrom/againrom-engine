@@ -6,7 +6,7 @@ import "testing"
 // walled pocket that holds its decoded flee cell. The cells within two of
 // (17,20) are all closed, so the far search from (20,20) labels nothing near the
 // flee cell and settles on the archer's own cell: it comes back with no route.
-func pocketedArcher(t *testing.T, intruder Entity) *World {
+func pocketedArcher(t *testing.T, dialect ScriptDialect, intruder Entity) *World {
 	t.Helper()
 	archer := withdrawalArcher(1, 2, 20, 20)
 	grid := make([]byte, engBounds.Width*engBounds.Height)
@@ -15,8 +15,12 @@ func pocketedArcher(t *testing.T, intruder Entity) *World {
 			grid[y*engBounds.Width+x] = blockGround
 		}
 	}
+	script, err := newScript(dialect, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	w, err := NewRelatedWorld(1, engBounds, ModeCanonical, Terrain{Block: grid},
-		[]Entity{archer, intruder}, nil, engRel(t, [3]uint32{2, SelfSlot, 1}, [3]uint32{SelfSlot, 2, 2}))
+		[]Entity{archer, intruder}, script, engRel(t, [3]uint32{2, SelfSlot, 1}, [3]uint32{SelfSlot, 2, 2}))
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
@@ -38,7 +42,7 @@ func blowsLanded(w *World, startHP int32) int32 {
 // long as the hostile stayed inside the block.
 func TestWithdrawalWhoseFleeCellHasNoRouteTakesTheStandingPickAndShoots(t *testing.T) {
 	intruder := withdrawalFighter(2, SelfSlot, 22, 20, 100)
-	w := pocketedArcher(t, intruder)
+	w := pocketedArcher(t, ScriptROM1, intruder)
 	engRun(w, 1)
 
 	got := w.entities[0]
@@ -75,7 +79,7 @@ func TestWithdrawalWhoseFleeCellHasNoRouteTakesTheStandingPickAndShoots(t *testi
 // AI-RETREAT-272).
 func TestWithdrawalWhoseFleeCellHasNoRouteLeavesALoadedCycleAlone(t *testing.T) {
 	intruder := withdrawalFighter(2, SelfSlot, 24, 20, 100)
-	w := pocketedArcher(t, intruder)
+	w := pocketedArcher(t, ScriptROM1, intruder)
 	engRun(w, 1)
 	loaded := w.entities[0]
 	if !loaded.HasAttackTarget || loaded.AttackPhase != AttackCharging || loaded.HasTarget {

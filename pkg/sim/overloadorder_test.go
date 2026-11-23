@@ -37,7 +37,7 @@ func TestNativeHumanFloorBindsBeforeAPositiveModifier(t *testing.T) {
 	// Base 20 less 6020/301 floors at 6; the modifier then adds 5. The old
 	// order floored 25 less 20 at 6.
 	assertNativeSpeed(t, w.entities[i], 25, 5, 11, 11)
-	if rate, _, adj, ok := w.StepRate(1, 5, 4); !ok || !adj || rate != rateOf(DomainGround, 11, 0, 0, 0, 0) {
+	if rate, _, adj, ok := w.StepRate(1, 5, 4); !ok || !adj || rate != (gameProfile{}).rateOf(DomainGround, 11, 0, 0, 0, 0) {
 		t.Fatalf("step rate %d, want the rate of speed 11", rate)
 	}
 }

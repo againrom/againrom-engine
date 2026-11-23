@@ -30,7 +30,7 @@ import (
 // original's full ticks, which is the sense in which its default unit crosses
 // one cell a second.
 func TestTheWorkedExampleReproduces(t *testing.T) {
-	v := rateOf(DomainGround, 16, 8, 8, 0, 0)
+	v := (gameProfile{}).rateOf(DomainGround, 16, 8, 8, 0, 0)
 	if v != 16 {
 		t.Fatalf("rate = %d, want 16", v)
 	}
@@ -51,7 +51,7 @@ func TestTheGroundArmIsTheOnlyOneThatReadsTheGround(t *testing.T) {
 	domains := []Domain{DomainGround, DomainGhost, DomainAir}
 
 	for _, d := range domains {
-		if v := rateOf(d, speed, 8, 8, 0, 0); v != speed {
+		if v := (gameProfile{}).rateOf(d, speed, 8, 8, 0, 0); v != speed {
 			t.Errorf("domain %d at mean cost 8 on the level: rate = %d, want %d", d, v, speed)
 		}
 	}
@@ -71,11 +71,11 @@ func TestTheGroundArmIsTheOnlyOneThatReadsTheGround(t *testing.T) {
 		{"uphill", 8, 8, 0, 32, 10},         // 160 + (160*-32>>6) = 80, /8
 	}
 	for _, c := range cases {
-		if v := rateOf(DomainGround, speed, c.costSrc, c.costDst, c.hSrc, c.hDst); v != c.wantGround {
+		if v := (gameProfile{}).rateOf(DomainGround, speed, c.costSrc, c.costDst, c.hSrc, c.hDst); v != c.wantGround {
 			t.Errorf("%s: ground rate = %d, want %d", c.name, v, c.wantGround)
 		}
 		for _, d := range []Domain{DomainGhost, DomainAir} {
-			if v := rateOf(d, speed, c.costSrc, c.costDst, c.hSrc, c.hDst); v != speed {
+			if v := (gameProfile{}).rateOf(d, speed, c.costSrc, c.costDst, c.hSrc, c.hDst); v != speed {
 				t.Errorf("%s: domain %d rate = %d, want the raw speed %d", c.name, d, v, speed)
 			}
 		}
@@ -92,19 +92,19 @@ func TestTheGroundArmsSaturationsAndSubstitutions(t *testing.T) {
 	// must give the same answer, and so must -100 and -32; a difference past 127
 	// wraps in the byte, which is the plane's own arithmetic and is measured
 	// rather than avoided.
-	if a, b := rateOf(DomainGround, speed, 8, 8, 100, 0), rateOf(DomainGround, speed, 8, 8, 32, 0); a != b {
+	if a, b := (gameProfile{}).rateOf(DomainGround, speed, 8, 8, 100, 0), (gameProfile{}).rateOf(DomainGround, speed, 8, 8, 32, 0); a != b {
 		t.Errorf("downhill saturation: rate at +100 is %d, at +32 is %d, want equal", a, b)
 	}
-	if a, b := rateOf(DomainGround, speed, 8, 8, 0, 100), rateOf(DomainGround, speed, 8, 8, 0, 32); a != b {
+	if a, b := (gameProfile{}).rateOf(DomainGround, speed, 8, 8, 0, 100), (gameProfile{}).rateOf(DomainGround, speed, 8, 8, 0, 32); a != b {
 		t.Errorf("uphill saturation: rate at -100 is %d, at -32 is %d, want equal", a, b)
 	}
 
 	// Uphill reduces and downhill increases, and the shift is arithmetic: the
 	// two must fall either side of the level rate rather than both above it,
 	// which is what a logical shift on the negative half would give.
-	level := rateOf(DomainGround, speed, 8, 8, 0, 0)
-	down := rateOf(DomainGround, speed, 8, 8, 32, 0)
-	up := rateOf(DomainGround, speed, 8, 8, 0, 32)
+	level := (gameProfile{}).rateOf(DomainGround, speed, 8, 8, 0, 0)
+	down := (gameProfile{}).rateOf(DomainGround, speed, 8, 8, 32, 0)
+	up := (gameProfile{}).rateOf(DomainGround, speed, 8, 8, 0, 32)
 	if !(up < level && level < down) {
 		t.Errorf("uphill %d, level %d, downhill %d: want strictly increasing", up, level, down)
 	}
@@ -115,7 +115,7 @@ func TestTheGroundArmsSaturationsAndSubstitutions(t *testing.T) {
 	// by −1 gives −8 over 64, which an arithmetic shift floors to −1 and a
 	// truncating divide takes to 0 — and the mean cost is 1, so the difference
 	// survives the divide and the clamp instead of being swallowed by them.
-	if v := rateOf(DomainGround, 1, 2, 0, 0, 1); v != 7 {
+	if v := (gameProfile{}).rateOf(DomainGround, 1, 2, 0, 0, 1); v != 7 {
 		t.Errorf("an inexact uphill tilt: rate = %d, want 7 — a truncating divide gives 8", v)
 	}
 
@@ -124,17 +124,17 @@ func TestTheGroundArmsSaturationsAndSubstitutions(t *testing.T) {
 	// wide it is 150, and 160 over that is 1 — two answers the clamp keeps apart.
 	// (200 + 200 would wrap to 72 and come out 1 either way, which is a case that
 	// measures nothing.)
-	if v := rateOf(DomainGround, 20, 200, 100, 0, 0); v != 7 {
+	if v := (gameProfile{}).rateOf(DomainGround, 20, 200, 100, 0, 0); v != 7 {
 		t.Errorf("wrapping cost add: rate = %d, want 7 — an add wider than a byte gives 1", v)
 	}
 
 	// A mean of zero takes the substitute, which is what every cell in this tree
 	// does: with no cost plane both bytes are 0 and the rate is the speed.
-	if v := rateOf(DomainGround, speed, 0, 0, 0, 0); v != speed {
+	if v := (gameProfile{}).rateOf(DomainGround, speed, 0, 0, 0, 0); v != speed {
 		t.Errorf("zero mean cost: rate = %d, want the substitute's %d", v, speed)
 	}
 	// And it is the MEAN that is tested, not the bytes: 1 and 0 halve to 0 too.
-	if v := rateOf(DomainGround, speed, 1, 0, 0, 0); v != speed {
+	if v := (gameProfile{}).rateOf(DomainGround, speed, 1, 0, 0, 0); v != speed {
 		t.Errorf("mean of 1 and 0: rate = %d, want the substitute's %d", v, speed)
 	}
 
@@ -142,27 +142,27 @@ func TestTheGroundArmsSaturationsAndSubstitutions(t *testing.T) {
 	// one past it: at a mean cost of 8 a speed of rateCeil comes out exactly at
 	// the ceiling and one of rateCeil+1 exactly one over, so a comparison off by
 	// one is a failure here and nowhere else.
-	if v := rateOf(DomainGround, rateCeil, 8, 8, 0, 0); v != rateCeil {
+	if v := (gameProfile{}).rateOf(DomainGround, rateCeil, 8, 8, 0, 0); v != rateCeil {
 		t.Errorf("a rate exactly at the ceiling came out %d, want %d", v, rateCeil)
 	}
-	if v := rateOf(DomainGround, rateCeil+1, 8, 8, 0, 0); v != rateCeil {
+	if v := (gameProfile{}).rateOf(DomainGround, rateCeil+1, 8, 8, 0, 0); v != rateCeil {
 		t.Errorf("a rate one past the ceiling came out %d, want the ceiling %d", v, rateCeil)
 	}
-	if v := rateOf(DomainGround, rateFloor, 8, 8, 0, 0); v != rateFloor {
+	if v := (gameProfile{}).rateOf(DomainGround, rateFloor, 8, 8, 0, 0); v != rateFloor {
 		t.Errorf("a rate exactly at the floor came out %d, want %d", v, rateFloor)
 	}
 
 	// And nothing outside it is reachable.
-	if v := rateOf(DomainGround, 0, 8, 8, 0, 0); v != rateFloor {
+	if v := (gameProfile{}).rateOf(DomainGround, 0, 8, 8, 0, 0); v != rateFloor {
 		t.Errorf("speed 0: rate = %d, want the floor %d", v, rateFloor)
 	}
-	if v := rateOf(DomainGround, -50, 8, 8, 0, 0); v != rateFloor {
+	if v := (gameProfile{}).rateOf(DomainGround, -50, 8, 8, 0, 0); v != rateFloor {
 		t.Errorf("negative speed: rate = %d, want the floor %d", v, rateFloor)
 	}
-	if v := rateOf(DomainGround, 1000, 8, 8, 0, 0); v != rateCeil {
+	if v := (gameProfile{}).rateOf(DomainGround, 1000, 8, 8, 0, 0); v != rateCeil {
 		t.Errorf("speed 1000: rate = %d, want the ceiling %d", v, rateCeil)
 	}
-	if v := rateOf(DomainAir, 1000, 0, 0, 0, 0); v != rateCeil {
+	if v := (gameProfile{}).rateOf(DomainAir, 1000, 0, 0, 0, 0); v != rateCeil {
 		t.Errorf("air at speed 1000: rate = %d, want the ceiling %d", v, rateCeil)
 	}
 }

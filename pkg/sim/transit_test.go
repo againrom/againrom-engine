@@ -41,7 +41,7 @@ func walkTicks(t *testing.T, w *World, id EntityID, tx, ty int32) int {
 // not is that nothing about it moves on those ticks.
 func TestARatedMoverCrossesOneCellPerTransit(t *testing.T) {
 	const speed = 16
-	want := transitOf(rateOf(DomainGround, speed, 0, 0, 0, 0), false)
+	want := transitOf((gameProfile{}).rateOf(DomainGround, speed, 0, 0, 0, 0), false)
 	if want != 16 {
 		t.Fatalf("the fixture's transit is %d ticks, want the worked example's 16", want)
 	}
@@ -101,7 +101,7 @@ func TestTwoSpeedsArriveInTheRatioTheirTransitsPredict(t *testing.T) {
 		want := dist - 1
 		transit := 1
 		if speed > 0 {
-			transit = int(transitOf(rateOf(DomainGround, speed, 0, 0, 0, 0), false))
+			transit = int(transitOf((gameProfile{}).rateOf(DomainGround, speed, 0, 0, 0, 0), false))
 			want = (dist - 1) * transit
 		}
 		t.Logf("speed %2d: transit %2d tick(s) a cell, %d cells in %d ticks", speed, transit, dist, got)
@@ -116,7 +116,7 @@ func TestTwoSpeedsArriveInTheRatioTheirTransitsPredict(t *testing.T) {
 // takes exactly the number the law names.
 func TestADiagonalCellCostsMoreInAWorldToo(t *testing.T) {
 	const speed = 16
-	v := rateOf(DomainGround, speed, 0, 0, 0, 0)
+	v := (gameProfile{}).rateOf(DomainGround, speed, 0, 0, 0, 0)
 	straight, diagonal := transitOf(v, false), transitOf(v, true)
 
 	// Four cells each way. The straight walk runs along a row; the diagonal one

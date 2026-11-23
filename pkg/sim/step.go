@@ -1871,7 +1871,7 @@ func (w *World) stepRate(e Entity, from, to cell, commit bool) (rate, transit in
 		}
 		hSrc, hDst = w.heightAt(from), w.heightAt(to)
 	}
-	v := rateOf(e.Domain, moverSpeed(e), costSrc, costDst, hSrc, hDst)
+	v := w.game.rateOf(e.Domain, moverSpeed(e), costSrc, costDst, hSrc, hDst)
 	return v, transitOf(v, from.x != to.x && from.y != to.y)
 }
 

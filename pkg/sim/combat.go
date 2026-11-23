@@ -534,14 +534,14 @@ func (w *World) walksAtStateOne(i int) bool {
 	return g != nil && (g.AI[0x20] == orderMove || g.AI[0x20] == orderSwarm2)
 }
 
-// stopWalkOrder writes a walk's arrival latch or empty-route stop.
-func (w *World) stopWalkOrder(i int, arrival bool) {
+// stopWalkOrder writes a walk's stop and optionally latches its current cell.
+func (w *World) stopWalkOrder(i int, latch bool) {
 	e := &w.entities[i]
-	if arrival {
+	if latch {
 		w.clearOrder(i)
 	}
 	o := w.ensureSavedOrder(i)
-	if !arrival || w.game.orders.stopEmptyWalk {
+	if !latch || w.game.orders.stopEmptyWalk {
 		e.ActorState, e.PostX, e.PostY = actorStateAcquire, e.X, e.Y
 		o.State = uint32(actorStateAcquire)
 		binary.LittleEndian.PutUint16(o.Raw[:], uint16(e.X)|uint16(e.Y)<<8)
@@ -549,7 +549,7 @@ func (w *World) stopWalkOrder(i int, arrival bool) {
 	}
 	o.Raw[0x14] = uint8(e.Reach)
 	binary.LittleEndian.PutUint32(o.Raw[0x50:], 0)
-	if arrival {
+	if latch {
 		binary.LittleEndian.PutUint32(o.Raw[0x50:], 1)
 	} else {
 		o.stoodDown = true

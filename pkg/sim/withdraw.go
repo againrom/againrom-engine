@@ -36,11 +36,28 @@ func (w *World) withdrawalPassObserved(obs *withdrawalObs) {
 	}
 }
 
-// classThresholds gives each Human no player controls the Withdraw and Wimpy
-// of its class (R2-ENGINE-506): a spellbook HPmax and HPmax/4; else an attack
-// range above 1 on a unit not of movement type 3 (the air domain) HPmax/2 and
-// 0; else 0 and 0. The second game runs it at mission start. The class reads
-// the book, not the mana pool: a Human with mana and no book is no mage here.
+const (
+	withdrawalMelee = iota
+	withdrawalRanged
+	withdrawalMage
+)
+
+// withdrawalClass is the threshold class of R2-ENGINE-506.
+func (w *World) withdrawalClass(i int) int {
+	e := &w.entities[i]
+	switch {
+	case !e.Humanoid:
+		return withdrawalMelee
+	case e.Book.WirePresent(e.KnownSpells):
+		return withdrawalMage
+	case e.Domain != DomainAir && w.attackRange(i) > 1:
+		return withdrawalRanged
+	default:
+		return withdrawalMelee
+	}
+}
+
+// classThresholds sets the computer Humans' thresholds at mission start.
 func (w *World) classThresholds() {
 	if !w.game.classThresholds {
 		return
@@ -50,10 +67,10 @@ func (w *World) classThresholds() {
 		if !e.Humanoid || w.playerControlledUnit(*e) {
 			continue
 		}
-		switch {
-		case e.Book.WirePresent(e.KnownSpells):
+		switch w.withdrawalClass(i) {
+		case withdrawalMage:
 			e.Withdraw, e.Wimpy = e.MaxHP, e.MaxHP/4
-		case w.attackRange(i) > 1 && e.Domain != DomainAir:
+		case withdrawalRanged:
 			e.Withdraw, e.Wimpy = e.MaxHP/2, 0
 		default:
 			e.Withdraw, e.Wimpy = 0, 0
@@ -207,19 +224,24 @@ func (w *World) teleportEscape(i int, hostile []int, reach int64, needLiving boo
 	return w.castOrder(i, CastAt(e.ID, SpellID(id), CellPoint{X: tx, Y: ty}))
 }
 
-// answerRefusedFlee ends a withdrawal's move when no route serves its flee
-// cell: the far search comes back with nothing, or settles on the mover's own
-// cell, or the cell is the own cell of a mover between cells. The original raises the mover's
-// route-failure flag there (MOVE-072, AI-335), and the order machine clears the
-// pending order and reacquires a victim within reach unless the actor patrols
-// (AI-ROUTE-045, AI-327). An actor holding a loaded cycle keeps it and its
-// victim, since the pending move only executes once the cycle ends; one between
-// cycles takes the reacquisition, whose pursuit order persists across cycles
-// (AI-PURSUE-040). Both automatic arms and explicit Retreat (AI-RETREAT-273)
-// call it; Retreat stays the actor's state. DIV-1555, DIV-1565.
+// answerRefusedFlee ends a withdrawal move whose far search found no route.
+// The second game stops at the unit's cell (R2-ENGINE-1498). The first game
+// reacquires within reach between cycles and leaves patrols to their own arm
+// (AI-ROUTE-045, AI-327, DIV-1555, DIV-1565).
 func (w *World) answerRefusedFlee(i int) {
 	e := &w.entities[i]
-	if e.ActorState == actorStatePatrol || !w.fleeRefused(i) {
+	if !w.game.stopRefusedFlee && e.ActorState == actorStatePatrol {
+		return
+	}
+	if !w.fleeRefused(i) {
+		return
+	}
+	if w.game.stopRefusedFlee {
+		w.clearEscort(i)
+		e.clearPatrol()
+		e.Retreat = RetreatContinuation{}
+		w.stopWalkOrder(i, true)
+		w.syncSavedActorCommand(i)
 		return
 	}
 	w.clearOrder(i)

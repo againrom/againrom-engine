@@ -47,13 +47,13 @@ func TestTheGroupTermReplacesTheClassSpeedInEveryDomain(t *testing.T) {
 		Step(w, nil)
 
 		got := w.Entities()[0]
-		want := transitOf(rateOf(d, groupSpeed, 0, 0, 0, 0), false)
+		want := transitOf((gameProfile{}).rateOf(d, groupSpeed, 0, 0, 0, 0), false)
 		if int32(got.TransitTotal) != want {
 			t.Errorf("domain %d: a mover of class speed %d in a group of %d crossed in %d tick(s), "+
 				"and the law at the group's own speed is %d — the term did not replace the class speed",
 				uint8(d), classSpeed, groupSpeed, got.TransitTotal, want)
 		}
-		if unwanted := transitOf(rateOf(d, classSpeed, 0, 0, 0, 0), false); int32(got.TransitTotal) == unwanted {
+		if unwanted := transitOf((gameProfile{}).rateOf(d, classSpeed, 0, 0, 0, 0), false); int32(got.TransitTotal) == unwanted {
 			t.Errorf("domain %d: the transit is what the CLASS speed alone would give (%d) — "+
 				"the two speeds are not separated by this fixture", uint8(d), unwanted)
 		}
@@ -79,7 +79,7 @@ func TestAGroupTermIsARateEvenWithNoClassSpeed(t *testing.T) {
 			t.Errorf("class speed %d with a group term of 19 owes no transit at all — "+
 				"it was read as unrated, so the term was not consulted", speed)
 		}
-		if want := transitOf(rateOf(DomainGround, 19, 0, 0, 0, 0), false); int32(got.TransitTotal) != want {
+		if want := transitOf((gameProfile{}).rateOf(DomainGround, 19, 0, 0, 0, 0), false); int32(got.TransitTotal) != want {
 			t.Errorf("class speed %d with a group term of 19 crossed in %d tick(s), want %d",
 				speed, got.TransitTotal, want)
 		}
@@ -91,7 +91,7 @@ func TestNoTermIsStillTheClassSpeed(t *testing.T) {
 	Step(w, nil)
 
 	got := w.Entities()[0]
-	if want := transitOf(rateOf(DomainGround, 19, 0, 0, 0, 0), false); int32(got.TransitTotal) != want {
+	if want := transitOf((gameProfile{}).rateOf(DomainGround, 19, 0, 0, 0, 0), false); int32(got.TransitTotal) != want {
 		t.Errorf("a mover with no group term crossed in %d tick(s), and its own speed gives %d",
 			got.TransitTotal, want)
 	}
@@ -253,7 +253,7 @@ func TestTheGroupTermSurvivesARoundTripAndDistinguishesTwoWorlds(t *testing.T) {
 	// came back meaning what it meant.
 	Step(&back, nil)
 	if got, want := int32(back.Entities()[0].TransitTotal),
-		transitOf(rateOf(DomainGround, 8, 0, 0, 0, 0), false); got != want {
+		transitOf((gameProfile{}).rateOf(DomainGround, 8, 0, 0, 0, 0), false); got != want {
 		t.Errorf("the decoded mover crossed in %d tick(s), want the term's %d", got, want)
 	}
 }

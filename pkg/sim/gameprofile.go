@@ -104,7 +104,10 @@ type gameProfile struct {
 	withdrawAnchorCells bool
 	// classThresholds: a computer Human's Withdraw and Wimpy come from its
 	// class at mission start (classThresholds).
-	classThresholds bool
+	classThresholds       bool
+	classRetreatMode      bool
+	stopRefusedFlee       bool
+	roundUphillTowardZero bool
 	// fleeSightExtra: the Wimpy test's hostile square is this many rings wider
 	// than the mover's search radius (R2-ENGINE-506); the first game adds none.
 	fleeSightExtra int64
@@ -287,6 +290,9 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		castDropsLoadedStep:        true,
 		withdrawAnchorCells:        true,
 		classThresholds:            true,
+		classRetreatMode:           true,
+		stopRefusedFlee:            true,
+		roundUphillTowardZero:      true,
 		fleeSightExtra:             5,
 		fleeBlockRadius:            5,
 		fleeTeleports:              true,

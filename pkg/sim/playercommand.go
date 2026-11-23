@@ -37,16 +37,10 @@ func (w *World) applyPlayerParameter(player uint32, selector PlayerParameter, va
 	}
 }
 
-// setRetreatMode is parameter 3's two decoded writer calls collapsed over the
-// class selector the shipped constructors actually produce (`AI-CLASS-030`).
-// For that selector the first writer sets Withdraw uniformly to 0, 10 or 30
-// percent of MaxHP and the second writer always clears Wimpy. The player word
-// scopes both walks; entities belonging to every other roster slot are left
-// byte-for-byte untouched.
-//
-// Values outside the decoded three modes and players outside this world's
-// roster are refused. The multiplication widens before division so this
-// build's int32 health domain cannot overflow while deriving the percentage.
+// setRetreatMode writes one player's thresholds. The first game applies the
+// percentage uniformly to Withdraw (AI-CLASS-030). The second game uses the
+// unit's class for Withdraw and the setting's percentage for Wimpy
+// (R2-ENGINE-1499, R2-ENGINE-1421).
 func (w *World) setRetreatMode(player uint32, mode int32) {
 	if player >= relationSlots {
 		return
@@ -59,15 +53,22 @@ func (w *World) setRetreatMode(player uint32, mode int32) {
 	case RetreatModeHigh:
 		percent = 30
 	default:
-		return
+		if !w.game.classRetreatMode {
+			return
+		}
 	}
 	for i := range w.entities {
 		e := &w.entities[i]
 		if e.Owner != player {
 			continue
 		}
-		e.Withdraw = int32(int64(e.MaxHP) * percent / 100)
-		e.Wimpy = 0
+		base := int64(e.MaxHP) * percent
+		withdraw, wimpy := base, int64(0)
+		if w.game.classRetreatMode {
+			withdraw = base * [...]int64{0, 2, 3}[w.withdrawalClass(i)]
+			wimpy = base
+		}
+		e.Withdraw, e.Wimpy = int32(withdraw/100), int32(wimpy/100)
 	}
 }
 

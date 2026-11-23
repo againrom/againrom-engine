@@ -12,10 +12,9 @@ package sim
 // replaces this one name and nothing else.
 //
 // slopeLimit and slopeShift are the height tilt: the two cells' height
-// difference saturates at plus or minus slopeLimit, and the correction is that
-// difference times the rate, shifted right ARITHMETICALLY by slopeShift — so
-// uphill reduces and downhill increases. A shift and not a divide: the two
-// differ on negatives, and the negative half is the uphill one.
+// difference saturates at plus or minus slopeLimit. The slope term shifts its
+// product by slopeShift. The first game shifts the signed product. The second
+// game shifts the magnitude of the uphill term before subtracting it.
 //
 // fallbackMeanCost is what the law substitutes when the two cost bytes average
 // to zero. A world here carried no cost plane until 0076 and so always took it;
@@ -94,7 +93,7 @@ const maxTransit = subCell / rateFloor
 // Both byte-width behaviours the law depends on are the PARAMETER TYPES' own
 // arithmetic rather than masking written out: the cost add wraps in a uint8, and
 // the height difference is a uint8 subtraction read back as a signed byte.
-func rateOf(d Domain, speed int32, costSrc, costDst, hSrc, hDst uint8) int32 {
+func (g gameProfile) rateOf(d Domain, speed int32, costSrc, costDst, hSrc, hDst uint8) int32 {
 	v := int64(speed)
 	if d == DomainGround {
 		v *= speedMultiplier
@@ -109,7 +108,11 @@ func rateOf(d Domain, speed int32, costSrc, costDst, hSrc, hDst uint8) int32 {
 		if rise < -slopeLimit {
 			rise = -slopeLimit
 		}
-		v += (v * rise) >> slopeShift
+		if g.roundUphillTowardZero && rise < 0 {
+			v -= (v * -rise) >> slopeShift
+		} else {
+			v += (v * rise) >> slopeShift
+		}
 
 		// A byte-wide add: two costly cells CAN sum past 255 and wrap, and the
 		// law does not guard it. The mean is that wrapped byte halved, and a
