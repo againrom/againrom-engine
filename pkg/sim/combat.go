@@ -366,8 +366,8 @@ func (w *World) approach(s *routeScratch, i int) int {
 	latched := w.entities[i].AttackPhase != AttackReady
 	// An armed approach closes to closedOn's own distance (MAGIC-239).
 	if w.closedOn(i, ti) && !w.orderStateAt(i).approaching() {
-		if !latched && !w.game.orders.liveAdmission {
-			w.turnToActor(i, ti)
+		if !latched {
+			attackReachRules[w.game.orders.attackReach].closeTurn(w, i, ti)
 		}
 		w.restAt(s, i)
 		return -1
@@ -610,11 +610,31 @@ const (
 type attackReachRow struct {
 	strike     func(w *World, i, ti int) bool
 	weaponCast func(w *World, ai, ti int) bool
+	// closeTurn turns the actor to its victim once it has closed on it.
+	closeTurn func(w *World, i, ti int)
+	// holdTurn reports whether the weapon-cast arm waits on its turn.
+	holdTurn func(w *World, i, ti int, aligned bool) bool
+	// parked reports whether a saved order's actor stands still on its cell.
+	parked func(w *World, e Entity) bool
 }
 
 var attackReachRules = [...]attackReachRow{
-	attackReachStatic: {strike: (*World).strikeInReach, weaponCast: (*World).weaponEdgeInReach},
-	attackReachLive:   {strike: (*World).withinAttackRange, weaponCast: (*World).withinAttackRange},
+	attackReachStatic: {
+		strike:     (*World).strikeInReach,
+		weaponCast: (*World).weaponEdgeInReach,
+		closeTurn:  func(w *World, i, ti int) { w.turnToActor(i, ti) },
+		holdTurn:   func(w *World, i, ti int, _ bool) bool { return w.turnToActor(i, ti) },
+		parked:     func(*World, Entity) bool { return true },
+	},
+	attackReachLive: {
+		strike:     (*World).withinAttackRange,
+		weaponCast: (*World).withinAttackRange,
+		closeTurn:  func(*World, int, int) {},
+		holdTurn: func(w *World, i, ti int, aligned bool) bool {
+			return w.turnToActor(i, ti) || !aligned
+		},
+		parked: func(w *World, e Entity) bool { return e.Transit == 0 && !w.motionActive(e.ID) },
+	},
 }
 
 func (w *World) strikeInReach(i, ti int) bool {
@@ -769,7 +789,7 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 			}
 		} else {
 			aligned := e.Facing == w.headingBetween(*e, position)
-			if w.turnToActor(i, ti) || w.game.orders.liveAdmission && !aligned {
+			if attackReachRules[w.game.orders.attackReach].holdTurn(w, i, ti, aligned) {
 				return
 			}
 		}
@@ -960,7 +980,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	}
 	if secondPresent {
 		component := int64(a.SecondBase)
-		if a.SecondSpread != 0 || !rule.zeroSpreadNoDraw {
+		if zeroSpreadRules[rule.zeroSpread].draws(int64(a.SecondSpread)) {
 			component += int64(w.rng.uniform(int32(a.SecondSpread)))
 		}
 		// target+0xc6 is signed Water protection, not the third selector.
@@ -972,7 +992,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	}
 	if secondaryPresent && primaryAdmitted && secondaryAdded {
 		component := int64(secondary.Base)
-		if secondary.Spread != 0 || !rule.zeroSpreadNoDraw {
+		if zeroSpreadRules[rule.zeroSpread].draws(int64(secondary.Spread)) {
 			component += int64(w.rng.uniform(int32(secondary.Spread)))
 		}
 		p := int64(t.Protection[secondary.Selector])
@@ -1028,14 +1048,33 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 type blowRule struct {
 	// draw: the order of the physical pair's draws (blowDraws).
 	draw blowDrawRule
-	// zeroSpreadNoDraw: a part whose spread is 0 makes no draw (R2-ENGINE-1152).
-	zeroSpreadNoDraw bool
+	// zeroSpread: whether a part whose spread is 0 makes a draw
+	// (zeroSpreadRules, R2-ENGINE-1152).
+	zeroSpread zeroSpreadRule
 	// absorbsPositiveOnly: absorption comes off a physical part above 0 only
 	// (R2-ENGINE-1148).
 	absorbsPositiveOnly bool
 }
 
-var secondGameBlow = blowRule{draw: blowDrawsEffectsFirst, zeroSpreadNoDraw: true,
+// zeroSpreadRule selects the draw a physical part makes at spread 0.
+type zeroSpreadRule uint8
+
+const (
+	zeroSpreadDraws zeroSpreadRule = iota
+	zeroSpreadSkips
+)
+
+// zeroSpreadRow holds the draw body of a zeroSpreadRule.
+type zeroSpreadRow struct {
+	draws func(spread int64) bool
+}
+
+var zeroSpreadRules = [...]zeroSpreadRow{
+	zeroSpreadDraws: {draws: func(int64) bool { return true }},
+	zeroSpreadSkips: {draws: func(spread int64) bool { return spread != 0 }},
+}
+
+var secondGameBlow = blowRule{draw: blowDrawsEffectsFirst, zeroSpread: zeroSpreadSkips,
 	absorbsPositiveOnly: true}
 
 // blowValue is the physical pair's value and makes its draws, in the order
@@ -1087,7 +1126,7 @@ func (w *World) effectsFirstBlowValue(a Entity, rule blowRule) int64 {
 	switch {
 	case blessed:
 		return top
-	case cursed, a.DamageSpread == 0 && rule.zeroSpreadNoDraw:
+	case cursed, !zeroSpreadRules[rule.zeroSpread].draws(int64(a.DamageSpread)):
 		return base
 	}
 	return base + int64(w.rng.uniform(a.DamageSpread))
@@ -1140,7 +1179,7 @@ func (w *World) payExperience(ai, ti int, removed int64, aliveBefore bool) {
 		return
 	case !aliveBefore:
 		return
-	case w.game.skillAward.computerVictim && !w.computerControlledUnit(*t):
+	case victimPayRules[w.game.skillAward.victimPay].refuses(w, *t):
 		return
 	}
 	w.awardSkill(ai, 0, xpRaw(t.ExperienceValue(), removed, t.MaxHP), ti)

@@ -407,7 +407,7 @@ func (w *World) savedMove(i int, o *SavedActorOrder) {
 		return
 	}
 	e := &w.entities[i]
-	if e.X == x && e.Y == y && (!w.game.orders.liveAdmission || e.Transit == 0 && !w.motionActive(e.ID)) {
+	if e.X == x && e.Y == y && attackReachRules[w.game.orders.attackReach].parked(w, *e) {
 		w.clearOrder(i)
 		o.Raw[8] = 0xb
 		w.acquireStanding(i)
@@ -551,14 +551,17 @@ func (w *World) savedActorDispatch(i int) {
 		// The branch compares the stored byte, including zero. Its stop
 		// operand alone falls back to ScanRange (AI-DEFEND-111/FOLLOW-112).
 		closing := cellOf(&w.entities[i]).chebyshevTo(cellOf(&w.entities[ti])) > int64(o.Raw[0x70])
-		if o.State == 8 && w.game.orders.defendFineStep {
-			w.armDefend(i)
-			closing = w.entities[i].HasTarget && w.entities[i].EscortOrder == escortOrderClose
-		} else if closing {
+		armed := false
+		if o.State == 8 {
+			closing, armed = savedDefendBodies[w.game.orders.defendStep](w, i, closing)
+		}
+		switch {
+		case armed:
+		case closing:
 			w.escortClose(i, ti)
-		} else if o.State == 8 {
+		case o.State == 8:
 			w.armDefend(i)
-		} else {
+		default:
 			w.armFollow(i)
 		}
 		if w.entities[i].HasTarget {

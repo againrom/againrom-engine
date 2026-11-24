@@ -30,7 +30,7 @@ type gameProfile struct {
 	// tickClock: session clock or native uint64 tick (tickClocks).
 	tickClock tickClockRule
 	// buildingCasters: the map's type-9 mode-4 records build casters.
-	buildingCasters bool
+	buildingCasters buildingCasterRule
 	// scriptRows: the second game's script op bodies, added to the shared ones;
 	// a dialect without rows runs the shared bodies only.
 	scriptRows scriptOpRows
@@ -70,12 +70,12 @@ type gameProfile struct {
 	// nativeEffectDriver: the world-effect driver table is created by the
 	// first projectile, not at construction.
 	nativeEffectDriver bool
-	// nativeMovers: no actor holds a Mover record; byte forms carrying one
+	// movers: no actor holds a Mover record; byte forms carrying one
 	// are refused, and the flee search keeps ScanRange (DIV-347).
-	nativeMovers bool
-	// nativeCellPlanes: an older engine SAV without the plane mark drops the
+	movers moverRule
+	// cellPlanes: an older engine SAV without the plane mark drops the
 	// cell planes its LOAD import built.
-	nativeCellPlanes bool
+	cellPlanes cellPlaneRule
 	// nativeObjects: a World without the saved-object registry needs no
 	// training producer.
 	nativeObjects bool
@@ -84,9 +84,9 @@ type gameProfile struct {
 	// nativeTargetOrders: target orders are kept as held: no LOAD
 	// normalisation (DIV-3310) and no stop when the victim leaves.
 	nativeTargetOrders bool
-	// nativeShopUse: a shop structure takes the ordinary use, not the
+	// shopUse: a shop structure takes the ordinary use, not the
 	// recorded shop use.
-	nativeShopUse bool
+	shopUse shopUseRule
 
 	// nativeWalkRefusal keeps near-search give-up separate from a known
 	// empty-route result (R2-ENGINE-1108).
@@ -129,9 +129,9 @@ type gameProfile struct {
 	// castDropsLoadedStep: a manual cast or cast approach ends a loaded
 	// step between cells instead of waiting for its centre.
 	castDropsLoadedStep bool
-	// withdrawAnchorCells: the withdrawal square lists each hostile once by
+	// withdrawList: the withdrawal square lists each hostile once by
 	// its anchor cell (AI-697).
-	withdrawAnchorCells bool
+	withdrawList withdrawListRule
 	// classThresholds: every Human's Withdraw and Wimpy come from its class
 	// at mission start (classThresholds).
 	classThresholds bool
@@ -158,21 +158,21 @@ type gameProfile struct {
 	keepsSuppressedAcquirer bool
 	// noHealArmReach: no unit takes the heal arm's reach rule (MAGIC-320).
 	noHealArmReach bool
-	// castsUnseen: a book cast at a unit asks no sight of its caster or of
+	// castSight: a book cast at a unit asks no sight of its caster or of
 	// a computer mage's Group, at the admission or the release; the spell's
 	// range alone bounds it (R2-ENGINE-1136, R2-ENGINE-1143).
-	castsUnseen bool
+	castSight castSightRule
 	// autoCastSight: whose sight the automatic choice takes (autoCastSights).
 	// Under the side's sight its cast's admission and release ask none
 	// (owner, DIV-4872).
 	autoCastSight autoCastSightRule
-	// keepsWeaponSpell: a worn Weapon always holds its spell, and an
+	// weaponSpell: a worn Weapon always holds its spell, and an
 	// unequip keeps it (MAGIC-379).
-	keepsWeaponSpell bool
-	// autoCastFullDefault: a Player without a stored setting reads
+	weaponSpell weaponSpellRule
+	// autoCastDefault: a Player without a stored setting reads
 	// DefaultAutoCast (DIV-3007); the first game reads Off (DIV-3006).
-	autoCastFullDefault bool
-	computerSupport     supportCastPolicy
+	autoCastDefault autoCastDefaultRule
+	computerSupport supportCastPolicy
 	// computerHealOwnSide: a computer mage's automatic heal reaches its own
 	// owner and allied owners alone (DIV-4756).
 	computerHealOwnSide bool
@@ -209,15 +209,15 @@ type gameProfile struct {
 	keepsHealthAboveMaximum bool
 	// cellTail: how instant 25 encodes its six tail bytes (cellTailEncoders).
 	cellTail cellTailRule
-	// cellEventRelocates: cell event 0x17 moves the entering unit
+	// cellEvent: cell event 0x17 moves the entering unit
 	// (R2-ENGINE-673, DIV-4700).
-	cellEventRelocates bool
+	cellEvent cellEventRule
 	// bookListsScrolls: the book shows a carried scroll at its spell's cell
 	// (R2-ENGINE-766, R2-SESSION-229, DIV-4732).
 	bookListsScrolls bool
-	// memberScoreGate: the score's preference modifiers test the scoring
+	// scoreGate: the score's preference modifiers test the scoring
 	// actor's size and Mind (R2-ENGINE-503), not the candidate's.
-	memberScoreGate bool
+	scoreGate scoreGateRule
 	// scoreEffectSpell: the lasting effect whose bearer the ordinary score
 	// adds scoreEffectCost for, 0 for none (AI-COST-071, R2-ENGINE-1495,
 	// R2-ENGINE-1496).
@@ -227,11 +227,11 @@ type gameProfile struct {
 	// skillAward: the skill award's steps (R2-ENGINE-480, R2-ENGINE-486).
 	skillAward skillAwardProfile
 	orders     orderProfile
-	// serverKeyedDiary: a kill is counted and a card is graded for any kind
+	// diary: a kill is counted and a card is graded for any kind
 	// whose Units row has a server id in 1..0x9ff, with no type, face, row
 	// or humanoid window. The zero value is the first game's windows
 	// (R2-ENGINE-772, R2-ENGINE-1710, R2-ENGINE-1712).
-	serverKeyedDiary bool
+	diary diaryRule
 	// diaryCountCap: the largest kill count the Diary stores; zero is the
 	// first game's DiaryCountCap.
 	diaryCountCap uint32
@@ -287,7 +287,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			scriptProfile:    scriptprofile.First,
 			scoreEffectSpell: 20,
 			skillAward:       firstGameSkillAward,
-			computerSupport:  supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, hold: supportHeldInCombat, shield: shieldNone},
+			computerSupport:  supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, pick: supportPicksDrawn, hold: supportHeldInCombat, shield: shieldNone},
 		}
 	}
 	return gameProfile{
@@ -299,7 +299,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		deathRollAt64:              true,
 		deathItemRoll:              true,
 		tickClock:                  nativeTickClock,
-		buildingCasters:            true,
+		buildingCasters:            buildingCastersBuilt,
 		scriptRows:                 secondGameRows,
 		dialect:                    ScriptROM2,
 		scriptProfile:              scriptprofile.ForOps(scriptprofile.OpsSecond),
@@ -313,19 +313,19 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		formHoldsConstructedGroups: true,
 		keepsHealthAboveMaximum:    true,
 		cellTail:                   cellTailTargeted,
-		cellEventRelocates:         true,
+		cellEvent:                  cellEventRelocating,
 		bookListsScrolls:           true,
-		memberScoreGate:            true,
+		scoreGate:                  scoreGateMember,
 		scoreEffectSpell:           18,
 		blow:                       secondGameBlow,
 		skillAward:                 secondGameSkillAward,
 		nativeEffectDriver:         true,
-		nativeMovers:               true,
-		nativeCellPlanes:           true,
+		movers:                     moversNative,
+		cellPlanes:                 cellPlanesNative,
 		nativeObjects:              true,
 		nativePointCasts:           true,
 		nativeTargetOrders:         true,
-		nativeShopUse:              true,
+		shopUse:                    shopUseOrdinary,
 		nativeWalkRefusal:          true,
 		castReach:                  castReachCell,
 		castRecovery:               castRecoveryLowByte,
@@ -342,7 +342,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		areaHeading:                areaHeadingCells,
 		fleeOrigin:                 fleeFromCentre,
 		castDropsLoadedStep:        true,
-		withdrawAnchorCells:        true,
+		withdrawList:               withdrawListAnchor,
 		classThresholds:            true,
 		retreatMode:                retreatModeByClass,
 		refusedFlee:                refusedFleeStops,
@@ -352,14 +352,14 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		fleeTeleports:              true,
 		keepsSuppressedAcquirer:    true,
 		noHealArmReach:             true,
-		castsUnseen:                true,
+		castSight:                  castSightUnasked,
 		autoCastSight:              autoCastAlliedSight,
-		keepsWeaponSpell:           true,
-		autoCastFullDefault:        true,
-		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, yieldsToWithdrawal: true, shield: shieldAfterCandidateHeal},
+		weaponSpell:                weaponSpellKept,
+		autoCastDefault:            autoCastDefaultFull,
+		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, pick: supportPicksDrawn, yieldsToWithdrawal: true, shield: shieldAfterCandidateHeal},
 		computerHealOwnSide:        true,
 		spareMageTypes:             secondGameSpareMageTypes,
-		serverKeyedDiary:           true,
+		diary:                      diaryServerKeyed,
 		diaryCountCap:              secondGameDiaryCountCap,
 		showMapFullCard:            true,
 		nativeRegen:                true,
@@ -372,19 +372,17 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		savesMissionFog:            true,
 		noCompanionObjective:       true,
 		orders: orderProfile{
-			defendFineStep:           true,
-			collectSacks:             true,
-			idleRanking:              targetIdleDistance,
-			attackReach:              attackReachLive,
-			liveAdmission:            true,
-			mageAcquisitionException: true,
-			stopEmptyWalk:            true,
-			standGroundScore:         true,
-			lookAround:               true,
-			emptyRoute:               emptyRouteRepicks,
-			repickEmptyRoute:         true,
-			primaryCells:             true,
-			supportOrder:             true,
+			defendStep:       defendStepFine,
+			collectSacks:     true,
+			idleRanking:      targetIdleDistance,
+			attackReach:      attackReachLive,
+			acquisition:      acquisitionMageException,
+			stopEmptyWalk:    true,
+			standGroundScore: true,
+			lookAround:       lookAroundOn,
+			emptyRoute:       emptyRouteRepicks,
+			primaryCells:     true,
+			supportOrder:     true,
 		},
 	}
 }
@@ -399,7 +397,7 @@ func (w *World) SpellGame() rules.SpellGame { return w.game.spellGame }
 
 // NativeMovers reports a World whose actors hold no Mover record, so a SAVE
 // writes no constructed mover byte for a body the World no longer holds.
-func (w *World) NativeMovers() bool { return w.game.nativeMovers }
+func (w *World) NativeMovers() bool { return w.game.movers == moversNative }
 
 // KeepsCastRetain reports whether a SAVE keeps the retain flag of a manual
 // walk's armed cast order.

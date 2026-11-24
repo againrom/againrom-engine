@@ -173,15 +173,8 @@ func (w *World) KnowledgeLevel(e Entity) int {
 	if e.Owner == SelfSlot {
 		return KnowledgeFull
 	}
-	keyed := w.game.serverKeyedDiary
-	if !keyed && (e.TypeID < diaryFirstCreatureTID || e.TypeID > diaryLastCreatureTID) {
-		return 0
-	}
-	u, ok := w.diaryUnitOf(e)
-	if !ok || u.NoServerKey && keyed {
-		return 0
-	}
-	if !keyed && (u.Face < 1 || int32(u.Face) > diaryMaxFace || u.countRow() < diaryFirstCreatureRow) {
+	u, ok := diaryBodies[w.game.diary].graded(w, e)
+	if !ok {
 		return 0
 	}
 	d, ok := w.playerDiary()
@@ -222,14 +215,50 @@ func (w *World) recordDiaryKill(ti int) {
 	if !ok || row >= w.diary.rows {
 		return
 	}
-	if w.game.serverKeyedDiary {
-		if u.NoServerKey {
-			return
-		}
-	} else if victim.Humanoid && row > diaryHumanRowLimit {
+	if !diaryBodies[w.game.diary].counts(victim, u, row) {
 		return
 	}
 	w.addDiaryKill(row)
+}
+
+// diaryRule selects which kinds a kill is counted and a card graded for.
+type diaryRule uint8
+
+const (
+	diaryWindowed diaryRule = iota
+	diaryServerKeyed
+)
+
+// diaryRuleBody holds how a diaryRule grades a card and admits a kill.
+type diaryRuleBody struct {
+	graded func(w *World, e Entity) (DiaryUnit, bool)
+	counts func(victim Entity, u DiaryUnit, row int) bool
+}
+
+// diaryBodies holds the body each diaryRule runs.
+var diaryBodies = [...]diaryRuleBody{
+	diaryWindowed: {
+		graded: func(w *World, e Entity) (DiaryUnit, bool) {
+			if e.TypeID < diaryFirstCreatureTID || e.TypeID > diaryLastCreatureTID {
+				return DiaryUnit{}, false
+			}
+			u, ok := w.diaryUnitOf(e)
+			if !ok || u.Face < 1 || int32(u.Face) > diaryMaxFace || u.countRow() < diaryFirstCreatureRow {
+				return DiaryUnit{}, false
+			}
+			return u, true
+		},
+		counts: func(victim Entity, _ DiaryUnit, row int) bool {
+			return !(victim.Humanoid && row > diaryHumanRowLimit)
+		},
+	},
+	diaryServerKeyed: {
+		graded: func(w *World, e Entity) (DiaryUnit, bool) {
+			u, ok := w.diaryUnitOf(e)
+			return u, ok && !u.NoServerKey
+		},
+		counts: func(_ Entity, u DiaryUnit, _ int) bool { return !u.NoServerKey },
+	},
 }
 
 // addDiaryKill is the original's mutation on the local Player's Diary: the

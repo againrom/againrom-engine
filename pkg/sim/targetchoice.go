@@ -12,18 +12,16 @@ const (
 )
 
 type orderProfile struct {
-	idleRanking              targetRanking
-	attackReach              attackReachRule
-	liveAdmission            bool
-	mageAcquisitionException bool
-	stopEmptyWalk            bool
-	standGroundScore         bool
-	lookAround               bool
-	emptyRoute               emptyRouteRule
-	repickEmptyRoute         bool
-	primaryCells             bool
-	collectSacks             bool
-	defendFineStep           bool
+	idleRanking      targetRanking
+	attackReach      attackReachRule
+	acquisition      acquisitionRule
+	stopEmptyWalk    bool
+	standGroundScore bool
+	lookAround       lookAroundRule
+	emptyRoute       emptyRouteRule
+	primaryCells     bool
+	collectSacks     bool
+	defendStep       defendStepRule
 	// supportOrder admits L's order: programme 0x13 over member order 0x17.
 	supportOrder bool
 }

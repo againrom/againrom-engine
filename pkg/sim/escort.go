@@ -20,17 +20,14 @@ func (w *World) armDefend(i int) {
 	if w.entities[i].OffMap || w.castHolds(i, waitCastAction) || w.stoneCursed(i) {
 		return
 	}
-	if e := w.entities[i]; w.game.orders.defendFineStep && e.HasTarget && !e.HasAttackTarget && e.EscortOrder == escortOrderNone {
+	if defendStepBodies[w.game.orders.defendStep].holds(w.entities[i]) {
 		return
 	}
 	ti, stop, dist, ok := w.escortSubject(i)
 	if !ok {
 		return
 	}
-	rangeLimit := stop
-	if w.game.orders.defendFineStep {
-		rangeLimit = int64(w.entities[i].EscortRange)
-	}
+	rangeLimit := defendStepBodies[w.game.orders.defendStep].rangeLimit(w.entities[i], stop)
 	if dist > rangeLimit {
 		w.escortClose(i, ti)
 		return
@@ -110,13 +107,7 @@ func (w *World) escortHeal(i, ti int) bool {
 func (w *World) stepEscortOrder(s *routeScratch, i int) bool {
 	e := &w.entities[i]
 	if !escortState(e.ActorState) || !e.HasEscortTarget {
-		if o := w.savedOrder(e.ID); w.game.orders.lookAround && o != nil && o.Raw[8] == 0xb &&
-			w.computerControlledUnit(*e) && !e.HasAttackTarget &&
-			e.PendingOrder.Kind == PendingNone && w.pendingLogicalProgress(i) == 0 {
-			w.stepIdleTurn(i)
-			return true
-		}
-		return false
+		return lookAroundBodies[w.game.orders.lookAround](w, i, e)
 	}
 	switch e.EscortOrder {
 	case escortOrderClose:
@@ -265,10 +256,7 @@ func (w *World) idlePick(i int, victim EntityID) {
 	e.PursuitIdle = true
 	if o := w.savedOrder(e.ID); o != nil {
 		o.Raw[8] = 0
-		if w.game.orders.repickEmptyRoute {
-			o.Raw[0x14] = uint8(w.attackRange(i))
-			w.syncCurrentActorOrder(i)
-		}
+		emptyRouteRules[w.game.orders.emptyRoute].pickOrder(w, i, o)
 	}
 }
 
@@ -313,22 +301,7 @@ func (w *World) escortStepAway(i, ti int, stop int64) {
 		py = int64(t.Y)*subCell + sign64(dy)*major
 		px = int64(t.X)*subCell + sign64(dx)*roundDiv(major*adx, ady)
 	}
-	if w.game.orders.defendFineStep && e.ActorState == actorStateDefend {
-		x, y := w.moverFinePoint(e)
-		dx, dy = x-int64(t.X)*subCell, y-int64(t.Y)*subCell
-		if dx == 0 {
-			dx = 1
-		}
-		if dy == 0 {
-			dy = 1
-		}
-		major = int64(e.EscortRange) * subCell
-		if intmath.Abs(dx) >= intmath.Abs(dy) {
-			px, py = x+sign64(dx)*major, y+sign64(dx)*major*dy/dx
-		} else {
-			px, py = x+sign64(dy)*major*dx/dy, y+sign64(dy)*major
-		}
-	}
+	px, py = defendStepBodies[w.game.orders.defendStep].aim(w, e, t, px, py)
 	targetX := clampPlayable(px>>8, int64(w.bounds.Width))
 	targetY := clampPlayable(py>>8, int64(w.bounds.Height))
 	w.cancelTurnForTargetChange(i, targetX, targetY)
@@ -339,9 +312,104 @@ func (w *World) escortStepAway(i, ti int, stop int64) {
 	self.TargetX = targetX
 	self.TargetY = targetY
 	self.HasTarget = true
-	if w.game.orders.defendFineStep && self.ActorState == actorStateDefend {
-		self.EscortOrder = escortOrderNone
-	}
+	defendStepBodies[w.game.orders.defendStep].settle(self)
+}
+
+// defendStepRule selects the defender's step: the coarse stop range or the
+// fine escort range.
+type defendStepRule uint8
+
+const (
+	defendStepCoarse defendStepRule = iota
+	defendStepFine
+)
+
+// defendStepBody holds what a defendStepRule does in the defend arm and the
+// step-away aim.
+type defendStepBody struct {
+	holds      func(e Entity) bool
+	rangeLimit func(e Entity, stop int64) int64
+	aim        func(w *World, e, t Entity, px, py int64) (int64, int64)
+	settle     func(self *Entity)
+}
+
+// defendStepBodies holds the body each defendStepRule runs.
+var defendStepBodies = [...]defendStepBody{
+	defendStepCoarse: {
+		holds:      func(Entity) bool { return false },
+		rangeLimit: func(_ Entity, stop int64) int64 { return stop },
+		aim:        func(_ *World, _, _ Entity, px, py int64) (int64, int64) { return px, py },
+		settle:     func(*Entity) {},
+	},
+	defendStepFine: {
+		holds: func(e Entity) bool {
+			return e.HasTarget && !e.HasAttackTarget && e.EscortOrder == escortOrderNone
+		},
+		rangeLimit: func(e Entity, _ int64) int64 { return int64(e.EscortRange) },
+		aim: func(w *World, e, t Entity, px, py int64) (int64, int64) {
+			if e.ActorState != actorStateDefend {
+				return px, py
+			}
+			x, y := w.moverFinePoint(e)
+			dx, dy := x-int64(t.X)*subCell, y-int64(t.Y)*subCell
+			if dx == 0 {
+				dx = 1
+			}
+			if dy == 0 {
+				dy = 1
+			}
+			major := int64(e.EscortRange) * subCell
+			if intmath.Abs(dx) >= intmath.Abs(dy) {
+				return x + sign64(dx)*major, y + sign64(dx)*major*dy/dx
+			}
+			return x + sign64(dy)*major*dx/dy, y + sign64(dy)*major
+		},
+		settle: func(self *Entity) {
+			if self.ActorState == actorStateDefend {
+				self.EscortOrder = escortOrderNone
+			}
+		},
+	},
+}
+
+// savedDefendBodies holds how a saved defend order arms by defendStepRule: it
+// reports the closing flag and whether the fine arm ran.
+var savedDefendBodies = [...]func(w *World, i int, closing bool) (bool, bool){
+	defendStepCoarse: func(_ *World, _ int, closing bool) (bool, bool) { return closing, false },
+	defendStepFine: func(w *World, i int, _ bool) (bool, bool) {
+		w.armDefend(i)
+		return w.entities[i].HasTarget && w.entities[i].EscortOrder == escortOrderClose, true
+	},
+}
+
+// lookAroundRule selects whether a unit without an escort target looks around.
+type lookAroundRule uint8
+
+const (
+	lookAroundOff lookAroundRule = iota
+	lookAroundOn
+)
+
+// lookAroundBodies holds how each lookAroundRule steps an actor with no escort
+// target; true means the step was taken.
+var lookAroundBodies = [...]func(w *World, i int, e *Entity) bool{
+	lookAroundOff: func(*World, int, *Entity) bool { return false },
+	lookAroundOn: func(w *World, i int, e *Entity) bool {
+		if o := w.savedOrder(e.ID); o != nil && o.Raw[8] == 0xb &&
+			w.computerControlledUnit(*e) && !e.HasAttackTarget &&
+			e.PendingOrder.Kind == PendingNone && w.pendingLogicalProgress(i) == 0 {
+			w.stepIdleTurn(i)
+			return true
+		}
+		return false
+	},
+}
+
+// lookAroundHolds holds whether each lookAroundRule keeps a turning actor
+// from starting another idle turn.
+var lookAroundHolds = [...]func(e *Entity) bool{
+	lookAroundOff: func(*Entity) bool { return false },
+	lookAroundOn:  func(e *Entity) bool { return e.Turning() },
 }
 
 func clampPlayable(v, dim int64) int32 {

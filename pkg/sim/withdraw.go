@@ -319,9 +319,8 @@ func (w *World) fleeTestRadius(i int) int64 { return w.fleeRadius(i) + w.game.fl
 // the World's record, the constructor's 5 otherwise (AI-692). DIV-347.
 func (w *World) fleeSearchRadius(i int) int64 {
 	e := &w.entities[i]
-	if w.game.nativeMovers {
-		// A profile with no block radius keeps the unit's scan range.
-		return int64(e.ScanRange)
+	if r, ok := moverBodies[w.game.movers].fleeRadius(w, e); ok {
+		return r
 	}
 	if m := w.motionFor(e.ID); m != nil {
 		return int64(m.Mover[8])
@@ -345,7 +344,6 @@ func (w *World) fleeSearchRadius(i int) int64 {
 func (w *World) withdrawalHostiles(i int, radius int64) []int {
 	self := w.entities[i]
 	centre := cellOf(&self)
-	anchors := w.game.withdrawAnchorCells
 	var out []int
 	for ci := range w.entities {
 		if ci == i {
@@ -355,25 +353,41 @@ func (w *World) withdrawalHostiles(i int, radius int64) []int {
 		if candidate.OffMap || !candidate.OrdinaryTargetable() || !w.hostileTo(&self, &candidate) || w.invisibleToActor(i, ci) {
 			continue
 		}
-		if anchors {
-			if centre.chebyshevTo(cellOf(&candidate)) <= radius {
-				out = append(out, ci)
-			}
-			continue
+		out = withdrawListBodies[w.game.withdrawList](out, ci, centre, &candidate, radius)
+	}
+	return out
+}
+
+// withdrawListRule selects how the withdrawal square lists a hostile.
+type withdrawListRule uint8
+
+const (
+	withdrawListFootprint withdrawListRule = iota
+	withdrawListAnchor
+)
+
+// withdrawListBodies holds how each withdrawListRule appends hostile ci.
+var withdrawListBodies = [...]func(out []int, ci int, centre cell, c *Entity, radius int64) []int{
+	withdrawListFootprint: func(out []int, ci int, centre cell, c *Entity, radius int64) []int {
+		if c.Domain == DomainAir {
+			return out
 		}
-		if candidate.Domain == DomainAir {
-			continue
-		}
-		n := footprintSide(candidate.TokenSize)
+		n := footprintSide(c.TokenSize)
 		for dy := int32(0); dy < n; dy++ {
 			for dx := int32(0); dx < n; dx++ {
-				if centre.chebyshevTo(cell{x: candidate.X + dx, y: candidate.Y + dy}) <= radius {
+				if centre.chebyshevTo(cell{x: c.X + dx, y: c.Y + dy}) <= radius {
 					out = append(out, ci)
 				}
 			}
 		}
-	}
-	return out
+		return out
+	},
+	withdrawListAnchor: func(out []int, ci int, centre cell, c *Entity, radius int64) []int {
+		if centre.chebyshevTo(cellOf(c)) <= radius {
+			out = append(out, ci)
+		}
+		return out
+	},
 }
 
 // withdrawFrom replaces actor i's prior decision with an ordinary move three

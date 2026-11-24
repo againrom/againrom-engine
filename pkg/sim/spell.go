@@ -268,6 +268,50 @@ func (w *World) ordinaryAreaEffect(ci, ti int, rule SpellRule, power int32) bool
 	return applied
 }
 
+// drainRule selects the game's Drain Life amount and kill credit.
+type drainRule uint8
+
+const (
+	drainFirst drainRule = iota
+	drainSecond
+)
+
+// drainRuleOf is the rule a spell row's game runs.
+func drainRuleOf(rule SpellRule) drainRule {
+	if rule.Second {
+		return drainSecond
+	}
+	return drainFirst
+}
+
+// drainBody holds how a drainRule rolls the amount and credits the kill.
+type drainBody struct {
+	amount func(w *World, ti int, base, spread int64) int64
+	credit func(w *World, ci, ti int, rule SpellRule)
+}
+
+// drainBodies holds the body each drainRule runs. The second game's arm
+// stores the caster and the spell as the victim's killer on every hit that
+// takes health (R2-ENGINE-1767); the kill route applies its own class, health
+// and owner test.
+var drainBodies = [...]drainBody{
+	drainFirst: {
+		amount: func(w *World, _ int, base, spread int64) int64 {
+			return int64(int16(base + w.firstFromOne(spread)))
+		},
+		credit: func(*World, int, int, SpellRule) {},
+	},
+	drainSecond: {
+		amount: func(w *World, ti int, base, spread int64) int64 {
+			return secondDrainAmount(base, w.entities[ti].Protection[4], w.rng.uniform(secondDrawSpan(spread)))
+		},
+		credit: func(w *World, ci, ti int, rule SpellRule) {
+			w.entities[ti].KillCreditSource, w.entities[ti].HasKillCredit = w.entities[ci].ID, true
+			w.entities[ti].KillCreditSpell = int8(rule.ID)
+		},
+	},
+}
+
 func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, blow blowHookKind) bool {
 	if ti < 0 || ti >= len(w.entities) {
 		return false
@@ -302,13 +346,8 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, b
 		// that amount to the skill sink before either pool changes. It never
 		// enters the resisted direct-damage resolver (MAGIC-ITEMTRAIN-116).
 		base, spread := spellDamageUnder(w.rules, rule, power)
-		var amount int64
-		if rule.Second {
-			amount = secondDrainAmount(base, w.entities[ti].Protection[4], w.rng.uniform(secondDrawSpan(spread)))
-		} else {
-			amount = int64(int16(base + w.firstFromOne(spread)))
-		}
-		amount = min(amount, int64(w.entities[ti].HP)+10)
+		drain := drainBodies[drainRuleOf(rule)]
+		amount := min(drain.amount(w, ti, base, spread), int64(w.entities[ti].HP)+10)
 		if amount <= 0 {
 			return true
 		}
@@ -317,12 +356,8 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, b
 		w.entities[ti].setCurrentHealth(int32(int64(w.entities[ti].HP) - amount))
 		w.reportHealthLoss(before, ti)
 		w.clearFelled(ti)
-		if rule.Second && ci >= 0 {
-			// The second game's arm stores the caster and the spell as the
-			// victim's killer on every hit that takes health (R2-ENGINE-1767);
-			// the kill route applies its own class, health and owner test.
-			w.entities[ti].KillCreditSource, w.entities[ti].HasKillCredit = w.entities[ci].ID, true
-			w.entities[ti].KillCreditSpell = int8(rule.ID)
+		if ci >= 0 {
+			drain.credit(w, ci, ti, rule)
 		}
 		if ci >= 0 {
 			hp := int64(w.entities[ci].HP) + amount
@@ -690,14 +725,30 @@ func (w *World) weaponSpell(e Entity) (SpellRule, bool) {
 // rides the strike (MAGIC-379, MAGIC-AUTOCAST-020) until an equip builds it;
 // an innate spell has no Weapon to hold one.
 func (w *World) wornWeaponHoldsSpell(e Entity) bool {
-	if w.game.keepsWeaponSpell || e.WeaponSpellSource != WeaponSpellItem {
-		return true
-	}
-	i := indexOfEntity(w.entities, e.ID)
-	if i < 0 {
-		return true
-	}
-	return w.equipment[i][slotWeapon].SourceEquipment.Spell.Present
+	return weaponSpellBodies[w.game.weaponSpell](w, e)
+}
+
+// weaponSpellRule selects whether a worn Weapon always holds its spell.
+type weaponSpellRule uint8
+
+const (
+	weaponSpellBuiltAtEquip weaponSpellRule = iota
+	weaponSpellKept
+)
+
+// weaponSpellBodies holds how each weaponSpellRule answers wornWeaponHoldsSpell.
+var weaponSpellBodies = [...]func(w *World, e Entity) bool{
+	weaponSpellBuiltAtEquip: func(w *World, e Entity) bool {
+		if e.WeaponSpellSource != WeaponSpellItem {
+			return true
+		}
+		i := indexOfEntity(w.entities, e.ID)
+		if i < 0 {
+			return true
+		}
+		return w.equipment[i][slotWeapon].SourceEquipment.Spell.Present
+	},
+	weaponSpellKept: func(*World, Entity) bool { return true },
 }
 
 // weaponRiderSpellFor answers the FIGHTER's rider arm of a weapon-borne
@@ -1893,7 +1944,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	inReach := w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, power, rangeCast), reachOrder)
 	// A target the computer mage's Group sees is refused for range alone, so
 	// out of range the mage walks into range with the cast armed (AI-760).
-	if !skipRange && !w.game.castsUnseen && !w.castSeesEntity(ci, vi) && !w.computerMageGroupSees(ci, vi) {
+	if !skipRange && castSightBodies[w.game.castSight].unseen(w, ci, vi) {
 		return refusalTargetNotVisible
 	}
 	if !skipRange && !inReach {
@@ -1914,9 +1965,42 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	return ""
 }
 
+// castSightRule selects whether a book cast at a unit asks sight.
+type castSightRule uint8
+
+const (
+	castSightAsked castSightRule = iota
+	castSightUnasked
+)
+
+// castSightBody holds how a castSightRule judges a target unseen and whether a
+// computer mage's Group sees it.
+type castSightBody struct {
+	unseen    func(w *World, ci, vi int) bool
+	groupSees func(w *World, ci, vi int) bool
+}
+
+// castSightBodies holds the body each castSightRule runs.
+var castSightBodies = [...]castSightBody{
+	castSightAsked: {
+		unseen: func(w *World, ci, vi int) bool {
+			return !w.castSeesEntity(ci, vi) && !w.groupSeesTarget(ci, vi)
+		},
+		groupSees: (*World).groupSeesTarget,
+	},
+	castSightUnasked: {
+		unseen:    func(*World, int, int) bool { return false },
+		groupSees: func(*World, int, int) bool { return false },
+	},
+}
+
 func (w *World) computerMageGroupSees(ci, vi int) bool {
+	return castSightBodies[w.game.castSight].groupSees(w, ci, vi)
+}
+
+func (w *World) groupSeesTarget(ci, vi int) bool {
 	caster, target := w.entities[ci], w.entities[vi]
-	if w.game.castsUnseen || !w.computerControlledUnit(caster) || !isMage(caster) {
+	if !w.computerControlledUnit(caster) || !isMage(caster) {
 		return false
 	}
 	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))

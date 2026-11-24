@@ -149,8 +149,10 @@ func targetedCellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
 // the first game's form, which holds no target (DIV-4701). Only a tail whose
 // bytes are exactly that form of its own script node changes, so a LOAD of any
 // other save, or a second LOAD of a repaired one, changes nothing.
-func (w *World) RepairCellEvents() {
-	if !w.game.cellEventRelocates || w.script == nil {
+func (w *World) RepairCellEvents() { cellEventBodies[w.game.cellEvent].repair(w) }
+
+func (w *World) repairRelocatingCellEvents() {
+	if w.script == nil {
 		return
 	}
 	for _, in := range w.script.instants {

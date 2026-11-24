@@ -62,10 +62,30 @@ func (w *World) suppressedAcquirer(e Entity) bool {
 // engageRefused applies the profile's engage or acquisition exception.
 // AI-GUARD-007, R2-ENGINE-1106.
 func (w *World) engageRefused(i int, acquisition bool) bool {
-	if acquisition && w.game.orders.mageAcquisitionException {
+	return acquisitionBodies[w.game.orders.acquisition](w, i, acquisition)
+}
+
+// acquisitionRule selects the exception an acquisition takes.
+type acquisitionRule uint8
+
+const (
+	acquisitionSuppressed acquisitionRule = iota
+	acquisitionMageException
+)
+
+// acquisitionBodies holds how each acquisitionRule answers engageRefused.
+var acquisitionBodies = [...]func(w *World, i int, acquisition bool) bool{
+	acquisitionSuppressed: func(w *World, i int, _ bool) bool { return w.engageSuppressed(i) },
+	acquisitionMageException: func(w *World, i int, acquisition bool) bool {
+		if !acquisition {
+			return w.engageSuppressed(i)
+		}
 		e := w.entities[i]
 		return !w.computerControlledUnit(e) && isMage(e) && w.attackRange(i) < 2
-	}
+	},
+}
+
+func (w *World) engageSuppressed(i int) bool {
 	return !w.game.keepsSuppressedAcquirer && w.suppressedAcquirer(w.entities[i])
 }
 

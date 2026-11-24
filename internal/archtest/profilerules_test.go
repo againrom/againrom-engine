@@ -17,31 +17,7 @@ import (
 // profileRuleBoolDebt lists pre-existing profile bool fields whose readers
 // still branch into two bodies. A count may only fall; remove an entry once
 // its field becomes a rule row.
-var profileRuleBoolDebt = map[string]int{
-	"blowRule.zeroSpreadNoDraw":              1,
-	"creatureAimProfile.absentSkipsDraw":     1,
-	"gameProfile.autoCastFullDefault":        1,
-	"gameProfile.buildingCasters":            2,
-	"gameProfile.castsUnseen":                1,
-	"gameProfile.cellEventRelocates":         1,
-	"gameProfile.keepsWeaponSpell":           1,
-	"gameProfile.memberScoreGate":            1,
-	"gameProfile.nativeCellPlanes":           1,
-	"gameProfile.nativeMovers":               4,
-	"gameProfile.nativeShopUse":              1,
-	"gameProfile.serverKeyedDiary":           1,
-	"gameProfile.withdrawAnchorCells":        1,
-	"groupRouteProfile.endsTargetlessEngage": 1,
-	"groupRouteProfile.guardAt18":            2,
-	"groupRouteProfile.noHumanHealArm":       1,
-	"orderProfile.defendFineStep":            1,
-	"orderProfile.liveAdmission":             2,
-	"orderProfile.lookAround":                1,
-	"orderProfile.mageAcquisitionException":  1,
-	"orderProfile.repickEmptyRoute":          1,
-	"skillAwardProfile.computerVictim":       1,
-	"supportCastPolicy.drawsOne":             1,
-}
+var profileRuleBoolDebt = map[string]int{}
 
 // TestProfileRulesAreRows guards that profile rules whose readers hold two
 // bodies live as rule rows with function fields rather than bool flags.

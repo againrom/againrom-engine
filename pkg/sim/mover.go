@@ -162,7 +162,7 @@ func (w *World) moverFor(id EntityID) *moverRecord {
 // current state: every actor of a first-game World except one whose Mover an
 // original-SAV import holds.
 func (w *World) moverExpected(e Entity) bool {
-	return !w.game.nativeMovers && w.motionFor(e.ID) == nil
+	return w.game.movers == moversBuilt && w.motionFor(e.ID) == nil
 }
 
 // setMover installs r, replacing e's record, on a fresh slice.
@@ -188,15 +188,71 @@ func (w *World) constructMover(e Entity) {
 // constructMovers gives every actor of a first-game World that has no record
 // the one the builder gives it from its current state. A record the World
 // holds is kept.
-func (w *World) constructMovers() {
-	if w.game.nativeMovers {
-		return
-	}
-	for _, e := range w.entities {
-		if w.moverExpected(e) && w.moverFor(e.ID) == nil {
-			w.setMover(w.builtMover(e, false))
-		}
-	}
+func (w *World) constructMovers() { moverBodies[w.game.movers].construct(w) }
+
+// moverRule selects whether actors hold Mover records.
+type moverRule uint8
+
+const (
+	moversBuilt moverRule = iota
+	moversNative
+)
+
+// moverBody holds what a moverRule does where Mover records are built, read
+// and imported.
+type moverBody struct {
+	construct   func(w *World)
+	mission     func(w *World, joined []EntityID)
+	adopt       func(w *World, loaded *savedActorMotionState)
+	fleeRadius  func(w *World, e *Entity) (int64, bool)
+	acceptsForm func() bool
+	keepMotion  func(kept *savedActorMotionState, noRows bool) *savedActorMotionState
+}
+
+// moverBodies holds the body each moverRule runs.
+var moverBodies = [...]moverBody{
+	moversBuilt: {
+		construct: constructBuiltMovers,
+		mission: func(w *World, joined []EntityID) {
+			w.movers = nil
+			for _, e := range w.entities {
+				if w.motionFor(e.ID) == nil {
+					w.movers = append(w.movers, w.builtMover(e, slices.Contains(joined, e.ID)))
+				}
+			}
+			slices.SortFunc(w.movers, func(a, b moverRecord) int { return cmp.Compare(a.Entity, b.Entity) })
+		},
+		adopt: func(w *World, loaded *savedActorMotionState) {
+			if loaded == nil {
+				return
+			}
+			for _, m := range loaded.Motions {
+				if i := indexOfEntity(w.entities, m.Entity); i >= 0 {
+					w.adoptMover(w.entities[i], &m.Mover)
+				}
+			}
+			constructBuiltMovers(w)
+		},
+		fleeRadius:  func(*World, *Entity) (int64, bool) { return 0, false },
+		acceptsForm: func() bool { return true },
+		keepMotion:  func(kept *savedActorMotionState, _ bool) *savedActorMotionState { return kept },
+	},
+	moversNative: {
+		construct: func(*World) {},
+		mission:   func(*World, []EntityID) {},
+		adopt:     func(*World, *savedActorMotionState) {},
+		fleeRadius: func(_ *World, e *Entity) (int64, bool) {
+			// A profile with no block radius keeps the unit's scan range.
+			return int64(e.ScanRange), true
+		},
+		acceptsForm: func() bool { return false },
+		keepMotion: func(kept *savedActorMotionState, noRows bool) *savedActorMotionState {
+			if noRows {
+				return nil
+			}
+			return kept
+		},
+	},
 }
 
 // ConstructMissionMovers builds every actor's record at mission start, once
@@ -204,16 +260,10 @@ func (w *World) constructMovers() {
 // them: a map actor as the spawner places it, a carried member in joined as
 // the join walk replaces its Mover (MOVE-122). It runs on an unadvanced World.
 func (w *World) ConstructMissionMovers(joined []EntityID) {
-	if w == nil || w.tick != 0 || w.game.nativeMovers {
+	if w == nil || w.tick != 0 {
 		return
 	}
-	w.movers = nil
-	for _, e := range w.entities {
-		if w.moverExpected(e) {
-			w.movers = append(w.movers, w.builtMover(e, slices.Contains(joined, e.ID)))
-		}
-	}
-	slices.SortFunc(w.movers, func(a, b moverRecord) int { return cmp.Compare(a.Entity, b.Entity) })
+	moverBodies[w.game.movers].mission(w, joined)
 }
 
 // moverCrossed records that a crossing has stored the step cost of the cell
@@ -283,15 +333,7 @@ func (w *World) ApplyMover(id EntityID, m *[180]byte) bool {
 // loaded bytes: the World then holds the Mover as the World that wrote the
 // SAV held it. Every other actor keeps or receives its built record.
 func (w *World) adoptMovers(loaded *savedActorMotionState) {
-	if w.game.nativeMovers || loaded == nil {
-		return
-	}
-	for _, m := range loaded.Motions {
-		if i := indexOfEntity(w.entities, m.Entity); i >= 0 {
-			w.adoptMover(w.entities[i], &m.Mover)
-		}
-	}
-	w.constructMovers()
+	moverBodies[w.game.movers].adopt(w, loaded)
 }
 
 // adoptMover takes e's record from the Mover bytes m an engine SAV wrote for
@@ -309,4 +351,14 @@ func (w *World) adoptMover(e Entity, m *[180]byte) {
 	cost := binary.LittleEndian.Uint16(m[0x72:])
 	joined := cost == 0 && w.stepCostWord(e, w.moverCell(e)) != 0
 	w.setMover(heldMover(e, m, joined))
+}
+
+// constructBuiltMovers gives every actor that has no record the one the builder
+// gives it from its current state.
+func constructBuiltMovers(w *World) {
+	for _, e := range w.entities {
+		if w.motionFor(e.ID) == nil && w.moverFor(e.ID) == nil {
+			w.setMover(w.builtMover(e, false))
+		}
+	}
 }

@@ -98,8 +98,10 @@ type skillAwardProfile struct {
 	// raise: the test that raises a skill (skillRaises).
 	raise skillRaiseRule
 	// standingVictim: a blow pays only for a victim whose health was above
-	// zero before it; computerVictim: only for a computer player's victim.
-	standingVictim, computerVictim bool
+	// zero before it.
+	standingVictim bool
+	// victimPay: whose victim a blow pays for (victimPayRules).
+	victimPay victimPayRule
 	// ownedAttacker: an attacker with no owner is paid nothing for a victim
 	// whose health is not below zero.
 	ownedAttacker bool
@@ -125,8 +127,26 @@ var firstGameSkillAward = skillAwardProfile{victimRow: true}
 // R2-ENGINE-486, R2-ENGINE-488, R2-ENGINE-1156, R2-ENGINE-1157,
 // R2-ENGINE-1158).
 var secondGameSkillAward = skillAwardProfile{offMainDivisor: 8, freeSkill: 5, raise: raiseAtNextLevel,
-	standingVictim: true, computerVictim: true, ownedAttacker: true, spellNeedsMage: true, standingKiller: true,
+	standingVictim: true, victimPay: victimPaysComputer, ownedAttacker: true, spellNeedsMage: true, standingKiller: true,
 	victimRow: true, victimKinds: maxVictimKinds}
+
+// victimPayRule selects which victims a kill pays for.
+type victimPayRule uint8
+
+const (
+	victimPaysAny victimPayRule = iota
+	victimPaysComputer
+)
+
+// victimPayRow holds the refusal of a victimPayRule.
+type victimPayRow struct {
+	refuses func(w *World, t Entity) bool
+}
+
+var victimPayRules = [...]victimPayRow{
+	victimPaysAny:      {refuses: func(*World, Entity) bool { return false }},
+	victimPaysComputer: {refuses: func(w *World, t Entity) bool { return !w.computerControlledUnit(t) }},
+}
 
 // raisesSkill reports whether experience xp raises a skill whose trained
 // level is level.

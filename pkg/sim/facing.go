@@ -214,7 +214,7 @@ func (w *World) turnTo(i int, h heading) bool {
 
 func (w *World) stepIdleTurn(i int) {
 	e := &w.entities[i]
-	if w.game.orders.lookAround && e.Turning() {
+	if lookAroundHolds[w.game.orders.lookAround](e) {
 		return
 	}
 	pending := e.EscortTurnPending

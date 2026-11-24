@@ -140,7 +140,7 @@ func TestSlotTableSurvivesAnImportThatBuiltPlanes(t *testing.T) {
 	want := w.loadedSlotTable()
 	imported := *w
 	imported.savedCellPlanes = worlds["with planes"].savedCellPlanes
-	imported.game.nativeCellPlanes = true
+	imported.game.cellPlanes = cellPlanesNative
 	if err := imported.restoreCurrentPolicy(policy); err != nil {
 		t.Fatal(err)
 	}

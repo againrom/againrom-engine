@@ -76,10 +76,21 @@ func (w *World) AutoCast(player uint32) AutoCastSetting {
 			return s
 		}
 	}
-	if w.game.autoCastFullDefault {
-		return DefaultAutoCast
-	}
-	return DefaultAutoCast.Targets()
+	return autoCastDefaultBodies[w.game.autoCastDefault]()
+}
+
+// autoCastDefaultRule selects the setting a Player without a stored one reads.
+type autoCastDefaultRule uint8
+
+const (
+	autoCastDefaultTargets autoCastDefaultRule = iota
+	autoCastDefaultFull
+)
+
+// autoCastDefaultBodies holds the default each autoCastDefaultRule reads.
+var autoCastDefaultBodies = [...]func() AutoCastSetting{
+	autoCastDefaultTargets: func() AutoCastSetting { return DefaultAutoCast.Targets() },
+	autoCastDefaultFull:    func() AutoCastSetting { return DefaultAutoCast },
 }
 
 // AutoCastStored reports whether the Player carries a stored setting.
@@ -132,9 +143,9 @@ type supportCastPolicy struct {
 	minimumMana  int32
 	requiresHeal bool
 	idleOnly     bool
-	// drawsOne: candidates are Heal's area list, and support past Heal goes
-	// to one drawn candidate (AI-785, AI-786, R2-ENGINE-1244).
-	drawsOne bool
+	// pick: candidates are Heal's area list, and support past Heal goes to one
+	// drawn candidate (AI-785, AI-786, R2-ENGINE-1244).
+	pick supportPickRule
 	// hold: the idle-only policy's hold (supportHolds).
 	hold supportHoldRule
 	// yieldsToWithdrawal: a unit whose withdrawal step walks or casts it now
@@ -217,10 +228,8 @@ func (w *World) supportCast(ci int) {
 	if policy.shield == shieldBeforeCandidates && w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
 		return
 	}
-	candidates := w.autoCastCandidates(ci, s, policy.drawsOne && healRule.HealHostile)
-	if policy.drawsOne {
-		candidates = w.areaListOrder(ci, candidates, int64(healRule.MaxRange))
-	}
+	pick := supportPicks[policy.pick]
+	candidates := pick.candidates(w, ci, s, healRule)
 	for _, ti := range candidates {
 		if t := w.entities[ti]; t.MaxHP > 0 && t.HP/t.MaxHP < 1 {
 			if w.autoCastAt(ci, ti, heal, false) {
@@ -229,29 +238,60 @@ func (w *World) supportCast(ci int) {
 			break
 		}
 	}
-	if policy.drawsOne {
-		if policy.shield == shieldAfterCandidateHeal && w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
-			return
-		}
-		w.supportDraw(ci, candidates, policy)
-		return
-	}
-	for _, l := range autoCastTiers[1:] {
-		if s&l.bit == 0 || w.entities[ci].Mana < l.mana {
-			return
-		}
-		for _, ti := range candidates {
-			for _, arm := range l.arms {
-				if spellArmOf(arm).autoCast.role == autoCastHider && (ti == ci || w.autoCastNeutral(ci, ti)) {
-					continue
-				}
-				if w.autoCastAt(ci, ti, arm, true) {
+	pick.finish(w, ci, s, candidates, policy)
+}
+
+// supportPickRule selects how support past Heal chooses its target: every
+// candidate in turn, or one drawn candidate.
+type supportPickRule uint8
+
+const (
+	supportPicksAll supportPickRule = iota
+	supportPicksDrawn
+)
+
+// supportPick holds a supportPickRule's candidate list and its cast past Heal.
+type supportPick struct {
+	candidates func(w *World, ci int, s AutoCastSetting, heal SpellRule) []int
+	finish     func(w *World, ci int, s AutoCastSetting, candidates []int, policy supportCastPolicy)
+}
+
+// supportPicks holds the body each supportPickRule runs.
+var supportPicks = [...]supportPick{
+	supportPicksAll: {
+		candidates: func(w *World, ci int, s AutoCastSetting, _ SpellRule) []int {
+			return w.autoCastCandidates(ci, s, false)
+		},
+		finish: func(w *World, ci int, s AutoCastSetting, candidates []int, _ supportCastPolicy) {
+			for _, l := range autoCastTiers[1:] {
+				if s&l.bit == 0 || w.entities[ci].Mana < l.mana {
 					return
 				}
+				for _, ti := range candidates {
+					for _, arm := range l.arms {
+						if spellArmOf(arm).autoCast.role == autoCastHider && (ti == ci || w.autoCastNeutral(ci, ti)) {
+							continue
+						}
+						if w.autoCastAt(ci, ti, arm, true) {
+							return
+						}
+					}
+				}
 			}
-		}
-	}
-	w.autoCastAt(ci, ci, autoCastRoleArm(autoCastHider), true)
+			w.autoCastAt(ci, ci, autoCastRoleArm(autoCastHider), true)
+		},
+	},
+	supportPicksDrawn: {
+		candidates: func(w *World, ci int, s AutoCastSetting, heal SpellRule) []int {
+			return w.areaListOrder(ci, w.autoCastCandidates(ci, s, heal.HealHostile), int64(heal.MaxRange))
+		},
+		finish: func(w *World, ci int, _ AutoCastSetting, candidates []int, policy supportCastPolicy) {
+			if policy.shield == shieldAfterCandidateHeal && w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
+				return
+			}
+			w.supportDraw(ci, candidates, policy)
+		},
+	},
 }
 
 // autoCastAt attempts arm on the actor at ti. A buff whose effect stands on

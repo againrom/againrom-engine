@@ -74,7 +74,7 @@ var WorldGameAllowed = map[string]map[string]string{
 	},
 	worldGameSpellRow: {
 		"pkg/sim/secondspell.go#AssignSecondGameArms": "the one writer: marks each row of a second-game table where the table is loaded or decoded",
-		"pkg/sim/spell.go#ordinaryEffectPayload":      "row format: a second-game Drain Life row rolls its own draw (R2-ENGINE-026)",
+		"pkg/sim/spell.go#drainRuleOf":                "row format: a second-game Drain Life row rolls its own draw (R2-ENGINE-026)",
 		"pkg/sim/spell.go#applySpellDamage":           "row format: a second-game row rolls its own damage draw",
 		"pkg/sim/spell.go#applySpellHealing":          "row format: a second-game row rolls its own heal draw",
 		"pkg/sim/spellarms.go#poisonPointMagnitude":   "row format: a second-game row scales its own poison magnitude",

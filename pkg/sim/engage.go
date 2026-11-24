@@ -782,14 +782,31 @@ func (w *World) preferenceWithheld(m, c *Entity, order uint8) bool {
 	if order == orderStandGround && w.game.orders.standGroundScore {
 		return false
 	}
-	gate := c
-	switch {
-	case w.game.memberScoreGate:
-		gate = m
-	case order == orderStandGround:
+	gate := scoreGateBodies[w.game.scoreGate](m, c, order)
+	if gate == nil {
 		return false
 	}
 	return footprintSide(gate.TokenSize) >= 2 || gate.Mind < scoreMindFloor
+}
+
+// scoreGateRule selects the unit a pair's preference modifiers test.
+type scoreGateRule uint8
+
+const (
+	scoreGateCandidate scoreGateRule = iota
+	scoreGateMember
+)
+
+// scoreGateBodies holds the unit each scoreGateRule tests; nil withholds
+// the modifiers.
+var scoreGateBodies = [...]func(m, c *Entity, order uint8) *Entity{
+	scoreGateCandidate: func(_, c *Entity, order uint8) *Entity {
+		if order == orderStandGround {
+			return nil
+		}
+		return c
+	},
+	scoreGateMember: func(m, _ *Entity, _ uint8) *Entity { return m },
 }
 
 // cellOf is e's cell. It is one function so that "where is this unit" cannot come

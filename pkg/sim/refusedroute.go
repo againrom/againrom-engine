@@ -61,8 +61,8 @@ func (w *World) answerRefusedRoute(i int, r refusedRoute) {
 	a := refusedAnswers[r]
 	e := &w.entities[i]
 	phase, countdown := e.AttackPhase, e.AttackCountdown
-	if o := w.savedOrder(e.ID); o != nil && w.game.orders.repickEmptyRoute {
-		o.Raw[8] = 0
+	if o := w.savedOrder(e.ID); o != nil {
+		emptyRouteRules[w.game.orders.emptyRoute].clearPick(o)
 	}
 	victim := w.reacquisitionVictim(i)
 	if victim >= 0 && w.engageRefused(i, true) {
@@ -74,7 +74,7 @@ func (w *World) answerRefusedRoute(i int, r refusedRoute) {
 		}
 		return
 	}
-	if victim < 0 || !w.game.orders.repickEmptyRoute && w.suppressedAcquirer(*e) {
+	if victim < 0 || emptyRouteRules[w.game.orders.emptyRoute].suppresses(w, *e) {
 		w.answerRefusedNone(i, a.none)
 		return
 	}
@@ -104,6 +104,12 @@ type emptyRouteRow struct {
 	walkArm        func(w *World, i int) walkArm
 	reacquireReach func(w *World, i int) int64
 	answerNone     func(w *World, i int, none refusedNone)
+	// clearPick clears a saved order's pick byte when the walk is refused.
+	clearPick func(o *SavedActorOrder)
+	// suppresses reports whether a suppressed acquirer takes the none answer.
+	suppresses func(w *World, e Entity) bool
+	// pickOrder writes the reach into a saved order after an idle pick.
+	pickOrder func(w *World, i int, o *SavedActorOrder)
 }
 
 var emptyRouteRules = [...]emptyRouteRow{
@@ -111,11 +117,20 @@ var emptyRouteRules = [...]emptyRouteRow{
 		walkArm:        (*World).legacyRefusedWalkArm,
 		reacquireReach: (*World).entityReach,
 		answerNone:     (*World).answerRefusedNoneByRow,
+		clearPick:      func(*SavedActorOrder) {},
+		suppresses:     (*World).suppressedAcquirer,
+		pickOrder:      func(*World, int, *SavedActorOrder) {},
 	},
 	emptyRouteRepicks: {
 		walkArm:        (*World).repickRefusedWalkArm,
 		reacquireReach: (*World).attackRange,
 		answerNone:     (*World).answerRefusedNoneRepick,
+		clearPick:      func(o *SavedActorOrder) { o.Raw[8] = 0 },
+		suppresses:     func(*World, Entity) bool { return false },
+		pickOrder: func(w *World, i int, o *SavedActorOrder) {
+			o.Raw[0x14] = uint8(w.attackRange(i))
+			w.syncCurrentActorOrder(i)
+		},
 	},
 }
 

@@ -56,7 +56,7 @@ func (w *World) savedEngage(i int, o *SavedActorOrder) {
 		o.Raw[8], o.Raw[0x14] = 5, uint8(e.Reach)
 		return
 	}
-	if !ok && w.game.groupRoute.endsTargetlessEngage && w.engageHasNothingLeft(i) {
+	if !ok && targetlessRules[w.game.groupRoute.targetless].ends(w, i) {
 		w.stopTargetOrder(i)
 		return
 	}

@@ -163,7 +163,7 @@ func (w *World) savedAcquire(i int, o *SavedActorOrder) {
 		if e.AcquirePursuit && w.game.orders.idleRanking == targetIdleDistance {
 			*o = ProjectActorAcquireOrder(e, *o)
 		}
-	case !w.game.groupRoute.noHumanHealArm && w.playerControlledUnit(e):
+	case humanArmRules[w.game.groupRoute.humanArm].zeroes(w, e):
 		o.Raw[8] = 0
 	default:
 		o.Raw[8] = 0xb
@@ -213,7 +213,7 @@ func (w *World) savedGroupMove(i int, o *SavedActorOrder, move bool) {
 		w.savedAcquire(i, o)
 		return
 	}
-	if e.X == int32(o.Raw[10]) && e.Y == int32(o.Raw[11]) && e.Transit == 0 && (!w.game.orders.liveAdmission || !w.motionActive(e.ID)) && binary.LittleEndian.Uint32(o.Raw[0x50:]) == 0 {
+	if e.X == int32(o.Raw[10]) && e.Y == int32(o.Raw[11]) && e.Transit == 0 && attackReachRules[w.game.orders.attackReach].parked(w, e) && binary.LittleEndian.Uint32(o.Raw[0x50:]) == 0 {
 		w.stopWalkOrder(i, true)
 	} else {
 		w.claimLatch(i, o)

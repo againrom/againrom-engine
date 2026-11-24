@@ -61,9 +61,7 @@ func (w *World) requestCellCast(i int, cx, cy int32) {
 		return
 	}
 	b := w.cellTails[k].Bytes
-	if w.game.cellEventRelocates && b[0] == cellEventRelocate {
-		w.casts = append(w.casts, scriptCast{FromX: uint8(cx), FromY: uint8(cy), ToX: b[4], ToY: b[5],
-			Spell: b[0], Power: uint16(b[1]), Target: e.ID, AtUnit: true})
+	if cellEventBodies[w.game.cellEvent].entry(w, e, cx, cy, b) {
 		return
 	}
 	if b[0] == 0 || b[0] == 26 {
@@ -84,7 +82,46 @@ const cellEventRelocate = 0x17
 // relocatesOnCellEvent says whether a pending record is that event. A unit
 // cast an instant authors never holds a target cell, so the two cannot meet.
 func (w *World) relocatesOnCellEvent(c scriptCast) bool {
-	return w.game.cellEventRelocates && c.AtUnit && c.Spell == cellEventRelocate && c.ToX|c.ToY != 0
+	return cellEventBodies[w.game.cellEvent].relocates(c)
+}
+
+// cellEventRule selects whether cell event 0x17 moves the entering unit.
+type cellEventRule uint8
+
+const (
+	cellEventIgnored cellEventRule = iota
+	cellEventRelocating
+)
+
+// cellEventBody holds what a cellEventRule does with the event: queue it on
+// entry, recognise its pending record, and repair an older save's tail.
+type cellEventBody struct {
+	entry     func(w *World, e Entity, cx, cy int32, b [cellTailLen]byte) bool
+	relocates func(c scriptCast) bool
+	repair    func(w *World)
+}
+
+// cellEventBodies holds the body each cellEventRule runs.
+var cellEventBodies = [...]cellEventBody{
+	cellEventIgnored: {
+		entry:     func(*World, Entity, int32, int32, [cellTailLen]byte) bool { return false },
+		relocates: func(scriptCast) bool { return false },
+		repair:    func(*World) {},
+	},
+	cellEventRelocating: {
+		entry: func(w *World, e Entity, cx, cy int32, b [cellTailLen]byte) bool {
+			if b[0] != cellEventRelocate {
+				return false
+			}
+			w.casts = append(w.casts, scriptCast{FromX: uint8(cx), FromY: uint8(cy), ToX: b[4], ToY: b[5],
+				Spell: b[0], Power: uint16(b[1]), Target: e.ID, AtUnit: true})
+			return true
+		},
+		relocates: func(c scriptCast) bool {
+			return c.AtUnit && c.Spell == cellEventRelocate && c.ToX|c.ToY != 0
+		},
+		repair: (*World).repairRelocatingCellEvents,
+	},
 }
 
 // relocateOnCellEvent moves the unit that entered the event's cell, held in

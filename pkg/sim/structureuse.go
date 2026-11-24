@@ -198,8 +198,7 @@ func (w *World) applyStructureUse(i, si int) {
 		w.runStructureAction(slot)
 		return
 	}
-	if (s.Kind == 34 || s.Kind == 35) && !w.game.nativeShopUse {
-		w.castObservation.recordShopUse(w.entities[i].ID, s.ID)
+	if (s.Kind == 34 || s.Kind == 35) && shopUseBodies[w.game.shopUse](w, i, s) {
 		return
 	}
 	if switchKind(s.Kind) {
@@ -280,4 +279,22 @@ func (w *World) RestoreStructureUseMetadata(fresh []Structure) {
 			w.structures[i].UseAmount = s.UseAmount
 		}
 	}
+}
+
+// shopUseRule selects what a shop structure's use does.
+type shopUseRule uint8
+
+const (
+	shopUseObserved shopUseRule = iota
+	shopUseOrdinary
+)
+
+// shopUseBodies holds each shopUseRule's answer to a shop use: true when the
+// use is spent, false when it takes the ordinary use.
+var shopUseBodies = [...]func(w *World, i int, s Structure) bool{
+	shopUseObserved: func(w *World, i int, s Structure) bool {
+		w.castObservation.recordShopUse(w.entities[i].ID, s.ID)
+		return true
+	},
+	shopUseOrdinary: func(*World, int, Structure) bool { return false },
 }

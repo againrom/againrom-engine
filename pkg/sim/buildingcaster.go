@@ -24,22 +24,46 @@ func StructureCellWord(s Structure) uint16 { return cellKey(s.Col, s.Row) }
 // game with its script, so a list declared before that waits outside the byte
 // form; a first-game World drops it and its digest does not move.
 func (w *World) DeclareBuildingCasters(list []BuildingCaster) {
-	if w.game.buildingCasters {
-		w.buildingCasters = append([]BuildingCaster(nil), list...)
-		return
-	}
-	w.authoredBuildingCasters = append([]BuildingCaster(nil), list...)
+	buildingCasterBodies[w.game.buildingCasters].declare(w, list)
 }
 
 // settleBuildingCasters applies the profile the script just gave the world.
 func (w *World) settleBuildingCasters() {
-	if !w.game.buildingCasters {
-		w.buildingCasters, w.authoredBuildingCasters = nil, nil
-		return
-	}
-	if w.authoredBuildingCasters != nil {
-		w.buildingCasters, w.authoredBuildingCasters = w.authoredBuildingCasters, nil
-	}
+	buildingCasterBodies[w.game.buildingCasters].settle(w)
+}
+
+// buildingCasterRule selects whether a map's caster records build casters.
+type buildingCasterRule uint8
+
+const (
+	buildingCastersDropped buildingCasterRule = iota
+	buildingCastersBuilt
+)
+
+// buildingCasterBody holds how a rule declares and settles the caster list.
+type buildingCasterBody struct {
+	declare func(w *World, list []BuildingCaster)
+	settle  func(w *World)
+}
+
+// buildingCasterBodies holds the body each buildingCasterRule runs.
+var buildingCasterBodies = [...]buildingCasterBody{
+	buildingCastersDropped: {
+		declare: func(w *World, list []BuildingCaster) {
+			w.authoredBuildingCasters = append([]BuildingCaster(nil), list...)
+		},
+		settle: func(w *World) { w.buildingCasters, w.authoredBuildingCasters = nil, nil },
+	},
+	buildingCastersBuilt: {
+		declare: func(w *World, list []BuildingCaster) {
+			w.buildingCasters = append([]BuildingCaster(nil), list...)
+		},
+		settle: func(w *World) {
+			if w.authoredBuildingCasters != nil {
+				w.buildingCasters, w.authoredBuildingCasters = w.authoredBuildingCasters, nil
+			}
+		},
+	},
 }
 
 // BuildingCasters returns the world's caster list as a fresh slice.
@@ -48,7 +72,7 @@ func (w *World) BuildingCasters() []BuildingCaster {
 }
 
 // BuildsCasters reports whether this world's game has building casters.
-func (w *World) BuildsCasters() bool { return w.game.buildingCasters }
+func (w *World) BuildsCasters() bool { return w.game.buildingCasters == buildingCastersBuilt }
 
 // buildingCasterExcludedEffect is the effect whose bit 0x1000 of a unit's
 // active-effect word keeps it from a caster's survivors (R2-ENGINE-1008,

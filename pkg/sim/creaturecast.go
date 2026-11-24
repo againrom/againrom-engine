@@ -24,17 +24,36 @@ type creatureAimProfile struct {
 	aims []creatureAim
 	// scanBeyond: a scan aim casts only when caster and victim stand more
 	// than this many cells apart (R2-ENGINE-651, R2-ENGINE-654).
-	scanBeyond      int64
-	absentSkipsDraw bool
-	scanMasks       [3]byte
-	stepOffsets     *[8][2]int32
-	stepEdge        stepEdgeRule
+	scanBeyond  int64
+	absent      absentVictimRule
+	scanMasks   [3]byte
+	stepOffsets *[8][2]int32
+	stepEdge    stepEdgeRule
+}
+
+// absentVictimRule selects whether a victim off the map skips the creature
+// spell draw.
+type absentVictimRule uint8
+
+const (
+	absentVictimDraws absentVictimRule = iota
+	absentVictimSkips
+)
+
+// absentVictimRow holds the skip test of an absentVictimRule.
+type absentVictimRow struct {
+	skipsDraw func(offMap bool) bool
+}
+
+var absentVictimRules = [...]absentVictimRow{
+	absentVictimDraws: {skipsDraw: func(bool) bool { return false }},
+	absentVictimSkips: {skipsDraw: func(offMap bool) bool { return offMap }},
 }
 
 var firstGameCreatureAim = creatureAimProfile{}
 
 var secondGameCreatureAim = creatureAimProfile{aims: secondCreatureAims[:], scanBeyond: 2,
-	absentSkipsDraw: true, scanMasks: [3]byte{0x41, 0x44, 0x82}, stepOffsets: &stepOf, stepEdge: stepPacksKey}
+	absent: absentVictimSkips, scanMasks: [3]byte{0x41, 0x44, 0x82}, stepOffsets: &stepOf, stepEdge: stepPacksKey}
 
 func (p *creatureAimProfile) byArm() bool { return p.aims == nil }
 
@@ -190,7 +209,7 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	if !e.hasCreatureSpells() {
 		return w.mageEngageCast(i, victim)
 	}
-	if vi := indexOfEntity(w.entities, victim); vi >= 0 && w.entities[vi].OffMap && w.game.creatureAim.absentSkipsDraw {
+	if vi := indexOfEntity(w.entities, victim); vi >= 0 && absentVictimRules[w.game.creatureAim.absent].skipsDraw(w.entities[vi].OffMap) {
 		return true
 	}
 	w.engageDrew = append(w.engageDrew, e.ID)

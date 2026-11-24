@@ -193,12 +193,10 @@ func TestRuleRowsAgreeWithTheirGates(t *testing.T) {
 		p := newGameProfile(d)
 		second := d == ScriptROM2
 		for name, ok := range map[string]bool{
-			"cellTail":    (p.cellTail == cellTailTargeted) == p.cellEventRelocates,
-			"activity":    (p.groupActivity == groupActivityByMask) == p.activityMask,
-			"attackReach": (p.orders.attackReach == attackReachLive) == p.orders.liveAdmission,
-			"emptyRoute":  (p.orders.emptyRoute == emptyRouteRepicks) == p.orders.repickEmptyRoute,
-			"tickClock":   (p.tickClock == nativeTickClock) == second,
-			"decayWalk":   (p.decayWalk == nativeDecayWalk) == second,
+			"cellTail":  (p.cellTail == cellTailTargeted) == (p.cellEvent == cellEventRelocating),
+			"activity":  (p.groupActivity == groupActivityByMask) == p.activityMask,
+			"tickClock": (p.tickClock == nativeTickClock) == second,
+			"decayWalk": (p.decayWalk == nativeDecayWalk) == second,
 		} {
 			if !ok {
 				t.Errorf("dialect %d: %s row disagrees with its gate", d, name)

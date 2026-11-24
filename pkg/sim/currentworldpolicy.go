@@ -238,7 +238,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 	}
 	// A first-game World keeps the cell planes its LOAD import built even when
 	// an older engine SAV did not mark them: every first-game World holds them.
-	dropPlanes := !p.PlaneCarrier && (w.game.nativeCellPlanes || w.savedCellPlanes == nil)
+	dropPlanes := !p.PlaneCarrier && cellPlaneBodies[w.game.cellPlanes](w)
 	// The slot table is built before the import's planes go: a World without
 	// planes holds its slots from the rows the import left.
 	if p.SlotCarrier && (w.savedCellPlanes == nil || dropPlanes) {
@@ -323,4 +323,19 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 	w.effectOrder = slices.DeleteFunc(order, func(r WorldEffectRef) bool { return !active[r] })
 	w.compactEffectOrder()
 	return nil
+}
+
+// cellPlaneRule selects when a LOAD without the plane mark drops the planes.
+type cellPlaneRule uint8
+
+const (
+	cellPlanesKeptWhenHeld cellPlaneRule = iota
+	cellPlanesNative
+)
+
+// cellPlaneBodies holds whether each cellPlaneRule drops the planes a LOAD
+// imported without the plane mark.
+var cellPlaneBodies = [...]func(w *World) bool{
+	cellPlanesKeptWhenHeld: func(w *World) bool { return w.savedCellPlanes == nil },
+	cellPlanesNative:       func(*World) bool { return true },
 }

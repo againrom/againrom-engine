@@ -9,7 +9,7 @@ func TestGroupRouteProfilePerGame(t *testing.T) {
 		rules  groupRouteProfile
 	}{
 		{"first", false, groupRouteProfile{}},
-		{"second", true, groupRouteProfile{guardAt18: true, constructsForOlderRegistry: true, noHumanHealArm: true, recordsBlows: true, stampWindow: true, recentBlow: true, endsTargetlessEngage: true, belowFloorAt18: 20}},
+		{"second", true, groupRouteProfile{guardRoute: guardRouteAt18, constructsForOlderRegistry: true, humanArm: humanArmNone, recordsBlows: true, stampWindow: true, recentBlow: true, targetless: targetlessEnds, belowFloorAt18: 20}},
 	} {
 		w := guardRouteWorld(t, tc.second, 0)
 		for b := 0; b < 256; b++ {
