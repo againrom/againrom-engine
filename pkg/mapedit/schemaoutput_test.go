@@ -14,7 +14,7 @@ import (
 // editorOutputDigest hashes every byte image, field list and error in the
 // scripted editor session, including the conditionless drop trigger's
 // nonzero first left ID.
-const editorOutputDigest = "6e9083f1aa12dcc863c1782b4aeca95c8b7e749605d5ca11be01bd7520049259"
+const editorOutputDigest = "c144da7687a1a703eda4f66843445529956b6b691c77da8cb1a0ba7ef9460adf"
 
 func TestEditorOutputKeepsItsBytes(t *testing.T) {
 	e, err := mapedit.NewMap(alm.DefaultNewMap())

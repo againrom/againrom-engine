@@ -33,24 +33,7 @@ type newRecordKind struct {
 
 var newRecordKinds = map[ui.RecordKind]newRecordKind{
 	ui.KindEnchantment: {edit: ui.KindEnchantment, required: []string{"template"}, optional: []string{"link"}, spatial: true,
-		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
-			v := recordValue(r, "template")
-			kind, ok := spellTemplateKind(s.batch, v)
-			if !ok {
-				return -1, wordErr("editor.err.spelltemplate")
-			}
-			if err := s.admitCell(s.batch, r.Cell, "spell cell", ui.KindEnchantment, admitAdd); err != nil {
-				return -1, err
-			}
-			link := recordValue(r, "link")
-			if link < 0 || link > math.MaxUint32 {
-				return -1, wordErr("editor.err.objectid")
-			}
-			if err := spellObjectAllowed(s.batch, kind, uint32(link)); err != nil {
-				return -1, err
-			}
-			return s.batch.AddSpellFrom(int(v), uint32(r.Cell.X), uint32(r.Cell.Y), uint32(link))
-		}},
+		add: (*mapInspectionEdits).addCellSpell},
 	ui.KindUnit: {edit: ui.KindUnit, required: []string{"identity"}, spatial: true,
 		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			_, err := s.AddUnitIdentity(r.Cell, recordValue(r, "identity"))
@@ -83,6 +66,28 @@ var newRecordKinds = map[ui.RecordKind]newRecordKind{
 	ui.KindTrigger:   {edit: ui.KindTrigger, add: addScriptOf(ui.KindTrigger)},
 	ui.KindAction:    {edit: ui.KindAction, add: addScriptOf(ui.KindAction)},
 	ui.KindCondition: {edit: ui.KindCondition, add: addScriptOf(ui.KindCondition)},
+}
+
+// addCellSpell is the add call of a new type-9 record on s.batch: a copy of
+// the record or the constructor r's template names, on r's cell, bound to
+// r's link.
+func (s *mapInspectionEdits) addCellSpell(r ui.InspectionNewRecord) (int, error) {
+	v := recordValue(r, "template")
+	kind, ok := spellTemplateKind(s.batch, v)
+	if !ok {
+		return -1, wordErr("editor.err.spelltemplate")
+	}
+	if err := s.admitCell(s.batch, r.Cell, "spell cell", ui.KindEnchantment, admitAdd); err != nil {
+		return -1, err
+	}
+	link := recordValue(r, "link")
+	if link < 0 || link > math.MaxUint32 {
+		return -1, wordErr("editor.err.objectid")
+	}
+	if err := spellObjectAllowed(s.batch, kind, uint32(link)); err != nil {
+		return -1, err
+	}
+	return s.batch.AddSpellFrom(int(v), uint32(r.Cell.X), uint32(r.Cell.Y), uint32(link))
 }
 
 func addScriptOf(kind ui.RecordKind) func(*mapInspectionEdits, ui.InspectionNewRecord) (int, error) {

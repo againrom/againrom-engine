@@ -216,9 +216,12 @@ type UnitTail struct {
 	Speed, Facing, Sight uint8 // +0x30, +0x33, +0x34
 	// HealthMax is Againrom's maximum health at +0x28, which every shipped
 	// record holds at 0 (ALM-TAILVER-084); 0 keeps the derived maximum.
+	// ManaMax is Againrom's maximum mana at +0x26, which every shipped
+	// record holds at 0xFFFF (ALM-TAILU16-082); a word that is not above 0
+	// keeps the derived maximum and reads as 0.
 	// NoLoot is Againrom's flag bit 8: the unit leaves nothing at death.
-	HealthMax uint16
-	NoLoot    bool
+	HealthMax, ManaMax uint16
+	NoLoot             bool
 }
 
 // FacingDirections is how many directions an authored Facing names.
@@ -235,6 +238,7 @@ func decodeUnitTail(rec []byte) UnitTail {
 		SkipGear: binary.LittleEndian.Uint32(rec[UnitFlags:])&UnitFlagSkipGear != 0,
 		Speed:    rec[UnitSpeed], Facing: rec[UnitFacing], Sight: rec[UnitSight],
 		HealthMax: binary.LittleEndian.Uint16(rec[UnitHealthMax:]),
+		ManaMax:   uint16(max(0, int16(binary.LittleEndian.Uint16(rec[UnitManaMax:])))),
 		NoLoot:    binary.LittleEndian.Uint32(rec[UnitFlags:])&UnitFlagNoLoot != 0}
 	copy(t.Skill[:], rec[UnitSkills:])
 	copy(t.Protection[:], rec[UnitProtections:])

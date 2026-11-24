@@ -94,6 +94,7 @@ const (
 	UnitLoot        = 0x18 // 1-based loot record index, 0 for none
 	UnitHP          = 0x20
 	UnitMana        = 0x24
+	UnitManaMax     = 0x26 // an Againrom override, unread by the original (ALM-UNITREAD-227)
 	UnitHealthMax   = 0x28 // an Againrom override, unread by the original (ALM-UNITREAD-227)
 	UnitBody        = 0x2c
 	UnitMind        = 0x2d

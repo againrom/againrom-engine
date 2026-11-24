@@ -38,6 +38,41 @@ func (m *Map) CellBindings() ([]CellBinding, error) {
 	return out, nil
 }
 
+// sackBound is the set of type-9 record indexes a loot element links to: the
+// sack binding the building and unit arms both exclude.
+func (m *Map) sackBound() map[uint32]bool {
+	bound := map[uint32]bool{}
+	if loot, err := m.Loot(); err == nil {
+		for _, r := range loot.Records {
+			for _, e := range r.Elements {
+				if e.TileMarkerIndex != 0 {
+					bound[e.TileMarkerIndex-1] = true
+				}
+			}
+		}
+	}
+	return bound
+}
+
+// UnitSpellRecords selects the records of mode mask 8 with no sack binding
+// whose key is the unit id (ALM-T9CONTROL-175, ALM-T9ACTOR-176). It needs no
+// nonzero cell. The result maps the record's low spell byte to the ascending
+// indexes of Enchantments that give the unit that spell.
+func (m *Map) UnitSpellRecords(id uint16) map[uint16][]int {
+	out := map[uint16][]int{}
+	if m == nil {
+		return out
+	}
+	bound := m.sackBound()
+	for i, r := range m.Enchantments {
+		if r.A&8 != 0 && !bound[uint32(i)] && uint32(r.B)|uint32(r.C)<<16 == uint32(id) {
+			spell := uint16(r.SpellRaw & 0xff)
+			out[spell] = append(out[spell], i)
+		}
+	}
+	return out
+}
+
 // BuildingCasterRecord is the mode-4 arm of a type-9 record: a caster bound to
 // the building its Key names (R2-ENGINE-1006, R2-ENGINE-1009).
 type BuildingCasterRecord struct {
@@ -55,16 +90,7 @@ func (m *Map) BuildingCasters() []BuildingCasterRecord {
 	if m == nil {
 		return nil
 	}
-	bound := map[uint32]bool{}
-	if loot, err := m.Loot(); err == nil {
-		for _, r := range loot.Records {
-			for _, e := range r.Elements {
-				if e.TileMarkerIndex != 0 {
-					bound[e.TileMarkerIndex-1] = true
-				}
-			}
-		}
-	}
+	bound := m.sackBound()
 	var out []BuildingCasterRecord
 	for i, r := range m.Enchantments {
 		if r.A&4 == 0 || r.X == 0 && r.Y == 0 || bound[uint32(i)] {

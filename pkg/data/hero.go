@@ -97,6 +97,8 @@ type Hero struct {
 	// AuthoredHealthMax is a map author's maximum health, which replaces
 	// the derived one with its terms; 0 derives it.
 	AuthoredHealthMax int32 `json:",omitempty"`
+	// AuthoredManaMax does the same for maximum mana.
+	AuthoredManaMax int32 `json:",omitempty"`
 }
 
 // NewHero is a hero built from a point spread and the one slot he trained: the

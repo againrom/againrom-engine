@@ -49,7 +49,7 @@ func (x *MapInspector) spellsLook() *spellsLook {
 		return x.spellArt
 	}
 	x.spellArt = &spellsLook{}
-	if a := x.archives; a != nil {
+	if a := x.archives; a != nil && a.Containers != nil {
 		x.spellArt.art, _ = LoadBottomHUDArt(a.artSource(), ScreensDescription(a.Base.Profile))
 		x.spellArt.atlas = loadSpellAtlas(a.Containers)
 		x.spellArt.names = LoadTextTable(a.Containers, SpellNamesTextPath, InstallTextCode(a.Containers, a.Game().Edition()))
@@ -148,28 +148,38 @@ func (s *mapInspectionEdits) spellsFields() []ui.InspectionField {
 			{From: ui.DropGrid, To: ui.DropBook, Word: "add"},
 			{From: ui.DropBook, To: ui.DropGrid, Word: "remove"},
 		}}
-	book.Cells = make([]ui.SpellEntry, len(rows))
+	book.Cells, book.Tips = x.bookCells(g, rows, ground, own)
+	for _, id := range rows {
+		if id != 0 && rules.SpellProfile(g)[id-1].Name == s.spell {
+			book.Chosen = uint32(id)
+		}
+	}
+	out = append(out, ui.InspectionField{Key: spellsBookKey, Label: x.word("editor.spells.book"), Book: book})
+	return out
+}
+
+// bookCells are the cells of a book of game g whose cells hold rows, and
+// each cell's tip, as the editor draws a book: the game's name of each
+// spell, the icon ground and own give it, the tip naming a spell without a
+// picture, and an empty cell's tip. Each cell's spell is known.
+func (x *MapInspector) bookCells(g rules.SpellGame, rows, ground []uint16, own map[uint16]*image.RGBA) ([]ui.SpellEntry, []string) {
+	look := x.spellsLook()
+	cells, tips := make([]ui.SpellEntry, len(rows)), make([]string, len(rows))
 	for i, id := range rows {
 		if id == 0 {
-			book.Tips = append(book.Tips, x.inspectionUTF8(x.word("editor.spells.empty")))
+			tips[i] = x.inspectionUTF8(x.word("editor.spells.empty"))
 			continue
 		}
 		name := rules.SpellProfile(g)[id-1].Name
 		label := x.spellLabel(name, int(id))
-		icon := cutBookIcon(look.atlas, ground, own, id)
-		book.Cells[i] = ui.SpellEntry{ID: uint32(id), Name: label, Icon: icon}
-		tip := label
+		cells[i] = ui.SpellEntry{ID: uint32(id), Name: label, Icon: cutBookIcon(look.atlas, ground, own, id)}
+		tips[i] = label
 		if !slices.Contains(ground, id) && own[id] == nil {
-			tip = x.inspectionUTF8(fmt.Sprintf(x.word("editor.spells.nopicture"), strings.ReplaceAll(name, "_", " ")))
-		}
-		book.Tips = append(book.Tips, tip)
-		if name == s.spell {
-			book.Chosen = uint32(id)
+			tips[i] = x.inspectionUTF8(fmt.Sprintf(x.word("editor.spells.nopicture"), strings.ReplaceAll(name, "_", " ")))
 		}
 	}
-	markMovedSpells(book.Cells, rows, ground, own)
-	out = append(out, ui.InspectionField{Key: spellsBookKey, Label: x.word("editor.spells.book"), Book: book})
-	return out
+	markMovedSpells(cells, rows, ground, own)
+	return cells, tips
 }
 
 // spellsPageIcons are the book icons the rows d of the open project give,

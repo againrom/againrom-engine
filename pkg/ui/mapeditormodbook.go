@@ -10,7 +10,9 @@ import (
 // the game's book painter from Art: Cells in book order, Chosen's cell lit,
 // each cell's tip. Grow is the tip of the + at each end of the book, which
 // takes no press. Drops are the page's drag and drop rules: a spell leaves
-// the book by a drop on the grid.
+// the book by a drop on the grid. Toggle, on a record's book, makes each
+// cell a switch: a press sets the record's field Toggle plus the spell's
+// number to 1 on a cell drawn Unavailable, else to 0.
 type InspectionBook struct {
 	Art    *BottomHUDArt
 	Cells  []SpellEntry
@@ -18,6 +20,7 @@ type InspectionBook struct {
 	Tips   []string
 	Grow   string
 	Drops  []InspectionDrop
+	Toggle string
 }
 
 // DropPlace is where a drag starts or ends on a page with a book.

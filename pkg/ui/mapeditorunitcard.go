@@ -154,6 +154,7 @@ var unitCard = []cardInput{
 	{key: "hp", panel: PanelFieldHealth},
 	{key: "hpmax", panel: PanelFieldHealth, second: true},
 	{key: "mana", panel: PanelFieldManaCard},
+	{key: "manamax", panel: PanelFieldManaCard, second: true},
 	{key: "body", panel: PanelFieldBody},
 	{key: "reaction", panel: PanelFieldReaction},
 	{key: "mind", panel: PanelFieldMind},
@@ -344,7 +345,23 @@ func (e *MapEditor) cardRows(s *popupSpec, links *[]int, field func(i int, label
 		s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Value: value, Place: box,
 			Tip: fmt.Sprintf(e.word("editor.plain.fixed"), strings.TrimSpace(label+" "+value))}), append(*links, 0)
 	}
+	// The SPELLCASTER caption the card draws opens the unit's spell book: a
+	// row over the caption, the field that holds the book its field.
+	book := slices.IndexFunc(o.fields, func(f InspectionField) bool { return f.Book != nil })
+	caption := func(f PanelField, label string, x, y int) {
+		if f != PanelFieldSpellcaster || book < 0 || label == "" {
+			return
+		}
+		w, _ := font.Measure(label)
+		o.rowField[len(s.Rows)] = book
+		s.Rows, *links = append(s.Rows, popupRow{Kind: popupLink, Label: label, Tip: e.editorHostText(o.fields[book].Label),
+			Place: image.Rectangle{Min: image.Pt(x, y).Mul(cardScale), Max: image.Pt(x+w, y+lineH).Mul(cardScale)}}), append(*links, 0)
+	}
 	for _, r := range CharacterPanelReport(layout, font, *s.Card) {
+		caption(r.Field, r.Label, r.At.X+r.Indent, r.At.Y)
+		if r.Right {
+			caption(r.RightField, r.RightLabel, r.At.X+r.RightX, r.At.Y)
+		}
 		left := r.At.X + r.Indent
 		labelEnd := left
 		if r.Label != "" {

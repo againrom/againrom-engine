@@ -153,7 +153,7 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "spirit": "card", "reaction": "card",
 		"defence": "card", "absorption": "card", "skill.*": "card", "protection.*": "card",
 		"speed": "card", "sight": "card", "facing": "identity",
-		"hpmax": "card", "face": "", "sex": "", "gold": "", "noloot": "",
+		"hpmax": "card", "manamax": "card", "face": "", "sex": "", "gold": "", "noloot": "",
 		"gear": "", "wear#": "", "wearmaterial#": "", "weartier#": "", "wearrecipe#": "",
 		"carryadd": "", "carry#": "", "carryrecipe#": "", "carryrecipe#.*": "", "loot": "",
 	},
@@ -170,9 +170,10 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 }
 
 // unitHiddenField reports that f is one of the unit's fields neither view
-// shows: its dialogue speaker and its map keys.
+// shows as a row: its dialogue speaker, its map keys and its spell book,
+// which the card's SPELLCASTER caption opens.
 func unitHiddenField(kind ui.RecordKind, f ui.InspectionField) bool {
-	return kind == ui.KindUnit && slices.Contains([]string{"speaker", "keys"}, f.Key)
+	return kind == ui.KindUnit && slices.Contains([]string{"speaker", "keys", unitBookField}, f.Key)
 }
 
 // viewsShape is key with its first number as "#" and anything after a dot

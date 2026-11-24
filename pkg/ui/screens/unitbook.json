@@ -1,0 +1,23 @@
+{
+  "window": "unitbook",
+  "labelWidth": 1,
+  "rows": [
+    {
+      "each": "lines",
+      "rows": [
+        {
+          "kind": "text",
+          "value": "line"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "word": "",
+      "each": "notes",
+      "bind": "line"
+    }
+  ],
+  "noteInk": "warning"
+}

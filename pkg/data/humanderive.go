@@ -36,8 +36,8 @@ type HumanInput struct {
 	// replace the derived ones before the terms add; 0 derives each.
 	Speed, Sight int32
 	// HealthMax is an authored maximum health that replaces the derived one
-	// after the terms add; 0 derives it.
-	HealthMax int32
+	// after the terms add; 0 derives it. ManaMax does the same for mana.
+	HealthMax, ManaMax int32
 }
 
 // HumanOutput is the derived block. Sight is in 1/256 cell; its high byte is
@@ -148,6 +148,9 @@ func DeriveHuman(in HumanInput) (HumanOutput, error) {
 		out.HealthMax = in.HealthMax
 	}
 	out.ManaMax += t.ManaMax
+	if in.ManaMax != 0 {
+		out.ManaMax = in.ManaMax
+	}
 	out.Sight += t.Sight
 	out.Capacity += t.Capacity
 	out.ToHit = int32(int16(toHit + t.ToHit))

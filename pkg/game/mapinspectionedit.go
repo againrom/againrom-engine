@@ -463,6 +463,9 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		}
 		out = unitSections(out)
 	}
+	if k == mapedit.KindUnit {
+		out = append(out, s.unitBookFields(index)...)
+	}
 	return out
 }
 
@@ -749,6 +752,9 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	}
 	if k == mapedit.KindUnit && key == unitGoldField {
 		return setUnitGold(m, index, value)
+	}
+	if id, ok := unitBookSpell(key); k == mapedit.KindUnit && ok {
+		return s.setUnitBook(m, index, id, value)
 	}
 	if k == mapedit.KindUnit && s.row().unitOverrides && unitKeyFields[key] {
 		return false, wordErr("editor.err.unitkey", key)

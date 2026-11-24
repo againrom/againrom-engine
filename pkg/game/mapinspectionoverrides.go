@@ -12,9 +12,9 @@ import (
 
 // overrideKeys are the unit popup's override fields in window order: the
 // record's override block, which the spawner stores after the constructor
-// (UNIT-PLACE-034), and Againrom's maximum health (DIV-4945). Health and mana
-// are absent at -1, every other at 0.
-var overrideKeys = []string{"hp", "hpmax", "mana", "body", "mind", "spirit", "reaction", "defence", "absorption",
+// (UNIT-PLACE-034), and Againrom's maximum health (DIV-4945) and maximum mana
+// (DIV-5150). Health, mana and maximum mana are absent at -1, every other at 0.
+var overrideKeys = []string{"hp", "hpmax", "mana", "manamax", "body", "mind", "spirit", "reaction", "defence", "absorption",
 	"speed", "sight", "skill.blade", "skill.axe", "skill.bludgeon", "skill.pike", "skill.shooting",
 	"protection.fire", "protection.water", "protection.air", "protection.earth", "protection.astral"}
 
@@ -22,7 +22,7 @@ var overrideKeys = []string{"hp", "hpmax", "mana", "body", "mind", "spirit", "re
 // is no override.
 func overrideGroup(x *MapInspector, key string) string {
 	switch {
-	case key == "hp" || key == "hpmax" || key == "mana":
+	case key == "hp" || key == "hpmax" || key == "mana" || key == "manamax":
 		return x.word("editor.unit.group.vitals")
 	case key == "body" || key == "mind" || key == "spirit" || key == "reaction":
 		return x.word("editor.unit.group.attributes")
@@ -40,7 +40,7 @@ func overrideGroup(x *MapInspector, key string) string {
 
 // overrideAbsent is the value that leaves key's template value standing.
 func overrideAbsent(key string) int64 {
-	if key == "hp" || key == "mana" {
+	if key == "hp" || key == "mana" || key == "manamax" {
 		return -1
 	}
 	return 0
@@ -48,7 +48,7 @@ func overrideAbsent(key string) int64 {
 
 // overrideTemplate is the value the template actor v holds for key.
 func overrideTemplate(v unitValues, key string) (int64, bool) {
-	stats := map[string]int32{"hp": v.HP, "hpmax": v.MaxHP, "mana": v.Mana, "body": v.Body, "mind": v.Mind, "spirit": v.Spirit,
+	stats := map[string]int32{"hp": v.HP, "hpmax": v.MaxHP, "mana": v.Mana, "manamax": v.MaxMana, "body": v.Body, "mind": v.Mind, "spirit": v.Spirit,
 		"reaction": v.Reaction, "defence": v.Defence, "absorption": v.Absorption, "speed": v.Speed, "sight": v.Sight}
 	for i, name := range []string{"blade", "axe", "bludgeon", "pike", "shooting"} {
 		stats["skill."+name] = v.Skill[i+1]
@@ -69,6 +69,8 @@ func (x *MapInspector) overrideName(key string) string {
 		return x.word("editor.unit.override.hpmax")
 	case "mana":
 		return x.word("editor.unit.override.mana")
+	case "manamax":
+		return x.word("editor.unit.override.manamax")
 	case "body":
 		return x.word("editor.unit.override.body")
 	case "mind":

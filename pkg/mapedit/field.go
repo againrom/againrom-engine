@@ -92,6 +92,7 @@ var unitFields = []Field{
 	{Key: "sight", Label: "Sight (0 = template)", Offset: alm.UnitSight, Width: 1, Min: 0, Max: alm.SightCells},
 	{Key: "facing", Label: "Facing (0 = random)", Offset: alm.UnitFacing, Width: 1, Min: 0, Max: alm.FacingDirections, Check: CheckUnitFacing},
 	{Key: "hpmax", Label: "Maximum health (0 = derived)", Offset: alm.UnitHealthMax, Width: 2, Min: 0, Max: math.MaxInt16},
+	{Key: "manamax", Label: "Maximum mana (-1 or 0 = derived)", Offset: alm.UnitManaMax, Width: 2, Signed: true, Min: -1, Max: math.MaxInt16},
 	{Key: "noloot", Label: "Leave nothing at death", Offset: alm.UnitFlags, Width: 4, Min: 0, Max: 1, Bit: alm.UnitFlagNoLoot},
 	overrideByte("skill.blade", "Blade skill", alm.UnitSkills),
 	overrideByte("skill.axe", "Axe skill", alm.UnitSkills+1),

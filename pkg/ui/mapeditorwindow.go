@@ -107,6 +107,7 @@ type editorChrome struct {
 	saveErrors             int              // the errors a confirmed save is writing
 	saveThen               *leaveStep       // the step a Save As asked from the question runs once saved
 	objectBack             []objectPlace
+	unitBook               unitBookView // the spell book window over a unit window
 	messagePage            uint32
 	messageNew             InspectionMessageOwner // where a new message is named, while messagePage is NewMessagePage
 	// messageFor is the trigger action the dialog editor was opened for,
@@ -1419,6 +1420,10 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	if e.doc == nil || e.objectBlocked() || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return popupSpec{}, nil, false
 	}
+	if f, ok := e.unitBookShown(); ok {
+		s, links := e.unitBookSpec(f)
+		return s, links, true
+	}
 	if v, ok := e.scriptPopup(); ok {
 		s, links := e.scriptSpec(v)
 		e.objectBackButton(&s)
@@ -2610,6 +2615,10 @@ func (e *MapEditor) objectPress(p image.Point) {
 			return
 		}
 		e.objectRowPress(part, n)
+	case popupCanvasBox:
+		if f, ok := e.unitBookShown(); ok {
+			e.unitBookPress(f, n)
+		}
 	case popupSwitchButton:
 		e.switchView()
 	case popupButton:

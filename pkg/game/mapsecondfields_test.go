@@ -226,7 +226,7 @@ func TestSecondEditorFieldsAndCardsForUnitStructureAndSack(t *testing.T) {
 			t.Fatalf("unit field list invented %q", f.Key)
 		}
 	}
-	if !slices.Equal(u0Keys, []string{"owner", "definition", "hp", "hpmax", "flags", "group", "field08", "field0a", "field10", "field20"}) {
+	if !slices.Equal(u0Keys, []string{"owner", "definition", "hp", "hpmax", "flags", "group", "field08", "field0a", "field10", "field20", "spellbook"}) {
 		t.Fatalf("unit fields = %v", u0Keys)
 	}
 	if def, ok := fieldOfKey(u0Fields, "definition"); !ok || len(def.Choices) != 2 || def.Choices[0].Label != "600: Goblin_Pike" {

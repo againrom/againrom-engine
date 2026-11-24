@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
+	"slices"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
@@ -236,9 +237,10 @@ func structureBindingID(o alm.Object) uint32 {
 
 // objectSpells is the index of every cell spell that record index of kind k
 // carries with it when it is deleted, in file order: a structure's casting
-// records (kind 4) and a unit's spell entries (kind 8) whose id is the
-// object's, as the original editor's delete selects them (ALM-EDITDEL-299).
-// Item recipes (cell 0,0) and other kinds are not among them.
+// records (kind 4) and a unit's spell entries (the type-9 unit arm, which
+// needs no cell) whose id is the object's, as the original editor's delete
+// selects them (ALM-EDITDEL-299). Item recipes (cell 0,0) and other kinds are
+// not among them.
 func objectSpells(m *mapedit.Editor, k mapedit.Kind, index int) ([]int, error) {
 	if k != mapedit.KindStructure && k != mapedit.KindUnit {
 		return nil, nil
@@ -247,20 +249,20 @@ func objectSpells(m *mapedit.Editor, k mapedit.Kind, index int) ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	kind, id := uint16(4), uint32(0)
+	var out []int
 	switch {
 	case k == mapedit.KindStructure && index >= 0 && index < len(view.Objects):
-		id = structureBindingID(view.Objects[index])
-	case k == mapedit.KindUnit && index >= 0 && index < len(view.Units):
-		kind, id = 8, uint32(view.Units[index].UnitID)
-	default:
-		return nil, nil
-	}
-	var out []int
-	for j, e := range view.Enchantments {
-		if e.A == kind && (e.X != 0 || e.Y != 0) && uint32(e.B)|uint32(e.C)<<16 == id {
-			out = append(out, j)
+		id := structureBindingID(view.Objects[index])
+		for j, e := range view.Enchantments {
+			if e.A == 4 && (e.X != 0 || e.Y != 0) && uint32(e.B)|uint32(e.C)<<16 == id {
+				out = append(out, j)
+			}
 		}
+	case k == mapedit.KindUnit && index >= 0 && index < len(view.Units):
+		for _, at := range view.UnitSpellRecords(view.Units[index].UnitID) {
+			out = append(out, at...)
+		}
+		slices.Sort(out)
 	}
 	return out, nil
 }

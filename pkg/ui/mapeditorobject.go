@@ -710,6 +710,10 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 	if len(o.fields) == 0 || !ok || i < 0 || i >= len(o.fields) {
 		return
 	}
+	if o.fields[i].Book != nil && !e.modWindow {
+		e.openUnitBook(i)
+		return
+	}
 	if part == popupRowButton && o.fields[i].Inherit {
 		o.buf[i], o.focus, o.note = "", -1, ""
 		return

@@ -33,6 +33,9 @@ type editRow struct {
 	fieldKinds    kindSet
 	unitNoRowWord string
 	unitNoRowID   func(alm.Unit) int64
+	// unitBookWord is the word the unit window states for the unit's spell
+	// book and maximum mana and the refusal of a book edit; "" offers both.
+	unitBookWord  string
 	structureName func(*MapInspector, alm.Object) string
 	// randomTerrain: the whole-map terrain command redraws tile words. The
 	// second game's is off: a look-alike word may hold another tile class
@@ -129,6 +132,9 @@ var editRows = map[alm.Format]*editRow{
 			reflect.TypeFor[ui.InspectionWholeMap](),
 		},
 		templatePlacing: true, centredCells: true, admissions: secondAdmissions,
+		// The unit record holds no mana word, and what the mode-8 record
+		// gives a unit is unread (R2-ENGINE-1292, R2-SESSION-162).
+		unitBookWord: "editor.map.secondbook",
 	},
 }
 

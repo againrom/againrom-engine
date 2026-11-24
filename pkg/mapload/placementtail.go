@@ -75,6 +75,14 @@ func withTailWords(d sim.ActorDefinition, u alm.Unit, arm Arm) sim.ActorDefiniti
 		}
 		d.HP = min(d.HP, d.MaxHP)
 	}
+	// Againrom's maximum mana does the same for mana (DIV-5150).
+	if t.ManaMax != 0 {
+		d.MaxMana = int32(t.ManaMax)
+		if !t.HasMana {
+			d.Mana = d.MaxMana
+		}
+		d.Mana = min(d.Mana, d.MaxMana)
+	}
 	// A unit that leaves nothing discards its bag as an NPC template does
 	// and rolls no death gold or item (DIV-4946).
 	if t.NoLoot {
