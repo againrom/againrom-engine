@@ -399,7 +399,7 @@ func CompileROM2ScriptFrom(src alm.Script, refs ScriptRefs) (*sim.Script, Script
 func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 	build func([]sim.ScriptCheck, []sim.ScriptInstant, []sim.ScriptTrigger) (*sim.Script, error)) (*sim.Script, ScriptReport, error) {
 	var rep ScriptReport
-	if src.Empty() && p.NilWhenEmpty {
+	if emptyBodies[p.Empty](src) {
 		return nil, rep, nil
 	}
 
@@ -413,7 +413,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 	for _, n := range src.Actions {
 		var args [10]int32
 		var refd bound
-		if !p.PackedDrops || n.Opcode != scriptDropOpcode {
+		if n.Opcode != scriptDropOpcode || dropBodies[p.Drops].bind {
 			args, refd = bindScriptParams(n, refs, &rep, false, p)
 		}
 		if runtimeAction(n) {
@@ -422,11 +422,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 			buildTime[n.ID] = true
 			switch n.Opcode {
 			case scriptDropOpcode:
-				if p.PackedDrops {
-					rep.PackedCoordinates = append(rep.PackedCoordinates, uint16(uint8(n.Value[0]))|uint16(uint8(n.Value[1]))<<8)
-				} else {
-					rep.DropCells = append(rep.DropCells, ScriptCell{X: args[0], Y: args[1]})
-				}
+				dropBodies[p.Drops].record(&rep, n, args)
 			default:
 				// The object-construction form and anything else above the
 				// floor: consumed or discarded by the builder, never dispatched.
@@ -438,11 +434,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 			return nil, rep, err
 		}
 		if refd.unbuilt(p, refs) {
-			if p.OmittedBuildTime {
-				buildTime[n.ID] = true
-			} else {
-				unbuilt[n.ID] = true
-			}
+			omittedBodies[p.OmittedActions](buildTime, unbuilt, n.ID)
 			rep.OmittedActions = append(rep.OmittedActions, n.ID)
 			continue
 		}
@@ -475,13 +467,11 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 	registerOf := make(map[uint32]int32, len(src.Conditions))
 	omittedChecks := make(map[uint32]bool)
 	for _, n := range src.Conditions {
-		var args [10]int32
-		var refd bound
-		if p.ConstNodes && n.Opcode == scriptConstOpcode {
-			args[0] = int32(n.Value[0])
-		} else {
-			args, refd = bindScriptParams(n, refs, &rep, true, p)
+		row := constBodies[scriptprofile.ConstBound]
+		if n.Opcode == scriptConstOpcode {
+			row = constBodies[p.Consts]
 		}
+		args, refd := row.bind(n, refs, &rep, p)
 		if p.AliveHeldBody && int32(n.Opcode) == sim.ScriptCheckAlive {
 			args[sim.ScriptAliveHeldBody] = 0
 			if refd.hasUnit && refs.ZeroHealthBodies[refd.unit] {
@@ -491,7 +481,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 		if err := againromNodeNamesUnit(n, true, refd); err != nil {
 			return nil, rep, err
 		}
-		if !(p.ConstNodes && n.Opcode == scriptConstOpcode) && refd.unbuilt(p, refs) {
+		if row.omittable && refd.unbuilt(p, refs) {
 			rep.OmittedChecks = append(rep.OmittedChecks, n.ID)
 			omittedChecks[n.ID] = true
 			continue
@@ -521,15 +511,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 	// ---- pass 3: the triggers.
 	triggers := make([]sim.ScriptTrigger, 0, len(src.Triggers))
 	for i, t := range src.Triggers {
-		omitted := false
-		if p.OmitTriggerOnCheck {
-			for k := range t.Pairs() {
-				if left, right, _ := t.Pair(k); omittedChecks[left] || omittedChecks[right] {
-					omitted = true
-				}
-			}
-		}
-		if omitted {
+		if triggerOmitBodies[p.TriggerOmit](t, omittedChecks) {
 			rep.OmittedTriggers = append(rep.OmittedTriggers, i)
 			continue
 		}
@@ -706,10 +688,7 @@ func lookupOr0(tbl map[uint32]int32, id uint32) int32 {
 // omits one whose hero-band value the binding roster leaves unresolved;
 // a below-band unit or structure miss stays built (DIV-2792).
 func (b bound) unbuilt(p scriptprofile.Profile, refs ScriptRefs) bool {
-	if p.OmitOnAnyFailure {
-		return b.failed
-	}
-	return refs.Roster && b.roleFailed
+	return omitBodies[p.Omit](b, refs)
 }
 
 // bound is the reference half of one node's parameter block.
@@ -744,7 +723,7 @@ type bound struct {
 // is built with the reference unset and its late count raised (R2-ENGINE-1684,
 // R2-ENGINE-1697).
 func lateReference(p scriptprofile.Profile, t, v uint32) bool {
-	return p.LateRefs && (t == typeGroup || t == typePlayer || t == typeUnit) && v >= p.LateLow && v <= p.LateHigh
+	return lateBodies[p.Late](p, t, v)
 }
 
 // scriptItemCodeBase is what the builder ADDS to a Target_Item value to get
@@ -792,10 +771,7 @@ func bindParams(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool,
 				b.groupSeen = true
 			}
 		case t == typeUnit:
-			id, ok := resolveUnit(v, refs)
-			if p.UnitsByRole {
-				id, ok = resolveROM2Unit(v, refs)
-			}
+			id, ok := unitBodies[p.Units](v, refs)
 			if !ok {
 				b.failed = true
 				b.roleFailed = b.roleFailed || v >= scriptHeroBandLow && v <= scriptHeroBandHigh

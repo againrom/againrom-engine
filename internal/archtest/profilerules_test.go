@@ -65,6 +65,39 @@ func TestProfileRulesAreRows(t *testing.T) {
 		t.Error("pkg/scriptprofile/ops.go: Vocabulary carries a bool field; hold the choice as an enumeration")
 	}
 
+	// A script rule is an enumeration; a bool on Profile is refused unless it
+	// selects a value and is named here with its reason.
+	valueBools := map[string]string{
+		"InstantSlots":  "writes the runtime slot or zero into each instant",
+		"AliveHeldBody": "sets one check argument from the unit's health",
+		"UntypedAsInt":  "types an unset parameter as an integer",
+		"Groups":        "is not read by the compiler",
+		"Extended":      "refuses the Againrom record under a first-game profile",
+	}
+	profile, ok := files["pkg/scriptprofile/profile.go"]
+	if !ok {
+		t.Fatal("pkg/scriptprofile/profile.go is missing; the scan guards nothing")
+	}
+	pbody := regexp.MustCompile(`(?s)type Profile struct \{(.*?)\n\}`).FindStringSubmatch(profile)
+	if pbody == nil {
+		t.Fatal("type Profile is missing; the scan guards nothing")
+	}
+	seen := map[string]bool{}
+	for _, m := range regexp.MustCompile(`(?m)^\s*([A-Za-z][A-Za-z0-9]*(?:,\s*[A-Za-z][A-Za-z0-9]*)*)\s+bool\b`).FindAllStringSubmatch(pbody[1], -1) {
+		for _, name := range strings.Split(m[1], ",") {
+			name = strings.TrimSpace(name)
+			seen[name] = true
+			if _, ok := valueBools[name]; !ok {
+				t.Errorf("pkg/scriptprofile/profile.go: Profile.%s is a bool that selects a body; hold the rule as an enumeration", name)
+			}
+		}
+	}
+	for name := range valueBools {
+		if !seen[name] {
+			t.Errorf("pkg/scriptprofile/profile.go: Profile.%s is listed as a value bool but is not a bool field; drop the entry", name)
+		}
+	}
+
 	m, err := loadTypeCheckedModule(root)
 	if err != nil {
 		t.Fatal(err)

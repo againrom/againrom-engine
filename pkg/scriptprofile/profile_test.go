@@ -10,14 +10,15 @@ import (
 // second game), 1000 latches and triggers, ids up to 5000.
 func TestProfilesHoldTheEnginesLimits(t *testing.T) {
 	want := Profile{Pairs: 3, Actions: 4, MaxCompare: 5, Registers: 100, TickRegister: 93, Latches: 1000, Triggers: 1000, MaxID: 5000,
-		NilWhenEmpty: true}
+		Empty: EmptyNil}
 	if First != want {
 		t.Errorf("First = %+v, want %+v", First, want)
 	}
-	want.Registers, want.TickRegister, want.Ops, want.NilWhenEmpty = 1000, 999, OpsSecond, false
-	want.OmittedBuildTime, want.PackedDrops, want.InstantSlots, want.ConstNodes = true, true, true, true
-	want.AliveHeldBody, want.UntypedAsInt, want.OmitOnAnyFailure, want.OmitTriggerOnCheck = true, true, true, true
-	want.UnitsByRole, want.LateRefs, want.LateLow, want.LateHigh = true, true, 8000, 9999
+	want.Registers, want.TickRegister, want.Ops, want.Empty = 1000, 999, OpsSecond, EmptyCompiles
+	want.OmittedActions, want.Drops, want.Consts, want.Omit = OmittedBuildTime, DropPacked, ConstValue, OmitByAnyFailure
+	want.TriggerOmit, want.Units, want.Late = TriggersOmitOnCheck, UnitByRole, LateReferences
+	want.InstantSlots, want.AliveHeldBody, want.UntypedAsInt = true, true, true
+	want.LateLow, want.LateHigh = 8000, 9999
 	if Second != want {
 		t.Errorf("Second = %+v, want %+v", Second, want)
 	}
@@ -28,7 +29,7 @@ func TestProfilesHoldTheEnginesLimits(t *testing.T) {
 // 10000 triggers with a latch each, the original's codes and id cap.
 func TestExtendedProfileHoldsTheOwnersLimits(t *testing.T) {
 	want := Profile{Pairs: 64, Actions: 64, MaxCompare: 5, TickRegister: 93, Latches: 10000, Triggers: 10000, MaxID: 5000,
-		Variables: 4096, Groups: true, Extended: true, NilWhenEmpty: true}
+		Variables: 4096, Groups: true, Extended: true, Empty: EmptyNil}
 	if Extended != want {
 		t.Errorf("Extended = %+v, want %+v", Extended, want)
 	}

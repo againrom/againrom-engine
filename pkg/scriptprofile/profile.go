@@ -80,39 +80,112 @@ type Profile struct {
 	// Extended is whether the profile is the extended machine's record.
 	Extended bool
 
-	// The compiler's rules for a map script's nodes. Each is one way the
-	// two games' scripts bind differently; the compiler reads these fields.
-	//
-	// NilWhenEmpty: an empty script compiles to no script at all.
-	NilWhenEmpty bool
-	// PackedDrops: a drop node names one packed coordinate and binds no
-	// references; otherwise it names a cell.
-	PackedDrops bool
-	// OmittedBuildTime: an omitted action is a build-time node; otherwise it
-	// is an unbuilt one that a trigger's roster check skips.
-	OmittedBuildTime bool
+	// The compiler's rules for a map script's nodes. Each rule selects one
+	// body in the compiler's tables in pkg/mapload, so a rule is read only
+	// through its index there.
+	Empty          EmptyRule
+	Drops          DropRule
+	OmittedActions OmittedRule
+	Consts         ConstRule
+	Omit           OmitRule
+	TriggerOmit    TriggerRule
+	Units          UnitRule
+	Late           LateRule
+	// LateLow and LateHigh bound the values a LateReferences rule leaves for
+	// the session table.
+	LateLow, LateHigh uint32
 	// InstantSlots: each instant carries the runtime slot it was numbered in.
 	InstantSlots bool
-	// ConstNodes: a constant node carries its value in its first operand and
-	// is never omitted for its references.
-	ConstNodes bool
 	// AliveHeldBody: a health-below check's held-body argument is set from
 	// the unit's zero-health state.
 	AliveHeldBody bool
 	// UntypedAsInt: a parameter whose type is unset reads as an integer.
 	UntypedAsInt bool
-	// OmitOnAnyFailure: a node is omitted when any of its references fails;
-	// otherwise only a role reference that fails omits it.
-	OmitOnAnyFailure bool
-	// OmitTriggerOnCheck: a trigger is omitted when a pair names an omitted check.
-	OmitTriggerOnCheck bool
-	// UnitsByRole: a unit parameter also resolves through the role table.
-	UnitsByRole bool
-	// LateRefs: a parameter value in [LateLow, LateHigh] under a group,
-	// player or unit type is a late reference, left for the session table.
-	LateRefs          bool
-	LateLow, LateHigh uint32
 }
+
+// EmptyRule is what an empty map script compiles to.
+type EmptyRule uint8
+
+const (
+	// EmptyCompiles compiles an empty script like any other.
+	EmptyCompiles EmptyRule = iota
+	// EmptyNil compiles an empty script to no script at all.
+	EmptyNil
+)
+
+// DropRule is how a drop node is kept.
+type DropRule uint8
+
+const (
+	// DropCells binds a drop node's parameters and names a cell.
+	DropCells DropRule = iota
+	// DropPacked names one packed coordinate and binds no references.
+	DropPacked
+)
+
+// OmittedRule is where an omitted action is recorded.
+type OmittedRule uint8
+
+const (
+	// OmittedUnbuilt records an omitted action as unbuilt, which a trigger's
+	// roster check skips.
+	OmittedUnbuilt OmittedRule = iota
+	// OmittedBuildTime records an omitted action as a build-time node.
+	OmittedBuildTime
+)
+
+// ConstRule is how a constant node binds.
+type ConstRule uint8
+
+const (
+	// ConstBound binds a constant node like any other, and omits it when its
+	// references fail.
+	ConstBound ConstRule = iota
+	// ConstValue carries the node's value in its first operand and is never
+	// omitted for its references.
+	ConstValue
+)
+
+// OmitRule is which failed reference omits a node.
+type OmitRule uint8
+
+const (
+	// OmitByRole omits a node only when a role reference fails.
+	OmitByRole OmitRule = iota
+	// OmitByAnyFailure omits a node when any of its references fails.
+	OmitByAnyFailure
+)
+
+// TriggerRule is whether a trigger is omitted when one of its checks is.
+type TriggerRule uint8
+
+const (
+	// TriggersKept keeps every trigger.
+	TriggersKept TriggerRule = iota
+	// TriggersOmitOnCheck omits a trigger a pair of which names an omitted check.
+	TriggersOmitOnCheck
+)
+
+// UnitRule is how a unit value resolves.
+type UnitRule uint8
+
+const (
+	// UnitDirect resolves a unit value through its three id bands.
+	UnitDirect UnitRule = iota
+	// UnitByRole resolves a unit value through the role table first.
+	UnitByRole
+)
+
+// LateRule is whether a value in the late range is left for the session.
+type LateRule uint8
+
+const (
+	// LateKept resolves every value now.
+	LateKept LateRule = iota
+	// LateReferences leaves a value in [LateLow, LateHigh] under a group,
+	// player or unit type for the session table.
+	LateReferences
+)
 
 // First is the first game's profile. Second is the second game's: its
 // session holds 1000 registers, and its other limits are the first game's.
@@ -122,15 +195,15 @@ type Profile struct {
 var (
 	First = Profile{Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
 		Registers: FirstRegisters, TickRegister: FirstTickRegister, Latches: Latches, Triggers: Triggers, MaxID: MaxID,
-		NilWhenEmpty: true}
+		Empty: EmptyNil}
 	Second = Profile{Ops: OpsSecond, Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
 		Registers: SecondRegisters, TickRegister: SecondTickRegister, Latches: Latches, Triggers: Triggers, MaxID: MaxID,
-		OmittedBuildTime: true, PackedDrops: true, InstantSlots: true, ConstNodes: true, AliveHeldBody: true,
-		UntypedAsInt: true, OmitOnAnyFailure: true, OmitTriggerOnCheck: true, UnitsByRole: true,
-		LateRefs: true, LateLow: 8000, LateHigh: 9999}
+		OmittedActions: OmittedBuildTime, Drops: DropPacked, Consts: ConstValue, Omit: OmitByAnyFailure,
+		TriggerOmit: TriggersOmitOnCheck, Units: UnitByRole, Late: LateReferences,
+		InstantSlots: true, AliveHeldBody: true, UntypedAsInt: true, LateLow: 8000, LateHigh: 9999}
 	Extended = Profile{Pairs: ExtendedConditions, Actions: ExtendedActions, MaxCompare: MaxCompare,
 		TickRegister: FirstTickRegister, Latches: ExtendedTriggers, Triggers: ExtendedTriggers, MaxID: MaxID,
-		Variables: ExtendedVariables, Groups: true, Extended: true, NilWhenEmpty: true}
+		Variables: ExtendedVariables, Groups: true, Extended: true, Empty: EmptyNil}
 )
 
 // For is the one script profile selector: Extended when the map carries the
