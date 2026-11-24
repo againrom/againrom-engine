@@ -188,16 +188,8 @@ func scriptCatalog(limits scriptprofile.Profile) ui.InspectionScriptCatalog {
 	}
 	commands, _ := scriptprofile.OpRow(limits.Ops, false, mapload.ScriptGroupCommand)
 	return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: commands.Commands,
-		// A parameter's kind is the type its node stores; the first game's
-		// message, spell and variable arms are not the second game's.
 		ParameterKind: func(condition bool, opcode uint32, types [10]uint32, slot int) uint32 {
-			if scriptprofile.VocabularyOf(limits.Ops).Kinds {
-				return scriptParameterKind(condition, opcode, types, slot)
-			}
-			if types[slot] >= ui.ScriptVariableParameter {
-				return 0
-			}
-			return types[slot]
+			return kindRuleBodies[scriptprofile.VocabularyOf(limits.Ops).Kinds].parameterKind(condition, opcode, types, slot)
 		},
 		Signature: func(condition bool, opcode, command uint32) ([10]ui.InspectionScriptSlot, bool) {
 			sig, ok := mapload.ScriptSignatureIn(limits.Ops, condition, opcode, command)
@@ -213,10 +205,18 @@ func scriptCatalog(limits scriptprofile.Profile) ui.InspectionScriptCatalog {
 // claim reads it, else the raw id where the second game's is not decoded.
 func (s *inspectionScript) operation(kind ui.RecordKind, opcode uint32) string {
 	condition := kind == ui.KindCondition
-	if v := scriptprofile.VocabularyOf(s.profile.Ops); v.Numbered && !mapload.ScriptOperationDecoded(s.profile.Ops, condition, opcode) {
-		return fmt.Sprintf(words.For("").Text(v.Undecoded(condition)), opcode)
-	}
-	return mapload.ScriptOperationNameIn(s.profile.Ops, condition, opcode)
+	return operationNameBodies[scriptprofile.VocabularyOf(s.profile.Ops).Naming](s.profile.Ops, condition, opcode)
+}
+
+// operationNameBodies is the body of each naming rule, by its value.
+var operationNameBodies = [...]func(ops scriptprofile.Ops, condition bool, opcode uint32) string{
+	scriptprofile.NameWord: mapload.ScriptOperationNameIn,
+	scriptprofile.NumberedUndecoded: func(ops scriptprofile.Ops, condition bool, opcode uint32) string {
+		if !mapload.ScriptOperationDecoded(ops, condition, opcode) {
+			return fmt.Sprintf(words.For("").Text(scriptprofile.VocabularyOf(ops).Undecoded(condition)), opcode)
+		}
+		return mapload.ScriptOperationNameIn(ops, condition, opcode)
+	},
 }
 
 func (s *inspectionScript) nodeMap(kind ui.RecordKind) map[uint32][]alm.ScriptNode {

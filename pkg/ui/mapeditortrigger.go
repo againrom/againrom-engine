@@ -350,17 +350,43 @@ func (e *MapEditor) scriptFields(v scriptView) []InspectionField {
 // nodeEditFields are a node's fields for its slot types as the popup edits
 // them: on a second-game map with the fields it keeps shown only.
 func (e *MapEditor) nodeEditFields(v scriptView, types [10]uint32, opcode, command uint32) []InspectionField {
-	fields := e.nodeFields(v, types, opcode, command)
-	if e.secondScript() {
-		fields = e.secondNodeFields(v, fields)
-	}
-	return fields
+	return e.nodeRule().fields(e, v, e.nodeFields(v, types, opcode, command))
 }
 
-// secondScript reports that the shown map's script keeps the fields of an
-// undecoded operation read-only.
-func (e *MapEditor) secondScript() bool {
-	return e.doc != nil && e.doc.Script != nil && scriptprofile.VocabularyOf(e.doc.Script.Profile().Ops).ReadOnlyUndecoded
+// nodeRuleBody is the body of a field rule: the fields a node popup shows,
+// whether a condition is listed, and whether an undecoded node is noticed.
+type nodeRuleBody struct {
+	fields func(e *MapEditor, v scriptView, fields []InspectionField) []InspectionField
+	listed func(e *MapEditor, v scriptView) bool
+	notice func(e *MapEditor, v scriptView) bool
+}
+
+// nodeRuleBodies is the body of each field rule, by its value.
+var nodeRuleBodies = [...]nodeRuleBody{
+	scriptprofile.FieldsEditable: {
+		fields: func(_ *MapEditor, _ scriptView, fields []InspectionField) []InspectionField { return fields },
+		listed: func(e *MapEditor, v scriptView) bool {
+			return slices.Contains(e.scriptSections()[2], v.node.Record)
+		},
+		notice: func(*MapEditor, scriptView) bool { return false },
+	},
+	scriptprofile.UndecodedReadOnly: {
+		fields: (*MapEditor).secondNodeFields,
+		listed: func(*MapEditor, scriptView) bool { return false },
+		notice: func(e *MapEditor, v scriptView) bool {
+			return !e.doc.Script.Catalog.named(v.condition, v.node.Opcode)
+		},
+	},
+}
+
+// nodeRule is the body of the shown map's field rule; every field is
+// editable where no script is shown.
+func (e *MapEditor) nodeRule() nodeRuleBody {
+	rule := scriptprofile.FieldsEditable
+	if e.doc != nil && e.doc.Script != nil {
+		rule = scriptprofile.VocabularyOf(e.doc.Script.Profile().Ops).Fields
+	}
+	return nodeRuleBodies[rule]
 }
 
 // secondNodeFields keeps the label, the operation and the parameter fields
@@ -729,7 +755,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			add(popupRow{Kind: popupHeading, Label: e.word("editor.node.parameters")}, -1)
 		}
 	}
-	if e.secondScript() && !e.doc.Script.Catalog.named(v.condition, v.node.Opcode) {
+	if e.nodeRule().notice(e, v) {
 		text(e.word("editor.second.undecoded.reason"), "warning")
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}

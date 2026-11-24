@@ -103,13 +103,44 @@ func (o Op) Slots(command uint32) ([10]Slot, bool) {
 // kinds, and whether an undecoded operation's fields stay read-only.
 type Vocabulary struct {
 	CheckWord, ActionWord string
-	Numbered              bool
-	Kinds                 bool
-	ReadOnlyUndecoded     bool
+	Naming                NameRule
+	Kinds                 KindRule
+	Fields                FieldRule
 	// ObjectType is the parameter type whose value is the identity of a
 	// type-4 object of the same map, 0 where no type is.
 	ObjectType uint32
 }
+
+// NameRule is how an operation's name is written where no claim reads it.
+type NameRule uint8
+
+const (
+	// NameWord writes the name a claim reads, or the raw id where none does.
+	NameWord NameRule = iota
+	// NumberedUndecoded writes an undecoded operation by its number.
+	NumberedUndecoded
+)
+
+// KindRule is whether parameters carry the first game's message, spell,
+// property and variable kinds.
+type KindRule uint8
+
+const (
+	// NoKinds types a parameter by the type its node stores.
+	NoKinds KindRule = iota
+	// FirstKinds types a parameter by the first game's kinds.
+	FirstKinds
+)
+
+// FieldRule is whether an undecoded operation's fields stay read-only.
+type FieldRule uint8
+
+const (
+	// FieldsEditable leaves every field of a node editable.
+	FieldsEditable FieldRule = iota
+	// UndecodedReadOnly keeps the fields of an undecoded operation read-only.
+	UndecodedReadOnly
+)
 
 // Undecoded is the fallback word key of a condition or an action.
 func (v Vocabulary) Undecoded(condition bool) string {
@@ -120,12 +151,12 @@ func (v Vocabulary) Undecoded(condition bool) string {
 }
 
 var vocabularies = [...]Vocabulary{
-	OpsFirst: {CheckWord: "editor.check.unnamed", ActionWord: "editor.action.unnamed", Kinds: true},
+	OpsFirst: {CheckWord: "editor.check.unnamed", ActionWord: "editor.action.unnamed", Kinds: FirstKinds},
 	// A type-9 value is a type-4 id of the map (R2-ENGINE-1725). The loader
 	// tests no node or trigger word and the compiler reads a node's word
 	// +0x48 nowhere found, so a new node holds zero there and in its texts
 	// (R2-ENGINE-1728).
-	OpsSecond: {CheckWord: "editor.op.undecoded", ActionWord: "editor.op.undecoded", Numbered: true, ReadOnlyUndecoded: true, ObjectType: 9},
+	OpsSecond: {CheckWord: "editor.op.undecoded", ActionWord: "editor.op.undecoded", Naming: NumberedUndecoded, Fields: UndecodedReadOnly, ObjectType: 9},
 }
 
 // VocabularyOf is the vocabulary of a game's operations.

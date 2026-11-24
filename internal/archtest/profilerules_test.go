@@ -45,11 +45,24 @@ func TestProfileRulesAreRows(t *testing.T) {
 				t.Errorf("%s names %s, a flag that chose a rule's body; hold the rule as a row", path, m)
 			}
 		}
-		if strings.HasPrefix(path, "pkg/data/") || strings.HasPrefix(path, "pkg/game/") || strings.HasPrefix(path, "pkg/ui/") {
+		if strings.HasPrefix(path, "pkg/data/") || strings.HasPrefix(path, "pkg/game/") || strings.HasPrefix(path, "pkg/ui/") || strings.HasPrefix(path, "pkg/scriptprofile/") {
 			if m := presentFlag.FindString(src); m != "" {
 				t.Errorf("%s names %s, a flag that chose a rule's body; hold the rule as a row", path, m)
 			}
 		}
+	}
+
+	// A vocabulary choice is an enumeration row, never a bool field.
+	vocab, ok := files["pkg/scriptprofile/ops.go"]
+	if !ok {
+		t.Fatal("pkg/scriptprofile/ops.go is missing; the scan guards nothing")
+	}
+	body := regexp.MustCompile(`(?s)type Vocabulary struct \{(.*?)\n\}`).FindStringSubmatch(vocab)
+	if body == nil {
+		t.Fatal("type Vocabulary is missing; the scan guards nothing")
+	}
+	if regexp.MustCompile(`\bbool\b`).MatchString(body[1]) {
+		t.Error("pkg/scriptprofile/ops.go: Vocabulary carries a bool field; hold the choice as an enumeration")
 	}
 
 	m, err := loadTypeCheckedModule(root)

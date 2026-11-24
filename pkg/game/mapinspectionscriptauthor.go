@@ -111,10 +111,7 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (_ *ui.InspectionDocument, s
 			return false, s.checkWords(err)
 		}
 		// Only a game whose parameters carry message kinds has pages to copy.
-		var page func(*alm.ScriptNode) error
-		if scriptprofile.VocabularyOf(limits.Ops).Kinds {
-			page = s.copyMessagePage
-		}
+		page := kindRuleBodies[scriptprofile.VocabularyOf(limits.Ops).Kinds].copyPage(s)
 		at, err = m.CopyTrigger(index, copyName(t.Name, s.inspector.word("editor.trigger.copyname")), page)
 		return err == nil, copyRefusal(err, s.inspector.word)
 	})
@@ -122,6 +119,32 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (_ *ui.InspectionDocument, s
 		d.AddedRecord = ui.RecordRef{Kind: ui.KindTrigger, Index: at}
 	}
 	return d, err
+}
+
+// kindRuleBody is the body of a parameter kinds rule: the page a copied
+// trigger's message action gets, and the kind of a parameter.
+type kindRuleBody struct {
+	copyPage      func(s *mapInspectionEdits) func(*alm.ScriptNode) error
+	parameterKind func(condition bool, opcode uint32, types [10]uint32, slot int) uint32
+}
+
+// kindRuleBodies is the body of each parameter kinds rule, by its value.
+var kindRuleBodies = [...]kindRuleBody{
+	scriptprofile.NoKinds: {
+		copyPage: func(*mapInspectionEdits) func(*alm.ScriptNode) error { return nil },
+		parameterKind: func(_ bool, _ uint32, types [10]uint32, slot int) uint32 {
+			if types[slot] >= ui.ScriptVariableParameter {
+				return 0
+			}
+			return types[slot]
+		},
+	},
+	scriptprofile.FirstKinds: {
+		copyPage: func(s *mapInspectionEdits) func(*alm.ScriptNode) error { return s.copyMessagePage },
+		// A parameter's kind is the type its node stores; the first game's
+		// message, spell and variable arms are not the second game's.
+		parameterKind: scriptParameterKind,
+	},
 }
 
 // copyMessagePage points a copied message action at a new page holding the
