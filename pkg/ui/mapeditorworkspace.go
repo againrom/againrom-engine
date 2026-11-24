@@ -129,6 +129,7 @@ const (
 	modPageScreens    // the mod's menu screens and actions
 	modPageSettings   // the mod's settings
 	modPageSpeakers   // the mod's speaker records
+	modPageGlobals    // the mod's global variables
 )
 
 // modPageWords is each page's tab word and the help its title's (?) mark
@@ -150,6 +151,7 @@ var modPageWords = []struct{ tabWord, helpWord string }{
 	{tabWord: "editor.mod.screens", helpWord: "editor.screens.help"},
 	{tabWord: "editor.mod.settings", helpWord: "editor.settings.help"},
 	{tabWord: "editor.mod.speakers", helpWord: "editor.speakers.help"},
+	{tabWord: "editor.mod.globals", helpWord: "editor.globals.help"},
 }
 
 // The workspace scopes of W's pages of a scope of their own.
@@ -180,7 +182,12 @@ const (
 	ModSpeakersScope = "speakers"
 	// ModCompanionsScope is the mod's companion join conditions.
 	ModCompanionsScope = "companions"
+	// ModGlobalsScope is the mod's global variables.
+	ModGlobalsScope = "globals"
 )
+
+// GlobalNewKey is the Globals page.s adder.
+const GlobalNewKey = "newglobal"
 
 // The keys of the Dialogues page's rows: a dialogue's summary and its Open
 // button end in the dialogue's name.
@@ -195,7 +202,7 @@ const (
 var modScopePages = []struct {
 	page  int
 	scope string
-}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageCharacters, ModCharactersScope}, {modPageItems, ModItemsScope}, {modPageSpells, ModSpellsScope}, {modPageDialogues, ModDialoguesScope}, {modPageTowns, ModTownsScope}, {modPageBodies, ModBodiesScope}, {modPageCompanions, ModCompanionsScope}, {modPageScreens, ModScreensScope}, {modPageSettings, ModSettingsScope}, {modPageSpeakers, ModSpeakersScope}, {modPageFiles, ModFilesScope}}
+}{{modPageTerrain, ModTerrainScope}, {modPageTexts, ModTextsScope}, {modPageCharacters, ModCharactersScope}, {modPageItems, ModItemsScope}, {modPageSpells, ModSpellsScope}, {modPageDialogues, ModDialoguesScope}, {modPageTowns, ModTownsScope}, {modPageBodies, ModBodiesScope}, {modPageCompanions, ModCompanionsScope}, {modPageScreens, ModScreensScope}, {modPageSettings, ModSettingsScope}, {modPageSpeakers, ModSpeakersScope}, {modPageGlobals, ModGlobalsScope}, {modPageFiles, ModFilesScope}}
 
 // modHeldPages are the pages of modScopePages kept out of W: no tab or key
 // reaches them.

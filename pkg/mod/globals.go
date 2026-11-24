@@ -58,6 +58,9 @@ func (d GlobalData) Declares(id string, n int32) bool {
 	return slices.ContainsFunc(d.Globals, func(g Global) bool { return g.Mod == id && g.ID == n })
 }
 
+// ValidGlobalName is [a-z][a-z0-9_]{0,31}: what a global's name may be.
+func ValidGlobalName(s string) bool { return validGlobalName(s) }
+
 // validGlobalName is [a-z][a-z0-9_]{0,31}.
 func validGlobalName(s string) bool {
 	if s == "" || len(s) > globalNameMax || s[0] < 'a' || s[0] > 'z' {

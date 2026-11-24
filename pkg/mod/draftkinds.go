@@ -252,6 +252,17 @@ func draftTerrain(r DataReader, d *Data, view DraftView, _ func() (textLookup, e
 	return readTerrain(r, d, TerrainFile, src)
 }
 
+// draftGlobals puts the draft of the globals file over the globals r.Mod
+// declares: a project that holds no globals file declares none.
+func draftGlobals(r DataReader, d *Data, view DraftView, _ func() (textLookup, error)) error {
+	src, _ := view.Draft(GlobalsFile)
+	d.Globals.Globals = slices.DeleteFunc(d.Globals.Globals, func(g Global) bool { return g.Mod == r.Mod })
+	if src == nil {
+		return nil
+	}
+	return readGlobals(r, d, GlobalsFile, src)
+}
+
 // draftSpeakers puts the draft of the speakers file, with the drafted
 // pictures it names, over d's records.
 func draftSpeakers(r DataReader, d *Data, view DraftView, _ func() (textLookup, error)) error {

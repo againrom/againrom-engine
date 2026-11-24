@@ -854,6 +854,12 @@ func (e *MapEditor) chooseObjectChoice(row int) {
 		e.chooseDialog(o.fields[f].Choices[row].Value)
 		return
 	}
+	if o.fields[o.open].Choices[row].Value == NewGlobalChoice {
+		field := o.open
+		o.open = -1
+		_ = e.newGlobal(field)
+		return
+	}
 	if o.fields[o.open].Choices[row].Value == NewMessageChoice && e.messageField(o.open) {
 		field := o.open
 		o.open = -1
@@ -998,6 +1004,10 @@ func (e *MapEditor) applyObject() {
 		return
 	}
 	for i := range e.obj.fields {
+		if e.obj.buf[i] == strconv.FormatInt(NewGlobalChoice, 10) && e.globalChoiceField(i) {
+			_ = e.newGlobal(i)
+			return
+		}
 		if e.obj.buf[i] == strconv.FormatInt(NewMessageChoice, 10) && e.messageField(i) {
 			e.newMessage(i)
 			return

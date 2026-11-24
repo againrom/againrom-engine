@@ -405,6 +405,9 @@ func scriptVariableSlot(types [10]uint32) int {
 }
 
 func scriptParameterKind(condition bool, opcode uint32, types [10]uint32, slot int) uint32 {
+	if slot == 0 && scriptprofile.AddressesGlobal(condition, opcode) {
+		return ui.ScriptGlobalParameter
+	}
 	if !condition && opcode == 2 && slot == 0 && types[slot] == mapload.ScriptInt {
 		return ui.ScriptMessageParameter
 	}
@@ -431,7 +434,7 @@ func scriptParameterKind(condition bool, opcode uint32, types [10]uint32, slot i
 	if scriptAddressesVariable(condition, opcode) && scriptVariableSlot(types) == slot {
 		return ui.ScriptVariableParameter
 	}
-	if types[slot] >= ui.ScriptVariableParameter && types[slot] <= ui.ScriptPropertyParameter {
+	if types[slot] >= ui.ScriptVariableParameter && types[slot] <= ui.ScriptGlobalParameter {
 		return 0
 	}
 	return types[slot]

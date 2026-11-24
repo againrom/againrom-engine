@@ -225,7 +225,7 @@ func (e *MapEditor) wizardItemScope(r int, at map[string]int, heroes *bool, drop
 			Fields: map[string]int{"param": i},
 		}
 		switch p.kind {
-		case wpUnit, wpPlayer, wpGroup, wpCommand, wpRelation, wpVariable, wpItem, wpStructure, wpSpell, wpProperty, wpSource:
+		case wpUnit, wpPlayer, wpGroup, wpCommand, wpRelation, wpVariable, wpItem, wpStructure, wpSpell, wpProperty, wpSource, wpGlobal:
 			param.flag("choose")
 			param.Values["value"] = choiceText(o.fields[i], o.buf[i])
 			if p.kind == wpUnit || p.kind == wpGroup || p.kind == wpStructure {

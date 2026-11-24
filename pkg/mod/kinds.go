@@ -319,6 +319,7 @@ var dataKinds = []DataKind{
 		Base:   "a global is a variable of its mod that the mod's maps read, set and add; the base has none",
 		Shared: "no: a global is its mod's own, and a map sees the globals of the mod that plays it",
 		read:   readGlobals, write: writeGlobals,
+		Draft: Drafting{Context: DraftAlways, Held: true}, draft: draftGlobals,
 		summary: func(d Data) string {
 			if d.Globals.Empty() {
 				return ""

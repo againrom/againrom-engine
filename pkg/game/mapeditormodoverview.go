@@ -83,6 +83,7 @@ var modPageTab = map[string]string{
 	ui.ModScreensScope:    "editor.mod.screens",
 	ui.ModSettingsScope:   "editor.mod.settings",
 	ui.ModSpeakersScope:   "editor.mod.speakers",
+	ui.ModGlobalsScope:    "editor.mod.globals",
 }
 
 // warningPage is the page that edits the file a check warning names, and
@@ -103,6 +104,7 @@ func warningPage(warning string) (string, bool) {
 		{ui.ModScreensScope, []string{mod.ScreensFile}},
 		{ui.ModSettingsScope, []string{mod.SettingsName}},
 		{ui.ModSpeakersScope, []string{mod.SpeakersFile}},
+		{ui.ModGlobalsScope, []string{mod.GlobalsFile}},
 		{ui.ModTextsScope, textFiles()},
 	} {
 		for _, f := range p.files {
@@ -164,6 +166,7 @@ func (s *mapInspectionEdits) modPageCounts() (lines, pages []string) {
 	count(ui.ModScreensScope, len(held(s.screenStructure, mod.ScreensFile).Screens.Screens))
 	count(ui.ModSettingsScope, len(held(nil, mod.SettingsName).Settings.Settings))
 	count(ui.ModSpeakersScope, len(held(nil, mod.SpeakersFile).Speakers.Speakers))
+	count(ui.ModGlobalsScope, len(held(nil, mod.GlobalsFile).Globals.Globals))
 	return lines, pages
 }
 

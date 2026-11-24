@@ -38,6 +38,7 @@ const (
 	wpProperty  // a choice of the unit properties a selector names
 	wpSource    // a choice of where a dialog comes from: a message page or a dialogue file
 	wpDialogue  // the name of a dialogue file, kept in the action's label
+	wpGlobal    // a choice of the mod's global variables and a new one
 )
 
 // wizParam is one parameter of an item: its kind, its label's word, its
@@ -117,6 +118,7 @@ var (
 
 	pSource   = wizParam{kind: wpSource, labelWord: "editor.wizard.p.source"}
 	pDialogue = wizParam{kind: wpDialogue, labelWord: "editor.wizard.p.dialogue"}
+	pGlobal   = wizParam{kind: wpGlobal, labelWord: "editor.wizard.p.global", inNode: true}
 )
 
 // command is the command parameter with default c.
@@ -156,9 +158,10 @@ const (
 	subjectStructures
 	subjectSpells
 	subjectVariables
+	subjectGlobals
 )
 
-var wizSubjectWords = []string{"editor.wizard.s.mission", "editor.wizard.s.units", "editor.wizard.s.players", "editor.wizard.s.groups", "editor.wizard.s.cells", "editor.wizard.s.items", "editor.wizard.s.structures", "editor.wizard.s.spells", "editor.wizard.s.variables"}
+var wizSubjectWords = []string{"editor.wizard.s.mission", "editor.wizard.s.units", "editor.wizard.s.players", "editor.wizard.s.groups", "editor.wizard.s.cells", "editor.wizard.s.items", "editor.wizard.s.structures", "editor.wizard.s.spells", "editor.wizard.s.variables", "editor.wizard.s.globals"}
 
 // wizConditions are the ready conditions. Check 2 is a unit in a box, 5 a
 // unit alive, each writing 0 or 1 (TRIG-CHECKGEOM-130); 3 a unit within a
@@ -196,6 +199,7 @@ var wizConditions = []wizItem{
 	{labelWord: "editor.wizard.c.structure", subject: subjectStructures, opcode: 21, params: []wizParam{pStructure, {kind: wpNumber, labelWord: "editor.wizard.p.value", def: 1}}, cmp: 3, chooseCmp: true, rightParam: 1},
 	{labelWord: "editor.wizard.c.variable", subject: subjectVariables, opcode: 19, params: []wizParam{pVariable, {kind: wpNumber, labelWord: "editor.wizard.p.value"}}, chooseCmp: true, rightParam: 1},
 	{labelWord: "editor.wizard.c.variables", subject: subjectVariables, opcode: 19, params: []wizParam{pVariable, onRight(wizParam{kind: wpVariable, labelWord: "editor.wizard.p.variable2", inNode: true})}, chooseCmp: true, rightParam: -1},
+	{labelWord: "editor.wizard.c.global", subject: subjectGlobals, opcode: scriptprofile.ReadGlobalOp, params: []wizParam{pGlobal, pCompared}, chooseCmp: true, rightParam: 1},
 }
 
 // wizActions are the ready actions, with the claims that state their
@@ -227,6 +231,8 @@ var wizActions = []wizItem{
 	{labelWord: "editor.action.op10", subject: subjectPlayers, opcode: 10, hintWord: "editor.wizard.a.relation.hint", params: []wizParam{numbered(pPlayer), numbered(pToPlayer), {kind: wpRelation, labelWord: "editor.wizard.p.relation", inNode: true}}},
 	{labelWord: "editor.wizard.a.addvar", subject: subjectVariables, opcode: 8, params: []wizParam{pVariable}},
 	{labelWord: "editor.wizard.a.setvar", subject: subjectVariables, opcode: 3, params: []wizParam{pVariable, {kind: wpNumber, labelWord: "editor.wizard.p.value", inNode: true}}},
+	{labelWord: "editor.wizard.a.setglobal", subject: subjectGlobals, opcode: scriptprofile.SetGlobalOp, params: []wizParam{pGlobal, {kind: wpNumber, labelWord: "editor.wizard.p.value", inNode: true}}},
+	{labelWord: "editor.wizard.a.addglobal", subject: subjectGlobals, opcode: scriptprofile.AddGlobalOp, params: []wizParam{pGlobal, {kind: wpNumber, labelWord: "editor.wizard.p.delta", inNode: true}}},
 	{labelWord: "editor.wizard.a.takeitem", subject: subjectItems, opcode: 13, params: []wizParam{pUnit, pItem}},
 	{labelWord: "editor.wizard.a.giveitem", subject: subjectItems, opcode: 12, params: []wizParam{pUnit, pItem}},
 	{labelWord: "editor.wizard.a.giveall", subject: subjectItems, opcode: 28, params: []wizParam{pUnit, {kind: wpUnit, labelWord: "editor.wizard.p.receiver", inNode: true}}},
@@ -284,10 +290,16 @@ func (e *MapEditor) wizItems(condition bool) []wizItem {
 		script = e.doc.Script
 	}
 	t := wizardTables[script.Profile().Ops]
+	items := t[0]
 	if condition {
-		return t[1]
+		items = t[1]
 	}
-	return t[0]
+	if script != nil && len(script.Targets[ScriptGlobalParameter]) > 0 {
+		return items
+	}
+	// Outside a mod no global exists to name: the rows would write nodes
+	// that never act.
+	return slices.DeleteFunc(slices.Clone(items), func(it wizItem) bool { return it.subject == subjectGlobals })
 }
 
 // paramTypes are the slot types a parameter kind fills.
@@ -475,7 +487,7 @@ func (e *MapEditor) readParams(it wizItem, n InspectionScriptNode, right bool, o
 			out[k] = fmt.Sprintf("%d,%d", v[0], v[1])
 		case wpBox:
 			out[k] = fmt.Sprintf("%d,%d,%d,%d", v[0], v[1], v[2], v[3])
-		case wpNumber, wpMessage, wpRelation, wpVariable, wpSpell, wpProperty:
+		case wpNumber, wpMessage, wpRelation, wpVariable, wpSpell, wpProperty, wpGlobal:
 			out[k] = strconv.FormatInt(int64(int32(v[0])), 10)
 		case wpCommand:
 			if !slices.Contains(e.itemCommands(it), v[0]) {
@@ -615,6 +627,8 @@ func (e *MapEditor) wizardDefaults(condition bool, i int) []string {
 			out = append(out, fmt.Sprintf("%d,%d,%d,%d", max(0, mid.X-2), max(0, mid.Y-2), mid.X+2, mid.Y+2))
 		case wpVariable, wpItem, wpStructure, wpSpell, wpProperty:
 			out = append(out, strconv.FormatInt(e.registryChoices(condition, it, len(out)-1, p.def)[0].Value, 10))
+		case wpGlobal:
+			out = append(out, e.firstGlobal(condition, it, len(out)-1))
 		case wpDialogue:
 			out = append(out, "")
 		default:
@@ -777,7 +791,7 @@ func (e *MapEditor) paramField(condition bool, i, k int, value string) Inspectio
 	case wpUnit, wpPlayer, wpGroup, wpMessage, wpRelation, wpSource:
 		f.Value = n
 		f.Choices = e.wizardChoices(p.kind, n)
-	case wpVariable, wpItem, wpStructure, wpSpell, wpProperty:
+	case wpVariable, wpItem, wpStructure, wpSpell, wpProperty, wpGlobal:
 		f.Value = n
 		f.Choices = e.registryChoices(condition, it, k, n)
 	case wpCommand:

@@ -619,6 +619,17 @@ type mapField struct {
 	Scope, Key, Value string
 }
 
+// commandAddGlobal adds a global to the open mod through the Globals page's
+// own adder and returns the document it reads the mod's globals from; the
+// shown window and its rows stay as they are.
+func (e *MapEditor) commandAddGlobal() (*InspectionDocument, error) {
+	host, ok := e.workspace()
+	if !ok {
+		return nil, errNoEditHost
+	}
+	return host.SetWorkspaceField(ModGlobalsScope, GlobalNewKey, "")
+}
+
 func (e *MapEditor) commandSetMapField(f mapField) (editorChange, error) {
 	host, ok := e.workspace()
 	if !ok {

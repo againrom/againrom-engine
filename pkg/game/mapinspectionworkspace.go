@@ -422,6 +422,7 @@ func workspaceScopeRows() []workspaceScope {
 		modPage(ui.ModScreensScope, (*edits).screensFields, (*edits).setScreensField),
 		modPage(ui.ModSettingsScope, (*edits).settingsFields, (*edits).setSettingsField),
 		modPage(ui.ModSpeakersScope, (*edits).speakersFields, (*edits).setSpeakersField),
+		modPage(ui.ModGlobalsScope, (*edits).globalsFields, (*edits).setGlobalsField),
 		modPage(ui.ModFilesScope, (*edits).filesFields, (*edits).setFilesField),
 		dialoguesPage(modPage(ui.ModDialoguesScope, (*edits).dialoguesFields, (*edits).setDialoguesField)),
 	}

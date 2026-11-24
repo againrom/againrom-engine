@@ -33,45 +33,58 @@ func (x *MapInspector) modMapGlobals(m mod.Mission) *modMapGlobals {
 	return &modMapGlobals{mod: m.Mod, declared: mods.Globals, dialogues: m.DialogueFiles}
 }
 
-// globalUndeclared: DIV-5108. A node naming a global its mod does not
-// declare reads 0 and writes nothing; the check refuses it at each trigger
-// and reply that names the node, and at the node when none does.
-func (c *mapCheck) globalUndeclared() []mapHit {
-	g := c.globals
-	if g == nil || c.scriptErr != nil {
-		return nil
-	}
-	undeclared := func(condition bool, nodes []alm.ScriptNode) map[uint32]int32 {
+// globalUse is one place a script names a global: a trigger (Trigger >= 0)
+// or reply Reply of node Node in dialogue file File.
+type globalUse struct {
+	ID      int32
+	Trigger int
+	File    string
+	Node    int
+	Reply   int
+}
+
+// globalNode is a global node no trigger and no reply names.
+type globalNode struct {
+	Condition bool
+	Index     int
+	ID        int32
+}
+
+// scriptGlobalUses is every global the script's triggers and the dialogues'
+// replies name, each place once per global, and the global nodes none of
+// them names. It is the one reader of what names a global: the map check
+// and the Globals page's users ask it.
+func scriptGlobalUses(script alm.Script, dialogues map[string][]byte) (uses []globalUse, loose []globalNode) {
+	table := func(condition bool, nodes []alm.ScriptNode) map[uint32]int32 {
 		out := map[uint32]int32{}
 		for _, n := range nodes {
-			if id := int32(n.Value[0]); scriptprofile.AddressesGlobal(condition, n.Opcode) && !g.declared.Declares(g.mod, id) {
-				out[n.ID] = id
+			if scriptprofile.AddressesGlobal(condition, n.Opcode) {
+				out[n.ID] = int32(n.Value[0])
 			}
 		}
 		return out
 	}
-	checks, actions := undeclared(true, c.script.Conditions), undeclared(false, c.script.Actions)
+	checks, actions := table(true, script.Conditions), table(false, script.Actions)
 	if len(checks) == 0 && len(actions) == 0 {
-		return nil
+		return nil, nil
 	}
 	type nodeKey struct {
 		condition bool
 		id        uint32
 	}
-	used := map[nodeKey]bool{}
+	named := map[nodeKey]bool{}
 	name := func(condition bool, node uint32) (int32, bool) {
-		table := actions
+		t := actions
 		if condition {
-			table = checks
+			t = checks
 		}
-		id, ok := table[node]
+		id, ok := t[node]
 		if ok {
-			used[nodeKey{condition, node}] = true
+			named[nodeKey{condition, node}] = true
 		}
 		return id, ok
 	}
-	var out []mapHit
-	for i, t := range c.script.Triggers {
+	for i, t := range script.Triggers {
 		var ids []int32
 		for k := range t.Pairs() {
 			left, right, _ := t.Pair(k)
@@ -87,16 +100,16 @@ func (c *mapCheck) globalUndeclared() []mapHit {
 			}
 		}
 		for _, id := range ids {
-			out = append(out, mapHit{Kind: ui.KindTrigger, Index: i, Text: fmt.Sprintf(c.x.word("editor.message.globaltrigger"), id, g.mod)})
+			uses = append(uses, globalUse{ID: id, Trigger: i})
 		}
 	}
-	files := make([]string, 0, len(g.dialogues))
-	for file := range g.dialogues {
+	files := make([]string, 0, len(dialogues))
+	for file := range dialogues {
 		files = append(files, file)
 	}
 	slices.Sort(files)
 	for _, file := range files {
-		d, err := mod.ParseDialogue(file, g.dialogues[file])
+		d, err := mod.ParseDialogue(file, dialogues[file])
 		if err != nil {
 			continue
 		}
@@ -116,23 +129,53 @@ func (c *mapCheck) globalUndeclared() []mapHit {
 					}
 				}
 				for _, id := range ids {
-					out = append(out, mapHit{Text: fmt.Sprintf(c.x.word("editor.message.globalreply"), file, n.ID, r+1, id, g.mod)})
+					uses = append(uses, globalUse{ID: id, Trigger: -1, File: file, Node: n.ID, Reply: r + 1})
 				}
 			}
 		}
 	}
 	for _, side := range []struct {
 		condition bool
-		kind      ui.RecordKind
 		nodes     []alm.ScriptNode
 		table     map[uint32]int32
-	}{{true, ui.KindCondition, c.script.Conditions, checks}, {false, ui.KindAction, c.script.Actions, actions}} {
+	}{{true, script.Conditions, checks}, {false, script.Actions, actions}} {
 		for i, n := range side.nodes {
-			id, ok := side.table[n.ID]
-			if ok && !used[nodeKey{side.condition, n.ID}] {
-				out = append(out, mapHit{Kind: side.kind, Index: i, Text: fmt.Sprintf(c.x.word("editor.message.globalnode"), id, g.mod)})
+			if id, ok := side.table[n.ID]; ok && !named[nodeKey{side.condition, n.ID}] {
+				loose = append(loose, globalNode{side.condition, i, id})
 			}
 		}
+	}
+	return uses, loose
+}
+
+// globalUndeclared: DIV-5108. A node naming a global its mod does not
+// declare reads 0 and writes nothing; the check refuses it at each trigger
+// and reply that names the node, and at the node when none does.
+func (c *mapCheck) globalUndeclared() []mapHit {
+	g := c.globals
+	if g == nil || c.scriptErr != nil {
+		return nil
+	}
+	uses, loose := scriptGlobalUses(c.script, g.dialogues)
+	var out []mapHit
+	for _, u := range uses {
+		switch {
+		case g.declared.Declares(g.mod, u.ID):
+		case u.Trigger >= 0:
+			out = append(out, mapHit{Kind: ui.KindTrigger, Index: u.Trigger, Text: fmt.Sprintf(c.x.word("editor.message.globaltrigger"), u.ID, g.mod)})
+		default:
+			out = append(out, mapHit{Text: fmt.Sprintf(c.x.word("editor.message.globalreply"), u.File, u.Node, u.Reply, u.ID, g.mod)})
+		}
+	}
+	for _, n := range loose {
+		if g.declared.Declares(g.mod, n.ID) {
+			continue
+		}
+		kind := ui.KindAction
+		if n.Condition {
+			kind = ui.KindCondition
+		}
+		out = append(out, mapHit{Kind: kind, Index: n.Index, Text: fmt.Sprintf(c.x.word("editor.message.globalnode"), n.ID, g.mod)})
 	}
 	return out
 }

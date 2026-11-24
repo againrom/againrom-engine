@@ -458,11 +458,11 @@ func TestTriggerWizardAsksToExtendTheMapForAConditionOnTheLastRegister(t *testin
 // in EN and RU.
 func TestTriggerWizardItemListsOpenWholeOnTheSmallestScreen(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
-		e, _ := kindsEditor(t, oneTriggerMap(t), lang)
-		e.Select(trigRecord(t, e, "Trigger", 0), true)
-		wizPress(t, e, "", 0)
-		wizPress(t, e, "+action", 0)
 		for _, key := range []string{"c0.item", "a1.item"} {
+			e, _ := kindsEditor(t, oneTriggerMap(t), lang)
+			e.Select(trigRecord(t, e, "Trigger", 0), true)
+			wizPress(t, e, "", 0)
+			wizPress(t, e, "+action", 0)
 			n := wizField(t, e, key)
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
 			trigClick(t, e, r, ok, key)
@@ -478,8 +478,6 @@ func TestTriggerWizardItemListsOpenWholeOnTheSmallestScreen(t *testing.T) {
 					t.Fatalf("%q %s: row %d of %d (%q) does not show at once: %v %v; field %v, first row %v", lang, key, row, len(choices), choices[row], rr, ok, r, r0)
 				}
 			}
-			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: n})
-			trigClick(t, e, r, ok, key)
 		}
 	}
 }

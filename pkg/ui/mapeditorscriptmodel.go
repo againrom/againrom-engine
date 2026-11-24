@@ -108,11 +108,15 @@ const ScriptMessageParameter uint32 = 11
 
 const NewMessageChoice int64 = 1 << 32
 
+// NewGlobalChoice is the choice that adds a global variable to the mod.
+const NewGlobalChoice int64 = 1 << 33
+
 const (
 	ScriptSpellParameter uint32 = 12 + iota
 	ScriptEntrySpellParameter
 	ScriptAreaSpellParameter
 	ScriptPropertyParameter // the unit property action 34's selector names
+	ScriptGlobalParameter   // a global variable of the open mod
 )
 
 // operations are the catalog's operations of a family.
@@ -217,6 +221,7 @@ type InspectionScriptTarget struct {
 	Name       string
 	Choice     string
 	NewMessage bool
+	NewGlobal  bool
 	// Text is a message page's whole text, line by line; the choice label
 	// shows its first line.
 	Text string
@@ -224,6 +229,9 @@ type InspectionScriptTarget struct {
 }
 
 func (t InspectionScriptTarget) ChoiceValue() int64 {
+	if t.NewGlobal {
+		return NewGlobalChoice
+	}
 	if t.NewMessage {
 		return NewMessageChoice
 	}

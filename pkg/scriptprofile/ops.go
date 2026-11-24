@@ -182,6 +182,13 @@ const (
 	addGlobal   = 0x4104
 )
 
+// The global operations, as the wizard lists them.
+const (
+	ReadGlobalOp = readGlobal
+	SetGlobalOp  = setGlobal
+	AddGlobalOp  = addGlobal
+)
+
 // groupCommands are the commands action 6 can be authored with, in order.
 var groupCommands = []uint32{1, 2, 3, 4, 5, 10, 11, 14, 15, 17, 18}
 

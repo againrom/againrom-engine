@@ -220,6 +220,14 @@ gone. Values the record holds for a mod outside the active set stay in the
 record and are written back unchanged; the mod mark's set comparison still
 refuses a save made under another mod set.
 
+The map editor's mod window has a Globals page that writes this file: New,
+and per global its name, number, starting value, note, the maps and replies
+that use it, and Remove. A number is given once and never again while a map
+of the mod names it; a global a map or reply uses is not removed, and the
+refusal names the users. The trigger wizard and the Dialog window's replies
+offer "A global compared", "Set a global" and "Add to a global" by name, with
+a choice that adds a global and puts it in the slot.
+
 ## mod.toml
 
 `mod.toml` holds top-level `key = value` lines; a `[table]` header ends the

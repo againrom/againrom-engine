@@ -98,6 +98,12 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 	}{{selector: 6, word: "editor.param.property.health"}, {selector: 15, word: "editor.param.property.defence"}, {selector: 16, word: "editor.param.property.absorption"}} { // TRIG-PROPERTY-036
 		add(ui.ScriptPropertyParameter, p.selector, -1, x.inspectionUTF8(x.word(p.word)), "", 0)
 	}
+	if x.mod != nil {
+		for _, g := range x.modGlobalList() {
+			add(ui.ScriptGlobalParameter, uint32(g.ID), -1, x.inspectionUTF8(g.Name), "", 0)
+		}
+		out[ui.ScriptGlobalParameter] = append(out[ui.ScriptGlobalParameter], ui.InspectionScriptTarget{Record: -1, Name: x.inspectionUTF8(x.word("editor.param.newglobal")), NewGlobal: true})
+	}
 	registers := map[uint32]bool{}
 	for _, nodes := range [][]ui.InspectionScriptNode{d.Script.Actions, d.Script.Conditions} {
 		for _, n := range nodes {
