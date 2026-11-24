@@ -115,25 +115,21 @@ func nodeIndex(nodes []alm.ScriptNode, id uint32) int {
 // or actions than the profile's, or on an original map a second group.
 func wizardRoom(t ui.WizardTrigger, limits scriptprofile.Profile, extended bool) error {
 	limit := &mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: int64(limits.Pairs), Got: int64(len(t.Pairs))}
+	plan := planScript(t)
+	globals, dialogues := mapedit.CountGlobalNodes(plan), mapedit.CountInteractive(plan.Actions)
 	switch {
 	case len(t.Pairs) > limits.Pairs:
 	case len(t.Actions) > limits.Actions:
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitActions, Max: int64(limits.Actions), Got: int64(len(t.Actions))}
 	case !extended && slices.ContainsFunc(t.Pairs, func(p ui.WizardPair) bool { return p.Group != 0 }):
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGroups, Max: 1, Got: 2}
-	case !extended && slices.ContainsFunc(t.Actions, func(a ui.WizardNode) bool { return !a.Keep && a.Opcode == 2 && a.Label != "" }):
-		n := 0
-		for _, a := range t.Actions {
-			if !a.Keep && a.Opcode == 2 && a.Label != "" {
-				n++
-			}
-		}
+	case !extended && dialogues > 0:
+		n := dialogues
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitDialogue, Got: int64(n)}
 		return lifted(limit, "editor.script.limit.dialogue", n)
-	case !extended && wizardGlobalNodes(t) > 0:
-		n := wizardGlobalNodes(t)
-		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGlobal, Got: int64(n)}
-		return lifted(limit, "editor.script.limit.global", n)
+	case !extended && globals > 0:
+		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGlobal, Got: int64(globals)}
+		return lifted(limit, "editor.script.limit.global", globals)
 	default:
 		return nil
 	}
@@ -143,22 +139,26 @@ func wizardRoom(t ui.WizardTrigger, limits scriptprofile.Profile, extended bool)
 	return lifted(limit, "editor.script.triggerfull")
 }
 
-// wizardGlobalNodes is how many of the plan's nodes name a mod global.
-func wizardGlobalNodes(t ui.WizardTrigger) int {
-	n := 0
+// planScript holds the plan's nodes as the script the fold counts: each
+// condition side and each action.
+func planScript(t ui.WizardTrigger) alm.Script {
+	var sc alm.Script
 	for _, p := range t.Pairs {
-		for _, side := range []ui.WizardNode{p.Left, p.Right} {
-			if scriptprofile.AddressesGlobal(true, side.Opcode) {
-				n++
-			}
-		}
+		sc.Conditions = append(sc.Conditions, planNode(p.Left), planNode(p.Right))
 	}
 	for _, a := range t.Actions {
-		if scriptprofile.AddressesGlobal(false, a.Opcode) {
-			n++
-		}
+		sc.Actions = append(sc.Actions, planNode(a))
 	}
-	return n
+	return sc
+}
+
+// planNode is the node a wizard row writes; a node kept as it stands has no
+// opcode and counts for nothing.
+func planNode(n ui.WizardNode) alm.ScriptNode {
+	if n.Keep {
+		return alm.ScriptNode{}
+	}
+	return alm.ScriptNode{Opcode: n.Opcode, Label: n.Label, Type: n.Types, Value: n.Values}
 }
 
 func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {

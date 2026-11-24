@@ -246,9 +246,9 @@ func (f scriptForms) extended(t alm.ScriptTrigger) (alm.ScriptTrigger, error) {
 	return x, nil
 }
 
-// countInteractive is how many of the action nodes ask for an interactive
+// CountInteractive is how many of the action nodes ask for an interactive
 // dialogue, which the original record cannot run.
-func countInteractive(nodes []alm.ScriptNode) int {
+func CountInteractive(nodes []alm.ScriptNode) int {
 	n := 0
 	for _, a := range nodes {
 		if a.InteractiveMessage() {
@@ -258,10 +258,10 @@ func countInteractive(nodes []alm.ScriptNode) int {
 	return n
 }
 
-// countGlobalNodes is how many of the script's nodes name a mod global,
+// CountGlobalNodes is how many of the script's nodes name a mod global,
 // which the original record cannot run: the original reads such a check
 // as 0 and skips such an action (DIV-5108).
-func countGlobalNodes(sc alm.Script) int {
+func CountGlobalNodes(sc alm.Script) int {
 	n := 0
 	for _, c := range sc.Conditions {
 		if scriptprofile.AddressesGlobal(true, c.Opcode) {
@@ -345,10 +345,10 @@ func (e *Editor) FoldScript() error {
 	}
 	if m, err := e.Map(); err == nil {
 		if sc, err := m.Script(); err == nil {
-			if n := countInteractive(sc.Actions); n > 0 {
+			if n := CountInteractive(sc.Actions); n > 0 {
 				return &ScriptLimitError{Limit: LimitDialogue, Got: int64(n)}
 			}
-			if n := countGlobalNodes(sc); n > 0 {
+			if n := CountGlobalNodes(sc); n > 0 {
 				return &ScriptLimitError{Limit: LimitGlobal, Got: int64(n)}
 			}
 		}
