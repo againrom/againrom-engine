@@ -188,7 +188,7 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 						switch {
 						case key.Name == "word" || key.Name == "CopyRefused" || strings.HasSuffix(key.Name, "Word"):
 							args = append(args, n.Value)
-						case key.Name == "Label" || key.Name == "save" || key.Name == "refusal" || key.Name == "scriptRefusal" || key.Name == "undecoded":
+						case key.Name == "Label" || key.Name == "save" || key.Name == "refusal" || key.Name == "Refusal" || key.Name == "scriptRefusal" || key.Name == "undecoded" || key.Name == "unstated":
 							args = append(args, n.Value)
 						case key.Name == "itemSuits":
 							if list, ok := n.Value.(*ast.CompositeLit); ok {
