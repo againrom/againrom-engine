@@ -74,7 +74,7 @@ func (w *World) armRetreat(i int) {
 		return
 	}
 	w.ensureRetreatContinuation(i)
-	hostile := w.withdrawalHostiles(i, w.fleeSearchRadius(i))
+	hostile := w.withdrawalHostiles(i, w.fleeTestRadius(i))
 	alive := false
 	for _, ci := range hostile {
 		alive = alive || w.entities[ci].Living()
@@ -83,6 +83,9 @@ func (w *World) armRetreat(i int) {
 		if !w.retreatProgressBusy(i) {
 			w.acquireStanding(i)
 		}
+		return
+	}
+	if w.teleportEscape(i, hostile, int64(e.ScanRange)+1, true) {
 		return
 	}
 	x, y, ok := w.fleeCell(i, hostile)

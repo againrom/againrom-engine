@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM2] An enemy's card now opens its groups by your kills of that kind for every creature, humanoid ones and kinds such as the catapult included, as in the original; before, many showed blank stats however many you killed.
 - [ROM2] The pick-up key no longer sends a hero after a sack lying where he cannot stand; a sack under his feet is still taken, as in the original.
+- [ROM2] The Retreat order now makes a unit look for enemies within 10 cells, not its own sight range, and a mage with Teleport and mana teleports away by it, as in the original.
 - [ROM2] A patrol whose point no route reaches (behind a wall or water) now turns back when it stands within two cells of that point, as in the original; farther away it waits and tries again. A point held by another unit is not covered: the patrol walks up to it and waits.
 - [ROM2] Poison Cloud's poison now stays on a unit for the same short time whatever the caster's power, and each new pulse or cast sets it back to that time, as in the original; before, a stronger caster's poison lasted much longer after the unit left the cloud.
 - [ROM2] On the world map, a place's name and description lines are now centred over the map's text area and the name is drawn in the lettering of the hero's name on the character screen, as in the original; before, each line began at the middle of the area and ran off to the right.

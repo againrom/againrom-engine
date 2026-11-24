@@ -144,7 +144,7 @@ type gameProfile struct {
 	// the mover radius in the flee test and in the Teleport arm's hostile list
 	// (R2-ENGINE-1438, R2-ENGINE-1440); zero keeps the mover radius.
 	fleeBlockRadius int64
-	// fleeTeleports: a computer unit that books Teleport and can pay it casts it
+	// fleeTeleports: a unit that books Teleport and can pay it casts it
 	// to flee or back off, and walks otherwise (R2-ENGINE-1418).
 	fleeTeleports bool
 	// keepsSuppressedAcquirer: the engage refuses no suppressed acquirer

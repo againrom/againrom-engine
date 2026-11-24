@@ -110,7 +110,7 @@ func (w *World) withdrawalArm(i int) (withdrawArm, []int) {
 	// build compares canonical Entity.HP as int32. The shipped bounds and
 	// the unrepresentable high-health edge are recorded by DIV-352.
 	if e.HP <= e.Wimpy {
-		if hostile := w.withdrawalHostiles(i, w.fleeRadius(i)+w.game.fleeSightExtra); len(hostile) != 0 {
+		if hostile := w.withdrawalHostiles(i, w.fleeTestRadius(i)); len(hostile) != 0 {
 			return withdrawFlee, hostile
 		}
 	}
@@ -176,11 +176,12 @@ func anyLiving(w *World, list []int) bool {
 // teleportArm is the arm of the spell that relocates its caster.
 var teleportArm = armWith(func(a spellArm) bool { return a.teleport })
 
-// teleportReady reports a computer unit of a game whose flee casts Teleport
-// that books the spell and has the mana for it.
+// teleportReady reports a unit of a game whose flee casts Teleport that books
+// the spell and has the mana for it. The unit's side does not matter: the
+// flee body the explicit withdraw order reaches is the automatic flee's.
 func (w *World) teleportReady(i int) bool {
 	e := w.entities[i]
-	if !w.game.fleeTeleports || !w.computerControlledUnit(e) {
+	if !w.game.fleeTeleports {
 		return false
 	}
 	id := uint32(w.spellIDOfArm(teleportArm))
@@ -305,13 +306,18 @@ func (w *World) fleeRadius(i int) int64 {
 	return w.fleeSearchRadius(i)
 }
 
-// fleeSearchRadius is the ring count of the Wimpy and explicit Retreat
-// searches: in the first game mover byte +0x08 (AI-690), held by an imported
-// Mover or by the World's record, the constructor's 5 otherwise (AI-692). The
-// second game keeps ScanRange, since that evidence is first-game. DIV-347.
+// fleeTestRadius is the ring count of the flee test, the Wimpy test and the
+// explicit Retreat search alike: the radius plus the profile's extra rings (10
+// in the second game, R2-ENGINE-1440).
+func (w *World) fleeTestRadius(i int) int64 { return w.fleeRadius(i) + w.game.fleeSightExtra }
+
+// fleeSearchRadius is the first game's ring count of the Wimpy and explicit
+// Retreat searches: mover byte +0x08 (AI-690), held by an imported Mover or by
+// the World's record, the constructor's 5 otherwise (AI-692). DIV-347.
 func (w *World) fleeSearchRadius(i int) int64 {
 	e := &w.entities[i]
 	if w.game.nativeMovers {
+		// A profile with no block radius keeps the unit's scan range.
 		return int64(e.ScanRange)
 	}
 	if m := w.motionFor(e.ID); m != nil {
