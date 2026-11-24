@@ -23,3 +23,19 @@ func TestCreateChoiceGlobalMarkerIsRefusedByWord(t *testing.T) {
 		t.Fatalf("command gave %+v, want the refusal %q", r, word)
 	}
 }
+
+// TestCreateChoiceRefusalOnUnrelatedField pins that a create marker given to a
+// field that does not admit it is refused by the table's word, and that a
+// unit's identity choice is not taken for a marker.
+func TestCreateChoiceRefusalOnUnrelatedField(t *testing.T) {
+	_, s, _ := nativeIdentityEditor(t)
+	for _, marker := range []int64{ui.NewGlobalChoice, ui.NewMessageChoice} {
+		word, _ := ui.NewChoiceRefusal(marker)
+		if _, err := s.SetField("Unit", 0, "level", marker); err == nil || !strings.Contains(err.Error(), word) {
+			t.Fatalf("unit level marker %d gave %v, want %q", marker, err, word)
+		}
+		if _, err := s.SetFields("Unit", 0, []ui.InspectionFieldValue{{Key: "level", Value: marker}}); err == nil || !strings.Contains(err.Error(), word) {
+			t.Fatalf("unit level marker %d by SetFields gave %v, want %q", marker, err, word)
+		}
+	}
+}

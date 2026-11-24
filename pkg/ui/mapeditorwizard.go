@@ -672,7 +672,7 @@ func (e *MapEditor) defaultUnit() int64 {
 // firstTarget is the first value parameter kind can name, else def.
 func (e *MapEditor) firstTarget(kind uint32, def int64) int64 {
 	for _, t := range e.doc.Script.Targets[kind] {
-		if t.NewChoice != NewMessageChoice {
+		if t.NewChoice != createChoice(ScriptMessageParameter) {
 			return int64(t.Value)
 		}
 	}

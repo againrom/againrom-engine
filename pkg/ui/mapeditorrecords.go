@@ -267,7 +267,7 @@ func (e *MapEditor) setField(text string) error {
 			e.message = e.plainWord("editor.add.whole")
 			return parseErr
 		}
-		if v == NewMessageChoice {
+		if v == createChoice(ScriptMessageParameter) {
 			if i := e.messageFieldOf(field.Key); i >= 0 {
 				e.leave(leavePrompt)
 				e.beginMessage(InspectionMessageOwner{Kind: kind, Index: index, Key: field.Key}, true)

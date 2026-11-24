@@ -297,7 +297,7 @@ func (e *MapEditor) messageChoiceAlone(field int, value int64) bool {
 	}
 	found := false
 	for _, target := range e.doc.Script.Targets[ScriptMessageParameter] {
-		found = found || target.NewChoice != NewMessageChoice && int64(target.Value) == value
+		found = found || target.NewChoice != createChoice(ScriptMessageParameter) && int64(target.Value) == value
 	}
 	if !found {
 		return false
@@ -319,7 +319,7 @@ func (e *MapEditor) messageText(field int) (string, bool) {
 		return "", false
 	}
 	for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
-		if t.NewChoice != NewMessageChoice && int64(t.Value) == v {
+		if t.NewChoice != createChoice(ScriptMessageParameter) && int64(t.Value) == v {
 			return t.Text, t.Text != ""
 		}
 	}
@@ -733,10 +733,10 @@ func (e *MapEditor) chooseDialog(value int64) {
 	o := &e.obj
 	o.open = -1
 	page := uint32(value)
-	if value == NewMessageChoice {
+	if value == createChoice(ScriptMessageParameter) {
 		page = NewMessagePage
 	}
-	if page == e.messagePage || value <= 0 || value > NewMessageChoice {
+	if page == e.messagePage || value <= 0 || value > createChoice(ScriptMessageParameter) {
 		return
 	}
 	if e.messageDraftDirty() {
@@ -884,11 +884,11 @@ func (e *MapEditor) loadMessageFields(parts []InspectionMessagePart) {
 	if e.dialog == nil && e.messageFor != nil && len(o.fields) == 2*len(parts) {
 		value := int64(e.messagePage)
 		if e.messagePage == NewMessagePage {
-			value = NewMessageChoice
+			value = createChoice(ScriptMessageParameter)
 		}
 		f := InspectionField{Key: "dialog", Label: e.word("editor.message.dialog"), Value: value, Choices: e.parameterChoices(ScriptMessageParameter, value)}
 		for k := range f.Choices {
-			if f.Choices[k].Value == NewMessageChoice {
+			if f.Choices[k].Value == createChoice(ScriptMessageParameter) {
 				f.Choices[k].Label = e.word("editor.message.newdialog")
 			}
 		}
@@ -1167,7 +1167,7 @@ func (e *MapEditor) newMessage(field int) {
 	if _, ok := Seam[InspectionMessages](e.doc.Edits); !ok || field < 0 || field >= len(e.obj.fields) {
 		return
 	}
-	if e.obj.buf[field] == strconv.FormatInt(NewMessageChoice, 10) {
+	if e.obj.buf[field] == strconv.FormatInt(createChoice(ScriptMessageParameter), 10) {
 		e.obj.buf[field] = fieldInput(e.obj.fields[field])
 	}
 	if !e.objectMayLeave() {

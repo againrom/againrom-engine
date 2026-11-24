@@ -567,11 +567,26 @@ func unitSections(out []ui.InspectionField) []ui.InspectionField {
 	return out
 }
 
+// ownChoice reports whether the field's own choice list holds value, as a
+// unit's identity list holds a wide value equal to a create marker.
+func (s *mapInspectionEdits) ownChoice(kind ui.RecordKind, index int, key string, value int64) bool {
+	for _, f := range s.Fields(kind, index) {
+		if f.Key == key {
+			for _, c := range f.Choices {
+				if c.Value == value {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // SetField writes one field of the record as one edit, after the field's
 // range, its reference check and the record's placement check pass on the
 // edited map.
 func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string, value int64) (_ *ui.InspectionDocument, said error) {
-	if word, ok := ui.NewChoiceRefusal(value); ok && key != "identity" && !(value == ui.NewMessageChoice && kind == ui.KindAction && key == "value0") {
+	if word, ok := ui.NewChoiceRefusal(value); ok && !s.ownChoice(kind, index, key, value) && !(value == ui.NewMessageChoice && kind == ui.KindAction && key == "value0") {
 		said = errors.New(word)
 		s.worded(&said)
 		return nil, said
@@ -605,7 +620,7 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (_ *ui.InspectionDocument, said error) {
 	defer s.worded(&said)
 	for _, v := range values {
-		if word, ok := ui.NewChoiceRefusal(v.Value); ok && !v.Text && v.Key != "identity" {
+		if word, ok := ui.NewChoiceRefusal(v.Value); ok && !v.Text && !s.ownChoice(kind, index, v.Key, v.Value) {
 			return nil, errors.New(word)
 		}
 	}

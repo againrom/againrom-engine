@@ -230,20 +230,37 @@ type InspectionScriptTarget struct {
 }
 
 // newRecordRow is one choice that creates a record from a parameter list: its
-// marker, the refusal a command or host edit gives it, whether a field offers
-// it, and the creation a list handler runs on that field.
+// marker, the refusal a command or host edit gives it, the script parameter
+// kind whose fields offer it, whether the editor's field offers it, and the
+// creation a list handler runs on that field.
 type newRecordRow struct {
 	choice  int64
 	refusal string
+	param   uint32
 	fits    func(*MapEditor, int) bool
 	create  func(*MapEditor, int) error
 }
 
 // newRecordRows is the one table of create choices, in the order the list
-// handlers try them.
-var newRecordRows = []newRecordRow{
-	{NewGlobalChoice, "a new global is added on the Globals page", (*MapEditor).globalChoiceField, (*MapEditor).newGlobal},
-	{NewMessageChoice, "a new message is written in the window's message editor", (*MapEditor).messageField, newMessageRow},
+// handlers try them; init sets it, as its creations reach the table's readers.
+var newRecordRows []newRecordRow
+
+func init() {
+	newRecordRows = []newRecordRow{
+		{NewGlobalChoice, "a new global is added on the Globals page", ScriptGlobalParameter, (*MapEditor).globalChoiceField, (*MapEditor).newGlobal},
+		{NewMessageChoice, "a new message is written in the window's message editor", ScriptMessageParameter, (*MapEditor).messageField, newMessageRow},
+	}
+}
+
+// createChoice is the create choice of a script parameter kind, read from the
+// table.
+func createChoice(param uint32) int64 {
+	for i := range newRecordRows {
+		if newRecordRows[i].param == param {
+			return newRecordRows[i].choice
+		}
+	}
+	return 0
 }
 
 func newMessageRow(e *MapEditor, f int) error {
@@ -290,7 +307,7 @@ func (m *InspectionScriptModel) OpenTarget(kind, value uint32) *InspectionScript
 	}
 	for i := range m.Targets[kind] {
 		t := &m.Targets[kind][i]
-		if t.NewChoice != NewMessageChoice && t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0 || kind == ScriptMessageParameter) {
+		if t.NewChoice != createChoice(ScriptMessageParameter) && t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0 || kind == ScriptMessageParameter) {
 			return t
 		}
 	}

@@ -9,7 +9,7 @@ import (
 // k of item it, 0 when it declares none.
 func (e *MapEditor) firstGlobal(condition bool, it wizItem, k int) string {
 	for _, c := range e.registryChoices(condition, it, k, 0) {
-		if c.Value != NewGlobalChoice && c.Value != 0 {
+		if c.Value != createChoice(ScriptGlobalParameter) && c.Value != 0 {
 			return strconv.FormatInt(c.Value, 10)
 		}
 	}
@@ -23,7 +23,7 @@ func (e *MapEditor) globalChoiceField(f int) bool {
 		return false
 	}
 	for _, c := range o.fields[f].Choices {
-		if c.Value == NewGlobalChoice {
+		if c.Value == createChoice(ScriptGlobalParameter) {
 			return true
 		}
 	}
@@ -50,7 +50,7 @@ func (e *MapEditor) newGlobal(f int) error {
 	e.doc.Script.Targets[ScriptGlobalParameter] = targets
 	var made *InspectionScriptTarget
 	for i, t := range targets {
-		if t.NewChoice != NewGlobalChoice && !had[t.Value] {
+		if t.NewChoice != createChoice(ScriptGlobalParameter) && !had[t.Value] {
 			made = &targets[i]
 		}
 	}
