@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -141,6 +142,81 @@ func (e *MapEditor) opName(condition bool, opcode uint32) string {
 	return fmt.Sprintf(e.word(scriptprofile.VocabularyOf(ops).Undecoded(condition)), opcode)
 }
 
+// nodeOpName is the name of a node of opcode whose first parameter is
+// value: its form's where the operation row reads one, else opName.
+func (e *MapEditor) nodeOpName(condition bool, opcode, value uint32) string {
+	if f, ok := e.nodeForm(condition, opcode, value); ok && e.doc.Script.Catalog.named(condition, opcode) {
+		return e.word(f.Word)
+	}
+	return e.opName(condition, opcode)
+}
+
+// nodeForm is the form of a node of opcode whose first parameter is value
+// in the shown map's game, false where the row reads none.
+func (e *MapEditor) nodeForm(condition bool, opcode, value uint32) (scriptprofile.Form, bool) {
+	op, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, condition, opcode)
+	if !ok {
+		return scriptprofile.Form{}, false
+	}
+	return op.FormOf(value)
+}
+
+// formed reports an operation whose first parameter chooses a form.
+func (e *MapEditor) formed(condition bool, opcode uint32) bool {
+	op, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, condition, opcode)
+	return ok && len(op.Forms) > 0
+}
+
+// nodeCommand is the parameter that chooses a node's slots: a group
+// command's command, or the first parameter of an operation with forms.
+func (e *MapEditor) nodeCommand(condition bool, opcode uint32, values [10]uint32) uint32 {
+	if e.formed(condition, opcode) {
+		return values[0]
+	}
+	return groupCommand(condition, opcode, values)
+}
+
+// formChoice is the operation list's value of the form of opcode whose
+// first parameter is value: value above the opcode's 32 bits. No form has
+// the value 0.
+func formChoice(opcode, value uint32) int64 { return int64(value)<<32 | int64(opcode) }
+
+// formKey is the operation and first parameter the texts of a node popup
+// choose for an operation with forms, and it writes both texts: a form
+// picked from the operation list sets the first parameter, the plain
+// operation picked from a form clears it, and otherwise the first parameter
+// chooses.
+func (e *MapEditor) formKey(condition bool, opcode, command int64, text map[string]string) (int64, int64) {
+	op, form := opcode&math.MaxUint32, opcode>>32
+	if !e.formed(condition, uint32(op)) {
+		return opcode, command
+	}
+	value, _ := strconv.ParseInt(strings.TrimSpace(text["value0"]), 10, 64)
+	prev := e.obj.signature
+	_, wasForm := e.nodeForm(condition, uint32(prev[0]), uint32(prev[1]))
+	switch {
+	case form != 0 && prev != [2]int64{op, form}:
+		value = form
+	case form == 0 && wasForm && prev[0] == op && value == prev[1]:
+		value = 0
+	}
+	text["value0"], text["opcode"] = strconv.FormatInt(value, 10), strconv.FormatInt(op, 10)
+	if _, ok := e.nodeForm(condition, uint32(op), uint32(value)); ok {
+		text["opcode"] = strconv.FormatInt(formChoice(uint32(op), uint32(value)), 10)
+	}
+	return op, value
+}
+
+// followed is the X slot of the cell that cell slot s of a form node copies,
+// s itself where it copies none, and whether the two hold the same cell.
+func followed(f scriptprofile.Form, s int, types, values [10]uint32) (int, bool) {
+	from, ok := f.Follows[s]
+	if !ok || from == s || from+1 >= len(types) || s+1 >= len(types) {
+		return s, false
+	}
+	return from, types[s] == types[from] && types[s+1] == types[from+1] && values[s] == values[from] && values[s+1] == values[from+1]
+}
+
 // cmpWord is a comparison code in words (TRIG-CMP-006); a code above 5 never
 // holds.
 func (e *MapEditor) cmpWord(code int64) string {
@@ -266,9 +342,10 @@ func (e *MapEditor) groupCommandNode(condition bool, opcode uint32) bool {
 func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]uint32) []string {
 	var out []string
 	command := uint32(0)
-	if e.groupCommandNode(condition, opcode) {
+	if e.groupCommandNode(condition, opcode) || e.formed(condition, opcode) {
 		command = values[0]
 	}
+	form, formOK := e.nodeForm(condition, opcode, command)
 	for s := 0; s < len(types); s++ {
 		t, v := types[s], values[s]
 		if t == scriptNone {
@@ -279,6 +356,9 @@ func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]
 		switch {
 		case t == scriptX && s+1 < len(types) && types[s+1] == scriptY:
 			value = fmt.Sprintf("%d,%d", v, values[s+1])
+			if from, same := followed(form, s, types, values); formOK && same {
+				value = fmt.Sprintf(e.word("editor.node.follows"), value, e.slotLabel(condition, opcode, command, from, types[from]))
+			}
 			s++
 		case e.groupCommandNode(condition, opcode) && s == 0 && t == scriptConst:
 			value = e.commandName(v)
@@ -302,7 +382,7 @@ func (e *MapEditor) commandName(c uint32) string {
 
 // nodeTitle is a node's number and operation: "#3 Units in group".
 func (e *MapEditor) nodeTitle(condition bool, n InspectionScriptNode) string {
-	return fmt.Sprintf("#%d %s", n.ID, e.opName(condition, n.Opcode))
+	return fmt.Sprintf("#%d %s", n.ID, e.nodeOpName(condition, n.Opcode, n.Values[0]))
 }
 
 // nodeByID is the one node of the family with id, or false.
@@ -344,7 +424,7 @@ func (e *MapEditor) scriptFields(v scriptView) []InspectionField {
 		extended := e.doc.Script != nil && e.doc.Script.Extended
 		return e.triggerFields(t, len(t.Left), len(t.Acts), extended)
 	}
-	return e.nodeEditFields(v, e.obj.types, v.node.Opcode, groupCommand(v.condition, v.node.Opcode, v.node.Values))
+	return e.nodeEditFields(v, e.obj.types, v.node.Opcode, e.nodeCommand(v.condition, v.node.Opcode, v.node.Values))
 }
 
 // nodeEditFields are a node's fields for its slot types as the popup edits
@@ -397,7 +477,7 @@ func (e *MapEditor) secondNodeFields(v scriptView, fields []InspectionField) []I
 	decoded := c.named(v.condition, v.node.Opcode)
 	for i := range fields {
 		f := &fields[i]
-		f.ReadOnly = !decoded || f.Key != "name" && f.Key != "opcode" && !strings.HasPrefix(f.Key, "value") && !strings.HasPrefix(f.Key, "cell")
+		f.ReadOnly = f.ReadOnly || !decoded || f.Key != "name" && f.Key != "opcode" && !strings.HasPrefix(f.Key, "value") && !strings.HasPrefix(f.Key, "cell")
 		if f.Key == "opcode" {
 			// A node changes only to an operation whose slots a claim states.
 			f.Choices = slices.DeleteFunc(slices.Clone(f.Choices), func(o InspectionChoice) bool {
@@ -413,7 +493,7 @@ func (e *MapEditor) secondNodeFields(v scriptView, fields []InspectionField) []I
 func (e *MapEditor) readOnlyValue(v scriptView, f InspectionField, buf string) string {
 	switch {
 	case f.Key == "opcode":
-		return e.opName(v.condition, v.node.Opcode)
+		return e.nodeOpName(v.condition, v.node.Opcode, v.node.Values[0])
 	case len(f.Choices) > 0:
 		return choiceText(f, buf)
 	}
@@ -488,15 +568,28 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 	var ops []InspectionChoice
 	for _, op := range e.doc.Script.Catalog.operations(v.condition) {
 		ops = append(ops, InspectionChoice{int64(op.Opcode), e.opName(v.condition, op.Opcode)})
+		if row, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, v.condition, op.Opcode); ok && op.Named {
+			for _, f := range row.Forms {
+				ops = append(ops, InspectionChoice{formChoice(op.Opcode, f.Value), e.word(f.Word)})
+			}
+		}
 	}
-	out = append(out, InspectionField{Key: "opcode", Label: e.word("editor.node.operation"), Value: int64(n.Opcode), Choices: ops})
+	shown := int64(n.Opcode)
+	form, formOK := e.nodeForm(v.condition, opcode, command)
+	if formOK && opcode == n.Opcode {
+		shown = formChoice(opcode, command)
+	}
+	out = append(out, InspectionField{Key: "opcode", Label: e.word("editor.node.operation"), Value: shown, Choices: ops})
+	entered := e.formEntered(v, opcode, command)
 	for s := 0; s < len(types); s++ {
 		t := types[s]
 		if t == scriptNone {
 			continue
 		}
 		f := InspectionField{Key: fmt.Sprintf("value%d", s), Label: e.slotLabel(v.condition, opcode, command, s, t), Value: slotValue(t, n.Values[s])}
-		if t != n.Types[s] {
+		if d, ok := form.Defaults[s]; (t != n.Types[s] || entered) && ok && formOK {
+			f.Value = slotValue(t, d)
+		} else if t != n.Types[s] {
 			f.Value = 0
 		}
 		kind := e.nodeParameterKind(v, opcode, types, s)
@@ -512,6 +605,12 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 			f.TextValue = fmt.Sprintf("%d,%d", f.Value, n.Values[s+1])
 			if types[s+1] != n.Types[s+1] {
 				f.TextValue = fmt.Sprintf("%d,0", f.Value)
+			}
+			// A cell that copies another while both hold it is written
+			// from that cell on Apply (scriptValues).
+			if from, same := followed(form, s, types, n.Values); formOK && from != s && (same || types != n.Types || entered) {
+				f.ReadOnly, f.TextValue = true, fmt.Sprintf("%d,%d", n.Values[from], n.Values[from+1])
+				f.Label = fmt.Sprintf(e.word("editor.node.followslabel"), f.Label, e.slotLabel(v.condition, opcode, command, from, types[from]))
 			}
 			s++
 		case e.groupCommandNode(v.condition, opcode) && s == 0 && t == scriptConst:
@@ -529,6 +628,16 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 	return out
 }
 
+// formEntered reports that the shown form is not the one the node holds, so
+// its defaults and followed cells apply even where the slot types already
+// match.
+func (e *MapEditor) formEntered(v scriptView, opcode, command uint32) bool {
+	if _, ok := e.nodeForm(v.condition, opcode, command); !ok {
+		return false
+	}
+	return opcode != v.node.Opcode || command != e.nodeCommand(v.condition, v.node.Opcode, v.node.Values)
+}
+
 // nodeTriggerKey is the Trigger row of a condition no pair names: the
 // trigger Apply places it in (listedToTrigger), -1 a new one. The editor
 // keeps it; the host never sees it.
@@ -543,7 +652,7 @@ func (e *MapEditor) loadScriptObject(v scriptView) {
 	}
 	if v.node != nil {
 		o.types = v.node.Types
-		o.signature = [2]int64{int64(v.node.Opcode), int64(groupCommand(v.condition, v.node.Opcode, v.node.Values))}
+		o.signature = [2]int64{int64(v.node.Opcode), int64(e.nodeCommand(v.condition, v.node.Opcode, v.node.Values))}
 	}
 	o.fields = e.scriptFields(v)
 	o.buf = o.buf[:0]
@@ -581,6 +690,7 @@ func (e *MapEditor) retypeNode() {
 			command = 0
 		}
 	}
+	opcode, command = e.formKey(v.condition, opcode, command, text)
 	key := [2]int64{opcode, command}
 	if key == o.signature {
 		return
@@ -599,9 +709,19 @@ func (e *MapEditor) retypeNode() {
 	}
 	o.fields = e.nodeEditFields(v, o.types, uint32(opcode), uint32(command))
 	o.buf = o.buf[:0]
+	form, formOK := e.nodeForm(v.condition, uint32(opcode), uint32(command))
+	entered := e.formEntered(v, uint32(opcode), uint32(command))
 	for _, f := range o.fields {
 		b := fieldInput(f)
-		if t, kept := text[f.Key]; kept && (f.Key == "name" || f.Key == "opcode" || f.Key == nodeTriggerKey || keySlotTypeKept(f.Key, old, o.types) || f.Key == "value0" && command != 0) {
+		// A form entered from another keeps no typed text in a slot it
+		// defaults or copies.
+		set := false
+		if s, err := strconv.Atoi(strings.TrimLeft(f.Key, "valuecel")); err == nil && formOK && entered {
+			_, d := form.Defaults[s]
+			_, c := form.Follows[s]
+			set = d || c
+		}
+		if t, kept := text[f.Key]; kept && !set && (f.Key == "name" || f.Key == "opcode" || f.Key == nodeTriggerKey || keySlotTypeKept(f.Key, old, o.types) || f.Key == "value0" && command != 0) {
 			b = t
 		}
 		o.buf = append(o.buf, b)
@@ -1188,12 +1308,17 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 			}
 			s, _ := strconv.Atoi(strings.TrimPrefix(f.Key, "value"))
 			if f.Key == "opcode" {
-				out = append(out, InspectionFieldValue{Key: f.Key, Value: n})
+				out = append(out, InspectionFieldValue{Key: f.Key, Value: n & math.MaxUint32})
 			} else if o.types[s] != v.node.Types[s] || slotValue(o.types[s], v.node.Values[s]) != n {
 				values = append(values, InspectionFieldValue{Key: f.Key, Value: n})
 			}
 		}
 	}
+	follows, err := e.followValues(v)
+	if err != nil {
+		return nil, err
+	}
+	values = append(values, follows...)
 	// The slot types go first, so each value is checked as its new type; the
 	// operation goes last.
 	var types []InspectionFieldValue
@@ -1211,6 +1336,40 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 		}
 	}
 	return append(append(types, values...), last...), nil
+}
+
+// followValues are the slot values of each cell the shown node's form
+// copies from another cell field (Form.Follows): that field's cell, where it
+// differs from what the node holds.
+func (e *MapEditor) followValues(v scriptView) ([]InspectionFieldValue, error) {
+	o := &e.obj
+	form, ok := e.nodeForm(v.condition, uint32(o.signature[0]), uint32(o.signature[1]))
+	if !ok {
+		return nil, nil
+	}
+	at := func(key string) int {
+		return slices.IndexFunc(o.fields, func(f InspectionField) bool { return f.Key == key })
+	}
+	var out []InspectionFieldValue
+	for s := range o.types {
+		from, follows := form.Follows[s]
+		i, j := at(fmt.Sprintf("cell%d", s)), at(fmt.Sprintf("cell%d", from))
+		if !follows || i < 0 || j < 0 || !o.fields[i].ReadOnly {
+			continue
+		}
+		xs, ys, ok := strings.Cut(o.buf[j], ",")
+		x, errX := strconv.ParseInt(strings.TrimSpace(xs), 10, 64)
+		y, errY := strconv.ParseInt(strings.TrimSpace(ys), 10, 64)
+		if !ok || errX != nil || errY != nil {
+			return nil, fmt.Errorf("%s: %s", e.hostUTF8(o.fields[j].Label), e.plainWord("editor.node.cell"))
+		}
+		for k, w := range []int64{x, y} {
+			if o.types[s+k] != v.node.Types[s+k] || int64(v.node.Values[s+k]) != w {
+				out = append(out, InspectionFieldValue{Key: fmt.Sprintf("value%d", s+k), Value: w})
+			}
+		}
+	}
+	return out, nil
 }
 
 // scriptDirty reports a script popup with changes not applied.

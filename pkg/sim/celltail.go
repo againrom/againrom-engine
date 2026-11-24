@@ -137,7 +137,8 @@ func firstGameCellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
 
 // targetedCellTailBytes is the second game's record: with p4 zero, the node's
 // own cell is both the source and the target; otherwise (p4, p5) and (p6, p7)
-// (R2-ENGINE-1698, Medium: the English client read).
+// (R2-ENGINE-1775, both clients). A later write replaces the cell's event
+// (R2-ENGINE-1776).
 func targetedCellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
 	if a[4] == 0 {
 		return [cellTailLen]byte{byte(a[0]), byte(a[1]), byte(a[2]), byte(a[3]), byte(a[2]), byte(a[3])}

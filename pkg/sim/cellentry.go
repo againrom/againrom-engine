@@ -3,6 +3,8 @@ package sim
 import (
 	"fmt"
 	"sort"
+
+	"againrom/pkg/scriptprofile"
 )
 
 // DeclareCellTails binds installed cell payloads without enacting an entry.
@@ -52,15 +54,10 @@ func (w *World) requestCellCast(i int, cx, cy int32) {
 	if e.Domain != DomainGround && e.Domain != DomainGhost || len(w.cellTails) == 0 {
 		return
 	}
-	if cx < 0 || cx > 255 || cy < 0 || cy > 255 {
+	b, ok := w.cellTailOf(cx, cy)
+	if !ok {
 		return
 	}
-	key := tailKey(cx, cy)
-	k := sort.Search(len(w.cellTails), func(k int) bool { return w.cellTails[k].Key >= key })
-	if k == len(w.cellTails) || w.cellTails[k].Key != key {
-		return
-	}
-	b := w.cellTails[k].Bytes
 	if cellEventBodies[w.game.cellEvent].entry(w, e, cx, cy, b) {
 		return
 	}
@@ -75,9 +72,27 @@ func (w *World) requestCellCast(i int, cx, cy int32) {
 		Spell: b[0], Power: uint16(b[1]), Target: e.ID, AtUnit: true})
 }
 
+// cellTailOf is the record of cell (cx, cy), when the cell holds one.
+func (w *World) cellTailOf(cx, cy int32) ([cellTailLen]byte, bool) {
+	if cx < 0 || cx > 255 || cy < 0 || cy > 255 {
+		return [cellTailLen]byte{}, false
+	}
+	key := tailKey(cx, cy)
+	k := sort.Search(len(w.cellTails), func(k int) bool { return w.cellTails[k].Key >= key })
+	if k == len(w.cellTails) || w.cellTails[k].Key != key {
+		return [cellTailLen]byte{}, false
+	}
+	return w.cellTails[k].Bytes, true
+}
+
+// stepCentred is the end of entity i's step, centred on its cell: a cell
+// event that waits for the centre acts there (R2-ENGINE-1778).
+func (w *World) stepCentred(i int) { cellEventBodies[w.game.cellEvent].centred(w, i) }
+
 // cellEventRelocate is the second game's cell event that moves the unit on it
-// to the event's target cell (R2-ENGINE-673, R2-ENGINE-557).
-const cellEventRelocate = 0x17
+// to the event's target cell (R2-ENGINE-1778); the editor names the same
+// event a teleport.
+const cellEventRelocate = scriptprofile.CellMoveEvent
 
 // relocatesOnCellEvent says whether a pending record is that event. A unit
 // cast an instant authors never holds a target cell, so the two cannot meet.
@@ -93,10 +108,12 @@ const (
 	cellEventRelocating
 )
 
-// cellEventBody holds what a cellEventRule does with the event: queue it on
-// entry, recognise its pending record, and repair an older save's tail.
+// cellEventBody holds what a cellEventRule does with the event: take it on
+// entry, queue it at a step's centre, recognise its pending record, and
+// repair an older save's tail.
 type cellEventBody struct {
 	entry     func(w *World, e Entity, cx, cy int32, b [cellTailLen]byte) bool
+	centred   func(w *World, i int)
 	relocates func(c scriptCast) bool
 	repair    func(w *World)
 }
@@ -105,17 +122,28 @@ type cellEventBody struct {
 var cellEventBodies = [...]cellEventBody{
 	cellEventIgnored: {
 		entry:     func(*World, Entity, int32, int32, [cellTailLen]byte) bool { return false },
+		centred:   func(*World, int) {},
 		relocates: func(scriptCast) bool { return false },
 		repair:    func(*World) {},
 	},
+	// Entering the cell casts nothing; the step that ends centred on the
+	// unit's own cell passes the unit to the move with the target
+	// (R2-ENGINE-1778). Air units stay outside both, as on entry.
 	cellEventRelocating: {
 		entry: func(w *World, e Entity, cx, cy int32, b [cellTailLen]byte) bool {
-			if b[0] != cellEventRelocate {
-				return false
+			return b[0] == cellEventRelocate
+		},
+		centred: func(w *World, i int) {
+			e := w.entities[i]
+			if e.Domain != DomainGround && e.Domain != DomainGhost {
+				return
 			}
-			w.casts = append(w.casts, scriptCast{FromX: uint8(cx), FromY: uint8(cy), ToX: b[4], ToY: b[5],
+			b, ok := w.cellTailOf(e.X, e.Y)
+			if !ok || b[0] != cellEventRelocate {
+				return
+			}
+			w.casts = append(w.casts, scriptCast{FromX: uint8(e.X), FromY: uint8(e.Y), ToX: b[4], ToY: b[5],
 				Spell: b[0], Power: uint16(b[1]), Target: e.ID, AtUnit: true})
-			return true
 		},
 		relocates: func(c scriptCast) bool {
 			return c.AtUnit && c.Spell == cellEventRelocate && c.ToX|c.ToY != 0
@@ -124,10 +152,9 @@ var cellEventBodies = [...]cellEventBody{
 	},
 }
 
-// relocateOnCellEvent moves the unit that entered the event's cell, held in
-// the record's source. A unit refused that cell never stood on it and stays
-// (DIV-4527 still sends it here); a refused target leaves the unit in place
-// (R2-ENGINE-705).
+// relocateOnCellEvent moves the unit whose step ended on the event's cell,
+// held in the record's source. A unit off that cell when the record runs
+// stays; a refused target leaves the unit in place (R2-ENGINE-705).
 func (w *World) relocateOnCellEvent(c scriptCast, obs *castObs) {
 	i := indexOfEntity(w.entities, c.Target)
 	if i < 0 || !w.entities[i].Alive() || w.entities[i].OffMap {

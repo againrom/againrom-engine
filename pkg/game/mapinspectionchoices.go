@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -46,6 +47,7 @@ var fieldChoiceRows = []fieldChoiceRow{
 	{kinds: []ui.RecordKind{ui.KindTrigger}, field: "action", prefix: true, script: true, supply: scriptLinkChoices},
 	{scripted: true, prefix: true, script: true, supply: noChoices},
 	{kinds: []ui.RecordKind{ui.KindEnchantment}, field: "castkind", supply: castKindChoices},
+	{kinds: []ui.RecordKind{ui.KindEnchantment}, field: "spell", supply: castSpellChoices},
 	{kinds: []ui.RecordKind{ui.KindUnit}, field: "definition", supply: unitDefinitionChoices},
 	{kinds: []ui.RecordKind{ui.KindStructure}, field: "kind", supply: structureKindChoices},
 	{kinds: []ui.RecordKind{ui.KindStructure}, field: "identity", supply: noChoices},
@@ -136,6 +138,23 @@ func catalogChoices(category, remove string) func(*mapInspectionEdits, fieldChoi
 
 func keyCatalogChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
 	return s.inspector.recordCatalog(a.key)
+}
+
+// castSpellChoices are the spells a type-9 record takes: the catalog, or
+// the one event the format's field table holds a cell record at, which is
+// named a teleport when it is the game's cell move.
+func castSpellChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
+	for _, f := range s.model.SpellTemplateFields(mapedit.SpellConstructor(0)) {
+		if f.Key != "spell" || f.Min != f.Max {
+			continue
+		}
+		label := fmt.Sprintf("%d", f.Min)
+		if f.Min == int64(cellMoveOf(s.model)) {
+			label = s.inspector.inspectionUTF8(s.inspector.word("editor.second.action.25.teleport"))
+		}
+		return []ui.InspectionChoice{{Value: f.Min, Label: label}}
+	}
+	return keyCatalogChoices(s, a)
 }
 
 func scriptOperationChoices(_ *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {

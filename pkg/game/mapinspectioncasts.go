@@ -8,8 +8,18 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
+
+// cellMoveOf is the cell event of m's game that moves a unit to the
+// event's target, 0 for none or no model.
+func cellMoveOf(m *mapedit.Editor) uint32 {
+	if m == nil {
+		return 0
+	}
+	return scriptprofile.VocabularyOf(m.Profile().Ops).CellMove
+}
 
 var castWords = map[string]struct{ Word string }{
 	"spell": {Word: "editor.cast.spell"}, "power": {Word: "editor.cast.power"}, "link": {Word: "editor.cast.link"},
@@ -50,6 +60,9 @@ func (s *mapInspectionEdits) cellSpellPalette(view *alm.Map) ui.InspectionNewSte
 	out := ui.InspectionNewStep{Templates: make(map[int64]ui.InspectionSpellTemplate)}
 	for _, t := range cellSpellTemplates {
 		v := int64(mapedit.SpellConstructor(t.kind))
+		if len(s.model.SpellTemplateFields(int(v))) == 0 {
+			continue // the format's field table sets no record of the kind
+		}
 		out.Choices = append(out.Choices, ui.InspectionChoice{Value: v, Label: s.inspector.inspectionUTF8(s.inspector.word(t.word))})
 		out.Templates[v] = ui.InspectionSpellTemplate{Constructor: v, Target: t.target}
 	}
@@ -67,7 +80,7 @@ func (s *mapInspectionEdits) cellSpellPalette(view *alm.Map) ui.InspectionNewSte
 		}
 		t := cellSpellTemplates[template]
 		out.Choices = append(out.Choices, ui.InspectionChoice{Value: v,
-			Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view, 0).Label)})
+			Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view, 0, cellMoveOf(s.model)).Label)})
 		out.Templates[v] = ui.InspectionSpellTemplate{
 			Constructor: int64(mapedit.SpellConstructor(t.kind)), Target: t.target,
 		}
@@ -75,7 +88,11 @@ func (s *mapInspectionEdits) cellSpellPalette(view *alm.Map) ui.InspectionNewSte
 	return out
 }
 
-func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Map, setSize int) ui.InspectionRecord {
+// inspectionEnchantment is the view of type-9 record i of m. move is the
+// game's cell event that moves a unit to the record's target
+// (scriptprofile.Vocabulary.CellMove), 0 for none: a cell record of that
+// event reads as a teleport from its cell to its target.
+func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Map, setSize int, move uint32) ui.InspectionRecord {
 	r := ui.InspectionRecord{Kind: ui.KindEnchantment, Section: 9, Index: i, Label: fmt.Sprintf("item recipe %d / tag %d", i+1, e.Tag),
 		Details: []string{fmt.Sprintf("X/Y raw: %d / %d", e.X, e.Y), fmt.Sprintf("A/B/C: %d / %d / %d", e.A, e.B, e.C), fmt.Sprintf("Spell raw: %d", e.SpellRaw), fmt.Sprintf("Elements: %v", e.Elements)}}
 	if e.X == 0 && e.Y == 0 {
@@ -104,6 +121,10 @@ func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Ma
 			to = "unit"
 		}
 		r.Label = fmt.Sprintf(word("trap"), word(from), word(to), spell, uint16(e.SpellRaw>>16))
+		if move != 0 && uint32(uint8(e.SpellRaw)) == move {
+			target := e.Elements[1]
+			r.Label = fmt.Sprintf(x.inspectionUTF8(x.word("editor.cast.teleport")), e.X, e.Y, uint8(target.Kind), uint8(target.Low))
+		}
 	case e.A == 8:
 		r.Cell, r.Spatial = image.Pt(int(e.X), int(e.Y)), true
 		r.Label = fmt.Sprintf(word("book"), uint32(e.B)|uint32(e.C)<<16, spell, uint16(e.SpellRaw>>16))

@@ -209,8 +209,8 @@ type gameProfile struct {
 	keepsHealthAboveMaximum bool
 	// cellTail: how instant 25 encodes its six tail bytes (cellTailEncoders).
 	cellTail cellTailRule
-	// cellEvent: cell event 0x17 moves the entering unit
-	// (R2-ENGINE-673, DIV-4700).
+	// cellEvent: cell event 0x17 moves the unit whose step ends centred
+	// on the cell (R2-ENGINE-1778, DIV-4700).
 	cellEvent cellEventRule
 	// bookListsScrolls: the book shows a carried scroll at its spell's cell
 	// (R2-ENGINE-766, R2-SESSION-229, DIV-4732).

@@ -10,6 +10,15 @@ import (
 
 const enchantmentHead = 26
 
+// enchantmentSection is the type-9 row of a format whose records take the
+// field table fields.
+func enchantmentSection(fields func(*Editor, []byte) []Field) *section {
+	return &section{name: "enchantment", typeID: alm.TypeTileMarkers, layout: enchantmentLayout, x: 4, y: 8, cellShift: 8,
+		length: enchantmentLength, cellless: notCellSpell, checkCell: checkSpellCell, fields: fields,
+		deleteParts: enchantmentDeleteParts,
+	}
+}
+
 func enchantmentDeleteParts(e *Editor, recipes walk, index int) ([]part, error) {
 	at, size := recipes.at(index)
 	spatial := e.u32(at+4) != 0 || e.u32(at+8) != 0
@@ -170,7 +179,7 @@ func (e *Editor) SpellTemplateFields(template int) []Field {
 		// Give the constructor a cell for the field table's spell check.
 		rec[4] = 1
 	}
-	return enchantmentFields(e, rec)
+	return e.rowOf(KindEnchantment).fields(e, rec)
 }
 
 // AddSpellFrom adds a cell spell at x, y bound to link: a copy of record

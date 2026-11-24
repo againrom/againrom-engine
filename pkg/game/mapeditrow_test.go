@@ -10,7 +10,8 @@ import (
 )
 
 // The first game's row has every capability on; the second game's row takes
-// units, structures and sacks, writes script words, and offers the seams the
+// units, structures and sacks, adds and removes type-9 cell records, writes
+// script words, and offers the seams the
 // terrain brush, the palettes and the save use.
 func TestEditRowsHoldBothFormats(t *testing.T) {
 	first, second := editRows[alm.FirstFormat], editRows[alm.SecondFormat]
@@ -28,17 +29,17 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 		}
 	}
 	for _, k := range []ui.RecordKind{ui.KindScenery, ui.KindStock, ui.KindEnchantment, ui.KindPlayer, ui.KindAction, ui.KindCondition} {
-		node := k == ui.KindAction || k == ui.KindCondition
+		node := k == ui.KindAction || k == ui.KindCondition || k == ui.KindEnchantment
 		if second.moves.has(k) || second.deletes.has(k) != node || second.adds.has(k) != (k == ui.KindPlayer || node) {
 			t.Fatalf("the second game's row takes kind %v", k)
 		}
 	}
-	for _, k := range []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindStock, ui.KindPlayer} {
+	for _, k := range []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindStock, ui.KindPlayer, ui.KindEnchantment} {
 		if !second.fieldKinds.has(k) {
 			t.Fatalf("the second game's row lists no fields for %v", k)
 		}
 	}
-	if second.fieldKinds.has(ui.KindScenery) || second.fieldKinds.has(ui.KindEnchantment) || first.unitNoRowWord == "" || second.unitNoRowWord == "" || first.unitNoRowID == nil || second.unitNoRowID == nil || !second.playerRecords || !second.structureOwner || !first.structureOwner {
+	if second.fieldKinds.has(ui.KindScenery) || first.unitNoRowWord == "" || second.unitNoRowWord == "" || first.unitNoRowID == nil || second.unitNoRowID == nil || !second.playerRecords || !second.structureOwner || !first.structureOwner {
 		t.Fatalf("the second game's row lists the wrong fields: %+v", second)
 	}
 	for _, k := range []ui.RecordKind{ui.KindAction, ui.KindCondition, ui.KindTrigger} {

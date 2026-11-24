@@ -64,6 +64,33 @@ type Op struct {
 	// EffectUnread is that a claim reads the operation's slots but not what
 	// it does: the trigger wizard offers no ready row of it.
 	EffectUnread bool
+	// Forms are the nodes of the operation a claim reads by the value of
+	// their first parameter, each under its own name and slot roles.
+	Forms []Form
+}
+
+// Form is the reading of an operation's node whose first parameter holds
+// Value: its name, its word key and its slots, of the operation's types.
+// Follows maps a cell's X slot to the X slot of the cell it copies while
+// the two hold the same cell.
+type Form struct {
+	Value     uint32
+	Name      string
+	Word      string
+	Signature []Slot
+	Defaults  map[int]uint32
+	Follows   map[int]int
+}
+
+// FormOf is the form of a node of the operation whose first parameter is
+// value, false where none is.
+func (o Op) FormOf(value uint32) (Form, bool) {
+	for _, f := range o.Forms {
+		if f.Value == value {
+			return f, true
+		}
+	}
+	return Form{}, false
 }
 
 // HasSignature reports that a claim states the operation's parameter slots.
@@ -89,6 +116,8 @@ func (o Op) Slots(command uint32) ([10]Slot, bool) {
 			out[9] = group[0]
 		}
 		s = append(head, s...)
+	} else if f, found := o.FormOf(command); found {
+		s = f.Signature
 	}
 	if ok {
 		copy(out[:], s)
@@ -109,7 +138,15 @@ type Vocabulary struct {
 	// ObjectType is the parameter type whose value is the identity of a
 	// type-4 object of the same map, 0 where no type is.
 	ObjectType uint32
+	// CellMove is the cell event that moves a unit reaching the cell's
+	// centre to the event's target cell, 0 where no event does.
+	CellMove uint32
 }
+
+// CellMoveEvent is the second game's cell event 23, a move to the target
+// cell, whether action 25 or a type-9 record writes it (R2-ENGINE-1776,
+// R2-ENGINE-1778).
+const CellMoveEvent = 23
 
 // NameRule is how an operation's name is written where no claim reads it.
 type NameRule uint8
@@ -156,7 +193,8 @@ var vocabularies = [...]Vocabulary{
 	// tests no node or trigger word and the compiler reads a node's word
 	// +0x48 nowhere found, so a new node holds zero there and in its texts
 	// (R2-ENGINE-1728).
-	OpsSecond: {CheckWord: "editor.op.undecoded", ActionWord: "editor.op.undecoded", Naming: NumberedUndecoded, Fields: UndecodedReadOnly, ObjectType: 9},
+	OpsSecond: {CheckWord: "editor.op.undecoded", ActionWord: "editor.op.undecoded", Naming: NumberedUndecoded, Fields: UndecodedReadOnly, ObjectType: 9,
+		CellMove: CellMoveEvent},
 }
 
 // VocabularyOf is the vocabulary of a game's operations.
@@ -401,8 +439,17 @@ var secondActions = []Op{
 	{Ops: OpsSecond, ID: 22, Name: "Give each group member to player", Word: "editor.second.action.22", Decoded: true, Offered: true, Signature: sig(group, player("player"))},                                   // R2-ENGINE-1745
 	{Ops: OpsSecond, ID: 23, Name: "Add gold to player", Word: "editor.second.action.23", Decoded: true, Offered: true, Signature: sig(player("player"), number("money"))},                                       // R2-ENGINE-1746
 	{Ops: OpsSecond, ID: 24, Name: "Cast spell from cell at unit", Word: "editor.second.action.24", Decoded: true, Offered: true, Signature: sig(cell("cell"), unit("unit"), number("spell"), number("power"))},  // R2-ENGINE-1742
-	// The terrain effect of the eight bytes is unread.
-	{Ops: OpsSecond, ID: 25, Name: "Cell descriptor of eight bytes", Word: "editor.second.action.25", Decoded: true, Offered: true, EffectUnread: true, Signature: sig(number(""), number(""), cell("cell"), cell("cell2"), cell(""))},
+	// Action 25 writes the cell event (p0, p1, source, target) on cell
+	// (p2, p3); the source and target are (p4, p5) and (p6, p7) when p4 is not
+	// 0 (R2-ENGINE-1775). Event 23 moves a unit that reaches the cell's centre
+	// to the target (R2-ENGINE-1778); its power and source are not read
+	// (R2-ENGINE-1779, Medium). Every shipped node holds p1 255 and the source
+	// equal to the cell (R2-ASSET-386, R2-ASSET-387). What another event does
+	// is unread.
+	{Ops: OpsSecond, ID: 25, Name: "Cell descriptor of eight bytes", Word: "editor.second.action.25", Decoded: true, Offered: true, EffectUnread: true, Signature: sig(number(""), number(""), cell("cell"), cell("cell2"), cell("")),
+		Forms: []Form{{Value: CellMoveEvent, Name: "Teleport", Word: "editor.second.action.25.teleport",
+			Signature: sig(number("event"), number("unreadpower"), cell("entry"), cell("source"), cell("exit")),
+			Defaults:  map[int]uint32{1: 255}, Follows: map[int]int{4: 2}}}},
 	{Ops: OpsSecond, ID: 28, Name: "Move unit's bag into the second unit's bag", Word: "editor.second.action.28", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},                        // R2-ENGINE-1748
 	{Ops: OpsSecond, ID: 29, Name: "Set time left of a spell's area effects at cell", Word: "editor.second.action.29", Decoded: true, Offered: true, Signature: sig(cell("cell"), number("spell"), number("time"))}, // R2-ENGINE-1749
 	{Ops: OpsSecond, ID: 30, Name: "Set duration of a spell's effects on unit", Word: "editor.second.action.30", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("spell"), number("time"))},       // R2-ENGINE-1749

@@ -132,10 +132,7 @@ func init() {
 			blank:         blankPlayer,
 			deleteParts:   playerDeleteParts,
 		},
-		KindEnchantment: {name: "enchantment", typeID: alm.TypeTileMarkers, layout: enchantmentLayout, x: 4, y: 8, cellShift: 8,
-			length: enchantmentLength, cellless: notCellSpell, checkCell: checkSpellCell, fields: enchantmentFields,
-			deleteParts: enchantmentDeleteParts,
-		},
+		KindEnchantment: enchantmentSection(enchantmentFields),
 	}
 }
 

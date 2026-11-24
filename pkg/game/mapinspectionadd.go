@@ -144,7 +144,7 @@ func newRecordKindOf(kind ui.RecordKind) (newRecordKind, error) {
 // AddRecord adds the new record r as one edit: its kind's add call, then
 // every value the call does not take as a field of the new record.
 func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (_ *ui.InspectionDocument, said error) {
-	if row := s.row(); !row.adds.has(r.Kind) || !row.manyValues && (len(r.Values) > 1 && r.Kind != ui.KindSack || len(recordValues(r, "item")) > 1) {
+	if row := s.row(); !row.adds.has(r.Kind) || !row.manyValues && (len(r.Values) > 1 && r.Kind != ui.KindSack && r.Kind != ui.KindEnchantment || len(recordValues(r, "item")) > 1) {
 		return nil, s.refuse()
 	}
 	defer s.worded(&said)

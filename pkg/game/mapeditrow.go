@@ -43,7 +43,8 @@ type editRow struct {
 	randomTerrain bool
 	// newSteps are the keys of a new record the palettes offer; nil: all.
 	newSteps map[string]bool
-	// manyValues: one new record takes several values.
+	// manyValues: one new record takes several values; off, a sack still
+	// takes its items and a type-9 record its template and spell.
 	manyValues bool
 	// wholeScripts: a script node or trigger takes every field edit; off, an
 	// edit writes the operation and parameter words of a decoded node or
@@ -101,14 +102,15 @@ var editRows = map[alm.Format]*editRow{
 	alm.SecondFormat: {
 		moves: placedKinds,
 		// A new node holds zero in the words no compiler read names
-		// (R2-ENGINE-1728); a new trigger is the first game's 184 bytes.
+		// (R2-ENGINE-1728); a new trigger is the first game's 184 bytes. A
+		// type-9 record is the cell move its field table admits.
 		adds: kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true,
-			ui.KindTrigger: true, ui.KindAction: true, ui.KindCondition: true},
+			ui.KindTrigger: true, ui.KindAction: true, ui.KindCondition: true, ui.KindEnchantment: true},
 		// A node goes as the first game's does; the type-7 rows keep +0x28.
-		deletes: kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindAction: true, ui.KindCondition: true},
-		sets:    kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true},
+		deletes: kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindAction: true, ui.KindCondition: true, ui.KindEnchantment: true},
+		sets:    kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true, ui.KindEnchantment: true},
 		// A trigger's 184 bytes are the first game's fields (R2-ENGINE-1316).
-		fieldKinds:     kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindStock: true, ui.KindPlayer: true, ui.KindTrigger: true},
+		fieldKinds:     kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindStock: true, ui.KindPlayer: true, ui.KindTrigger: true, ui.KindEnchantment: true},
 		unitNoRowWord:  "editor.unit.norow",
 		unitNoRowID:    func(u alm.Unit) int64 { return int64(u.ServerID) },
 		structureName:  (*MapInspector).structureCatalogLine,
@@ -116,7 +118,7 @@ var editRows = map[alm.Format]*editRow{
 		structureOwner: true,
 		refusal:        "editor.map.secondtool", scriptRefusal: "editor.map.secondscript", undecoded: "editor.map.secondundecoded",
 		unstated:      "editor.map.secondunstated",
-		newSteps:      map[string]bool{"identity": true, "kind": true, "item": true}, // a new player takes the roster's defaults
+		newSteps:      map[string]bool{"identity": true, "kind": true, "item": true, "template": true, "spell": true}, // a new player takes the roster's defaults
 		structureKind: checkBuildingKind,
 		kindTable:     func(x *MapInspector) bool { return x.table != nil },
 		testMission:   (*MapInspector).testPlayReplaceMission,

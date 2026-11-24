@@ -32,10 +32,14 @@ func TestFirstGameTrapKeepsItsOwnBytes(t *testing.T) {
 	}
 }
 
-func TestSecondGameTrapMovesTheUnitThatEntersIt(t *testing.T) {
+func TestSecondGameTrapMovesTheUnitWhoseStepEndsOnIt(t *testing.T) {
 	w := trapWorld(t, Entity{ID: 1, HP: 50, MaxHP: 50, X: 10, Y: 10, Domain: DomainGround})
 	w.setCellTail(trapNode())
 	w.requestCellCast(0, 10, 10)
+	if casts := w.ScriptCasts(); len(casts) != 0 {
+		t.Fatalf("entering the cell queued %v", casts)
+	}
+	w.stepCentred(0)
 	w.stepScriptCasts(nil)
 	if e, _ := w.Entity(1); e.X != 30 || e.Y != 40 {
 		t.Fatalf("unit at (%d,%d), want the target (30,40)", e.X, e.Y)
@@ -49,6 +53,7 @@ func TestSecondGameTrapLeavesARefusedUnitInPlace(t *testing.T) {
 	w := trapWorld(t, Entity{ID: 1, HP: 50, MaxHP: 50, X: 9, Y: 10, Domain: DomainGround})
 	w.setCellTail(trapNode())
 	w.requestCellCast(0, 10, 10)
+	w.stepCentred(0)
 	w.stepScriptCasts(nil)
 	if e, _ := w.Entity(1); e.X != 9 || e.Y != 10 {
 		t.Fatalf("a unit refused the cell moved to (%d,%d)", e.X, e.Y)
@@ -59,7 +64,7 @@ func TestSecondGameTrapRefusedTargetKeepsTheUnit(t *testing.T) {
 	w := trapWorld(t, Entity{ID: 1, HP: 50, MaxHP: 50, X: 10, Y: 10, Domain: DomainGround},
 		Entity{ID: 2, HP: 50, MaxHP: 50, X: 30, Y: 40, Domain: DomainGround})
 	w.setCellTail(trapNode())
-	w.requestCellCast(0, 10, 10)
+	w.stepCentred(0)
 	w.stepScriptCasts(nil)
 	if e, _ := w.Entity(1); e.X != 10 || e.Y != 10 {
 		t.Fatalf("unit at (%d,%d), want it kept on a refused target", e.X, e.Y)
@@ -78,5 +83,20 @@ func TestRepairCellEventsRewritesOnlyTheOlderForm(t *testing.T) {
 	got := w.CellTails()
 	if len(got) != 2 || got[0].Bytes != want || got[1].Bytes != other {
 		t.Fatalf("tails after repair: %v", got)
+	}
+}
+
+// The operands the editor writes for a teleport from entry (15, 121) to exit
+// (13, 22) move the unit that reaches the entry cell to the exit.
+func TestSecondGameEditorTeleportOperandsMoveTheUnit(t *testing.T) {
+	node := ScriptInstant{Op: ScriptInstantCellTail, Args: [scriptParams]int32{cellEventRelocate, 255, 15, 121, 15, 121, 13, 22}}
+	s := secondGameScript(t, nil, []ScriptInstant{node}, nil)
+	w := scriptWorld(t, s, []Entity{{ID: 1, HP: 50, MaxHP: 50, X: 15, Y: 121, Domain: DomainGround}})
+	w.setCellTail(node)
+	w.requestCellCast(0, 15, 121)
+	w.stepCentred(0)
+	w.stepScriptCasts(nil)
+	if e, _ := w.Entity(1); e.X != 13 || e.Y != 22 {
+		t.Fatalf("unit at (%d,%d), want the exit (13,22)", e.X, e.Y)
 	}
 }

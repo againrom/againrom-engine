@@ -93,6 +93,12 @@ var signatureRoleWords = map[string]string{
 	"global":   "editor.role.global",
 	"delta":    "editor.role.delta",
 	"reason":   "editor.role.reason",
+	// The roles of a teleport (cell event 23).
+	"event":       "editor.role.event",
+	"unreadpower": "editor.role.unreadpower",
+	"entry":       "editor.role.entry",
+	"source":      "editor.role.source",
+	"exit":        "editor.role.exit",
 }
 
 // roleWord is the word of a signature role.

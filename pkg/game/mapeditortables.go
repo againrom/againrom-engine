@@ -52,10 +52,11 @@ var firstEditorTables = editorTables{
 }
 
 // The second game's maps are viewed only: the palettes list the catalog's
-// units, structures and sacks. No claim names its Objects kinds, mod
+// units, structures and sacks, and the type-9 cell records the format's
+// field table admits. No claim names its Objects kinds, mod
 // offer tables, hero words or item suits.
 var secondEditorTables = editorTables{
-	addKinds: []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindPlayer},
+	addKinds: []ui.RecordKind{ui.KindEnchantment, ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindPlayer},
 }
 
 // editorTables is the open install's tables.

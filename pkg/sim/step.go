@@ -2272,7 +2272,8 @@ func containsID(ids []EntityID, id EntityID) bool {
 
 // payStride moves a stepping mover's logical cell and plane record on one paid
 // tick. The crossing commits the destination (MOVE-088); the landing centred
-// on it releases the origin the step still held (MOVE-CLAIM-007).
+// on it releases the origin the step still held (MOVE-CLAIM-007) and ends the
+// step there.
 func (w *World) payStride(s *routeScratch, i int) {
 	e := &w.entities[i]
 	st := e.Stride
@@ -2288,6 +2289,7 @@ func (w *World) payStride(s *routeScratch, i int) {
 	} else if counted(e) {
 		s.addFootprint(w, e.Domain.layer(), e.TokenSize, st.FromX, st.FromY, -1)
 	}
+	w.stepCentred(i)
 }
 
 // stepOutcome is what advanceStep did with a mover's next cell.
@@ -2371,6 +2373,7 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 	if !e.stepping() {
 		e.X, e.Y = next.x, next.y
 		w.requestFootprintCasts(i, e.X, e.Y)
+		w.stepCentred(i)
 	}
 	e.startAction(w.tick, max(1, int64(e.TransitTotal)))
 	// Only a mover the plane counts tells it anything; a flyer is counted like

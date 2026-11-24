@@ -51,6 +51,7 @@ func init() {
 			cloneParts:  secondCloneSackParts,
 			removeParts: secondRemoveParts,
 		},
+		KindEnchantment: enchantmentSection(secondEnchantmentFields),
 		// The roster row has the first game's layout; its words are read in
 		// secondPlayerBaseFields.
 		KindPlayer: {name: "player", typeID: alm.TypeGroups, count: alm.MetaGroupCount, create: true,
@@ -101,6 +102,28 @@ var secondUnitFields = []Field{
 	{Key: "field0a", Label: "editor.second.field.0a", Offset: alm.SecondUnitField0A, Width: 2, Min: 0, Max: math.MaxUint16},
 	{Key: "field10", Label: "editor.second.field.10", Offset: alm.SecondUnitFlags10, Width: 4, Min: 0, Max: math.MaxUint32},
 	{Key: "field20", Label: "editor.second.field.20", Offset: alm.SecondUnitField20, Width: 4, Min: 0, Max: math.MaxUint32},
+}
+
+// secondEnchantmentFields are the settable fields of a second-game type-9
+// record. Only a cell record of the profile's cell move, or of no event yet,
+// is decoded for editing (R2-ASSET-387): its event, which takes the move
+// alone, its cell and its target. Power and source keep their bytes; the
+// move reads neither (R2-ENGINE-1779). Every other record sets none.
+func secondEnchantmentFields(e *Editor, rec []byte) []Field {
+	move := scriptprofile.VocabularyOf(e.Profile().Ops).CellMove
+	if move == 0 || move > math.MaxUint8 || !spellRecordKnown(rec) || notCellSpell(rec) || binary.LittleEndian.Uint16(rec[12:]) >= 4 {
+		return nil
+	}
+	if event := uint32(rec[18]); event != 0 && event != move {
+		return nil
+	}
+	return []Field{
+		{Key: "spell", Label: "editor.cast.event", Offset: 18, Width: 1, Min: int64(move), Max: int64(move)},
+		{Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
+		{Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
+		{Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
+		{Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255},
+	}
 }
 
 // secondStructureFieldsBase and secondStructureExtFields are the settable
