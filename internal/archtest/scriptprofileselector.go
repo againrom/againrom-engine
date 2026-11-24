@@ -21,6 +21,10 @@ func ScriptProfileSelectorViolations(files map[string]string) []string {
 		if strings.Contains(src, "scriptprofile"+".Of(") || strings.Contains(src, "scriptprofile"+".ForOps(") {
 			out = append(out, name+": calls a retired script profile selector")
 		}
+		// The game and the editor window take a map's limits from its editor's Profile, not a selector.
+		if (strings.HasPrefix(name, "pkg/game/") || strings.HasPrefix(name, "pkg/ui/")) && strings.Contains(src, "scriptprofile"+".For(") {
+			out = append(out, name+": selects a script profile; take the map's Profile")
+		}
 	}
 	sort.Strings(out)
 	return out

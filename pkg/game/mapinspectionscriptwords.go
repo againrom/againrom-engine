@@ -115,7 +115,7 @@ func (s *mapInspectionEdits) setParameterWords(k mapedit.Kind, index int, values
 			}
 		}
 		if condition && opcode != mapload.ScriptConstant {
-			if err := registerCollides(sc, uint32(index)); err != nil {
+			if err := registerCollides(sc, profile, uint32(index)); err != nil {
 				return nil, s.checkWords(err)
 			}
 		}

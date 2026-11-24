@@ -313,7 +313,7 @@ func (s *mapInspectionEdits) SetGoalTarget(goal int, kind ui.RecordKind, index i
 					return false, err
 				}
 			}
-			if err := registerCollision(sc, mapedit.ArmConditions); err != nil {
+			if err := registerCollision(sc, m.Profile(), mapedit.ArmConditions); err != nil {
 				return false, err
 			}
 			err = m.AddArm(a.kind, value)
@@ -331,7 +331,7 @@ func (s *mapInspectionEdits) SetGoalTarget(goal int, kind ui.RecordKind, index i
 				return false, wordErr("editor.err.protected", value)
 			}
 		}
-		if err := registerCollision(sc, 1); err != nil {
+		if err := registerCollision(sc, m.Profile(), 1); err != nil {
 			return false, err
 		}
 		id, err := m.NextScriptID(mapedit.KindCondition)
@@ -363,9 +363,9 @@ func structureStartsStanding(m *alm.Map, t *mapload.Table, index int) error {
 // registerCollision refuses new checks when a script variable already uses a
 // register one of them would take: the build gives check i register i and a
 // variable addresses the same array by its own number (MISSION-SLOT-008).
-func registerCollision(sc alm.Script, added int) error {
+func registerCollision(sc alm.Script, limits scriptprofile.Profile, added int) error {
 	for k := range added {
-		if err := registerCollides(sc, uint32(len(sc.Conditions)+k)); err != nil {
+		if err := registerCollides(sc, limits, uint32(len(sc.Conditions)+k)); err != nil {
 			return err
 		}
 	}
@@ -375,14 +375,18 @@ func registerCollision(sc alm.Script, added int) error {
 // registerTaken refuses a new check whose register a script variable uses.
 // The extended record keeps variables apart from checks, so the refusal
 // carries a limit it lifts.
-type registerTaken struct{ register uint32 }
+type registerTaken struct {
+	register uint32
+	// max is the register file of the map's profile, the count the word names.
+	max int64
+}
 
 func (r registerTaken) Error() string {
 	return fmt.Sprintf("script variable %d would share the register of the new check", r.register)
 }
 
 func (r registerTaken) Unwrap() error {
-	return &mapedit.ScriptLimitError{Limit: mapedit.LimitChecks, Max: int64(scriptprofile.First.Registers), Got: int64(r.register)}
+	return &mapedit.ScriptLimitError{Limit: mapedit.LimitChecks, Max: r.max, Got: int64(r.register)}
 }
 
 // errChecksFull refuses a check beyond the profile's register file, a limit
@@ -394,7 +398,7 @@ func errChecksFull(limits scriptprofile.Profile) error {
 
 // registerCollides refuses check register next where a variable uses it; on
 // an extended map the variables are an array of their own, so none does.
-func registerCollides(sc alm.Script, next uint32) error {
+func registerCollides(sc alm.Script, limits scriptprofile.Profile, next uint32) error {
 	if sc.Extended {
 		return nil
 	}
@@ -409,7 +413,7 @@ func registerCollides(sc alm.Script, next uint32) error {
 			for p, tag := range n.Type {
 				if tag == 1 || tag == 5 || tag == 6 || tag == 7 {
 					if n.Value[p] == next {
-						return registerTaken{next}
+						return registerTaken{register: next, max: int64(limits.Registers)}
 					}
 					break
 				}

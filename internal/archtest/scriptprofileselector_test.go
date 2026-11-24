@@ -21,7 +21,9 @@ func TestScriptProfileSelectorIsOne(t *testing.T) {
 		{"a second declaration", map[string]string{"pkg/scriptprofile/profile.go": decl + "func Of(x bool) Profile { return First }\n"}, 1},
 		{"a retired call", map[string]string{"pkg/game/a.go": "package game\nvar p = scriptprofile.Of(true)\n"}, 1},
 		{"a retired ForOps call", map[string]string{"pkg/sim/a.go": "package sim\nvar p = scriptprofile.ForOps(0)\n"}, 1},
-		{"the one selector", map[string]string{"pkg/game/a.go": "package game\nvar p = scriptprofile.For(scriptprofile.OpsFirst, true)\n"}, 0},
+		{"the one selector", map[string]string{"pkg/mapedit/a.go": "package mapedit\nvar p = scriptprofile.For(scriptprofile.OpsFirst, true)\n"}, 0},
+		{"a game selector call", map[string]string{"pkg/game/a.go": "package game\nvar p = scriptprofile.For(scriptprofile.OpsFirst, true)\n"}, 1},
+		{"a window selector call", map[string]string{"pkg/ui/a.go": "package ui\nvar p = scriptprofile.For(scriptprofile.OpsFirst, true)\n"}, 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

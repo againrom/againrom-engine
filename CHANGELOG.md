@@ -53,6 +53,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor's trigger window, Alt+Up and Alt+Down move the focused condition or action row, and an added row takes the focus, as in the dialogue editor.
 - [BASE] The map editor now refuses a command or edit that gives a script parameter the new-global marker, saying a new global is added on the Globals page; before, it failed with an out-of-range number.
 - [ROM2] In the map editor, a check or action of a second-game map now changes to any other check or action whose parameters are known, taking that operation's parameters, the trigger wizard offers ready rows for the second game's checks and actions, and a map already holding 1000 checks is refused in words naming 1000, not 100.
+- [ROM2] On a second-game map the trigger editor gives box areas and script variables the second game's register limit, 1000, not the first game's 100.
 
 ## 0.159.0
 

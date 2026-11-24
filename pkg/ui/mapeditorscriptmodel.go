@@ -30,12 +30,13 @@ type InspectionScriptModel struct {
 	Limits scriptprofile.Profile
 }
 
-// Profile is the limits and operation vocabulary of the map's script.
+// Profile is the limits and operation vocabulary of the map's script: the
+// editor's profile the host set in Limits, the first game's when unset.
 func (m *InspectionScriptModel) Profile() scriptprofile.Profile {
-	if m != nil && m.Limits.Pairs != 0 && !m.Extended {
+	if m != nil && m.Limits.Pairs != 0 {
 		return m.Limits
 	}
-	return scriptprofile.For(scriptprofile.OpsFirst, m != nil && m.Extended)
+	return scriptprofile.First
 }
 
 // ScriptFormNeeded answers an edit or a save that needs the map's script in

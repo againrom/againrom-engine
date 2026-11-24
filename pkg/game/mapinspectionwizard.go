@@ -44,7 +44,7 @@ func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (_ *ui.InspectionD
 func (s *mapInspectionEdits) checkWords(err error) error {
 	var taken registerTaken
 	if errors.As(err, &taken) {
-		err = lifted(err, "editor.wizard.registers", taken.register, s.model.Profile().Registers)
+		err = lifted(err, "editor.wizard.registers", taken.register, taken.max)
 	}
 	return s.inspector.inLanguage(err)
 }
@@ -372,7 +372,7 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 			label = ""
 		}
 		if condition && n.Opcode != mapload.ScriptConstant {
-			if err := registerCollides(sc, uint32(at)); err != nil {
+			if err := registerCollides(sc, limits, uint32(at)); err != nil {
 				return 0, err
 			}
 		}
@@ -382,7 +382,7 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 		if limits.Registers > 0 && len(sc.Conditions)+1 > limits.Registers {
 			return 0, errChecksFull(limits)
 		}
-		if err := registerCollision(sc, 1); err != nil {
+		if err := registerCollision(sc, limits, 1); err != nil {
 			return 0, err
 		}
 	}

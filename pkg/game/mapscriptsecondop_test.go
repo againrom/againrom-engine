@@ -3,10 +3,13 @@ package game
 import (
 	"errors"
 	"fmt"
+	"image"
 	"strings"
 	"testing"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -156,8 +159,33 @@ func TestSecondMapWizardRegisterTakesTheTriggerWindowCheck(t *testing.T) {
 func TestSecondMapRegisterTakenNamesTheSecondGameSlots(t *testing.T) {
 	host := secondAuthorHost(t)
 	want := fmt.Sprintf(host.inspector.word("editor.wizard.registers"), 5, 1000)
-	if err := host.checkWords(registerTaken{5}); err == nil || err.Error() != want {
+	if err := host.checkWords(registerTaken{register: 5, max: 1000}); err == nil || err.Error() != want {
 		t.Fatalf("the taken register: %v, want %q", err, want)
+	}
+}
+
+// A variable below the second game's 1000 registers is held; the first
+// game's 100 refuse it.
+func TestScriptRegisterAllowedReadsTheGivenProfile(t *testing.T) {
+	if err := scriptRegisterAllowed(alm.Script{}, scriptprofile.Second, 500); err != nil {
+		t.Fatalf("second profile: %v", err)
+	}
+	if err := scriptRegisterAllowed(alm.Script{}, scriptprofile.First, 500); err == nil {
+		t.Fatal("first profile held variable 500")
+	}
+}
+
+// A box area on a second-format map takes the second format's register file:
+// 100 checks fill the first game's file and the area still fits.
+func TestSecondMapBoxAreaTakesTheSecondFormatRegisters(t *testing.T) {
+	host := secondAuthorHost(t)
+	for range 100 {
+		if _, err := host.AddRecord(ui.InspectionNewRecord{Kind: ui.KindCondition}); err != nil {
+			t.Fatalf("a new check: %v", err)
+		}
+	}
+	if _, err := host.AddBoxArea(image.Rect(0, 0, 2, 2), -1); err != nil {
+		t.Fatalf("a box area past the first game's 100 registers: %v", err)
 	}
 }
 

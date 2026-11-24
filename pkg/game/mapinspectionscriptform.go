@@ -272,7 +272,7 @@ func foldScript(m *mapedit.Editor) error {
 		return err
 	}
 	for v := range variableRegisters(sc) {
-		if err := scriptRegisterAllowed(sc, v); err != nil {
+		if err := scriptRegisterAllowed(sc, m.Profile(), v); err != nil {
 			return err
 		}
 	}

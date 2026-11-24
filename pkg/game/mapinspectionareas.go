@@ -6,7 +6,6 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
-	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -51,7 +50,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	}
 	// On an extended map the pair is one more condition of the trigger's
 	// last group; on an original map it takes the first empty pair.
-	limits := scriptprofile.For(scriptprofile.OpsFirst, sc.Extended)
+	limits := m.Profile()
 	pair := 0
 	if trigger >= 0 {
 		if trigger >= len(sc.Triggers) {
@@ -77,7 +76,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	if need := 1 + refCount(!found); limits.Registers > 0 && len(sc.Conditions)+need > limits.Registers {
 		return errChecksFull(limits)
 	}
-	if err := registerCollision(sc, 1+refCount(!found)); err != nil {
+	if err := registerCollision(sc, limits, 1+refCount(!found)); err != nil {
 		return err
 	}
 	id, err := m.NextScriptID(mapedit.KindCondition)

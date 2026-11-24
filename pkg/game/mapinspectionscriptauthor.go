@@ -107,7 +107,7 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (_ *ui.InspectionDocument, s
 		if limits.Registers > 0 && len(sc.Conditions)+added > limits.Registers {
 			return false, s.checkWords(errChecksFull(limits))
 		}
-		if err := registerCollision(sc, added); err != nil {
+		if err := registerCollision(sc, limits, added); err != nil {
 			return false, s.checkWords(err)
 		}
 		// Only a game whose parameters carry message kinds has pages to copy.
@@ -330,7 +330,7 @@ func scriptFieldAllowed(m *mapedit.Editor, k mapedit.Kind, index int, key string
 			return wordErr("editor.err.opsupport", value)
 		}
 		if k == mapedit.KindCondition && value != 0x10002 {
-			if err := registerCollides(sc, uint32(index)); err != nil {
+			if err := registerCollides(sc, m.Profile(), uint32(index)); err != nil {
 				return err
 			}
 		}
@@ -384,7 +384,7 @@ func scriptVariableAllowed(m *mapedit.Editor, k mapedit.Kind, index int) error {
 	if !scriptAddressesVariable(k == mapedit.KindCondition, n.Opcode) {
 		return nil
 	}
-	return scriptRegisterAllowed(sc, scriptVariable(n))
+	return scriptRegisterAllowed(sc, m.Profile(), scriptVariable(n))
 }
 
 func scriptAddressesVariable(condition bool, opcode uint32) bool {
@@ -395,14 +395,14 @@ func scriptAddressesVariable(condition bool, opcode uint32) bool {
 // an extended map one past the variable array; on an original map one past
 // the hundred registers, a limit the extended record lifts, or one whose
 // register a check result takes.
-func scriptRegisterAllowed(sc alm.Script, variable uint32) error {
-	if limit := uint32(scriptprofile.Extended.Variables); sc.Extended {
+func scriptRegisterAllowed(sc alm.Script, limits scriptprofile.Profile, variable uint32) error {
+	if limit := uint32(limits.Variables); sc.Extended {
 		if variable >= limit {
 			return wordErr("editor.script.variableout", variable, limit-1)
 		}
 		return nil
 	}
-	if limits := scriptprofile.First; variable >= uint32(limits.Registers) {
+	if variable >= uint32(limits.Registers) {
 		return lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitVariables, Max: int64(limits.Registers), Got: int64(variable)},
 			"editor.script.variableout", variable, limits.Registers-1)
 	}

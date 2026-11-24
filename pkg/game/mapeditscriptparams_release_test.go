@@ -110,9 +110,10 @@ func TestReleaseMapEditorParameterChangedPicksSaveReopenCompile(t *testing.T) {
 					}
 					for _, target := range sc.Targets[tag] {
 						if tag == ui.ScriptVariableParameter {
-							m, _ := objectEdits(t, e).model.Map()
+							editor := objectEdits(t, e).model
+							m, _ := editor.Map()
 							wire, _ := m.Script()
-							if scriptRegisterAllowed(wire, target.Value) != nil {
+							if scriptRegisterAllowed(wire, editor.Profile(), target.Value) != nil {
 								continue
 							}
 						}
