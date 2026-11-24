@@ -34,6 +34,10 @@ type DiaryUnit struct {
 	// when that is an earlier row; zero when the row is its own first. One
 	// look is one count, so the Diary reads and writes First, not Row.
 	First uint16
+	// NoServerKey is set when the look's counted row has no server id in
+	// 1..0x9ff. A game that keys its Diary by server id neither counts nor
+	// grades such a unit.
+	NoServerKey bool
 }
 
 // countRow is the Units row the Diary counts the unit's look under.
@@ -169,11 +173,15 @@ func (w *World) KnowledgeLevel(e Entity) int {
 	if e.Owner == SelfSlot {
 		return KnowledgeFull
 	}
-	if e.TypeID < diaryFirstCreatureTID || e.TypeID > w.game.cardCreatures.types() {
+	keyed := w.game.serverKeyedDiary
+	if !keyed && (e.TypeID < diaryFirstCreatureTID || e.TypeID > diaryLastCreatureTID) {
 		return 0
 	}
 	u, ok := w.diaryUnitOf(e)
-	if !ok || u.Face < 1 || int32(u.Face) > w.game.cardCreatures.faces() || u.countRow() < diaryFirstCreatureRow {
+	if !ok || u.NoServerKey && keyed {
+		return 0
+	}
+	if !keyed && (u.Face < 1 || int32(u.Face) > diaryMaxFace || u.countRow() < diaryFirstCreatureRow) {
 		return 0
 	}
 	d, ok := w.playerDiary()
@@ -211,7 +219,14 @@ func (w *World) recordDiaryKill(ti int) {
 	}
 	u, ok := w.diaryUnitOf(victim)
 	row := u.countRow()
-	if !ok || row >= w.diary.rows || victim.Humanoid && row > diaryHumanRowLimit {
+	if !ok || row >= w.diary.rows {
+		return
+	}
+	if w.game.serverKeyedDiary {
+		if u.NoServerKey {
+			return
+		}
+	} else if victim.Humanoid && row > diaryHumanRowLimit {
 		return
 	}
 	w.addDiaryKill(row)

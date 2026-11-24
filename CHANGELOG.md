@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] An enemy's card now opens its groups by your kills of that kind for every creature, humanoid ones and kinds such as the catapult included, as in the original; before, many showed blank stats however many you killed.
 - [ROM2] The pick-up key no longer sends a hero after a sack lying where he cannot stand; a sack under his feet is still taken, as in the original.
 - [ROM2] A patrol whose point no route reaches (behind a wall or water) now turns back when it stands within two cells of that point, as in the original; farther away it waits and tries again. A point held by another unit is not covered: the patrol walks up to it and waits.
 

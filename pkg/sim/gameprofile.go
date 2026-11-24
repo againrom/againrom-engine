@@ -221,9 +221,11 @@ type gameProfile struct {
 	// skillAward: the skill award's steps (R2-ENGINE-480, R2-ENGINE-486).
 	skillAward skillAwardProfile
 	orders     orderProfile
-	// cardCreatures: the creature types and faces a card level is read for,
-	// from type 64 and face 1. The zero value is the first game's window.
-	cardCreatures cardWindow
+	// serverKeyedDiary: a kill is counted and a card is graded for any kind
+	// whose Units row has a server id in 1..0x9ff, with no type, face, row
+	// or humanoid window. The zero value is the first game's windows
+	// (R2-ENGINE-772, R2-ENGINE-1710, R2-ENGINE-1712).
+	serverKeyedDiary bool
 	// diaryCountCap: the largest kill count the Diary stores; zero is the
 	// first game's DiaryCountCap.
 	diaryCountCap uint32
@@ -267,28 +269,6 @@ func (g gameProfile) diaryCap() uint32 {
 // secondGameDiaryCountCap is the second game's kill count ceiling: a count
 // stops at 14, which grades 7 (R2-ENGINE-1269, R2-ENGINE-1272).
 const secondGameDiaryCountCap = 14
-
-// cardWindow is the last creature type and the last face whose card follows
-// the Diary; zero fields mean the first game's 80 and 4.
-type cardWindow struct{ lastType, lastFace int32 }
-
-func (c cardWindow) types() int32 {
-	if c.lastType == 0 {
-		return diaryLastCreatureTID
-	}
-	return c.lastType
-}
-
-func (c cardWindow) faces() int32 {
-	if c.lastFace == 0 {
-		return diaryMaxFace
-	}
-	return c.lastFace
-}
-
-// secondGameCardWindow is the second game's Units rows from 64: types up to
-// 107 and faces up to 7 (DIV-4989).
-var secondGameCardWindow = cardWindow{lastType: 107, lastFace: 7}
 
 // newGameProfile chooses the profile of a World running the script dialect
 // d. It runs on every path that builds a World: mission start and the
@@ -371,7 +351,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		computerSupport:            supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, drawsOne: true, yieldsToWithdrawal: true, shield: shieldAfterCandidateHeal},
 		computerHealOwnSide:        true,
 		spareMageTypes:             secondGameSpareMageTypes,
-		cardCreatures:              secondGameCardWindow,
+		serverKeyedDiary:           true,
 		diaryCountCap:              secondGameDiaryCountCap,
 		showMapFullCard:            true,
 		nativeRegen:                true,

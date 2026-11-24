@@ -68,7 +68,22 @@ func diaryUnits(units []alm.Unit, t *Table) map[uint16]sim.DiaryUnit {
 		if held, taken := out[u.UnitID]; taken && (held.Row <= 255 || r.Index > 255) {
 			continue
 		}
-		out[u.UnitID] = sim.DiaryUnit{Row: uint16(r.Index), Face: uint8(u.ClassSubID), First: firstLookRow(t, r.Index)}
+		first := firstLookRow(t, r.Index)
+		key := r.Index
+		if first != 0 {
+			key = int(first)
+		}
+		out[u.UnitID] = sim.DiaryUnit{Row: uint16(r.Index), Face: uint8(u.ClassSubID), First: first, NoServerKey: !serverKeyed(t, key)}
 	}
 	return out
+}
+
+// serverKeyed reports whether Units row row states a server id in 1..0x9ff,
+// the range a server-keyed Diary counts.
+func serverKeyed(t *Table, row int) bool {
+	if t == nil || t.Units == nil || row < 0 || row >= t.Units.Len() {
+		return false
+	}
+	id, ok := data.UnitServerID(t.Units.EntryParams(row))
+	return ok && uint16(id) >= 1 && uint16(id) <= 0x9ff
 }
