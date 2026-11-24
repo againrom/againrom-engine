@@ -77,6 +77,41 @@ type Profile struct {
 	Variables int
 	// Groups is whether a trigger's conditions form OR-ed AND groups.
 	Groups bool
+	// Extended is whether the profile is the extended machine's record.
+	Extended bool
+
+	// The compiler's rules for a map script's nodes. Each is one way the
+	// two games' scripts bind differently; the compiler reads these fields.
+	//
+	// NilWhenEmpty: an empty script compiles to no script at all.
+	NilWhenEmpty bool
+	// PackedDrops: a drop node names one packed coordinate and binds no
+	// references; otherwise it names a cell.
+	PackedDrops bool
+	// OmittedBuildTime: an omitted action is a build-time node; otherwise it
+	// is an unbuilt one that a trigger's roster check skips.
+	OmittedBuildTime bool
+	// InstantSlots: each instant carries the runtime slot it was numbered in.
+	InstantSlots bool
+	// ConstNodes: a constant node carries its value in its first operand and
+	// is never omitted for its references.
+	ConstNodes bool
+	// AliveHeldBody: a health-below check's held-body argument is set from
+	// the unit's zero-health state.
+	AliveHeldBody bool
+	// UntypedAsInt: a parameter whose type is unset reads as an integer.
+	UntypedAsInt bool
+	// OmitOnAnyFailure: a node is omitted when any of its references fails;
+	// otherwise only a role reference that fails omits it.
+	OmitOnAnyFailure bool
+	// OmitTriggerOnCheck: a trigger is omitted when a pair names an omitted check.
+	OmitTriggerOnCheck bool
+	// UnitsByRole: a unit parameter also resolves through the role table.
+	UnitsByRole bool
+	// LateRefs: a parameter value in [LateLow, LateHigh] under a group,
+	// player or unit type is a late reference, left for the session table.
+	LateRefs          bool
+	LateLow, LateHigh uint32
 }
 
 // First is the first game's profile. Second is the second game's: its
@@ -86,12 +121,16 @@ type Profile struct {
 // of their own.
 var (
 	First = Profile{Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
-		Registers: FirstRegisters, TickRegister: FirstTickRegister, Latches: Latches, Triggers: Triggers, MaxID: MaxID}
+		Registers: FirstRegisters, TickRegister: FirstTickRegister, Latches: Latches, Triggers: Triggers, MaxID: MaxID,
+		NilWhenEmpty: true}
 	Second = Profile{Ops: OpsSecond, Pairs: RecordPairs, Actions: RecordActions, MaxCompare: MaxCompare,
-		Registers: SecondRegisters, TickRegister: SecondTickRegister, Latches: Latches, Triggers: Triggers, MaxID: MaxID}
+		Registers: SecondRegisters, TickRegister: SecondTickRegister, Latches: Latches, Triggers: Triggers, MaxID: MaxID,
+		OmittedBuildTime: true, PackedDrops: true, InstantSlots: true, ConstNodes: true, AliveHeldBody: true,
+		UntypedAsInt: true, OmitOnAnyFailure: true, OmitTriggerOnCheck: true, UnitsByRole: true,
+		LateRefs: true, LateLow: 8000, LateHigh: 9999}
 	Extended = Profile{Pairs: ExtendedConditions, Actions: ExtendedActions, MaxCompare: MaxCompare,
 		TickRegister: FirstTickRegister, Latches: ExtendedTriggers, Triggers: ExtendedTriggers, MaxID: MaxID,
-		Variables: ExtendedVariables, Groups: true}
+		Variables: ExtendedVariables, Groups: true, Extended: true, NilWhenEmpty: true}
 )
 
 // Of is the profile of a first-game map script: Extended when the map

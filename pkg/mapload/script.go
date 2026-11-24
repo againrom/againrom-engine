@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/sim"
 )
 
@@ -374,7 +375,7 @@ func CompileScript(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, erro
 // and the other is what a caller holding the script itself — or building one —
 // needs, without a map to route it through.
 func CompileScriptFrom(src alm.Script, refs ScriptRefs) (*sim.Script, ScriptReport, error) {
-	return compileScriptFrom(src, refs, sim.ScriptROM1)
+	return compileScriptFrom(src, refs, scriptprofile.Of(src.Extended), sim.NewScript)
 }
 
 func CompileROM2Script(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, error) {
@@ -390,12 +391,15 @@ func CompileROM2Script(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, 
 }
 
 func CompileROM2ScriptFrom(src alm.Script, refs ScriptRefs) (*sim.Script, ScriptReport, error) {
-	return compileScriptFrom(src, refs, sim.ScriptROM2)
+	return compileScriptFrom(src, refs, scriptprofile.Second, sim.NewROM2Script)
 }
 
-func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialect) (*sim.Script, ScriptReport, error) {
+// compileScriptFrom compiles src under profile p, the game's rules for its
+// nodes, and hands the records to build, the constructor of that game's script.
+func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
+	build func([]sim.ScriptCheck, []sim.ScriptInstant, []sim.ScriptTrigger) (*sim.Script, error)) (*sim.Script, ScriptReport, error) {
 	var rep ScriptReport
-	if src.Empty() && dialect == sim.ScriptROM1 {
+	if src.Empty() && p.NilWhenEmpty {
 		return nil, rep, nil
 	}
 
@@ -409,8 +413,8 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	for _, n := range src.Actions {
 		var args [10]int32
 		var refd bound
-		if dialect != sim.ScriptROM2 || n.Opcode != scriptDropOpcode {
-			args, refd = bindScriptParams(n, refs, &rep, false, dialect)
+		if !p.PackedDrops || n.Opcode != scriptDropOpcode {
+			args, refd = bindScriptParams(n, refs, &rep, false, p)
 		}
 		if runtimeAction(n) {
 			slot++
@@ -418,7 +422,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			buildTime[n.ID] = true
 			switch n.Opcode {
 			case scriptDropOpcode:
-				if dialect == sim.ScriptROM2 {
+				if p.PackedDrops {
 					rep.PackedCoordinates = append(rep.PackedCoordinates, uint16(uint8(n.Value[0]))|uint16(uint8(n.Value[1]))<<8)
 				} else {
 					rep.DropCells = append(rep.DropCells, ScriptCell{X: args[0], Y: args[1]})
@@ -433,8 +437,8 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		if err := againromNodeNamesUnit(n, false, refd); err != nil {
 			return nil, rep, err
 		}
-		if refd.unbuilt(dialect, refs) {
-			if dialect == sim.ScriptROM2 {
+		if refd.unbuilt(p, refs) {
+			if p.OmittedBuildTime {
 				buildTime[n.ID] = true
 			} else {
 				unbuilt[n.ID] = true
@@ -452,7 +456,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			interactive[int32(len(instants))] = InteractiveEvent(at)
 		}
 		var source int32
-		if dialect == sim.ScriptROM2 {
+		if p.InstantSlots {
 			source = slot
 		}
 		instants = append(instants, sim.ScriptInstant{
@@ -473,12 +477,12 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	for _, n := range src.Conditions {
 		var args [10]int32
 		var refd bound
-		if dialect == sim.ScriptROM2 && n.Opcode == scriptConstOpcode {
+		if p.ConstNodes && n.Opcode == scriptConstOpcode {
 			args[0] = int32(n.Value[0])
 		} else {
-			args, refd = bindScriptParams(n, refs, &rep, true, dialect)
+			args, refd = bindScriptParams(n, refs, &rep, true, p)
 		}
-		if dialect == sim.ScriptROM2 && int32(n.Opcode) == sim.ScriptCheckAlive {
+		if p.AliveHeldBody && int32(n.Opcode) == sim.ScriptCheckAlive {
 			args[sim.ScriptAliveHeldBody] = 0
 			if refd.hasUnit && refs.ZeroHealthBodies[refd.unit] {
 				args[sim.ScriptAliveHeldBody] = 1
@@ -487,7 +491,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		if err := againromNodeNamesUnit(n, true, refd); err != nil {
 			return nil, rep, err
 		}
-		if !(dialect == sim.ScriptROM2 && n.Opcode == scriptConstOpcode) && refd.unbuilt(dialect, refs) {
+		if !(p.ConstNodes && n.Opcode == scriptConstOpcode) && refd.unbuilt(p, refs) {
 			rep.OmittedChecks = append(rep.OmittedChecks, n.ID)
 			omittedChecks[n.ID] = true
 			continue
@@ -518,7 +522,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	triggers := make([]sim.ScriptTrigger, 0, len(src.Triggers))
 	for i, t := range src.Triggers {
 		omitted := false
-		if dialect == sim.ScriptROM2 {
+		if p.OmitTriggerOnCheck {
 			for k := range t.Pairs() {
 				if left, right, _ := t.Pair(k); omittedChecks[left] || omittedChecks[right] {
 					omitted = true
@@ -611,16 +615,14 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	if src.Extended {
 		rep.ActionOf, rep.CheckOf = instantOf, registerOf
 	}
-	compile := sim.NewScript
+	compile := build
 	switch {
-	case src.Extended && dialect != sim.ScriptROM1:
+	case src.Extended && !p.Extended:
 		return nil, rep, fmt.Errorf("mapload: the Againrom script record is the first game's")
 	case src.Extended:
 		compile = func(c []sim.ScriptCheck, in []sim.ScriptInstant, t []sim.ScriptTrigger) (*sim.Script, error) {
 			return sim.NewExtendedScript(int32(src.Variables), c, in, t)
 		}
-	case dialect == sim.ScriptROM2:
-		compile = sim.NewROM2Script
 	}
 	s, err := compile(checks, instants, triggers)
 	if err != nil {
@@ -679,15 +681,15 @@ func againromNodeNamesUnit(n alm.ScriptNode, cond bool, b bound) error {
 	return fmt.Errorf("mapload: script node %d (%s) names no unit", n.ID, ScriptOperationName(cond, n.Opcode))
 }
 
-func bindScriptParams(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool, dialect sim.ScriptDialect) ([10]int32, bound) {
-	if dialect == sim.ScriptROM2 {
+func bindScriptParams(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool, p scriptprofile.Profile) ([10]int32, bound) {
+	if p.UntypedAsInt {
 		for i, typ := range n.Type {
 			if typ == typeUnset {
 				n.Type[i] = typeInt
 			}
 		}
 	}
-	return bindParamsDialect(n, refs, rep, cond, dialect)
+	return bindParams(n, refs, rep, cond, p)
 }
 
 // lookupOr0 is the id-to-subscript table's own behaviour: a hit, or subscript 0.
@@ -703,8 +705,8 @@ func lookupOr0(tbl map[uint32]int32, id uint32) int32 {
 // (TRIG-BIND-010). ROM2 omits a node any of whose references fails. ROM1
 // omits one whose hero-band value the binding roster leaves unresolved;
 // a below-band unit or structure miss stays built (DIV-2792).
-func (b bound) unbuilt(dialect sim.ScriptDialect, refs ScriptRefs) bool {
-	if dialect == sim.ScriptROM2 {
+func (b bound) unbuilt(p scriptprofile.Profile, refs ScriptRefs) bool {
+	if p.OmitOnAnyFailure {
 		return b.failed
 	}
 	return refs.Roster && b.roleFailed
@@ -741,8 +743,8 @@ type bound struct {
 // session table: 8000..9999 under a group, player or unit parameter. The node
 // is built with the reference unset and its late count raised (R2-ENGINE-1684,
 // R2-ENGINE-1697).
-func lateReference(dialect sim.ScriptDialect, t, v uint32) bool {
-	return dialect == sim.ScriptROM2 && (t == typeGroup || t == typePlayer || t == typeUnit) && v >= 8000 && v <= 9999
+func lateReference(p scriptprofile.Profile, t, v uint32) bool {
+	return p.LateRefs && (t == typeGroup || t == typePlayer || t == typeUnit) && v >= p.LateLow && v <= p.LateHigh
 }
 
 // scriptItemCodeBase is what the builder ADDS to a Target_Item value to get
@@ -761,7 +763,7 @@ func lateReference(dialect sim.ScriptDialect, t, v uint32) bool {
 // code is class 14 and none of them is zero.
 const scriptItemCodeBase uint32 = 0x0e18
 
-func bindParamsDialect(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool, dialect sim.ScriptDialect) ([10]int32, bound) {
+func bindParams(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool, p scriptprofile.Profile) ([10]int32, bound) {
 	var args [10]int32
 	var b bound
 	next := 0
@@ -776,7 +778,7 @@ func bindParamsDialect(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, con
 				args[next] = int32(v)
 				next++
 			}
-		case lateReference(dialect, t, v):
+		case lateReference(p, t, v):
 			// The session table these slots read is zeroed at session start and
 			// has no writer, so the reference stays absent (R2-ENGINE-1697).
 			b.late++
@@ -791,7 +793,7 @@ func bindParamsDialect(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, con
 			}
 		case t == typeUnit:
 			id, ok := resolveUnit(v, refs)
-			if dialect == sim.ScriptROM2 {
+			if p.UnitsByRole {
 				id, ok = resolveROM2Unit(v, refs)
 			}
 			if !ok {
