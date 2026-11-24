@@ -93,7 +93,10 @@ var editRows = map[alm.Format]*editRow{
 	},
 	alm.SecondFormat: {
 		moves: placedKinds,
-		adds:  kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true},
+		// A new node holds zero in the words no compiler read names
+		// (R2-ENGINE-1728); a new trigger is the first game's 184 bytes.
+		adds: kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true,
+			ui.KindTrigger: true, ui.KindAction: true, ui.KindCondition: true},
 		// A node goes as the first game's does; the type-7 rows keep +0x28.
 		deletes: kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindAction: true, ui.KindCondition: true},
 		sets:    kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true},

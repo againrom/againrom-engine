@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -37,7 +38,7 @@ func (s *mapInspectionEdits) AddScript(kind ui.RecordKind) (_ *ui.InspectionDocu
 func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 	var rec []byte
 	var id uint32
-	limits := scriptprofile.Of(m.Extended())
+	limits := m.Profile()
 	if k == mapedit.KindTrigger {
 		if n := m.Count(k); n >= limits.Triggers {
 			return 0, lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitTriggers, Max: int64(limits.Triggers), Got: int64(n)},
@@ -62,7 +63,7 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 		if k == mapedit.KindCondition {
 			op, value = 0x10002, 0
 		}
-		if rec, err = mapedit.NewScriptNode(mapload.ScriptOperationName(k == mapedit.KindCondition, op), op, id, mapedit.ScriptParam{Type: 1, Value: value}); err != nil {
+		if rec, err = mapedit.NewScriptNode(mapload.ScriptOperationNameIn(limits.Ops, k == mapedit.KindCondition, op), op, id, mapedit.ScriptParam{Type: 1, Value: value}); err != nil {
 			return 0, err
 		}
 	}
@@ -440,7 +441,9 @@ func scriptParameterKind(condition bool, opcode uint32, types [10]uint32, slot i
 	return types[slot]
 }
 
-func scriptCoordinateAllowed(view *alm.Map, k mapedit.Kind, index int, key string, value int64) error {
+// scriptCoordinateAllowed holds a node parameter to the map: a coordinate to
+// its size and an object identity to the type-4 objects it holds.
+func scriptCoordinateAllowed(view *alm.Map, ops scriptprofile.Ops, k mapedit.Kind, index int, key string, value int64) error {
 	if (k != mapedit.KindAction && k != mapedit.KindCondition) || !strings.HasPrefix(key, "value") {
 		return nil
 	}
@@ -462,6 +465,17 @@ func scriptCoordinateAllowed(view *alm.Map, k mapedit.Kind, index int, key strin
 	}
 	if limit > 0 && (value < 0 || value >= int64(limit)) {
 		return wordErr("editor.err.coordinate", value, limit-1)
+	}
+	return scriptObjectAllowed(view, ops, n.Type[slot], value)
+}
+
+// scriptObjectAllowed refuses a parameter of the profile's object type whose
+// value is no type-4 object identity of the map: the compile fails on it
+// (R2-ENGINE-1725).
+func scriptObjectAllowed(view *alm.Map, ops scriptprofile.Ops, typ uint32, value int64) error {
+	if object := scriptprofile.VocabularyOf(ops).ObjectType; object != 0 && typ == object &&
+		!slices.ContainsFunc(view.Objects, func(o alm.Object) bool { return int64(o.Field12) == value }) {
+		return wordErr("editor.err.noobjectid", value)
 	}
 	return nil
 }

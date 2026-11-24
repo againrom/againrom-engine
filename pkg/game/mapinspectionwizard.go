@@ -175,9 +175,6 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 	if t.Index < -1 || t.Index >= len(sc.Triggers) {
 		return wordErr("editor.err.notrigger", t.Index+1)
 	}
-	if w := scriptprofile.VocabularyOf(m.Profile().Ops).NewRecord; w != "" && t.Index < 0 {
-		return wordErr(w)
-	}
 	var before []alm.ScriptTrigger
 	if t.Index >= 0 {
 		before = append(before, sc.Triggers[t.Index])
@@ -344,14 +341,22 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 			last = s + 1
 		}
 	}
+	view, err := m.Map()
+	if err != nil {
+		return 0, err
+	}
 	for s := 0; s < last; s++ {
+		if err := scriptObjectAllowed(view, m.Profile().Ops, n.Types[s], int64(n.Values[s])); err != nil {
+			return 0, err
+		}
 		params = append(params, mapedit.ScriptParam{Type: n.Types[s], Value: n.Values[s]})
 	}
 	if at >= 0 && nodes[at].Opcode == n.Opcode && nodes[at].Type == n.Types && nodes[at].Value == n.Values &&
 		(n.Label == "" && !nodes[at].InteractiveMessage() || n.Label == nodes[at].Label) {
 		return n.ID, nil // the row names what the node already says
 	}
-	label := mapload.ScriptOperationName(condition, n.Opcode)
+	limits := m.Profile()
+	label := mapload.ScriptOperationNameIn(limits.Ops, condition, n.Opcode)
 	if n.Label != "" {
 		label = n.Label
 	}
@@ -367,10 +372,6 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 		}
 		return n.ID, m.SetScriptNode(kind, at, label, n.Opcode, params...)
 	}
-	if w := scriptprofile.VocabularyOf(m.Profile().Ops).NewRecord; w != "" {
-		return 0, wordErr(w)
-	}
-	limits := scriptprofile.Of(sc.Extended)
 	if condition {
 		if limits.Registers > 0 && len(sc.Conditions)+1 > limits.Registers {
 			return 0, errChecksFull

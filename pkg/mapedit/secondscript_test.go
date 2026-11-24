@@ -2,7 +2,7 @@ package mapedit_test
 
 import (
 	"bytes"
-	"errors"
+	"slices"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -86,25 +86,47 @@ func TestSecondScriptAddsCopiesAndDeletesKeepWord28AtTheSumOfTheCounts(t *testin
 	}
 }
 
-// A second-game action 65538 is a compiler parameter, not the first game's
-// drop zone: a copy of its trigger is refused in the second game's word.
-func TestSecondScriptCopyOfACompilerParameterIsRefusedInItsOwnWord(t *testing.T) {
+// A second-game action 65538 adds its two bytes to the compiler's list
+// whatever trigger names it (R2-ENGINE-1727): a copy of its trigger names
+// the same node, so the map holds one such node, and the other action is
+// copied under a new id.
+func TestSecondScriptCopyNamesTheCompilerParameterItself(t *testing.T) {
 	e, _ := secondOpen(t, secondPlacedMap())
-	trigger, err := mapedit.NewScriptTrigger(alm.ScriptTrigger{Name: "Start", Acts: []uint32{1}, Once: 1})
+	trigger, err := mapedit.NewScriptTrigger(alm.ScriptTrigger{Name: "Start", Acts: []uint32{1, 2}, Once: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	action := secondTextNode(t, "Param", 0x10002, 1, mapedit.ScriptParam{Type: 5, Value: 11}, mapedit.ScriptParam{Type: 6, Value: 41})
-	if _, err := e.PlaceAll([]mapedit.Placement{{Kind: mapedit.KindAction, Record: action}, {Kind: mapedit.KindTrigger, Record: trigger}}); err != nil {
+	param := secondTextNode(t, "Param", 0x10002, 1, mapedit.ScriptParam{Type: 5, Value: 11}, mapedit.ScriptParam{Type: 6, Value: 41})
+	event := secondTextNode(t, "Event", 2, 2, mapedit.ScriptParam{Type: 1, Value: 7})
+	if _, err := e.PlaceAll([]mapedit.Placement{{Kind: mapedit.KindAction, Record: param}, {Kind: mapedit.KindAction, Record: event},
+		{Kind: mapedit.KindTrigger, Record: trigger}}); err != nil {
 		t.Fatal(err)
 	}
-	before := bytes.Clone(e.Bytes())
-	_, err = e.CopyTrigger(0, "Start copy", nil)
-	var r *mapedit.CopyRefusalError
-	if !errors.As(err, &r) || r.Word != "editor.second.copycompilerparameter" || r.ID != 1 {
-		t.Fatalf("the copy of a compiler parameter's trigger answers %v (%+v), want the second game's refusal of action 1", err, r)
+	at, err := e.CopyTrigger(0, "Start copy", nil)
+	if err != nil {
+		t.Fatalf("the copy of a compiler parameter's trigger: %v", err)
 	}
-	if !bytes.Equal(e.Bytes(), before) {
-		t.Fatal("a refused copy changed the map")
+	view, err := e.Map()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sc, err := view.Script()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := sc.Triggers[at].Acts; len(got) < 2 || got[0] != 1 || got[1] != 3 || slices.ContainsFunc(got[2:], func(id uint32) bool { return id != 0 }) {
+		t.Fatalf("the copy names actions %v, want [1 3]", got)
+	}
+	params := 0
+	for _, n := range sc.Actions {
+		if n.Opcode == 0x10002 {
+			params++
+		}
+	}
+	if params != 1 || len(sc.Actions) != 3 {
+		t.Fatalf("the map holds %d compiler parameters among %d actions, want 1 among 3", params, len(sc.Actions))
+	}
+	if got := secondScriptTally(e); int(got) != len(sc.Actions)+len(sc.Conditions)+len(sc.Triggers) {
+		t.Fatalf("the word +0x28 is %d after the copy", got)
 	}
 }

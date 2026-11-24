@@ -1129,9 +1129,9 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 		e.wizardRefill()
 	case actAddPair, actAddGroup, actAddAct:
 		condition := act != actAddAct
-		// A game with no ready rows writes no new node.
+		// A game with no ready rows adds its nodes in the trigger window.
 		if len(e.wizItems(condition)) == 0 {
-			o.note = e.word(scriptprofile.VocabularyOf(e.doc.Script.Profile().Ops).NewRecord)
+			o.note = e.word("editor.wizard.norows")
 			return
 		}
 		// A list past the extended record's limit is refused in words.

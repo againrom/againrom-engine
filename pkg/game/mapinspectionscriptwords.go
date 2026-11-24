@@ -8,13 +8,12 @@ import (
 
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
-	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
 // setScriptWords is the node edit of a format whose row does not take whole
 // script edits: it writes the label and the parameter words of a decoded
-// node, a slot of a type whose record is unread refused. A trigger takes the
+// node. A trigger takes the
 // whole edit through the row's field kinds; any other script edit is refused
 // with one line. The caller has worded the error.
 func (s *mapInspectionEdits) setScriptWords(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (*ui.InspectionDocument, error) {
@@ -53,7 +52,6 @@ func (s *mapInspectionEdits) setParameterWords(k mapedit.Kind, index int, values
 	}
 	var sets []mapedit.FieldSet
 	var names []string
-	vocabulary := scriptprofile.VocabularyOf(profile.Ops)
 	for _, v := range values {
 		if v.Key == "name" && v.Text {
 			names = append(names, v.TextValue)
@@ -63,14 +61,11 @@ func (s *mapInspectionEdits) setParameterWords(k mapedit.Kind, index int, values
 		if !strings.HasPrefix(v.Key, "value") || err != nil || slot < 0 || slot >= len(n.Type) || n.Type[slot] == 0 || v.Text || v.New {
 			return nil, errors.New(s.inspector.word(row.scriptRefusal))
 		}
-		if vocabulary.TypeUnread(n.Type[slot]) {
-			return nil, wordErr("editor.map.secondtype", n.Type[slot])
-		}
 		if scriptAddressesVariable(condition, n.Opcode) && slot == 0 &&
 			(v.Value < 0 || v.Value >= int64(profile.Registers)) {
 			return nil, wordErr("editor.script.variableout", v.Value, profile.Registers-1)
 		}
-		if err := scriptCoordinateAllowed(view, k, index, v.Key, v.Value); err != nil {
+		if err := scriptCoordinateAllowed(view, profile.Ops, k, index, v.Key, v.Value); err != nil {
 			return nil, err
 		}
 		sets = append(sets, mapedit.FieldSet{Key: v.Key, Value: v.Value})

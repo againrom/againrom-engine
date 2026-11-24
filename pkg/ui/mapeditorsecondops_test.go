@@ -30,13 +30,13 @@ func TestSecondGameOperationNames(t *testing.T) {
 	if got, want := e.opName(true, 1), fmt.Sprintf(e.word("editor.op.undecoded"), 1); got != want {
 		t.Errorf("check 1 = %q, want %q", got, want)
 	}
-	// Action 6 with a constant 3 is a raw number in the second game, a
-	// group command word in the first.
+	// Action 6 with a constant 3 names the second game's arm 3 in its words
+	// and the first game's group command 3 in the command panel's.
 	types, values := [10]uint32{scriptConst}, [10]uint32{3}
 	second := e.nodeParams(false, 6, types, values)
 	e.doc.Script = &InspectionScriptModel{}
 	first := e.nodeParams(false, 6, types, values)
-	if len(second) != 1 || !strings.HasSuffix(second[0], " 3") || len(first) != 1 || strings.HasSuffix(first[0], " 3") {
+	if len(second) != 1 || !strings.HasSuffix(second[0], e.word("editor.second.command.3")) || len(first) != 1 || strings.HasSuffix(first[0], " 3") || first[0] == second[0] {
 		t.Errorf("action 6 slot 0: second %q, first %q", second, first)
 	}
 	if p := e.doc.Script.Profile(); p != scriptprofile.First {
@@ -60,8 +60,8 @@ func TestSecondGameNodeFieldsEditOnlyDecodedParameters(t *testing.T) {
 		types  [10]uint32
 		want   []bool
 	}{{3, [10]uint32{1, 5, 6}, []bool{false, true, false, false}}, {7, [10]uint32{1, 5, 6}, []bool{true, true, true, true}},
-		// The record a type-9 slot names is unread: that slot alone stays shown.
-		{3, [10]uint32{9, 5, 6}, []bool{false, true, true, false}}} {
+		// A type-9 slot names a type-4 object of the map: it edits.
+		{3, [10]uint32{9, 5, 6}, []bool{false, true, false, false}}} {
 		v := scriptView{node: &InspectionScriptNode{Opcode: c.opcode, Types: c.types}}
 		e.obj.types = c.types
 		for i, f := range e.secondNodeFields(v, fields()) {

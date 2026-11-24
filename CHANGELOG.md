@@ -36,6 +36,7 @@ modder or developer can notice gets no entry.
 - [ROM1] A mod's global variables now last for its whole campaign: a won mission passes its values to the next mission, a lost, left or restarted mission throws away what it wrote, town and mission saves keep the values, and an original or older save starts at the declared values.
 - [ROM1] In the map editor's mod window, a Globals page declares, renames and removes the mod's global variables, and the trigger wizard and the Dialog window's replies can compare, set and add to them by name, with a choice that makes a new one; a global a map or reply uses cannot be removed, and the page names who uses it.
 - [ROM2] In the map editor, every check and action of a second-game map now shows by name and its parameters edit, a trigger's name, once flag, comparisons, slots and a node's label edit, and a trigger opens in the trigger wizard, where its rows move and go, and copies with its checks and actions; before, most operations showed "not decoded" with read-only parameters and a trigger took only a move.
+- [ROM2] In the map editor, a second-game map now takes new triggers, checks and actions; check 21 takes the id of an object on the map, action 6 shows its arms by name, actions 21 and 24 show as a spell cast at a cell or a unit, 16 other actions show what they do, and a trigger holding action 65538 now copies; before, all of these were refused or showed raw numbers.
 
 ## 0.159.0
 

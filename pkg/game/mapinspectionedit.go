@@ -822,7 +822,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	if err != nil {
 		return false, err
 	}
-	if err := scriptCoordinateAllowed(view, k, index, key, value); err != nil {
+	if err := scriptCoordinateAllowed(view, m.Profile().Ops, k, index, key, value); err != nil {
 		return false, err
 	}
 	return true, s.checkPlacement(admissionFor(m, kind, admitField), k, m, index, was)

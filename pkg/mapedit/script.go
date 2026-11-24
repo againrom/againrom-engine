@@ -604,8 +604,9 @@ func (e *CopyRefusalError) Error() string {
 
 // copyNodes appends to batch a new node of array k for each distinct id of
 // ids that one of nodes carries, numbered from the array's next free id, and
-// returns each copied id's new id. change, when not nil, may change a node's
-// copy before it is built.
+// returns each copied id's new id; a node whose operation row names it in a
+// copy keeps its id and gets no new node. change, when not nil, may change a
+// node's copy before it is built.
 func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *[]Placement, change func(*alm.ScriptNode) error) (map[uint32]uint32, error) {
 	next, err := e.NextScriptID(k)
 	if err != nil {
@@ -618,20 +619,25 @@ func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *
 		if _, done := out[id]; done || id == 0 {
 			continue
 		}
-		at := -1
+		at, named := -1, false
 		for n := range nodes {
 			if nodes[n].ID != id {
 				continue
 			}
-			if op, ok := scriptprofile.OpRow(profile.Ops, k == KindCondition, nodes[n].Opcode); ok && op.CopyRefused != "" {
+			op, ok := scriptprofile.OpRow(profile.Ops, k == KindCondition, nodes[n].Opcode)
+			if ok && op.CopyRefused != "" {
 				return nil, &CopyRefusalError{Why: CopyOperation, Kind: k, ID: id, Word: op.CopyRefused}
 			}
 			if at >= 0 {
 				return nil, &CopyRefusalError{Why: CopySharedID, Kind: k, ID: id}
 			}
-			at = n
+			at, named = n, ok && op.CopyNamed
 		}
 		if at < 0 {
+			continue
+		}
+		if named {
+			out[id] = id // the copy names the node itself
 			continue
 		}
 		if next > maxID {

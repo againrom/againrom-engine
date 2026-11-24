@@ -118,9 +118,9 @@ func TestReleaseSecondMapParameterEditSavesAndReloads(t *testing.T) {
 }
 
 // A trigger's name, once flag and first comparison and a node's label edit,
-// save and reload with only those changed; a slot of type 9 and an opcode
-// change are refused with their one line; a trigger moves in the stored
-// order.
+// save and reload with only those changed; a slot of type 9 takes a type-4
+// id of the map; an opcode change is refused with its one line; a trigger
+// moves in the stored order.
 func TestReleaseSecondMapTriggerFieldsAndLabelsEdit(t *testing.T) {
 	x := installedInspector(t)
 	sources, raws := installedSecondMaps(t, x)
@@ -134,9 +134,12 @@ func TestReleaseSecondMapTriggerFieldsAndLabelsEdit(t *testing.T) {
 		host := d.Edits.(*mapInspectionEdits)
 		for index, n := range sc.Conditions {
 			if n.Type[0] == 9 {
-				want := fmt.Sprintf(x.word("editor.map.secondtype"), 9)
-				if _, err := host.SetField(ui.KindCondition, index, "value0", int64(n.Value[0])+1); err == nil || err.Error() != want {
-					t.Fatalf("%s: type-9 slot not refused with its line: %v", source, err)
+				// A type-9 value names a type-4 object of the map (R2-ENGINE-1725).
+				if _, err := host.SetField(ui.KindCondition, index, "value0", 65535); err == nil {
+					t.Fatalf("%s: a type-9 value no type-4 object holds is written", source)
+				}
+				if _, err := host.SetField(ui.KindCondition, index, "value0", int64(n.Value[0])); err != nil {
+					t.Fatalf("%s: the type-9 value of a type-4 object is refused: %v", source, err)
 				}
 				if _, err := host.SetField(ui.KindCondition, index, "opcode", 5); err == nil || err.Error() != x.word("editor.map.secondscript") {
 					t.Fatalf("%s: opcode change not refused with its line: %v", source, err)
@@ -241,7 +244,7 @@ func TestReleaseSecondMapEveryOperationFamilyEdits(t *testing.T) {
 							continue
 						}
 						_, err := host.SetField(kind, index, fmt.Sprintf("value%d", s), int64(n.Value[s]))
-						if (err == nil) == (typ == 9) {
+						if err != nil {
 							t.Fatalf("%s node %d slot %d type %d: write error %v", source, index, s, typ, err)
 						}
 						if typ == mapload.ScriptInt && number < 0 && !scriptAddressesVariable(condition, n.Opcode) {

@@ -29,7 +29,7 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 	}
 	for _, k := range []ui.RecordKind{ui.KindScenery, ui.KindStock, ui.KindEnchantment, ui.KindPlayer, ui.KindAction, ui.KindCondition} {
 		node := k == ui.KindAction || k == ui.KindCondition
-		if second.moves.has(k) || second.deletes.has(k) != node || second.adds.has(k) != (k == ui.KindPlayer) {
+		if second.moves.has(k) || second.deletes.has(k) != node || second.adds.has(k) != (k == ui.KindPlayer || node) {
 			t.Fatalf("the second game's row takes kind %v", k)
 		}
 	}

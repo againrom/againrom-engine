@@ -28,7 +28,7 @@ func TestSecondGameTriggerWizardKeepsEveryRowAndWritesNoNewNode(t *testing.T) {
 		}
 	}
 	e.wizardRowButton(actAddAct, 0, false)
-	if want := e.word("editor.second.newrecord"); e.obj.note != want || len(w.rows) != 4 {
+	if want := e.word("editor.wizard.norows"); e.obj.note != want || len(w.rows) != 4 {
 		t.Fatalf("a new action row: note %q, %d rows; want %q, 4 rows", e.obj.note, len(w.rows), want)
 	}
 	if to := w.moveRow(2, 1); to != 3 || w.rows[2].act != 12 || w.rows[3].act != 11 {

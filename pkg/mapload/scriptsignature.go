@@ -52,30 +52,7 @@ const ScriptConstant = 0x10002
 
 type slots []ScriptSlot
 
-func unit(role string) ScriptSlot   { return ScriptSlot{Type: ScriptUnit, Role: role} }
-func number(role string) ScriptSlot { return ScriptSlot{Type: ScriptInt, Role: role} }
-func cell(role string) slots {
-	return slots{{Type: ScriptX, Role: role}, {Type: ScriptY}}
-}
-
 var group = ScriptSlot{Type: ScriptGroup, Role: "group"}
-
-// groupCommandSignatures are action 6's slots by its command, the Const
-// first parameter; the target group stands in the last slot, and for Follow
-// in the slot after the command (ALM-TRIG-045, TRIG-GROUPBOUNDS-136).
-var groupCommandSignatures = map[uint32]slots{
-	1:  {number("value")},
-	2:  cell("cell"),
-	3:  {},
-	4:  cell("cell"),
-	5:  cell("cell"),
-	10: {unit("unit")},
-	11: {unit("unit"), number("range")},
-	14: cell("cell"),
-	15: {unit("unit"), number("range")},
-	17: {},
-	18: {},
-}
 
 // ScriptGroupCommands are the commands action 6 can be authored with
 // (TRIG-GROUP-005), in order.
@@ -96,7 +73,9 @@ func ScriptSignatureIn(ops scriptprofile.Ops, condition bool, opcode, command ui
 	s := slots(row.Signature)
 	ok = row.HasSignature()
 	if len(row.Commands) > 0 {
-		s, ok = groupCommandSignatures[command]
+		// The command is the Const first parameter; the target group stands
+		// in the last slot, and for Follow in the slot after the command.
+		s, ok = row.CommandSignatures[command]
 		if ok && command == scriptFollowCommand {
 			s = append(slots{{Type: ScriptConst, Role: "command"}, group}, s...)
 		} else if ok {

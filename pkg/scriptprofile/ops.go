@@ -1,9 +1,6 @@
 package scriptprofile
 
-import (
-	"slices"
-	"strconv"
-)
+import "strconv"
 
 // The one table of script operations: a row per (game profile, family, id)
 // holding the operation's name, its editor word, its parameter signature and
@@ -54,6 +51,15 @@ type Op struct {
 	// CopyRefused is the word of the refusal of a trigger copy holding a
 	// node of the operation, which takes the node's id; "" where it copies.
 	CopyRefused string
+	// CopyNamed is that a trigger copy names the operation's node itself
+	// rather than a copy of it.
+	CopyNamed bool
+	// CommandWord is the word key format of a group command's name, "" for
+	// the names the command panel gives.
+	CommandWord string
+	// CommandSignatures are the slots after the command parameter by
+	// command; the target group is added by the signature reader.
+	CommandSignatures map[uint32][]Slot
 }
 
 // HasSignature reports that a claim states the operation's parameter slots.
@@ -63,22 +69,16 @@ func (o Op) HasSignature() bool { return o.Signature != nil }
 // beyond the rows: the fallback word of an operation with no word, whether
 // the inspection names an undecoded operation by its number, whether its
 // parameters carry the first game's message, spell, property and variable
-// kinds, whether an undecoded operation's fields stay read-only, and the
-// parameter type codes whose named record no claim reads, whose slots stay
-// read-only.
+// kinds, and whether an undecoded operation's fields stay read-only.
 type Vocabulary struct {
 	CheckWord, ActionWord string
 	Numbered              bool
 	Kinds                 bool
 	ReadOnlyUndecoded     bool
-	UnreadTypes           []uint32
-	// NewRecord is the word of the refusal of a new trigger or node, whose
-	// record holds fields no claim reads; "" where a new one is written.
-	NewRecord string
+	// ObjectType is the parameter type whose value is the identity of a
+	// type-4 object of the same map, 0 where no type is.
+	ObjectType uint32
 }
-
-// TypeUnread reports that the record a slot of type code t names is unread.
-func (v Vocabulary) TypeUnread(t uint32) bool { return slices.Contains(v.UnreadTypes, t) }
 
 // Undecoded is the fallback word key of a condition or an action.
 func (v Vocabulary) Undecoded(condition bool) string {
@@ -90,11 +90,11 @@ func (v Vocabulary) Undecoded(condition bool) string {
 
 var vocabularies = [...]Vocabulary{
 	OpsFirst: {CheckWord: "editor.check.unnamed", ActionWord: "editor.action.unnamed", Kinds: true},
-	// The record a type-9 lookup returns is unread (R2-ENGINE-1680). What a
-	// new node's ten text fields and word +0x48 hold is unread (R2-ASSET-364,
-	// R2-ENGINE-1681).
-	OpsSecond: {CheckWord: "editor.op.undecoded", ActionWord: "editor.op.undecoded", Numbered: true, ReadOnlyUndecoded: true, UnreadTypes: []uint32{slotStructure},
-		NewRecord: "editor.second.newrecord"},
+	// A type-9 value is a type-4 id of the map (R2-ENGINE-1725). The loader
+	// tests no node or trigger word and the compiler reads a node's word
+	// +0x48 nowhere found, so a new node holds zero there and in its texts
+	// (R2-ENGINE-1728).
+	OpsSecond: {CheckWord: "editor.op.undecoded", ActionWord: "editor.op.undecoded", Numbered: true, ReadOnlyUndecoded: true, ObjectType: 9},
 }
 
 // VocabularyOf is the vocabulary of a game's operations.
@@ -189,6 +189,21 @@ const (
 	AddGlobalOp  = addGlobal
 )
 
+// firstCommandSignatures and secondCommandSignatures are each game's action
+// 6 slots by its command (ALM-TRIG-045, TRIG-GROUPBOUNDS-136; the second
+// game's vectors are R2-ASSET-363's, its operands R2-ENGINE-1726's,
+// selector 2's cell Medium).
+var firstCommandSignatures = map[uint32][]Slot{
+	1: number("value"), 2: cell("cell"), 3: {}, 4: cell("cell"), 5: cell("cell"), 10: unit("unit"),
+	11: sig(unit("unit"), number("range")), 14: cell("cell"), 15: sig(unit("unit"), number("range")), 17: {}, 18: {},
+}
+
+var secondCommandSignatures = map[uint32][]Slot{
+	1: number("value"), 2: cell("cell"), 3: {}, 4: cell("cell"), 5: cell("cell"), 10: unit("unit"),
+	11: sig(unit("unit"), number("value")), 14: cell("cell"), 15: sig(unit("unit"), number("value")), 17: {},
+	18: number("value"),
+}
+
 // groupCommands are the commands action 6 can be authored with, in order.
 var groupCommands = []uint32{1, 2, 3, 4, 5, 10, 11, 14, 15, 17, 18}
 
@@ -227,7 +242,7 @@ var firstActions = []Op{
 	{ID: 3, Name: "Set variable", Word: "editor.action.op3", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"), number("value"))}, // TRIG-ACT-004
 	{ID: 4, Name: "Win", Word: "editor.action.op4", Decoded: true, Offered: true, Signature: sig()},                                                             // TRIG-ACT-004
 	{ID: 5, Name: "Lose", Word: "editor.action.op5", Decoded: true, Offered: true, Signature: sig()},                                                            // TRIG-ACT-004
-	{ID: 6, Name: "Group command", Word: "editor.action.op6", Decoded: true, Offered: true, Commands: groupCommands},
+	{ID: 6, Name: "Group command", Word: "editor.action.op6", Decoded: true, Offered: true, Commands: groupCommands, CommandSignatures: firstCommandSignatures},
 	{ID: 7, Name: "Set formation", Offered: true},
 	{ID: 8, Name: "Increment variable", Word: "editor.action.op8", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"))},                        // TRIG-ACT-004
 	{ID: 9, Name: "No-op arm", Word: "editor.action.op9", Decoded: true, Signature: sig()},                                                                                  // TRIG-ACT-004, a dead arm
@@ -263,11 +278,15 @@ var firstActions = []Op{
 
 // The second game's rows: the operations a claim reads the body of
 // (R2-ENGINE-1313 to R2-ENGINE-1315, R2-ENGINE-1450), each named by what the
-// body reads, with the type vector every installed node of the id stores
-// (R2-ASSET-363). Action 6 and check 65538 store more than one vector and
-// carry none. An id absent here is shown by its raw number, not decoded.
+// body reads and by the final effects R2-ENGINE-1740 to R2-ENGINE-1749 read,
+// with the type vector every installed node of the id stores (R2-ASSET-363).
+// Action 6's vector follows its selector (R2-ENGINE-1726); check 65538
+// stores two and carries none. An id absent here is shown by its raw number.
 var secondChecks = []Op{
 	{Ops: OpsSecond, Condition: true, ID: 1, Name: "Group member count", Word: "editor.second.check.1", Decoded: true, Offered: true, Signature: sig(group)},
+	// No installed node holds check 2; its body tests U's cell against the
+	// four corner scalars (R2-ENGINE-1730).
+	{Ops: OpsSecond, Condition: true, ID: 2, Name: "Unit in rectangle", Word: "editor.second.check.2", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("corner"), cell("corner2"))},
 	{Ops: OpsSecond, Condition: true, ID: 4, Name: "Unit field by selector", Word: "editor.second.check.4", Decoded: true, Offered: true, Signature: sig(unit("unit"), number(""))},
 	{Ops: OpsSecond, Condition: true, ID: 5, Name: "Unit state is not 16", Word: "editor.second.check.5", Decoded: true, Offered: true, Signature: sig(unit("unit"))},
 	{Ops: OpsSecond, Condition: true, ID: 6, Name: "Location metric between units", Word: "editor.second.check.6", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},
@@ -281,7 +300,7 @@ var secondChecks = []Op{
 	{Ops: OpsSecond, Condition: true, ID: 17, Name: "Unit holds item", Word: "editor.second.check.17", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},
 	{Ops: OpsSecond, Condition: true, ID: 18, Name: "Failure counter while unit is in state 16", Word: "editor.second.check.18", Decoded: true, Offered: true, Signature: sig(unit("unit"))},
 	{Ops: OpsSecond, Condition: true, ID: 19, Name: "Map register", Word: "editor.second.check.19", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"))},
-	{Ops: OpsSecond, Condition: true, ID: 21, Name: "Word 0x42 of a type-9 object", Word: "editor.second.check.21", Decoded: true, Offered: true, Signature: []Slot{{slotStructure, ""}}},
+	{Ops: OpsSecond, Condition: true, ID: 21, Name: "Word 0x42 of the object with a type-4 id", Word: "editor.second.check.21", Decoded: true, Offered: true, Signature: []Slot{{slotStructure, ""}}}, // R2-ENGINE-1725
 	{Ops: OpsSecond, Condition: true, ID: 23, Name: "Scenario variable", Word: "editor.second.check.23", Decoded: true, Offered: true, Signature: sig(number(""))},
 	{Ops: OpsSecond, Condition: true, ID: 24, Name: "Scenario variable 752+n", Word: "editor.second.check.24", Decoded: true, Offered: true, Signature: sig(number(""))},
 	{Ops: OpsSecond, Condition: true, ID: 25, Name: "Cell effect layer present", Word: "editor.second.check.25", Decoded: true, Offered: true, Signature: sig(cell("cell"), number(""))},
@@ -303,35 +322,37 @@ func secondWord(condition bool, id uint32) string {
 var secondActions = []Op{
 	{Ops: OpsSecond, ID: 2, Name: "Send event", Word: "editor.second.action.2", Decoded: true, Offered: true, Signature: sig(number(""))},
 	{Ops: OpsSecond, ID: 3, Name: "Set map register", Word: "editor.second.action.3", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"), number("value"))},
-	{Ops: OpsSecond, ID: 4, Name: "Add to win counter", Word: "editor.second.action.4", Decoded: true, Offered: true, Signature: sig()},
-	{Ops: OpsSecond, ID: 5, Name: "Store failure reason", Word: "editor.second.action.5", Decoded: true, Offered: true, Signature: sig(number(""))},
-	{Ops: OpsSecond, ID: 6, Name: "Group arm by selector", Word: "editor.second.action.6", Decoded: true, Offered: true},
+	{Ops: OpsSecond, ID: 4, Name: "Win: add to win counter", Word: "editor.second.action.4", Decoded: true, Offered: true, Signature: sig()},                    // R2-ENGINE-1729
+	{Ops: OpsSecond, ID: 5, Name: "Lose: store failure reason", Word: "editor.second.action.5", Decoded: true, Offered: true, Signature: sig(number("reason"))}, // R2-ENGINE-1729
+	{Ops: OpsSecond, ID: 6, Name: "Group arm by selector", Word: "editor.second.action.6", Decoded: true, Offered: true, Commands: groupCommands,
+		CommandWord: "editor.second.command.%d", CommandSignatures: secondCommandSignatures}, // R2-ENGINE-1726
 	{Ops: OpsSecond, ID: 8, Name: "Increment map register", Word: "editor.second.action.8", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"))},
 	{Ops: OpsSecond, ID: 10, Name: "Set relation", Word: "editor.second.action.10", Decoded: true, Offered: true, Signature: sig(number(""), number(""), number("value"))},
-	{Ops: OpsSecond, ID: 12, Name: "Item into a unit's collection", Word: "editor.second.action.12", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},
-	{Ops: OpsSecond, ID: 13, Name: "Item out of a unit's collection", Word: "editor.second.action.13", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},
-	{Ops: OpsSecond, ID: 16, Name: "Unit call of group action 32", Word: secondWord(false, 16), Decoded: true, Offered: true, Signature: sig(unit("unit"))},
-	{Ops: OpsSecond, ID: 17, Name: "Unit call of group action 33", Word: "editor.second.action.17", Decoded: true, Offered: true, Signature: sig(unit("unit"))},
-	{Ops: OpsSecond, ID: 18, Name: "Call of action 16, then a location call on the second unit", Word: "editor.second.action.18", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},
-	{Ops: OpsSecond, ID: 19, Name: "Owner call of unit and player", Word: "editor.second.action.19", Decoded: true, Offered: true, Signature: sig(unit("unit"), player("player"))},
-	{Ops: OpsSecond, ID: 20, Name: "New item collection for unit", Word: "editor.second.action.20", Decoded: true, Offered: true, Signature: sig(unit("unit"))},
-	{Ops: OpsSecond, ID: 21, Name: "Two-cell call with two numbers", Word: "editor.second.action.21", Decoded: true, Offered: true, Signature: sig(cell("cell"), cell("cell2"), number(""), number(""))},
-	{Ops: OpsSecond, ID: 22, Name: "Owner call of each group member and player", Word: "editor.second.action.22", Decoded: true, Offered: true, Signature: sig(group, player("player"))},
-	{Ops: OpsSecond, ID: 23, Name: "Player call with a number", Word: "editor.second.action.23", Decoded: true, Offered: true, Signature: sig(player("player"), number(""))},
-	{Ops: OpsSecond, ID: 24, Name: "Cell and unit call with two numbers", Word: "editor.second.action.24", Decoded: true, Offered: true, Signature: sig(cell("cell"), unit("unit"), number(""), number(""))},
+	{Ops: OpsSecond, ID: 12, Name: "Build item into unit's bag", Word: "editor.second.action.12", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},                                              // R2-ENGINE-1747
+	{Ops: OpsSecond, ID: 13, Name: "Take item out of unit's bag and destroy it", Word: "editor.second.action.13", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},                              // R2-ENGINE-1747
+	{Ops: OpsSecond, ID: 16, Name: "Take unit off the map", Word: secondWord(false, 16), Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                                             // R2-ENGINE-1743
+	{Ops: OpsSecond, ID: 17, Name: "Put unit back on the map", Word: "editor.second.action.17", Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                                      // R2-ENGINE-1744
+	{Ops: OpsSecond, ID: 18, Name: "Replace unit by the second unit", Word: "editor.second.action.18", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},                                // R2-ENGINE-1744
+	{Ops: OpsSecond, ID: 19, Name: "Give unit to player", Word: "editor.second.action.19", Decoded: true, Offered: true, Signature: sig(unit("unit"), player("player"))},                                         // R2-ENGINE-1745
+	{Ops: OpsSecond, ID: 20, Name: "Drop unit's bag as a sack", Word: "editor.second.action.20", Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                                     // R2-ENGINE-1748
+	{Ops: OpsSecond, ID: 21, Name: "Cast spell from cell at cell", Word: "editor.second.action.21", Decoded: true, Offered: true, Signature: sig(cell("cell"), cell("cell2"), number("spell"), number("power"))}, // R2-ENGINE-1741
+	{Ops: OpsSecond, ID: 22, Name: "Give each group member to player", Word: "editor.second.action.22", Decoded: true, Offered: true, Signature: sig(group, player("player"))},                                   // R2-ENGINE-1745
+	{Ops: OpsSecond, ID: 23, Name: "Add gold to player", Word: "editor.second.action.23", Decoded: true, Offered: true, Signature: sig(player("player"), number("money"))},                                       // R2-ENGINE-1746
+	{Ops: OpsSecond, ID: 24, Name: "Cast spell from cell at unit", Word: "editor.second.action.24", Decoded: true, Offered: true, Signature: sig(cell("cell"), unit("unit"), number("spell"), number("power"))},  // R2-ENGINE-1742
 	{Ops: OpsSecond, ID: 25, Name: "Cell descriptor of eight bytes", Word: "editor.second.action.25", Decoded: true, Offered: true, Signature: sig(number(""), number(""), cell("cell"), cell("cell2"), cell(""))},
-	{Ops: OpsSecond, ID: 28, Name: "Item collection moved to the second unit", Word: "editor.second.action.28", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},
-	{Ops: OpsSecond, ID: 29, Name: "Word 0x50 of the matching cell object", Word: "editor.second.action.29", Decoded: true, Offered: true, Signature: sig(cell("cell"), number(""), number("value"))},
-	{Ops: OpsSecond, ID: 30, Name: "Word 0x42 of the matching unit entry", Word: "editor.second.action.30", Decoded: true, Offered: true, Signature: sig(unit("unit"), number(""), number("value"))},
-	{Ops: OpsSecond, ID: 32, Name: "Call of action 16 on each group member", Word: "editor.second.action.32", Decoded: true, Offered: true, Signature: sig(group)},
-	{Ops: OpsSecond, ID: 33, Name: "Call of action 17 on each group member", Word: "editor.second.action.33", Decoded: true, Offered: true, Signature: sig(group)},
-	{Ops: OpsSecond, ID: 34, Name: "Unit field by selector 6, 15 or 16", Word: "editor.second.action.34", Decoded: true, Offered: true, Signature: sig(unit("unit"), number(""), number("value"))},
+	{Ops: OpsSecond, ID: 28, Name: "Move unit's bag into the second unit's bag", Word: "editor.second.action.28", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},                        // R2-ENGINE-1748
+	{Ops: OpsSecond, ID: 29, Name: "Set time left of a spell's area effects at cell", Word: "editor.second.action.29", Decoded: true, Offered: true, Signature: sig(cell("cell"), number("spell"), number("time"))}, // R2-ENGINE-1749
+	{Ops: OpsSecond, ID: 30, Name: "Set duration of a spell's effects on unit", Word: "editor.second.action.30", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("spell"), number("time"))},       // R2-ENGINE-1749
+	{Ops: OpsSecond, ID: 32, Name: "Take each group member off the map", Word: "editor.second.action.32", Decoded: true, Offered: true, Signature: sig(group)},                                                      // R2-ENGINE-1743
+	{Ops: OpsSecond, ID: 33, Name: "Put each group member back on the map", Word: "editor.second.action.33", Decoded: true, Offered: true, Signature: sig(group)},                                                   // R2-ENGINE-1744
+	{Ops: OpsSecond, ID: 34, Name: "Set unit health, defence or absorption", Word: "editor.second.action.34", Decoded: true, Offered: true, Signature: sig(unit("unit"), number(""), number("value"))},              // R2-ENGINE-1749
 	{Ops: OpsSecond, ID: 35, Name: "Set scenario variable", Word: "editor.second.action.35", Decoded: true, Offered: true, Signature: sig(number(""), number("value"))},
 	{Ops: OpsSecond, ID: 36, Name: "Set scenario state 752+n", Word: "editor.second.action.36", Decoded: true, Offered: true, Signature: sig(number(""), number("value"))},
-	{Ops: OpsSecond, ID: 38, Name: "Take item from units", Word: "editor.second.action.38", Decoded: true, Offered: true, Signature: sig(item)},
+	{Ops: OpsSecond, ID: 38, Name: "Take item out of listed units' bags", Word: "editor.second.action.38", Decoded: true, Offered: true, Signature: sig(item)}, // R2-ENGINE-1747
 	{Ops: OpsSecond, ID: 39, Name: "Clear group forced activity", Word: "editor.second.action.39", Decoded: true, Offered: true, Signature: sig(group)},
-	// The compiler appends the node's two low bytes to a list whatever
-	// trigger names it; what reads the list is unread (R2-ENGINE-042).
+	// The compiler appends the node's value slots 0 and 1 as bytes to a list
+	// whatever trigger names it (R2-ENGINE-042, R2-ENGINE-1727): a trigger
+	// copy names the same node, so the list gains no entry.
 	{Ops: OpsSecond, ID: constantOp, Name: "Compiler parameter", Word: "editor.second.action.65538", Decoded: true, Offered: true, Signature: sig(cell("")),
-		CopyRefused: "editor.second.copycompilerparameter"},
+		CopyNamed: true},
 }

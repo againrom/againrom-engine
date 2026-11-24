@@ -255,10 +255,11 @@ func groupCommand(condition bool, opcode uint32, values [10]uint32) uint32 {
 	return 0
 }
 
-// groupCommandNode reports a first-game group command action, whose first
-// parameter is a command word; the second game's action 6 is another arm.
+// groupCommandNode reports a group command action, whose first parameter is
+// a command word, in a game whose operation row lists the commands.
 func (e *MapEditor) groupCommandNode(condition bool, opcode uint32) bool {
-	return !condition && opcode == scriptGroupCommand && e.doc.Script.Profile().Ops == scriptprofile.OpsFirst
+	op, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, condition, opcode)
+	return !condition && opcode == scriptGroupCommand && ok && len(op.Commands) > 0
 }
 
 // nodeParams are a node's parameters by meaning, one "label value" text each.
@@ -290,6 +291,9 @@ func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]
 }
 
 func (e *MapEditor) commandName(c uint32) string {
+	if op, _ := scriptprofile.OpRow(e.doc.Script.Profile().Ops, false, scriptGroupCommand); op.CommandWord != "" && slices.Contains(op.Commands, c) {
+		return e.word(fmt.Sprintf(op.CommandWord, c))
+	}
 	if w, ok := e.commandWord(c); ok {
 		return w
 	}
@@ -355,17 +359,12 @@ func (e *MapEditor) secondScript() bool {
 
 // secondNodeFields keeps the label and the parameter fields of a decoded
 // operation editable. The operation and the trigger row are shown only, and
-// so is every field of an operation no claim decodes and a slot whose type
-// names an unread record, which is labelled by its type code.
+// so is every field of an operation no claim decodes.
 func (e *MapEditor) secondNodeFields(v scriptView, fields []InspectionField) []InspectionField {
 	decoded := e.doc.Script.Catalog.named(v.condition, v.node.Opcode)
-	vocabulary := scriptprofile.VocabularyOf(e.doc.Script.Profile().Ops)
 	for i := range fields {
 		f := &fields[i]
 		f.ReadOnly = !decoded || f.Key != "name" && !strings.HasPrefix(f.Key, "value") && !strings.HasPrefix(f.Key, "cell")
-		if s, err := strconv.Atoi(strings.TrimPrefix(f.Key, "value")); err == nil && strings.HasPrefix(f.Key, "value") && s >= 0 && s < len(e.obj.types) && vocabulary.TypeUnread(e.obj.types[s]) {
-			f.ReadOnly, f.Choices, f.Label = true, nil, fmt.Sprintf(e.word("editor.param.kind"), e.obj.types[s])
-		}
 	}
 	return fields
 }
@@ -719,9 +718,6 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 	}
 	if e.secondScript() && !e.doc.Script.Catalog.named(v.condition, v.node.Opcode) {
 		text(e.word("editor.second.undecoded.reason"), "warning")
-	}
-	if i := slices.IndexFunc(v.node.Types[:], scriptprofile.VocabularyOf(e.doc.Script.Profile().Ops).TypeUnread); i >= 0 {
-		text(fmt.Sprintf(e.word("editor.map.secondtype"), v.node.Types[i]), "warning")
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
 	s.Disabled = []bool{!e.objectDirty() && !e.listedCondition(v), false}
