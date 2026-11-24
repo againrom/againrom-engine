@@ -243,8 +243,8 @@ type gameProfile struct {
 type scriptRegisterSeed struct{ register, value int32 }
 
 var dialectProfiles = [...]scriptprofile.Profile{
-	ScriptROM1: scriptprofile.ForOps(scriptprofile.OpsFirst),
-	ScriptROM2: scriptprofile.ForOps(scriptprofile.OpsSecond),
+	ScriptROM1: scriptprofile.For(scriptprofile.OpsFirst, false),
+	ScriptROM2: scriptprofile.For(scriptprofile.OpsSecond, false),
 }
 
 // Profile returns the script profile of dialect d.
@@ -302,7 +302,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		buildingCasters:            buildingCastersBuilt,
 		scriptRows:                 secondGameRows,
 		dialect:                    ScriptROM2,
-		scriptProfile:              scriptprofile.ForOps(scriptprofile.OpsSecond),
+		scriptProfile:              scriptprofile.For(scriptprofile.OpsSecond, false),
 		scriptSeed:                 scriptRegisterSeed{register: 901, value: 1},
 		structureOwners:            true,
 		scriptCount:                scriptCountListed,

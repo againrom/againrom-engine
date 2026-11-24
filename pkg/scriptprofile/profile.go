@@ -133,17 +133,12 @@ var (
 		Variables: ExtendedVariables, Groups: true, Extended: true, NilWhenEmpty: true}
 )
 
-// Of is the profile of a first-game map script: Extended when the map
-// carries the Againrom script record, First when it does not.
-func Of(extended bool) Profile {
+// For is the one script profile selector: Extended when the map carries the
+// Againrom script record, else the profile of operation vocabulary ops.
+func For(ops Ops, extended bool) Profile {
 	if extended {
 		return Extended
 	}
-	return First
-}
-
-// ForOps returns the non-extended profile for operation vocabulary ops.
-func ForOps(ops Ops) Profile {
 	if ops == OpsSecond {
 		return Second
 	}

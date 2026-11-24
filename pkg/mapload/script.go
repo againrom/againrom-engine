@@ -375,7 +375,7 @@ func CompileScript(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, erro
 // and the other is what a caller holding the script itself — or building one —
 // needs, without a map to route it through.
 func CompileScriptFrom(src alm.Script, refs ScriptRefs) (*sim.Script, ScriptReport, error) {
-	return compileScriptFrom(src, refs, scriptprofile.Of(src.Extended), sim.NewScript)
+	return compileScriptFrom(src, refs, scriptprofile.For(scriptprofile.OpsFirst, src.Extended), sim.NewScript)
 }
 
 func CompileROM2Script(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, error) {

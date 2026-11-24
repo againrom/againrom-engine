@@ -51,7 +51,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	}
 	// On an extended map the pair is one more condition of the trigger's
 	// last group; on an original map it takes the first empty pair.
-	limits := scriptprofile.Of(sc.Extended)
+	limits := scriptprofile.For(scriptprofile.OpsFirst, sc.Extended)
 	pair := 0
 	if trigger >= 0 {
 		if trigger >= len(sc.Triggers) {

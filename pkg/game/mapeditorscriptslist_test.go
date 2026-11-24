@@ -46,7 +46,7 @@ func TestScriptsListHostVariableRegisters(t *testing.T) {
 				sc = alm.Script{Conditions: []alm.ScriptNode{n}}
 			}
 			d := &ui.InspectionDocument{}
-			inspectScript(d, &alm.Map{}, sc, scriptprofile.Of(sc.Extended), func(s string) string { return s })
+			inspectScript(d, &alm.Map{}, sc, scriptprofile.For(scriptprofile.OpsFirst, sc.Extended), func(s string) string { return s })
 			nodes := d.Script.Actions
 			if opcode == 19 {
 				nodes = d.Script.Conditions

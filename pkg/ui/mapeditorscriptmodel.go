@@ -35,7 +35,7 @@ func (m *InspectionScriptModel) Profile() scriptprofile.Profile {
 	if m != nil && m.Limits.Pairs != 0 && !m.Extended {
 		return m.Limits
 	}
-	return scriptprofile.Of(m != nil && m.Extended)
+	return scriptprofile.For(scriptprofile.OpsFirst, m != nil && m.Extended)
 }
 
 // ScriptFormNeeded answers an edit or a save that needs the map's script in

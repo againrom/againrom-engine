@@ -78,7 +78,7 @@ func (e *Editor) Profile() scriptprofile.Profile {
 	if p := formatRows[e.format].profile; p != nil {
 		return *p
 	}
-	return scriptprofile.Of(e.Extended())
+	return scriptprofile.For(scriptprofile.OpsFirst, e.Extended())
 }
 
 // scriptRoom refuses a write that adds checks conditions and triggers

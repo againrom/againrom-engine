@@ -113,8 +113,7 @@ func nodeIndex(nodes []alm.ScriptNode, id uint32) int {
 
 // wizardRoom refuses a plan the map's trigger form cannot hold: more pairs
 // or actions than the profile's, or on an original map a second group.
-func wizardRoom(t ui.WizardTrigger, extended bool) error {
-	limits := scriptprofile.Of(extended)
+func wizardRoom(t ui.WizardTrigger, limits scriptprofile.Profile, extended bool) error {
 	limit := &mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: int64(limits.Pairs), Got: int64(len(t.Pairs))}
 	switch {
 	case len(t.Pairs) > limits.Pairs:
@@ -164,8 +163,8 @@ func wizardGlobalNodes(t ui.WizardTrigger) int {
 
 func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 	extended := m.Extended()
-	limits := scriptprofile.Of(extended)
-	if err := wizardRoom(t, extended); err != nil {
+	limits := m.Profile()
+	if err := wizardRoom(t, limits, extended); err != nil {
 		return err
 	}
 	_, sc, err := wizardScript(m)
