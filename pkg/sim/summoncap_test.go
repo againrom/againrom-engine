@@ -10,7 +10,7 @@ func summonedWorld(t *testing.T, seed uint64, n int) *World {
 	t.Helper()
 	w := summonWorld(t, seed, 0)
 	for range n {
-		if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) {
+		if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) {
 			t.Fatal("Summon did not land")
 		}
 	}
@@ -304,7 +304,7 @@ func TestSecondSummonCasterWithEntityIDZeroIsCapped(t *testing.T) {
 		w := secondWorld(t, 0x25, Bounds{Width: 32, Height: 32}, []SpellRule{summonRule()}, caster)
 		w.DeclareSpellCreatures(summonCreatures())
 		for range 4 {
-			if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) {
+			if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) {
 				t.Fatal("Summon did not land")
 			}
 		}

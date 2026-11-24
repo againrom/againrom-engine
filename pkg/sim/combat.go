@@ -915,7 +915,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 		w.weaponRiderApply(ai, ti, false, obs)
 		return
 	}
-	w.flipOnBlow(ai, ti)
+	w.flipOnBlow(ai, ti, blowDirect)
 
 	if !primaryAdmitted {
 		dmg = 0

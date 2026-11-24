@@ -2431,22 +2431,37 @@ func scriptDead(e Entity) bool { return !e.Alive() && !e.Dying() }
 // or unconscious unit stays (R2-ENGINE-1696).
 func scriptListed(e Entity) bool { return e.Decay < DecayBones }
 
-// scriptAlive is the unit test of checks 5 and 8: the first game counts a unit
-// scriptDead leaves out; the second counts every listed unit (R2-ENGINE-1696).
-func (w *World) scriptAlive(e Entity) bool {
-	if w.game.countsListed {
-		return scriptListed(e)
-	}
-	return !scriptDead(e)
+// scriptCountRule selects the unit and member presence predicates of checks 1,
+// 5 and 8 (R2-ENGINE-1696).
+type scriptCountRule uint8
+
+const (
+	scriptCountLiving scriptCountRule = iota
+	scriptCountListed
+)
+
+type scriptCountRow struct {
+	scriptAlive  func(e Entity) bool
+	countsMember func(e Entity) bool
 }
 
-// scriptCountsMember is check 1's member test: the first game leaves a downed
-// member out; the second counts every member its group lists (R2-ENGINE-1696).
+var scriptCountRules = [...]scriptCountRow{
+	scriptCountLiving: {
+		scriptAlive:  func(e Entity) bool { return !scriptDead(e) },
+		countsMember: func(e Entity) bool { return !e.Downed() },
+	},
+	scriptCountListed: {
+		scriptAlive:  scriptListed,
+		countsMember: scriptListed,
+	},
+}
+
+func (w *World) scriptAlive(e Entity) bool {
+	return scriptCountRules[w.game.scriptCount].scriptAlive(e)
+}
+
 func (w *World) scriptCountsMember(e Entity) bool {
-	if w.game.countsListed {
-		return scriptListed(e)
-	}
-	return !e.Downed()
+	return scriptCountRules[w.game.scriptCount].countsMember(e)
 }
 
 // scriptVIPDead is the narrower teardown predicate used by check 18. The

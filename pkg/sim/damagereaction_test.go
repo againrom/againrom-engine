@@ -54,7 +54,7 @@ func TestDistantAreaDamageReachesOrdinaryGroupAcquisition(t *testing.T) {
 func TestAttackNoticeExpiresByCandidateBuildsAndDoesNotRevealFog(t *testing.T) {
 	w, _ := distantSpellWorld(t)
 	fog := w.Sight(SelfSlot)
-	w.flipOnBlow(0, 1)
+	w.flipOnBlow(0, 1, blowDirect)
 	before := w.Hash()
 	for range 100 {
 		if !w.actorSees(1, cellOf(&w.entities[0])) {
@@ -77,7 +77,7 @@ func TestAttackNoticeExpiresByCandidateBuildsAndDoesNotRevealFog(t *testing.T) {
 		t.Fatal("expired cell remained visible", got)
 	}
 	w.entities[0].X = 15
-	w.flipOnBlow(0, 1)
+	w.flipOnBlow(0, 1, blowDirect)
 	if got := w.attackNoticeAt(1); got != (attackNotice{Cell: 0x180f}) {
 		t.Fatal("new blow did not replace and reset notice", got)
 	}
@@ -98,7 +98,7 @@ func TestAttackNoticeUsesOriginalOrderFieldsAndTransfersNativeOwnership(t *testi
 	o.Raw[0x5a] = 17
 	before := o.Raw
 	w.entities[0].X = 14
-	w.flipOnBlow(0, 1)
+	w.flipOnBlow(0, 1, blowDirect)
 	want := before
 	want[0x54], want[0x58], want[0x59], want[0x5a] = 1, 14, 24, 0
 	if o.Raw != want || o.State != 0 || w.entities[1].HasAttackTarget {
@@ -131,7 +131,7 @@ func TestAttackNoticeKeepsAcquisitionLimits(t *testing.T) {
 			if name == "owner-zero" {
 				w.entities[0].Owner = 0
 			}
-			w.flipOnBlow(0, 1)
+			w.flipOnBlow(0, 1, blowDirect)
 			switch name {
 			case "invisible":
 				w.attached = []attachedEffect{{Target: 1, Spell: 15, Remaining: 32}}

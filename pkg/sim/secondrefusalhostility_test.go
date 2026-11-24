@@ -384,7 +384,7 @@ func TestSecondGameAreaHitFlipsReverseInDeadState(t *testing.T) {
 func TestSecondGameDirectBlowStillTurnsBothDirections(t *testing.T) {
 	t.Parallel()
 	w, _, _ := areaHostilityWorld(t, true, 100, 100, Relations{})
-	w.flipOnBlow(0, 1)
+	w.flipOnBlow(0, 1, blowDirect)
 	if !w.relations.Hostile(SelfSlot, 2) || !w.relations.Hostile(2, SelfSlot) {
 		t.Fatalf("direct blow relations: fwd=%v rev=%v, want both true",
 			w.relations.Hostile(SelfSlot, 2), w.relations.Hostile(2, SelfSlot))

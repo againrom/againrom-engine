@@ -72,7 +72,7 @@ func TestSecondStoneCurseDrawsItsDurationFromTheWorldStream(t *testing.T) {
 		if r := w.pointEffectRefusal(0, 1, w.spells[0], tc.power); r != "" {
 			t.Fatalf("refused: %s", r)
 		}
-		if !w.ordinaryEffectPayload(0, 1, w.spells[0], tc.power) {
+		if !w.ordinaryEffectPayload(0, 1, w.spells[0], tc.power, blowDirect) {
 			t.Fatalf("P %d Earth %d did not attach", tc.power, tc.earth)
 		}
 		got := w.ActiveEffects()
@@ -93,7 +93,7 @@ func TestSecondStoneCurseDrawsItsDurationFromTheWorldStream(t *testing.T) {
 	item.itemCast = true
 	probe := w.rng
 	want := uint16(probe.uniform(72))
-	if !w.ordinaryEffectPayload(0, 1, item, 50) || w.ActiveEffects()[0].Remaining != want {
+	if !w.ordinaryEffectPayload(0, 1, item, 50, blowDirect) || w.ActiveEffects()[0].Remaining != want {
 		t.Fatalf("item cast attached %+v, want %d", w.ActiveEffects(), want)
 	}
 }
@@ -107,7 +107,7 @@ func TestSecondStoneCurseDrawOfZeroAttachesNothing(t *testing.T) {
 	}
 	w := curseWorld(t, 1, 0)
 	w.rng.state = seed
-	if w.ordinaryEffectPayload(0, 1, w.spells[0], 50) || len(w.attached) != 0 {
+	if w.ordinaryEffectPayload(0, 1, w.spells[0], 50, blowDirect) || len(w.attached) != 0 {
 		t.Fatalf("seed %d drew 0 and still attached %+v", seed, w.ActiveEffects())
 	}
 }
@@ -115,7 +115,7 @@ func TestSecondStoneCurseDrawOfZeroAttachesNothing(t *testing.T) {
 func TestSecondStoneCurseHoldsMoveAttackAndCastUntilItExpires(t *testing.T) {
 	w := curseWorld(t, 0x18, 0)
 	before := w.entities[1]
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50) {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50, blowDirect) {
 		t.Fatal("did not attach")
 	}
 	if got := w.entities[1]; got.HP != before.HP || got.Protection != before.Protection || got.Speed != before.Speed || got.Mana != before.Mana {
@@ -145,7 +145,7 @@ func TestSecondStoneCurseLeavesDamageTakenUnchanged(t *testing.T) {
 	plain := curseWorld(t, 0x18, 0)
 	plain.entities[0].DamageBase, plain.entities[0].DamageSpread, plain.entities[0].AlwaysHits, plain.entities[0].Reach = 10, 20, true, 1
 	cursed := cloneWorld(t, plain)
-	if !cursed.ordinaryEffectPayload(0, 1, cursed.spells[0], 50) {
+	if !cursed.ordinaryEffectPayload(0, 1, cursed.spells[0], 50, blowDirect) {
 		t.Fatal("did not attach")
 	}
 	plain.rng.state, cursed.rng.state = 0x2a, 0x2a
@@ -158,24 +158,24 @@ func TestSecondStoneCurseLeavesDamageTakenUnchanged(t *testing.T) {
 
 func TestSecondStoneCurseRepeatKeepsTheLargerDuration(t *testing.T) {
 	w := curseWorld(t, 0x18, 0)
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50) {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50, blowDirect) {
 		t.Fatal("did not attach")
 	}
 	w.attached[0].Remaining = 1
 	probe := w.rng
 	draw := uint16(probe.uniform(240))
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50) || len(w.attached) != 1 || w.attached[0].Remaining != max(draw, 1) {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50, blowDirect) || len(w.attached) != 1 || w.attached[0].Remaining != max(draw, 1) {
 		t.Fatalf("shorter record: %+v after a draw of %d", w.ActiveEffects(), draw)
 	}
 	w.attached[0].Remaining = 9000
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50) || len(w.attached) != 1 || w.attached[0].Remaining != 9000 {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50, blowDirect) || len(w.attached) != 1 || w.attached[0].Remaining != 9000 {
 		t.Fatalf("longer record: %+v, want 9000 kept", w.ActiveEffects())
 	}
 }
 
 func TestSecondStoneCurseSurvivesAColdLoad(t *testing.T) {
 	w := curseWorld(t, 0x18, 0)
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50) {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 50, blowDirect) {
 		t.Fatal("did not attach")
 	}
 	cold := cloneWorld(t, w)
@@ -195,7 +195,7 @@ func TestFirstStoneCurseStillRefusesARowWithNoKind(t *testing.T) {
 	if r := w.pointEffectRefusal(0, 1, first, 50); r == "" {
 		t.Fatal("a first-game Stone Curse row with no effect kind was admitted")
 	}
-	if w.ordinaryEffectPayload(0, 1, first, 50) || len(w.attached) != 0 {
+	if w.ordinaryEffectPayload(0, 1, first, 50, blowDirect) || len(w.attached) != 0 {
 		t.Fatal("a first-game Stone Curse row with no effect kind attached")
 	}
 }
@@ -274,7 +274,7 @@ func TestSecondSummonCreatesTheRolledKindAndLevelBesideTheCaster(t *testing.T) {
 		if r := w.pointEffectRefusal(0, 0, w.spells[0], 50); r != "" {
 			t.Fatalf("refused: %s", r)
 		}
-		if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) {
+		if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) {
 			t.Fatalf("seed %#x: Summon did not land", tc.seed)
 		}
 		if len(w.entities) != 2 {
@@ -307,7 +307,7 @@ func TestSecondSummonJoinsTheCastersPlayerInANewSavedGroup(t *testing.T) {
 	if err := w.ImportSavedGroupPlayers([]SavedGroupPlayer{{ID: 10, Slot: SelfSlot}, {ID: 20, Slot: SelfSlot}}, []SavedGroupContainer{{GroupID: 1, PlayerID: 20}}); err != nil {
 		t.Fatal(err)
 	}
-	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) {
+	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) {
 		t.Fatal("Summon did not land")
 	}
 	spawned := w.savedGroupFor(2)
@@ -339,7 +339,7 @@ func TestSecondSummonAbortsWhenNoCellIsFree(t *testing.T) {
 	if r := w.pointEffectRefusal(0, 0, w.spells[0], 50); r != "" {
 		t.Fatalf("a full square is a refusal before the cost: %s", r)
 	}
-	if w.ordinaryEffectPayload(0, 0, w.spells[0], 50) {
+	if w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) {
 		t.Fatal("Summon landed with no free cell")
 	}
 	if !reflect.DeepEqual(w.Entities(), entities) {

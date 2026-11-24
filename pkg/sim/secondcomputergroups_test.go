@@ -132,7 +132,7 @@ func TestSecondMissionStartGuardBelowTheFloorTakesTwenty(t *testing.T) {
 // keeps its order-none Group.
 func TestSecondSummonGroupTakesTheGuardSetter(t *testing.T) {
 	w := summonWorld(t, 0x25, 0)
-	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) {
+	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) {
 		t.Fatal("Summon did not land")
 	}
 	i := indexOfEntity(w.entities, 2)

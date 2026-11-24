@@ -106,7 +106,7 @@ func TestSecondAnimateTakesTheFirstCorpseOfTheDeadList(t *testing.T) {
 			t.Fatalf("body %d: kind %d alive %v before the cast", e.ID, e.Decay, e.Alive())
 		}
 	}
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) {
 		t.Fatal("Animate Dead did not raise a corpse")
 	}
 	if len(w.entities) != 5 || w.entities[1].ID != 2 || w.entities[1].Decay != 2 || w.entities[3].Decay != 3 || w.entities[4].Decay != 2 {
@@ -135,7 +135,7 @@ func TestSecondAnimateReusesTheOlderPooledUnit(t *testing.T) {
 	if ids := terminalIDs(w); !reflect.DeepEqual(ids, []EntityID{2}) {
 		t.Fatalf("pooled rows %v, want [2]", ids)
 	}
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) {
 		t.Fatal("Animate Dead did not raise the corpse")
 	}
 	if len(w.entities) != 2 {
@@ -158,7 +158,7 @@ func TestSecondAnimateFailedPlacementLeavesTheTakenUnitGone(t *testing.T) {
 	blocker := spEnt(9, 16, 16)
 	blocker.TokenSize = 1
 	w := animateWorld(t, animateCorpse(2, 2), blocker)
-	w.ordinaryEffectPayload(0, 1, w.spells[0], 17)
+	w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect)
 	if len(w.entities) != 2 || w.entities[1].ID != 9 {
 		t.Fatalf("failed placement left actors %+v", actorKinds(w))
 	}
@@ -169,7 +169,7 @@ func TestSecondAnimateFailedPlacementLeavesTheTakenUnitGone(t *testing.T) {
 
 	w = animateWorld(t, goneBody(2, 10, 10), animateCorpse(3, 2), blocker)
 	w.remove([]EntityID{2})
-	w.ordinaryEffectPayload(0, 1, w.spells[0], 17)
+	w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect)
 	if len(w.entities) != 2 || w.entities[1].ID != 9 {
 		t.Fatalf("failed placement left actors %+v", actorKinds(w))
 	}
@@ -184,7 +184,7 @@ func TestSecondAnimateFailedPlacementLeavesTheTakenUnitGone(t *testing.T) {
 // Summon takes it from the pool and keeps its id (R2-ENGINE-455).
 func TestSecondSummonReusesTheIdOfAFinishedUnit(t *testing.T) {
 	w := summonWorld(t, 0x25, 0)
-	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) || len(w.entities) != 2 || w.entities[1].ID != 2 {
+	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) || len(w.entities) != 2 || w.entities[1].ID != 2 {
 		t.Fatalf("first Summon built %+v", actorKinds(w))
 	}
 	w.entities[1].setCurrentHealth(decayGoneHP - 100)
@@ -194,7 +194,7 @@ func TestSecondSummonReusesTheIdOfAFinishedUnit(t *testing.T) {
 	if ids := terminalIDs(w); !reflect.DeepEqual(ids, []EntityID{2}) {
 		t.Fatalf("pooled rows %v, want [2]", ids)
 	}
-	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) {
+	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) {
 		t.Fatal("second Summon did not land")
 	}
 	if len(w.entities) != 2 || w.entities[1].ID != 2 || !w.entities[1].Alive() || w.entities[1].Owner != w.entities[0].Owner {
@@ -203,7 +203,7 @@ func TestSecondSummonReusesTheIdOfAFinishedUnit(t *testing.T) {
 	if ids := terminalIDs(w); len(ids) != 0 {
 		t.Fatalf("the reused unit kept a terminal row: %v", ids)
 	}
-	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) || len(w.entities) != 3 || w.entities[2].ID != 3 {
+	if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) || len(w.entities) != 3 || w.entities[2].ID != 3 {
 		t.Fatalf("third Summon with an empty pool built %+v, want id 3", actorKinds(w))
 	}
 	cold := cloneWorld(t, w)
@@ -219,7 +219,7 @@ func TestSecondSummonTakesThePoolInListOrder(t *testing.T) {
 	w := summonWorld(t, 0x25, 0, goneBody(2, 3, 3), goneBody(3, 4, 3))
 	w.remove([]EntityID{3, 2})
 	for _, want := range []EntityID{2, 3, 4} {
-		if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) || indexOfEntity(w.entities, want) < 0 {
+		if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) || indexOfEntity(w.entities, want) < 0 {
 			t.Fatalf("Summon did not build id %d: %+v", want, actorKinds(w))
 		}
 	}
@@ -244,7 +244,7 @@ func TestSecondSummonFailedPlacementLeavesTheTakenUnitGone(t *testing.T) {
 	}
 	w := summonWorld(t, 0x25, 0, append(ring, goneBody(id, 3, 3))...)
 	w.remove([]EntityID{id})
-	if w.ordinaryEffectPayload(0, 0, w.spells[0], 50) {
+	if w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) {
 		t.Fatal("Summon landed with no free cell")
 	}
 	if len(w.entities) != len(ring)+1 {
@@ -271,7 +271,7 @@ func TestFirstGameTeardownAndRaiseKeepTheirRecordedWorld(t *testing.T) {
 	for range 6 {
 		Step(w2, nil)
 	}
-	if !w2.ordinaryEffectPayload(0, 2, w2.spells[0], 17) {
+	if !w2.ordinaryEffectPayload(0, 2, w2.spells[0], 17, blowDirect) {
 		t.Fatal("first-game raise refused")
 	}
 	summoned := spEnt(0, 0, 0)

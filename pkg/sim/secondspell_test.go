@@ -64,7 +64,7 @@ func TestSecondDrainLifeIsCutByAstralResistance(t *testing.T) {
 	base, spread := spellDamage(drain.DamageMin, drain.DamageMax, 0)
 	probe := w.rng
 	amount := secondDrainAmount(base, 50, probe.uniform(secondDrawSpan(spread)))
-	if !w.ordinaryEffectPayload(0, 1, drain, 0) {
+	if !w.ordinaryEffectPayload(0, 1, drain, 0, blowDirect) {
 		t.Fatal("second-game Drain Life did not land")
 	}
 	if got := w.entities[1].HP; int64(got) != 100-amount {
@@ -142,7 +142,7 @@ func TestSecondStoneCurseWithNoEffectKindAttachesABlankHold(t *testing.T) {
 		t.Fatalf("second-game Stone Curse refused: %s", r)
 	}
 	before := w.entities[1]
-	if !w.ordinaryEffectPayload(0, 1, curse, 50) {
+	if !w.ordinaryEffectPayload(0, 1, curse, 50, blowDirect) {
 		t.Fatal("second-game Stone Curse did not land")
 	}
 	if len(w.attached) != 1 || w.attached[0].Kind != EffectNone || !w.stoneCursed(1) || w.entities[1].HP != before.HP {
@@ -186,7 +186,7 @@ func TestSecondBlessLeavesItsTargetFreeToMove(t *testing.T) {
 	actor := effectMage(1, 2, 2, 1<<20)
 	actor.Speed = 4
 	w := spWorld(t, 1, []SpellRule{bless}, actor)
-	if !w.ordinaryEffectPayload(0, 0, bless, 30) {
+	if !w.ordinaryEffectPayload(0, 0, bless, 30, blowDirect) {
 		t.Fatal("Bless did not attach")
 	}
 	Step(w, []Command{MoveTo(1, CellPoint{X: 8, Y: 2})})
@@ -196,7 +196,7 @@ func TestSecondBlessLeavesItsTargetFreeToMove(t *testing.T) {
 	}
 	curse := secondRow(SpellRule{ID: 18, TargetsUnit: true, SpellDuration: 10, EffectKind: EffectAbsorption, EffectMode: EffectDuration, EffectMagnitude: 5})
 	w = spWorld(t, 1, []SpellRule{curse}, effectMage(1, 2, 2, 1<<18))
-	if !w.ordinaryEffectPayload(0, 0, curse, 30) || !w.stoneCursed(0) {
+	if !w.ordinaryEffectPayload(0, 0, curse, 30, blowDirect) || !w.stoneCursed(0) {
 		t.Fatal("a second-game Stone Curse with an effect kind does not hold its target")
 	}
 }
@@ -206,7 +206,7 @@ func TestSecondInvisibilityHidesItsTargetUntilItAttacks(t *testing.T) {
 	caster, enemy := effectMage(1, 2, 2, 1<<12), spEnt(2, 6, 2)
 	enemy.Owner, enemy.ScanRange = 2, 12
 	w := spWorld(t, 1, []SpellRule{invisible}, caster, enemy)
-	if !w.ordinaryEffectPayload(0, 0, invisible, 30) {
+	if !w.ordinaryEffectPayload(0, 0, invisible, 30, blowDirect) {
 		t.Fatal("Invisibility did not attach")
 	}
 	if !w.InvisibleTo(1, 2) || !w.invisibleToActor(1, 0) || !w.HasEffectArm(1, 15) {
@@ -221,7 +221,7 @@ func TestSecondBlessAndCurseAnnihilate(t *testing.T) {
 	bless := secondRow(SpellRule{ID: 20, TargetsUnit: true, SpellDuration: 10})
 	curse := secondRow(SpellRule{ID: 28, TargetsUnit: true, SpellDuration: 10})
 	w := spWorld(t, 1, []SpellRule{bless, curse}, spEnt(1, 2, 2))
-	if !w.ordinaryEffectPayload(0, 0, bless, 30) || !w.ordinaryEffectPayload(0, 0, curse, 30) {
+	if !w.ordinaryEffectPayload(0, 0, bless, 30, blowDirect) || !w.ordinaryEffectPayload(0, 0, curse, 30, blowDirect) {
 		t.Fatal("an effect did not attach")
 	}
 	if len(w.attached) != 0 {
@@ -240,7 +240,7 @@ func TestSecondBlessAndCurseControlPhysicalDamage(t *testing.T) {
 			a, v := spEnt(1, 2, 2), spEnt(2, 3, 2)
 			a.DamageBase, a.DamageSpread, a.AlwaysHits, a.Reach = 10, 20, true, 1
 			w := spWorld(t, 1, []SpellRule{rule}, a, v)
-			if !w.ordinaryEffectPayload(0, 0, rule, 100) {
+			if !w.ordinaryEffectPayload(0, 0, rule, 100, blowDirect) {
 				t.Fatal("effect did not attach")
 			}
 			w.rng.state = 0x1001
@@ -257,7 +257,7 @@ func TestSecondShieldDoesNotActAsCurse(t *testing.T) {
 	a, v := spEnt(1, 2, 2), spEnt(2, 3, 2)
 	a.DamageBase, a.DamageSpread, a.AlwaysHits, a.Reach = 10, 20, true, 1
 	w := spWorld(t, 1, []SpellRule{shield}, a, v)
-	if !w.ordinaryEffectPayload(0, 0, shield, 100) {
+	if !w.ordinaryEffectPayload(0, 0, shield, 100, blowDirect) {
 		t.Fatal("Shield did not attach")
 	}
 	// A seed whose damage draw is above 0 and whose next draw would admit a

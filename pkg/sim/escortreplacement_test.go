@@ -31,7 +31,7 @@ func escortReplacementWorld(t *testing.T, sub int32, order uint8, saved bool) *W
 		}}
 		w.savedGroups.Orders[1].Raw[0x70] = 3
 	}
-	w.flipOnBlow(2, 1)
+	w.flipOnBlow(2, 1, blowDirect)
 	if !w.entities[1].EscortTurnPending {
 		t.Fatal("blow did not arm escort turn")
 	}

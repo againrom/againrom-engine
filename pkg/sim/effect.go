@@ -539,7 +539,7 @@ func (w *World) awardPoisonTick(effectIndex, targetIndex int, damage int64) {
 	if !ok {
 		return
 	}
-	w.flipOnBlow(ci, targetIndex)
+	w.flipOnBlow(ci, targetIndex, blowDirect)
 	w.awardSpellDamage(ci, targetIndex, rule, damage)
 }
 

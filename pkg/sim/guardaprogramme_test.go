@@ -28,7 +28,7 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 				t.Fatal("fixture: member still holds a target beyond its sight")
 			}
 			m.HP = m.MaxHP / 4
-			w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
+			w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2), blowDirect)
 			leashRun(w, 1)
 			m = leashAt(w, 2)
 			o = w.savedOrder(2)
@@ -58,7 +58,7 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 				t.Fatal("fixture: member is not at its post without a target")
 			}
 			m.HP = m.MaxHP / 4
-			w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
+			w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2), blowDirect)
 			leashRun(w, 1)
 			m = leashAt(w, 2)
 			o := w.savedOrder(2)
@@ -93,7 +93,7 @@ func TestSecondGameGuardAProgrammeRunsNoStrikeCases(t *testing.T) {
 		if h.HasAttackTarget || cellOf(h).chebyshevTo(cellOf(leashAt(w, 3))) <= int64(h.ScanRange) {
 			t.Fatal("fixture: hero holds a target or sees the striker")
 		}
-		w.flipOnBlow(indexOfEntity(w.entities, 3), indexOfEntity(w.entities, leashHero))
+		w.flipOnBlow(indexOfEntity(w.entities, 3), indexOfEntity(w.entities, leashHero), blowDirect)
 		for n := range 3 {
 			leashRun(w, 1)
 			e := *leashAt(w, leashHero)

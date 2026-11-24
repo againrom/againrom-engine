@@ -61,7 +61,7 @@ func TestSecondAnimateKeepsItsSourceRowStores(t *testing.T) {
 			e.ActorLoad = ActorLoad{Present: true, Source: SourceActor{Class: 1}}
 			e.ActorLoad.Source.Stats[0] = 13
 		}
-		if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) || len(w.entities) != 2 {
+		if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) || len(w.entities) != 2 {
 			t.Fatal("source-backed raise failed")
 		}
 		e := w.entities[1]
@@ -122,7 +122,7 @@ func TestSecondAnimateRaisesEachCorpseKind(t *testing.T) {
 		t.Run(string(rune('0'+kind)), func(t *testing.T) {
 			w := pooledAnimateWorld(t, animateCorpse(3, kind))
 			before := w.entities[0]
-			if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) {
+			if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) {
 				t.Fatal("Animate Dead did not raise the corpse")
 			}
 			if len(w.entities) != 2 {
@@ -162,7 +162,7 @@ func TestSecondAnimatePicksKindBeforeListOrderAndSkipsUndeadTypes(t *testing.T) 
 	b.TypeID, c.TypeID = 82, 98
 	w := animateWorld(t, a, b, c, d)
 	// The pool holds only the consumed corpse 5, so the creature takes id 5.
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) || len(w.entities) != 5 || w.entities[4].ID != 5 || !w.entities[4].Alive() {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) || len(w.entities) != 5 || w.entities[4].ID != 5 || !w.entities[4].Alive() {
 		for _, e := range w.entities {
 			t.Logf("id %d type %d kind %d", e.ID, e.TypeID, e.Decay)
 		}
@@ -175,7 +175,7 @@ func TestSecondAnimatePicksKindBeforeListOrderAndSkipsUndeadTypes(t *testing.T) 
 		e := animateCorpse(2, 2)
 		e.TypeID = typ
 		w = animateWorld(t, e)
-		if !w.ordinaryEffectPayload(0, 1, w.spells[0], 1) || len(w.entities) != 2 {
+		if !w.ordinaryEffectPayload(0, 1, w.spells[0], 1, blowDirect) || len(w.entities) != 2 {
 			t.Fatalf("type %d excluded", typ)
 		}
 	}
@@ -187,7 +187,7 @@ func TestSecondAnimateFailedPlacementConsumesCorpseAndPooledUnit(t *testing.T) {
 	w := pooledAnimateWorld(t, animateCorpse(3, 2), blocker)
 	before := w.Entities()
 	groups := len(w.groups)
-	w.ordinaryEffectPayload(0, 1, w.spells[0], 17)
+	w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect)
 	before = append(before[:1], before[2:]...)
 	terminal := w.CurrentTerminalActors()
 	if !reflect.DeepEqual(w.Entities(), before) || len(terminal) != 1 || terminal[0].HP != -10001 || terminal[0].Stage != 5 {
@@ -202,14 +202,14 @@ func TestSecondAnimateClampsWithoutSearching(t *testing.T) {
 	e := animateCorpse(2, 2)
 	e.X, e.Y = 2, 38
 	w := animateWorld(t, e)
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) || len(w.entities) != 2 || w.entities[1].X != 8 || w.entities[1].Y != 31 {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) || len(w.entities) != 2 || w.entities[1].X != 8 || w.entities[1].Y != 31 {
 		t.Fatal("clamped raise failed")
 	}
 }
 
 func TestSecondAnimateStaysOutsideCapAndDropsNothing(t *testing.T) {
 	w := animateWorld(t, animateCorpse(2, 2))
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) || len(w.entities) != 2 {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) || len(w.entities) != 2 {
 		t.Fatal("no raised actor")
 	}
 	before := w.entities[1]
@@ -242,7 +242,7 @@ func TestSecondAnimateStaysOutsideCapAndDropsNothing(t *testing.T) {
 
 func TestFirstControlSpiritKeepsRecordedWorld(t *testing.T) {
 	w := csItemWorld(t, DomainGround)
-	if !w.ordinaryEffectPayload(0, 2, w.spells[0], 17) {
+	if !w.ordinaryEffectPayload(0, 2, w.spells[0], 17, blowDirect) {
 		t.Fatal("first-game raise refused")
 	}
 	t.Logf("ROM1 Control Spirit hash=%016x", w.Hash())

@@ -104,7 +104,7 @@ func TestEscortIdleBlowBypassesRandomGateAndClearsAlarm(t *testing.T) {
 	w := esWorld(t, subCommandFollow, 3, engRel(t),
 		laFighter(1, 2, 7, 20, 20), laFighter(2, 2, 7, 22, 20), laFighter(3, 3, 9, 40, 40))
 	w.armFollow(1)
-	w.flipOnBlow(2, 1)
+	w.flipOnBlow(2, 1, blowDirect)
 	if !w.entities[1].EscortTurnPending {
 		t.Fatal("blow did not set the idle alarm")
 	}

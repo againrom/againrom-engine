@@ -34,7 +34,7 @@ func TestSavedMotion1115EveryNativeRelocationInvalidatesCurrentAuthority(t *test
 			w := importedRelocationWorld1115(t)
 			switch kind {
 			case "unit-effect":
-				if !w.ordinaryEffectPayload(0, 1, w.spells[0], 30) {
+				if !w.ordinaryEffectPayload(0, 1, w.spells[0], 30, blowDirect) {
 					t.Fatal("effect failed")
 				}
 			case "point-book":

@@ -2789,20 +2789,70 @@ const (
 )
 
 type blowRelationPolicy struct {
-	areaGated       bool
-	counterLimit    int32
-	healthDivisor   int32
-	areaBlowAllRows bool
+	answersAreaHit   func(w *World, ai, ti int)
+	areaCountsAsBlow func(row areaArm) bool
+	damagePayload    func(w *World, ci, ti int, kind blowHookKind)
 }
 
 var blowRelationRules = [...]blowRelationPolicy{
-	blowRelationBoth:      {},
-	blowRelationAreaGated: {areaGated: true, counterLimit: 10, healthDivisor: 2, areaBlowAllRows: true},
+	blowRelationBoth: {
+		answersAreaHit:   (*World).reverseHostileOnBlow,
+		areaCountsAsBlow: func(row areaArm) bool { return row.blow },
+		damagePayload:    (*World).flipAnyDamageBlow,
+	},
+	blowRelationAreaGated: {
+		answersAreaHit:   (*World).reverseHostileOnAreaGate,
+		areaCountsAsBlow: func(row areaArm) bool { return row.blow || !row.unattributed },
+		damagePayload:    (*World).flipDirectDamageBlow,
+	},
+}
+
+const (
+	areaGateCounterLimit  int32 = 10
+	areaGateHealthDivisor int32 = 2
+)
+
+func (w *World) reverseHostileOnBlow(ai, ti int) {
+	w.relations.turnHostile(w.entities[ti].Owner, w.entities[ai].Owner)
+}
+
+func (w *World) reverseHostileOnAreaGate(ai, ti int) {
+	a, t := w.entities[ai], w.entities[ti]
+	if _, ok := relationIndex(t.Owner, a.Owner); !ok {
+		return
+	}
+	if w.relations.Byte(t.Owner, a.Owner)&(relationHostile|relationLocked) != 0 {
+		return
+	}
+	counter := w.entities[ti].AreaHitCount
+	if counter > areaGateCounterLimit || t.HP < t.MaxHP/areaGateHealthDivisor || !t.Alive() {
+		w.relations.turnHostile(t.Owner, a.Owner)
+	}
+	w.entities[ti].AreaHitCount = counter + 1
+}
+
+func (w *World) flipAnyDamageBlow(ci, ti int, kind blowHookKind) {
+	w.flipOnBlowWith(ci, ti, kind, (*World).reverseHostileOnBlow)
+}
+
+func (w *World) flipDirectDamageBlow(ci, ti int, kind blowHookKind) {
+	if kind == blowDirect {
+		w.flipOnBlowWith(ci, ti, kind, (*World).reverseHostileOnAreaGate)
+	}
+}
+
+// areaHitCountsAsBlow reports whether an applied area hit runs the blow hook.
+func (w *World) areaHitCountsAsBlow(rule SpellRule) bool {
+	return blowRelationRules[w.game.blowRelation].areaCountsAsBlow(areaRow(rule.arm()))
 }
 
 // flipOnBlow remembers the attacker's cell and updates diplomacy for a blow
 // from ai onto ti (AI-RETAL-056, HERO-AGGRO-028, R2-ENGINE-981, R2-ENGINE-985).
-func (w *World) flipOnBlow(ai, ti int, kind ...blowHookKind) {
+func (w *World) flipOnBlow(ai, ti int, kind blowHookKind) {
+	w.flipOnBlowWith(ai, ti, kind, blowRelationRules[w.game.blowRelation].answersAreaHit)
+}
+
+func (w *World) flipOnBlowWith(ai, ti int, kind blowHookKind, answersAreaHit func(*World, int, int)) {
 	if ai < 0 || ti < 0 || ai >= len(w.entities) || ti >= len(w.entities) {
 		return
 	}
@@ -2812,23 +2862,11 @@ func (w *World) flipOnBlow(ai, ti int, kind ...blowHookKind) {
 	}
 	w.rememberAttacker(ai, ti)
 	w.relations.turnHostile(a.Owner, t.Owner)
-	area := len(kind) != 0 && kind[0] == blowArea
-	p := blowRelationRules[w.game.blowRelation]
-	if !area || !p.areaGated {
-		w.relations.turnHostile(t.Owner, a.Owner)
+	if kind == blowArea {
+		answersAreaHit(w, ai, ti)
 		return
 	}
-	if _, ok := relationIndex(t.Owner, a.Owner); !ok {
-		return
-	}
-	if w.relations.Byte(t.Owner, a.Owner)&(relationHostile|relationLocked) != 0 {
-		return
-	}
-	counter := w.entities[ti].AreaHitCount
-	if counter > p.counterLimit || t.HP < t.MaxHP/p.healthDivisor || !t.Alive() {
-		w.relations.turnHostile(t.Owner, a.Owner)
-	}
-	w.entities[ti].AreaHitCount = counter + 1
+	w.relations.turnHostile(t.Owner, a.Owner)
 }
 
 // Entities returns the world's entities in ascending id order, as a fresh slice

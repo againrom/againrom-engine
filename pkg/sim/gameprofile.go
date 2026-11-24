@@ -45,9 +45,9 @@ type gameProfile struct {
 	// structureOwners: the byte form keeps structure owners; only the second
 	// game's check 20 reads them.
 	structureOwners bool
-	// countsListed: checks 1, 5 and 8 count every unit its group still lists,
-	// unconscious units included (scriptListed, R2-ENGINE-1696).
-	countsListed bool
+	// scriptCount: unit and member presence checks 1, 5 and 8
+	// (scriptCountRules, R2-ENGINE-1696).
+	scriptCount scriptCountRule
 	// outcomeReport: how the outcome reads the lose and win counters
 	// (outcomeReports).
 	outcomeReport outcomeRule
@@ -299,7 +299,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		scriptProfile:              scriptprofile.ForOps(scriptprofile.OpsSecond),
 		scriptSeed:                 scriptRegisterSeed{register: 901, value: 1},
 		structureOwners:            true,
-		countsListed:               true,
+		scriptCount:                scriptCountListed,
 		outcomeReport:              outcomeAtNonzero,
 		groupActivity:              groupActivityByMask,
 		activityMask:               true,

@@ -33,7 +33,7 @@ func TestSecondSummonDrawsItsCreaturesFacingBetweenKindAndPlacement(t *testing.T
 				px, py = cx, cy
 			}
 		}
-		if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50) || len(w.entities) != 2 {
+		if !w.ordinaryEffectPayload(0, 0, w.spells[0], 50, blowDirect) || len(w.entities) != 2 {
 			t.Fatalf("state %#x: Summon did not land", state)
 		}
 		got := w.entities[1]
@@ -63,7 +63,7 @@ func TestSecondAnimateDeadDrawsTheRaisedUnitsFacing(t *testing.T) {
 		w.rng = rng{state: uint64(state), original: true}
 		s := state
 		facing := uint8(0x40 + claimRange(&s, 0x80))
-		if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) || len(w.entities) != 2 {
+		if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) || len(w.entities) != 2 {
 			t.Fatalf("state %#x: Animate Dead did not raise the corpse", state)
 		}
 		if got := w.entities[1]; got.Facing != facing || got.DesiredFacing != facing {
@@ -74,7 +74,7 @@ func TestSecondAnimateDeadDrawsTheRaisedUnitsFacing(t *testing.T) {
 		}
 	}
 	w := animateWorld(t, animateCorpse(2, 2))
-	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17) || len(w.entities) != 2 {
+	if !w.ordinaryEffectPayload(0, 1, w.spells[0], 17, blowDirect) || len(w.entities) != 2 {
 		t.Fatal("Animate Dead did not raise the corpse")
 	}
 	if got := w.entities[1]; got.Facing < 0x40 || got.Facing > 0xC0 || got.DesiredFacing != got.Facing {

@@ -62,7 +62,7 @@ func TestNativeStrideRelocation1115CallbacksPreserveCoarseTransit(t *testing.T) 
 				before := w.Hash()
 				switch kind {
 				case "unit-effect":
-					if got := w.ordinaryEffectPayload(0, 1, w.spells[0], 30); !got {
+					if got := w.ordinaryEffectPayload(0, 1, w.spells[0], 30, blowDirect); !got {
 						t.Fatalf("unit payload applied=%v, blocked=%v", got, blocked)
 					}
 				case "point-book":

@@ -27,7 +27,7 @@ func TestGuardStruckMemberTakesTheStrikerOnTheSameTickInBothGames(t *testing.T) 
 				o := w.savedOrder(guardRouteFoe)
 				o.Strike.Stamped, o.Strike.Stamp = true, expiredStamp(w)
 				leashAt(w, guardRouteFoe).HP = 100
-				w.flipOnBlow(indexOfEntity(w.entities, guardRouteHero), indexOfEntity(w.entities, guardRouteFoe))
+				w.flipOnBlow(indexOfEntity(w.entities, guardRouteHero), indexOfEntity(w.entities, guardRouteFoe), blowDirect)
 				if game == 0 && o.Strike.Held {
 					t.Fatal("first-game blow acquired a second-game strike record")
 				}
@@ -89,7 +89,7 @@ func TestSecondGuardStruckMemberFightsBack(t *testing.T) {
 				o.Strike.Stamped, o.Strike.Stamp = stamped, expiredStamp(w)
 				m.HP = m.MaxHP / 4
 				startX, heroHP := m.X, leashAt(w, leashHero).HP
-				w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
+				w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2), blowDirect)
 				if !o.Strike.Held || o.Strike.Attacker != leashHero || o.Strike.Clock != w.fineClock() || o.Strike.Stamped != stamped || o.Raw[0x54] != 1 {
 					t.Fatalf("the blow did not keep its current command fields: %+v", o)
 				}

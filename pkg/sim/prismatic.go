@@ -71,7 +71,7 @@ func (w *World) prismaticVictims(ci, ti int, rule SpellRule, power int32) []int 
 	if ci < 0 || ci >= len(w.entities) {
 		return []int{ti}
 	}
-	w.flipOnBlow(ci, ti)
+	w.flipOnBlow(ci, ti, blowDirect)
 	cands := w.candidates(w.prismaticGroup(ci))
 	if len(cands) == 0 {
 		return []int{ti}

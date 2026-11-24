@@ -250,7 +250,7 @@ func (w *World) ordinaryEffect(ci, ti int, rule SpellRule, power int32) bool {
 		return w.queuePointDelivery(ci, ti, rule, power)
 	}
 	ids := w.summonIDs(rule, ci, ti)
-	applied := w.ordinaryEffectPayload(ci, ti, rule, power)
+	applied := w.ordinaryEffectPayload(ci, ti, rule, power, blowDirect)
 	if applied {
 		ci, ti = w.summonIndices(ids, ci, ti)
 		w.pointAttribution(ci, ti, rule)
@@ -261,14 +261,14 @@ func (w *World) ordinaryEffect(ci, ti int, rule SpellRule, power int32) bool {
 // ordinaryAreaEffect shares the payload with an ordinary point application but
 // runs AreaEffect's distinct post-payload attribution programme.
 func (w *World) ordinaryAreaEffect(ci, ti int, rule SpellRule, power int32) bool {
-	applied := w.ordinaryEffectPayload(ci, ti, rule, power, true)
+	applied := w.ordinaryEffectPayload(ci, ti, rule, power, blowArea)
 	if applied {
 		w.areaAttribution(ci, ti, rule)
 	}
 	return applied
 }
 
-func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, area ...bool) bool {
+func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, blow blowHookKind) bool {
 	if ti < 0 || ti >= len(w.entities) {
 		return false
 	}
@@ -297,7 +297,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, a
 	}
 	arm := spellArmOf(rule.arm())
 	if arm.drain && !rule.Damaging {
-		w.flipOnBlow(ci, ti)
+		w.flipOnBlow(ci, ti, blowDirect)
 		// Drain Life's own arm caps the roll at victim health+10 and sends
 		// that amount to the skill sink before either pool changes. It never
 		// enters the resisted direct-damage resolver (MAGIC-ITEMTRAIN-116).
@@ -327,9 +327,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, a
 		return true
 	}
 	if rule.Damaging {
-		if len(area) == 0 || !area[0] || !blowRelationRules[w.game.blowRelation].areaBlowAllRows {
-			w.flipOnBlow(ci, ti)
-		}
+		blowRelationRules[w.game.blowRelation].damagePayload(w, ci, ti, blow)
 		before := w.entities[ti].HP
 		w.applySpellDamage(ci, ti, rule, power)
 		// The direct-damage resolver precedes the envelope tail. The temporary

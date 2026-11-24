@@ -61,7 +61,7 @@ func TestSecondGameStrikeWindowHoldsTheMemberFromAJoinedFoe(t *testing.T) {
 			o := w.savedOrder(2)
 			stamp := w.groupClock()
 			o.Strike.Stamped, o.Strike.Stamp = true, stamp
-			w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2))
+			w.flipOnBlow(indexOfEntity(w.entities, leashHero), indexOfEntity(w.entities, 2), blowDirect)
 			w.engageDrew = nil
 			if !w.strikeWindow(indexOfEntity(w.entities, 2), o) || !w.joinsFight(indexOfEntity(w.entities, 2)) {
 				t.Fatal("fixture: member is not free to join inside the window")
