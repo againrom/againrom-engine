@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/words"
 )
 
@@ -276,11 +277,11 @@ func TestMapEditorHeroLabelsNameTheRole(t *testing.T) {
 // The wizard offers "Unit near unit": check 6 over two units, compared with
 // a radius by "is at most", with its hint, in EN and RU.
 func TestMapEditorWizardOffersUnitNearUnit(t *testing.T) {
-	i := slices.IndexFunc(wizConditions, func(it wizItem) bool { return it.labelWord == "editor.wizard.c.unitnearunit" })
+	i := slices.IndexFunc(wizardTables[scriptprofile.OpsFirst][1], func(it wizItem) bool { return it.labelWord == "editor.wizard.c.unitnearunit" })
 	if i < 0 {
 		t.Fatal("no Unit near unit condition")
 	}
-	it := wizConditions[i]
+	it := wizardTables[scriptprofile.OpsFirst][1][i]
 	types, _, _ := it.itemSlots(false)
 	if it.opcode != 6 || it.cmp != 5 || it.rightParam != 2 || types != [10]uint32{scriptUnit, scriptUnit} || it.hintWord == "" {
 		t.Fatalf("the condition reads %+v, slots %v", it, types)

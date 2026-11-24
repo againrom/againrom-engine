@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/words"
 )
 
@@ -61,7 +62,7 @@ func TestTriggerWarningsStayBelowThePagedBody(t *testing.T) {
 		e.doc.Edits = triggerMultiplayerHost{e.doc.Edits.(*wizardWrites)}
 		e.loadObject()
 		v, _ := e.scriptPopup()
-		item := slices.IndexFunc(wizActions, func(w wizItem) bool { return w.labelWord == "editor.wizard.a.giveunit" })
+		item := slices.IndexFunc(wizardTables[scriptprofile.OpsFirst][0], func(w wizItem) bool { return w.labelWord == "editor.wizard.a.giveunit" })
 		values := e.wizardDefaults(false, item)
 		values[1] = "10001"
 		e.obj.wiz.rows = slices.Repeat([]wizRow{{item: item, origItem: -2, vals: values}}, 30)

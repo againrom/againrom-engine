@@ -17,9 +17,9 @@ var wizardRowCode = map[string][]string{
 	"pkg/game/": {"writeWizardTrigger", "wizardNode"},
 }
 
-// wizardTables are the one item table's two halves: the first game's lists
-// and opItems, which makes a game's items of its operation rows.
-var wizardTables = map[string]bool{"wizConditions": true, "wizActions": true, "opItems": true}
+// wizardTables are the one item table's two halves: the first game's preset
+// rows and opItems, which makes each game's items from its operation rows.
+var wizardTables = map[string]bool{"firstConditionPresets": true, "firstActionPresets": true, "opItems": true}
 
 func wizardSelector(e ast.Expr, names ...string) bool {
 	sel, ok := e.(*ast.SelectorExpr)
@@ -83,7 +83,7 @@ func checkWizardItems(name, src string) (found int, vs []string) {
 				return false
 			}
 			if lit, ok := n.(*ast.CompositeLit); ok && lit.Type != nil && wizardItemType(lit.Type) {
-				vs = append(vs, name+": a wizard item built outside wizConditions, wizActions and opItems; an item is a row of the one table")
+				vs = append(vs, name+": a wizard item built outside firstConditionPresets, firstActionPresets and opItems; an item is a row of the one table")
 			}
 			return true
 		})
@@ -131,7 +131,7 @@ func TestCheckWizardItems(t *testing.T) {
 		name, file, src string
 		bad             bool
 	}{
-		{"the table read", "pkg/ui/a.go", "package ui\nvar wizConditions = []wizItem{{opcode: 3}}\nfunc (e *E) readPair(l, r, c uint32) int { if n.Opcode != it.opcode || n.Opcode == 0 { return -1 }; return 0 }\n", false},
+		{"the table read", "pkg/ui/a.go", "package ui\nvar firstConditionPresets =[]wizItem{{opcode: 3}}\nfunc (e *E) readPair(l, r, c uint32) int { if n.Opcode != it.opcode || n.Opcode == 0 { return -1 }; return 0 }\n", false},
 		{"an opcode branch", "pkg/ui/a.go", "package ui\nfunc (e *E) readPair(l, r, c uint32) int { if n.Opcode == 19 { return 21 }; return 0 }\n", true},
 		{"a label branch", "pkg/ui/a.go", "package ui\nfunc (e *E) wizardNode(r R) N { if it.labelWord == \"editor.wizard.c.variable\" { return N{} }; return N{} }\n", true},
 		{"a kind switch", "pkg/game/a.go", "package game\nfunc writeWizardTrigger(m *M, t T) error { switch n.Opcode { case 34: return nil }; return nil }\n", true},

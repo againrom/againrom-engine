@@ -163,7 +163,7 @@ const (
 
 var wizSubjectWords = []string{"editor.wizard.s.mission", "editor.wizard.s.units", "editor.wizard.s.players", "editor.wizard.s.groups", "editor.wizard.s.cells", "editor.wizard.s.items", "editor.wizard.s.structures", "editor.wizard.s.spells", "editor.wizard.s.variables", "editor.wizard.s.globals"}
 
-// wizConditions are the ready conditions. Check 2 is a unit in a box, 5 a
+// firstConditionPresets are the first game's ready conditions. Check 2 is a unit in a box, 5 a
 // unit alive, each writing 0 or 1 (TRIG-CHECKGEOM-130); 3 a unit within a
 // radius of a cell; 6 the distance between two units, 255 when either is
 // dead, and 7 from a unit to a cell (TRIG-DIST-014); 15 the distance from a
@@ -175,7 +175,7 @@ var wizSubjectWords = []string{"editor.wizard.s.mission", "editor.wizard.s.units
 // (MISSION-VIP-004); 14 a sack on a cell (TRIG-SACK-022) and 17 an item a
 // unit holds (TRIG-ITEMTEST-040), each 0 or 1; 21 a structure's value
 // (TRIG-CHECK-053); 16 the distance from a unit with an item (TRIG-CHECK-052).
-var wizConditions = []wizItem{
+var firstConditionPresets = []wizItem{
 	{labelWord: "editor.wizard.c.heroarea", subject: subjectUnits, opcode: 2, params: []wizParam{pUnit, pArea}, cmp: 0, right: 1, rightParam: -1, also: [][2]int64{{1, 0}}},
 	{labelWord: "editor.wizard.c.playernear", subject: subjectPlayers, opcode: 15, params: []wizParam{pPlayer, pPoint, pRadius}, cmp: 5, chooseCmp: true, rightParam: 2},
 	{labelWord: "editor.wizard.c.unitnear", subject: subjectUnits, opcode: 3, params: []wizParam{pUnit, pPoint, {kind: wpNumber, labelWord: "editor.wizard.p.radius", def: 3, inNode: true}}, cmp: 0, right: 1, rightParam: -1},
@@ -202,7 +202,7 @@ var wizConditions = []wizItem{
 	{labelWord: "editor.wizard.c.global", subject: subjectGlobals, opcode: scriptprofile.ReadGlobalOp, params: []wizParam{pGlobal, pCompared}, chooseCmp: true, rightParam: 1},
 }
 
-// wizActions are the ready actions, with the claims that state their
+// firstActionPresets are the first game's ready actions, with the claims that state their
 // parameters: give money (TRIG-MONEY-028), win, lose, set or add 1 to a
 // variable (TRIG-ACT-004), a dialog (TRIG-MSG-023; the player sees only a
 // trigger's first, so one per trigger), give a unit or group to a player
@@ -214,7 +214,7 @@ var wizConditions = []wizItem{
 // TRIG-TAKEITEM-038, TRIG-GIVEALL-025), a spell cast, its effect's time and a
 // trap (TRIG-CAST-033, TRIG-EFFECTTIME-034, TRIG-CELLTAIL-035), a unit's
 // property (TRIG-PROPERTY-036) and action 7, which no claim names.
-var wizActions = []wizItem{
+var firstActionPresets = []wizItem{
 	{labelWord: "editor.wizard.a.gold", subject: subjectPlayers, opcode: 23, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.gold", def: 500, inNode: true}}},
 	{labelWord: "editor.wizard.a.win", subject: subjectMission, opcode: 4},
 	{labelWord: "editor.wizard.a.lose", subject: subjectMission, opcode: 5},
@@ -278,22 +278,42 @@ func (it wizItem) sourceValue() uint32 {
 // drop cell action.
 const scriptConstantOp = 0x10002
 
+// wizPresets are the preset rows of a game's operations, actions then
+// conditions, each row keyed by the operation it uses and listed in the order
+// the wizard offers it. The second game has none.
+var wizPresets = map[scriptprofile.Ops][2][]wizItem{
+	scriptprofile.OpsFirst: {firstActionPresets, firstConditionPresets},
+}
+
 // wizardTables are each game's ready actions and conditions, keyed by its
-// operation vocabulary: the first game's lists, the second game's built from
-// its operation rows.
+// operation vocabulary, both made by opItems.
 var wizardTables = map[scriptprofile.Ops][2][]wizItem{
-	scriptprofile.OpsFirst:  {wizActions, wizConditions},
+	scriptprofile.OpsFirst:  {opItems(scriptprofile.OpsFirst, false), opItems(scriptprofile.OpsFirst, true)},
 	scriptprofile.OpsSecond: {opItems(scriptprofile.OpsSecond, false), opItems(scriptprofile.OpsSecond, true)},
 }
 
-// opItems are the ready items of a game's operation rows: one per offered
-// row whose slots and effect a claim reads, under its row's word, each slot
-// a parameter in the slot it fills. A check is compared with a number by the
-// comparison the row chooses. An operation with group commands gives one
-// item per slot layout of its commands, the first listed and the rest its
-// variants, each defaulting to its first command.
+// opItems are the ready items of a game's operation rows. A game with preset
+// rows offers them, in their order, each joined to its operation's row. A
+// game without presets gets one item per offered row whose slots and effect a
+// claim reads, under its row's word, each slot a parameter in the slot it
+// fills. A check is compared with a number by the comparison the row
+// chooses. An operation with group commands gives one item per slot layout of
+// its commands, the first listed and the rest its variants, each defaulting
+// to its first command.
 func opItems(ops scriptprofile.Ops, condition bool) []wizItem {
 	var out []wizItem
+	presets := wizPresets[ops][0]
+	if condition {
+		presets = wizPresets[ops][1]
+	}
+	if len(presets) > 0 {
+		for _, it := range presets {
+			if _, ok := scriptprofile.OpRow(ops, condition, it.opcode); ok {
+				out = append(out, it)
+			}
+		}
+		return out
+	}
 	for _, op := range scriptprofile.OpRows(ops, condition) {
 		if !op.Offered || !op.Decoded || op.Again || op.EffectUnread || op.ID >= scriptConstantOp {
 			continue

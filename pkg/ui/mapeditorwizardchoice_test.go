@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/scriptprofile"
 )
 
 // wizardWrites records each trigger the wizard's Apply writes and writes
@@ -122,7 +123,7 @@ func TestTriggerWizardEveryItemChoiceHolds(t *testing.T) {
 		otherShown bool
 	}
 	cases := []rowCase{
-		{"c0.item", true, 0, int64(slices.IndexFunc(wizConditions, func(it wizItem) bool { return it.holds })), [2]uint32{1, 2}, false},
+		{"c0.item", true, 0, int64(slices.IndexFunc(wizardTables[scriptprofile.OpsFirst][1], func(it wizItem) bool { return it.holds })), [2]uint32{1, 2}, false},
 		{"c1.item", true, 1, -1, [2]uint32{3, 2}, true},
 		{"c2.item", true, 2, 0, [2]uint32{}, false},
 		{"a0.item", false, 0, 1, [2]uint32{11}, false},
@@ -216,7 +217,7 @@ func TestTriggerWizardEveryItemChoiceHolds(t *testing.T) {
 			t.Fatalf("action %d written as %+v; want node %d kept", k, n, id)
 		}
 	}
-	if p, n := plan.Pairs[2], plan.Actions[2]; p.Left.Keep || p.Left.Opcode != wizConditions[0].opcode || n.Keep || n.Opcode != wizActions[0].opcode {
+	if p, n := plan.Pairs[2], plan.Actions[2]; p.Left.Keep || p.Left.Opcode != wizardTables[scriptprofile.OpsFirst][1][0].opcode || n.Keep || n.Opcode != wizardTables[scriptprofile.OpsFirst][0][0].opcode {
 		t.Fatalf("the added rows written as %+v and %+v; want the first ready items", p, n)
 	}
 }

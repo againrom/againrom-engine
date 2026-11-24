@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/words"
 )
 
@@ -480,7 +481,7 @@ func (e *MapEditor) dialogueParts(data DialogueData) ([]InspectionMessagePart, m
 // dialogueNode is the node a Start dialog action of the interactive kind, or
 // of the message kind, is written as; id is the action it rewrites.
 func dialogueNode(interactive bool, label string, id uint32) WizardNode {
-	for _, it := range wizActions {
+	for _, it := range wizardTables[scriptprofile.OpsFirst][0] {
 		if it.opcode != 2 || it.interactive != interactive || it.subject != subjectMission {
 			continue
 		}

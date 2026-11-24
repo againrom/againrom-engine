@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/scriptprofile"
 )
 
 // A row whose label or value the popup cuts shows its whole text, wrapped to
@@ -209,7 +210,7 @@ func TestTriggerWizardReadsAndBuildsAGroupOrder(t *testing.T) {
 	if !slices.Equal(names, []string{"Swarm as a crowd", "Stand Ground", "Move", "Swarm", "Attack", "Patrol", "Roam", "Dwell (no effect)"}) {
 		t.Fatalf("the command choices %q", names)
 	}
-	order := slices.IndexFunc(wizActions, func(it wizItem) bool { return it.labelWord == "editor.wizard.a.order" })
+	order := slices.IndexFunc(wizardTables[scriptprofile.OpsFirst][0], func(it wizItem) bool { return it.labelWord == "editor.wizard.a.order" })
 	row := wizRow{item: order, origItem: -2, vals: e.wizardDefaults(false, order)}
 	row.vals[1], row.vals[2], row.vals[3] = "5", "5", "96,84"
 	plan, err := e.rowsPlan(WizardTrigger{}, []wizRow{row})
