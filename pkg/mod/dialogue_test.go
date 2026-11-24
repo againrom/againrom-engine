@@ -134,3 +134,16 @@ func TestMissionRefusesAMalformedDialogueFileByFileAndLine(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+func TestDialogueFilesLimitIsTheCallersAndZeroKeepsABigDraft(t *testing.T) {
+	big := make([]byte, MaxFileBytes+1)
+	read := func(string) ([]byte, bool) { return big, true }
+	entries := []string{"a.toml", "sub/b.toml", "Bad.toml", "c.txt"}
+	if got := DialogueFiles(entries, MaxFileBytes, read); len(got) != 0 {
+		t.Errorf("over the limit kept: %d files", len(got))
+	}
+	got := DialogueFiles(entries, 0, read)
+	if len(got) != 1 || len(got["a"]) != len(big) {
+		t.Errorf("no limit: %d files, want only a", len(got))
+	}
+}

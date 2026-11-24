@@ -774,20 +774,28 @@ func (m Mission) readDialogues(dir string) (map[string][]byte, error) {
 	if err != nil {
 		return nil, &ItemFileError{File: m.File, Line: m.Line, Msg: fmt.Sprintf("dialogues: %v", err)}
 	}
-	files := map[string][]byte{}
+	var names []string
 	for _, e := range entries {
-		name, isTOML := strings.CutSuffix(e.Name(), ".toml")
-		if e.IsDir() || !isTOML || !ValidDialogueName(name) {
-			continue
+		if !e.IsDir() {
+			names = append(names, e.Name())
 		}
-		b, _, err := t.ReadInside(folder + "/" + e.Name())
+	}
+	var readErr error
+	files := DialogueFiles(names, MaxFileBytes, func(e string) ([]byte, bool) {
+		b, _, err := t.ReadInside(folder + "/" + e)
 		if err != nil {
-			return nil, &ItemFileError{File: m.File, Line: m.Line, Msg: fmt.Sprintf("dialogues: %v", err)}
+			readErr = &ItemFileError{File: m.File, Line: m.Line, Msg: fmt.Sprintf("dialogues: %v", err)}
+			return nil, false
 		}
-		if _, err := ParseDialogue(folder+"/"+e.Name(), b); err != nil {
+		return b, true
+	})
+	if readErr != nil {
+		return nil, readErr
+	}
+	for _, name := range slices.Sorted(maps.Keys(files)) {
+		if _, err := ParseDialogue(folder+"/"+name+".toml", files[name]); err != nil {
 			return nil, err
 		}
-		files[name] = b
 	}
 	return files, nil
 }

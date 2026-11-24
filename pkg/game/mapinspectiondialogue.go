@@ -23,8 +23,6 @@ import (
 // no trigger names: the dialogue file names them, so a write keeps them and
 // a rewrite deletes the ones it leaves unnamed.
 
-const maxDialogueFileBytes = 1 << 20
-
 // dialogueFiles is the live dialogue files of w by name.
 func (w *editorWorkspaceState) dialogueFiles() map[string][]byte {
 	if w == nil {
@@ -84,22 +82,22 @@ func (s *mapInspectionEdits) openDialogues(w *editorWorkspaceState) {
 		folder = mod.MissionPlace{Map: p}.Dialogs()
 	}
 	if folder != "" {
+		var names []string
 		if entries, err := os.ReadDir(folder); err == nil {
 			for _, e := range entries {
-				name, isTOML := strings.CutSuffix(e.Name(), ".toml")
-				if e.IsDir() || !isTOML || !mod.ValidDialogueName(name) {
-					continue
-				}
-				if info, err := e.Info(); err != nil || info.Size() > maxDialogueFileBytes {
-					continue
-				}
-				if b, err := os.ReadFile(filepath.Join(folder, e.Name())); err == nil {
-					if w.Dialogues == nil {
-						w.Dialogues = map[string][]byte{}
-					}
-					w.Dialogues[name] = b
+				if !e.IsDir() {
+					names = append(names, e.Name())
 				}
 			}
+		}
+		for name, b := range mod.DialogueFiles(names, mod.MaxFileBytes, func(e string) ([]byte, bool) {
+			b, err := os.ReadFile(filepath.Join(folder, e))
+			return b, err == nil
+		}) {
+			if w.Dialogues == nil {
+				w.Dialogues = map[string][]byte{}
+			}
+			w.Dialogues[name] = b
 		}
 	}
 	d := w.Project
@@ -107,11 +105,16 @@ func (s *mapInspectionEdits) openDialogues(w *editorWorkspaceState) {
 		return
 	}
 	prefix := mod.MissionPlace{Map: d.Missions[d.Selected].Map}.Dialogs() + "/"
-	for rel, b := range d.Files {
-		name, isTOML := strings.CutSuffix(strings.TrimPrefix(rel, prefix), ".toml")
-		if !strings.HasPrefix(rel, prefix) || !isTOML || !mod.ValidDialogueName(name) {
-			continue
+	var names []string
+	for rel := range d.Files {
+		if strings.HasPrefix(rel, prefix) {
+			names = append(names, strings.TrimPrefix(rel, prefix))
 		}
+	}
+	for name, b := range mod.DialogueFiles(names, 0, func(e string) ([]byte, bool) {
+		b, ok := d.Files[prefix+e]
+		return b, ok
+	}) {
 		if w.Dialogues == nil {
 			w.Dialogues = map[string][]byte{}
 		}

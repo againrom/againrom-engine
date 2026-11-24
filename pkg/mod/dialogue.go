@@ -42,6 +42,25 @@ var dialogueName = regexp.MustCompile(`^[a-z0-9_]{1,32}$`)
 // ValidDialogueName reports that name can name a dialogue file.
 func ValidDialogueName(name string) bool { return dialogueName.MatchString(name) }
 
+// DialogueFiles is the dialogue files one map folder holds, keyed by name.
+// entries are the folder's names, a nested path is not one, and read gives
+// the bytes of an entry, false when the view holds none. A file over limit
+// bytes is left out; limit 0 bounds none (an editor draft is never dropped).
+// The game, the editor and the Globals page all read the folder here.
+func DialogueFiles(entries []string, limit int, read func(entry string) ([]byte, bool)) map[string][]byte {
+	files := map[string][]byte{}
+	for _, e := range entries {
+		name, isTOML := strings.CutSuffix(e, ".toml")
+		if !isTOML || strings.Contains(e, "/") || !ValidDialogueName(name) {
+			continue
+		}
+		if b, ok := read(e); ok && (limit == 0 || len(b) <= limit) {
+			files[name] = b
+		}
+	}
+	return files
+}
+
 // DialogueText is one text in each language the file wrote it in.
 type DialogueText map[string]string
 

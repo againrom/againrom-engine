@@ -166,6 +166,45 @@ func TestModGlobalsPageRefusesRemovingAUsedGlobal(t *testing.T) {
 	}
 }
 
+// A map's dialogue files are counted as the game loads them: a file in a
+// nested folder or under a name the loader refuses is no user of a global,
+// though its text names the global.
+func TestModGlobalsPageCountsOnlyTheDialogueFilesTheGameLoads(t *testing.T) {
+	x, s, _ := charactersPage(t, "en")
+	for _, n := range []string{"10", "20"} {
+		raw := readGlobalsMill(t, "maps/mill.almx")
+		x.archives.Containers.Overlay("scenario/"+n+".alm", func() ([]byte, error) { return raw, nil })
+	}
+	dir := globalsMillCopy(t, nil, nil)
+	dialog := readGlobalsMill(t, "maps/yard.dialogs/yard.toml")
+	writeFileAll(t, filepath.Join(dir, "maps", "yard.dialogs", "nested", "extra.toml"), dialog)
+	writeFileAll(t, filepath.Join(dir, "maps", "yard.dialogs", "Bad Name.toml"), dialog)
+	doc, err := s.SetWorkspaceField("package", "folder", dir)
+	if err != nil || doc == nil {
+		t.Fatalf("open the mill: %v", err)
+	}
+	own := filepath.Join(t.TempDir(), filepath.Base(dir))
+	doc, err = doc.Edits.(*mapInspectionEdits).SetWorkspaceField("package", "folder", own)
+	if err != nil || doc == nil {
+		t.Fatalf("copy the mill: %v", err)
+	}
+	s = doc.Edits.(*mapInspectionEdits)
+	var users string
+	for _, f := range s.WorkspaceFields(ui.ModGlobalsScope) {
+		if strings.HasSuffix(f.Key, ".users") {
+			users += f.TextValue + "\n"
+		}
+	}
+	if !strings.Contains(users, "dialogue yard,") {
+		t.Fatalf("the users read %q, want the yard's own dialogue as a user", users)
+	}
+	for _, not := range []string{"dialogue extra", "Bad Name"} {
+		if strings.Contains(users, not) {
+			t.Errorf("the users name %q, a file the game does not load: %q", not, users)
+		}
+	}
+}
+
 // globalsMillEditor opens a copy of the committed mill mod in the map
 // editor's mod window on its mill map, in the book's language.
 func globalsMillEditor(t *testing.T, book string) (*ui.MapEditor, *MapInspector, string) {

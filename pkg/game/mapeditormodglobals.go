@@ -75,15 +75,19 @@ func (s *mapInspectionEdits) globalUsers(w *editorWorkspaceState) map[int32][]st
 				if script, err = m.Script(); err != nil {
 					continue
 				}
-				dialogues = map[string][]byte{}
 				prefix := namefold.ModTree(mod.MissionPlace{Map: rel}.Dialogs()) + "/"
+				var entries []string
+				spelled := map[string]string{}
 				for _, name := range view.names {
-					if strings.HasPrefix(namefold.ModTree(name), prefix) && strings.HasSuffix(name, ".toml") {
-						if b := read(name); len(b) > 0 {
-							dialogues[path0(name)] = b
-						}
+					if e := path0(name); namefold.ModTree(name) == prefix+namefold.ModTree(e) {
+						entries = append(entries, e)
+						spelled[e] = name
 					}
 				}
+				dialogues = mod.DialogueFiles(entries, mod.MaxFileBytes, func(e string) ([]byte, bool) {
+					b := read(spelled[e])
+					return b, len(b) > 0
+				})
 			}
 			uses, loose := scriptGlobalUses(script, dialogues)
 			for _, n := range loose {
