@@ -1265,17 +1265,6 @@ func (e *MapEditor) dialogRowButton(row, k int) bool {
 	default:
 		e.wizardRowButton(act, f, hasField)
 		e.dialogPull()
-		// An added row takes the focus, which brings it into view.
-		if added := act == actAddPair || act == actAddAct; added && o.note == "" && o.wiz != nil {
-			condition := act == actAddPair
-			family := "a"
-			if condition {
-				family = "c"
-			}
-			if f := e.dialogFieldAt(fmt.Sprintf("%s%d.item", family, o.wiz.kindRows(condition)-1)); f >= 0 {
-				e.focusObjectField(f)
-			}
-		}
 	}
 	return true
 }
@@ -1307,36 +1296,6 @@ func (e *MapEditor) fieldsArea(s popupSpec, l popupLayout) (scrollArea, bool) {
 	over := image.Rect(left, l.RowsViewport.Min.Y, l.RowsViewport.Max.X, l.RowsViewport.Max.Y)
 	return rangeArea(image.Rectangle{}, e.obj.fieldsTop, most, s.MaxRows, []image.Rectangle{over}, &e.objectWheel,
 		func(n int) { e.obj.fieldsTop = max(0, min(n, most)) }), true
-}
-
-// moveReplyRow moves the open reply's condition or action row that holds
-// the focus one place up, or down, among the rows of its kind, the focus
-// going with it, and reports that the focus was on such a row.
-func (e *MapEditor) moveReplyRow(down bool) bool {
-	o := &e.obj
-	if o.wiz == nil || o.focus < o.extra || o.focus >= len(o.fields) || e.openReply() == nil {
-		return false
-	}
-	r, _ := e.wizardRowOf(o.focus)
-	if r < 0 {
-		return false
-	}
-	step := -1
-	if down {
-		step = 1
-	}
-	e.dialogPull()
-	to := o.wiz.moveRow(r, step)
-	if to < 0 {
-		return true
-	}
-	key := o.wiz.wizardKey(to, "item")
-	o.messageChanged = true
-	e.wizardRefill()
-	if f := e.dialogFieldAt(key); f >= 0 {
-		e.focusObjectField(f)
-	}
-	return true
 }
 
 // replyScope is the bindings of the open reply: its text and settings and

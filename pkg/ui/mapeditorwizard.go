@@ -1162,6 +1162,10 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 		w.rows = append(w.rows[:at], append([]wizRow{r}, w.rows[at:]...)...)
 		w.changed = true
 		e.wizardRefill()
+		// An added row takes the focus, which brings it into view.
+		if f := e.dialogFieldAt(w.wizardKey(at, "item")); f >= 0 {
+			e.focusObjectField(f)
+		}
 	case actDraw:
 		if !hasField {
 			return
@@ -1218,6 +1222,47 @@ func (w *wizardState) moveRow(r, step int) int {
 		}
 	}
 	return -1
+}
+
+// moveWizardRow moves the condition or action row that holds the focus, in
+// the trigger window or the open reply, one place up, or down, among the
+// rows of its kind, the focus going with it, and reports that the focus was
+// on such a row.
+func (e *MapEditor) moveWizardRow(down bool) bool {
+	o := &e.obj
+	if o.wiz == nil || o.focus < max(0, o.extra) || o.focus >= len(o.fields) {
+		return false
+	}
+	dialog := e.messagePage != 0
+	if dialog && e.openReply() == nil {
+		return false
+	}
+	r, _ := e.wizardRowOf(o.focus)
+	if r < 0 {
+		return false
+	}
+	step := -1
+	if down {
+		step = 1
+	}
+	if dialog {
+		e.dialogPull()
+	} else {
+		e.pullWizard()
+	}
+	to := o.wiz.moveRow(r, step)
+	if to < 0 {
+		return true
+	}
+	key := o.wiz.wizardKey(to, "item")
+	if dialog {
+		o.messageChanged = true
+	}
+	e.wizardRefill()
+	if f := e.dialogFieldAt(key); f >= 0 {
+		e.focusObjectField(f)
+	}
+	return true
 }
 
 // wizardRowOf is the row and parameter index field f edits, -1 for none.

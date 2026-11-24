@@ -49,6 +49,7 @@ modder or developer can notice gets no entry.
 - [ROM2] In the map editor, every check and action of a second-game map now shows by name and its parameters edit, a trigger's name, once flag, comparisons, slots and a node's label edit, and a trigger opens in the trigger wizard, where its rows move and go, and copies with its checks and actions; before, most operations showed "not decoded" with read-only parameters and a trigger took only a move.
 - [ROM2] In the map editor, a second-game map now takes new triggers, checks and actions; check 21 takes the id of an object on the map, action 6 shows its arms by name, actions 21 and 24 show as a spell cast at a cell or a unit, 16 other actions show what they do, and a trigger holding action 65538 now copies; before, all of these were refused or showed raw numbers.
 - [BASE] The map editor's Globals page now counts only the dialogue files the game loads.
+- [BASE] In the map editor's trigger window, Alt+Up and Alt+Down move the focused condition or action row, and an added row takes the focus, as in the dialogue editor.
 
 ## 0.159.0
 

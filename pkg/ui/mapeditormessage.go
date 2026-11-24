@@ -1075,7 +1075,7 @@ func (e *MapEditor) moveMessageCard(at, to int) bool {
 // the neighbouring page number; with a reply's row in focus it moves the row.
 func (e *MapEditor) keyCard(key string) error {
 	o := &e.obj
-	if e.messagePage == 0 || e.moveReplyRow(key == "carddown") {
+	if e.moveWizardRow(key == "carddown") || e.messagePage == 0 {
 		return nil
 	}
 	at := -1
