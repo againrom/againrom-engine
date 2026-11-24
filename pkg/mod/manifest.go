@@ -111,7 +111,7 @@ func ParseManifest(data []byte, authoring ...bool) (Manifest, error) {
 			value, err = parseInt(val)
 		default:
 			if row.Continued {
-				val, n, _ = continueList(val, lines, n)
+				val, n, _, _ = continueList(val, lines, n)
 				val = strings.TrimSpace(val)
 			}
 			value, err = parseStrings(val)
@@ -174,12 +174,14 @@ func validKey(k string) bool {
 	return true
 }
 
-// scanLine is s up to its comment and the net number of '[' over ']' in
-// that code, both read outside strings. It is the one bracket scanner of the
-// manifest and the data files.
-func scanLine(s string) (string, int) {
-	depth := 0
+// scanLine reads one line s, whose brackets open at depth, outside strings and
+// comments. It is the one bracket, quote and comment scanner of the manifest
+// and the data files. It returns the code before the comment, the depth after
+// that code, and closeAt: the offset just past the ']' or quote that returns
+// the value to depth zero, or -1 when the value does not close on this line.
+func scanLine(s string, depth int) (string, int, int) {
 	var quote byte
+	closeAt := -1
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		switch {
@@ -188,41 +190,67 @@ func scanLine(s string) (string, int) {
 		case quote != 0:
 			if c == quote {
 				quote = 0
+				if depth == 0 && closeAt < 0 {
+					closeAt = i + 1
+				}
 			}
 		case c == '"' || c == '\'':
 			quote = c
 		case c == '#':
-			return s[:i], depth
+			return s[:i], depth, closeAt
 		case c == '[':
 			depth++
 		case c == ']':
 			depth--
+			if depth == 0 && closeAt < 0 {
+				closeAt = i + 1
+			}
 		}
 	}
-	return s, depth
+	return s, depth, closeAt
 }
 
-// bracketDepth is the net number of '[' over ']' in s outside strings and
-// comments.
-func bracketDepth(s string) int {
-	_, depth := scanLine(s)
-	return depth
-}
-
-// continueList is the one continuation step of both readers: first, the
-// text after a key's "=" on lines[n], read without its comment, and the
-// lines after it while its brackets stay open, each without its comment and
-// joined by a space. It returns that code, the last line it used and
-// whether the brackets are closed.
-func continueList(first string, lines []string, n int) (string, int, bool) {
-	code, depth := scanLine(first)
-	code = strings.TrimSpace(code)
-	for depth > 0 && n+1 < len(lines) {
-		n++
-		more, d := scanLine(lines[n])
-		code, depth = code+" "+strings.TrimSpace(more), depth+d
+// continueList is the one continuation step of the readers and the manifest
+// writer: first, the text after a key's "=" on lines[n], and the lines after
+// it while its brackets stay open. It returns the code of those lines without
+// comments, joined by a space; the index of the last line used; tail, the text
+// after the value's end on that span, the end being the first depth-zero close
+// or else the last code byte; and whether the brackets are closed.
+func continueList(first string, lines []string, n int) (string, int, string, bool) {
+	code, depth, closeAt := scanLine(first, 0)
+	closeLine := -1
+	if closeAt >= 0 {
+		closeLine = n
 	}
-	return code, n, depth <= 0
+	end, endLine := len(strings.TrimRight(code, " \t\r\n")), n
+	code = strings.TrimSpace(code)
+	last := n
+	for depth > 0 && last+1 < len(lines) {
+		last++
+		var more string
+		var at int
+		more, depth, at = scanLine(lines[last], depth)
+		if closeLine < 0 && at >= 0 {
+			closeLine, closeAt = last, at
+		}
+		code = code + " " + strings.TrimSpace(more)
+		if e := len(strings.TrimRight(more, " \t\r\n")); e > 0 {
+			end, endLine = e, last
+		}
+	}
+	raw := func(k int) string {
+		if k == n {
+			return first
+		}
+		return lines[k]
+	}
+	var tail string
+	if closeLine >= 0 {
+		tail = raw(closeLine)[closeAt:] + strings.Join(lines[closeLine+1:last+1], "")
+	} else {
+		tail = raw(endLine)[end:] + strings.Join(lines[endLine+1:last+1], "")
+	}
+	return code, last, tail, depth <= 0
 }
 
 // parseString reads one string value and the optional comment after it.
@@ -302,12 +330,6 @@ func readString(v string) (value, rest string, err error) {
 		return "", "", errors.New("unterminated string")
 	}
 	return "", "", errors.New("expected a quoted string")
-}
-
-// stripComment removes a trailing '#' comment that lies outside strings.
-func stripComment(s string) string {
-	code, _ := scanLine(s)
-	return strings.TrimSpace(code)
 }
 
 // parseInt reads a decimal integer and the optional comment after it.

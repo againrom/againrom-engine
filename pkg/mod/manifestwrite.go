@@ -85,11 +85,8 @@ func WriteManifest(source []byte, values map[string]any) ([]byte, error) {
 		for start < len(line) && (line[start] == ' ' || line[start] == '\t') {
 			start++
 		}
-		for depth := bracketDepth(line[start:]); depth > 0 && i+1 < len(lines); {
-			i++
-			depth += bracketDepth(lines[i])
-			line += lines[i]
-		}
+		code, last, tail, _ := continueList(line[start:], lines, i)
+		line = strings.Join(lines[i:last+1], "")
 		old := strings.TrimSpace(line[start:])
 		var prior any
 		var err error
@@ -99,57 +96,16 @@ func WriteManifest(source []byte, values map[string]any) ([]byte, error) {
 		case int:
 			prior, err = parseInt(old)
 		default:
-			var flat []string
-			for _, l := range strings.Split(old, "\n") {
-				flat = append(flat, stripComment(l))
-			}
-			prior, err = parseStrings(strings.Join(flat, " "))
+			prior, err = parseStrings(code)
 		}
 		if err == nil && reflect.DeepEqual(prior, values[key]) {
 			out.WriteString(line)
 		} else {
-			end := start + manifestValueEnd(line[start:])
-			out.WriteString(line[:start] + value + line[end:])
+			out.WriteString(line[:start] + value + tail)
 		}
 		delete(encoded, key)
+		i = last
 	}
 	appendMissing()
 	return []byte(out.String()), nil
-}
-
-func manifestValueEnd(s string) int {
-	var quote byte
-	depth, end := 0, 0
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		switch {
-		case quote == '"' && c == '\\':
-			i++
-		case quote != 0:
-			if c == quote {
-				quote = 0
-			}
-		case c == '"' || c == '\'':
-			quote = c
-		case c == '#':
-			if depth == 0 {
-				return end
-			}
-			for i < len(s) && s[i] != '\n' {
-				i++
-			}
-			continue
-		case c == '[':
-			depth++
-		case c == ']':
-			depth--
-		}
-		if c != ' ' && c != '\t' && c != '\r' && c != '\n' {
-			end = i + 1
-		}
-		if quote == 0 && depth == 0 && (c == ']' || c == '"' || c == '\'') {
-			return end
-		}
-	}
-	return end
 }

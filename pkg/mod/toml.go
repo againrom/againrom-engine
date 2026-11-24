@@ -161,7 +161,7 @@ func parseTOMLWith(data []byte, o tomlOptions) ([]tomlTable, error) {
 		// An array left open runs on over the lines after it, each read
 		// without its comment, until its brackets close.
 		if strings.HasPrefix(strings.TrimSpace(after), "[") {
-			code, last, closed := continueList(after, lines, n)
+			code, last, _, closed := continueList(after, lines, n)
 			if !closed {
 				return nil, fmt.Errorf("line %d: %s: the array is not closed", first+1, key)
 			}

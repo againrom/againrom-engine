@@ -70,3 +70,25 @@ func TestWriteManifestReplacesMultilineList(t *testing.T) {
 		t.Fatalf("%q", out)
 	}
 }
+
+// The list writer reads its span through the same scanner as the readers:
+// an unchanged list keeps its bytes, comment lines included, and a changed
+// list ends at its first depth-zero bracket with the text after it kept.
+func TestWriteManifestListSpanUsesTheReaderScanner(t *testing.T) {
+	source := "applies-to = [ # first\n  \"a\", # one\n  \"b\"\n] # done\nentry = \"x.star\"\n"
+	same, err := WriteManifest([]byte(source), map[string]any{"applies-to": []string{"a", "b"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(same) != source {
+		t.Fatalf("unchanged list rewritten:\n%q", same)
+	}
+	changed, err := WriteManifest([]byte(source), map[string]any{"applies-to": []string{"c"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "applies-to = [\"c\"] # done\nentry = \"x.star\"\n"
+	if string(changed) != want {
+		t.Fatalf("changed list:\n%q\nwant\n%q", changed, want)
+	}
+}
