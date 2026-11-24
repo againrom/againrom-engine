@@ -84,13 +84,31 @@ type Brush struct {
 	Band int
 }
 
-// Band is the edge ring a brush of plane p leaves on this map: the format's
-// for the height, object and impassable planes, none for the others.
-func (e *Editor) Band(p Plane) int {
-	if p == PlaneHeight || p == PlaneObject || p == PlaneImpassable {
-		return formatRows[e.format].band
+// PlaneRule is one brush plane's row on a format: the stroke values the plane
+// takes (nil any), the word of the refusal of another value, and the edge ring
+// in cells the plane's brush leaves.
+type PlaneRule struct {
+	Values  []int
+	Refusal string
+	Band    int
+}
+
+// PlaneRule returns the row of plane p on this map's format. A format with no
+// table takes every plane with any value; otherwise false for a plane it names
+// no row for.
+func (e *Editor) PlaneRule(p Plane) (PlaneRule, bool) {
+	t := formatRows[e.format].planes
+	if t == nil {
+		return PlaneRule{}, true
 	}
-	return 0
+	r, ok := t[p]
+	return r, ok
+}
+
+// Band is the edge ring a brush of plane p leaves on this map, from the
+// plane's row on the format.
+func (e *Editor) Band(p Plane) int {
+	return formatRows[e.format].planes[p].Band
 }
 
 // BandError refuses a stroke that covers no cell inside the edge ring the

@@ -69,7 +69,16 @@ func init() {
 		s.tally = alm.SecondMetaScriptCount
 		own[k] = s
 	}
-	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second, band: secondBand}
+	// The type-1 word's bit 0x2000 and the height plane are read by the game;
+	// the object brush only clears, since no reader shows a type-3 byte; the
+	// type-4 bridge is unread.
+	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second, planes: map[Plane]PlaneRule{
+		PlaneTile:       {},
+		PlaneHeight:     {Band: secondBand},
+		PlaneImpassable: {Band: secondBand},
+		PlaneObject:     {Values: []int{0}, Refusal: "editor.map.secondobjects", Band: secondBand},
+		PlaneStructure:  {Values: []int{}, Refusal: "editor.map.secondbridge"},
+	}}
 }
 
 // secondBand is the edge ring the game's map band admits no cell of: x from

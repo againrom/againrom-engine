@@ -80,14 +80,12 @@ func (s *mapInspectionEdits) BrushObjects() []ui.BrushObject {
 
 // Paint applies one stroke to the model as one edit.
 func (s *mapInspectionEdits) Paint(op ui.BrushStroke) (_ *ui.InspectionDocument, said error) {
-	if paints := s.row().paints; paints != nil {
-		rule, ok := paints[op.Plane]
-		if !ok {
-			return nil, s.refuse()
-		}
-		if rule.values != nil && (!slices.Contains(rule.values, op.Value) || len(op.Forest.Kinds) > 0) {
-			return nil, errors.New(s.inspector.word(rule.refusal))
-		}
+	rule, ok := s.model.PlaneRule(brushPlanes[op.Plane].Plane)
+	if !ok {
+		return nil, s.refuse()
+	}
+	if rule.Values != nil && (!slices.Contains(rule.Values, op.Value) || len(op.Forest.Kinds) > 0) {
+		return nil, errors.New(s.inspector.word(rule.Refusal))
 	}
 	defer s.worded(&said)
 	if op.Plane == ui.BrushPlaneObjects {

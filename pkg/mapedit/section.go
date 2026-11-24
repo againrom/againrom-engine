@@ -85,12 +85,12 @@ var sections map[Kind]*section
 // formatRow is what one map format fixes in the record layer: the section
 // rows it replaces in the shared table, and the script profile it holds
 // whatever the map carries. A format without a row has the shared table and
-// the profile its script record chooses. band is the edge ring, in cells,
-// that the height, object and impassable brushes leave as the map holds it.
+// the profile its script record chooses. planes is the brush row of each
+// plane the format's brushes write; nil takes every plane, any value, no band.
 type formatRow struct {
 	own     map[Kind]*section
 	profile *scriptprofile.Profile
-	band    int
+	planes  map[Plane]PlaneRule
 }
 
 // formatRows is the one table of formats, keyed by the map's format.

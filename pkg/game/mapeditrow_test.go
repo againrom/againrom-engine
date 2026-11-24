@@ -18,7 +18,7 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 		t.Fatal("a format has no row")
 	}
 	if first.moves != nil || first.adds != nil || first.deletes != nil || first.sets != nil || first.seams != nil || first.newSteps != nil || first.admissions != nil ||
-		!first.fields || first.paints != nil || !first.randomTerrain || !first.manyValues || !first.wholeScripts || !first.unitOverrides || !first.spellSets || !first.playerRecords ||
+		!first.fields || !first.randomTerrain || !first.manyValues || !first.wholeScripts || !first.unitOverrides || !first.spellSets || !first.playerRecords ||
 		!first.storedKeys || !first.playableRing || !first.workspace || first.templatePlacing || first.centredCells || first.structureKind == nil {
 		t.Fatalf("the first game's row leaves a capability off: %+v", first)
 	}
@@ -46,7 +46,7 @@ func TestEditRowsHoldBothFormats(t *testing.T) {
 			t.Fatalf("the second game's row sets no kind %v", k)
 		}
 	}
-	if second.sets.has(ui.KindUnit) || second.wholeScripts || second.fields || second.paints == nil || second.randomTerrain || second.refusal == "" {
+	if second.sets.has(ui.KindUnit) || second.wholeScripts || second.fields || second.randomTerrain || second.refusal == "" {
 		t.Fatalf("the second game's row is wider than its tools: %+v", second)
 	}
 	offered := func(r *editRow, seam reflect.Type) bool { return r.seams == nil || slices.Contains(r.seams, seam) }
