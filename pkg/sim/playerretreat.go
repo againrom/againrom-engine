@@ -64,6 +64,24 @@ func (w *World) retreatProgressBusy(i int) bool {
 	return e.Transit != 0 || e.AttackPhase != AttackReady || w.castHolds(i, waitCastAction) || w.stoneCursed(i)
 }
 
+// retreatHostiles is the hostile list the Retreat state's flee helper reads and
+// whether a living unit stands in it. With none living the state runs the
+// ordinary acquisition (AI-RETREAT-273).
+func (w *World) retreatHostiles(i int) ([]int, bool) {
+	hostile := w.withdrawalHostiles(i, w.fleeTestRadius(i))
+	return hostile, anyLiving(w, hostile)
+}
+
+// retreatFleeing reports a unit under Retreat that a living hostile keeps
+// walking away; only then does the state hold the unit's automatic casts back.
+func (w *World) retreatFleeing(i int) bool {
+	if w.entities[i].ActorState != actorStateRetreat {
+		return false
+	}
+	_, alive := w.retreatHostiles(i)
+	return alive
+}
+
 // armRetreat is state 0x16's persistent full-tick decision. Arrival alone
 // never clears it. Policy writes pending coordinates independently of progress.
 // A flee cell no route serves takes the reacquisition of route failure
@@ -74,11 +92,7 @@ func (w *World) armRetreat(i int) {
 		return
 	}
 	w.ensureRetreatContinuation(i)
-	hostile := w.withdrawalHostiles(i, w.fleeTestRadius(i))
-	alive := false
-	for _, ci := range hostile {
-		alive = alive || w.entities[ci].Living()
-	}
+	hostile, alive := w.retreatHostiles(i)
 	if !alive {
 		if !w.retreatProgressBusy(i) {
 			w.acquireStanding(i)

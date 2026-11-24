@@ -276,12 +276,17 @@ func TestSavedTactical1115RetreatAutocastAndTransitContinuation(t *testing.T) {
 					t.Fatal("fixture did not reach recovery")
 				}
 			}
-			beforeMana := w.entities[0].Mana
 			Step(w, []Command{{Kind: KindGroupRetreat, Entity: 1, Player: SelfSlot}})
 			back := savedTacticalContinue1115(t, w, 0)
-			releases := 0
+			releases, spent, left := 0, int32(0), false
 			for n := range 100 {
-				releases += len(StepObserved(w, nil))
+				fleeing, mana := w.retreatFleeing(0), w.entities[0].Mana
+				events := StepObserved(w, nil)
+				left = left || !fleeing
+				if !left {
+					releases += len(events)
+					spent += mana - w.entities[0].Mana
+				}
 				Step(back, nil)
 				if w.Hash() != back.Hash() {
 					t.Fatalf("autocast/Retreat next step differs at %d", n)
@@ -292,7 +297,7 @@ func TestSavedTactical1115RetreatAutocastAndTransitContinuation(t *testing.T) {
 				wantReleases = 1
 			}
 			e := w.entities[0]
-			if e.X >= 20 || e.ActorState != 0x16 || e.AutoSpell != 1 || releases != wantReleases || e.Mana != beforeMana-int32(wantReleases) {
+			if e.X >= 20 || e.ActorState != 0x16 || e.AutoSpell != 1 || releases != wantReleases || spent != int32(wantReleases) {
 				t.Fatalf("saved Retreat starved or changed loaded casting: x=%d state=%d releases=%d mana=%d", e.X, e.ActorState, releases, e.Mana)
 			}
 		})

@@ -19,6 +19,9 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A mage under the Retreat order now casts its automatic spells, healing and strengthening itself and its friends, whenever no living enemy stands near; before, it never cast while retreating.
+- [BASE] A swing that misses, or whose damage armour or resistance cancels, now still counts as an attack on its victim: the victim's side turns hostile and the attacker is remembered, as in the original; before, only a blow that hurt did.
+- [ROM2] A unit that flees by Teleport and whose cast is refused now stays where it stands instead of walking away, as in the original.
 - [ROM2] An enchanted armour, shield or weapon now costs its base plus one surcharge on the sum of its effect sizes, as in the original; before, each effect was priced alone, so two effects of 70 cost 14000 instead of 26798.
 - [ROM2] A fallen body above -10 health now loses health half as fast as one below -10, as in the original; before, every fallen body lost it at the faster rate.
 - [BASE] A walking unit now stays on the cell it leaves until it is halfway across and keeps both cells while it steps, so no other unit walks into either; a unit blocked by a walker waits for it to move on, one blocked by a standing unit goes round it, and a blocked unit searches again only after a set number of passes, as in the original.

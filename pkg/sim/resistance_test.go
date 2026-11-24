@@ -181,7 +181,7 @@ func TestGhostBearingConstructorsRefuseEveryUnrepresentableResistanceSelector(t 
 // TestResistanceResultOwnsAttributionExperienceAndRelationConsequences makes
 // the post-resistance value observable at every downstream physical-blow
 // consumer. A landed blow still flips both relations even when resistance
-// cancels it; a cancelled component writes neither attribution nor XP, while
+// cancels it; a cancelled component writes the attacker but pays no XP, while
 // a positive component pays from the reduced amount rather than the roll.
 func TestResistanceResultOwnsAttributionExperienceAndRelationConsequences(t *testing.T) {
 	attacker := cbEnt(1, 0, 0)
@@ -203,9 +203,9 @@ func TestResistanceResultOwnsAttributionExperienceAndRelationConsequences(t *tes
 
 		gotTarget := cbAt(t, w, 2)
 		gotAttacker := cbAt(t, w, 1)
-		if gotTarget.HP != target.HP || gotTarget.HasKillCredit || gotTarget.KillCreditSource != 0 {
-			t.Fatalf("cancelled blow left target hp=%d credit=%v/%d, want %d and no credit",
-				gotTarget.HP, gotTarget.HasKillCredit, gotTarget.KillCreditSource, target.HP)
+		if gotTarget.HP != target.HP || !gotTarget.HasKillCredit || gotTarget.KillCreditSource != attacker.ID {
+			t.Fatalf("cancelled blow left target hp=%d credit=%v/%d, want %d and source %d",
+				gotTarget.HP, gotTarget.HasKillCredit, gotTarget.KillCreditSource, target.HP, attacker.ID)
 		}
 		if gotAttacker.SkillXP != ([skillSlots]int32{}) {
 			t.Fatalf("cancelled blow paid skill XP %v, want none", gotAttacker.SkillXP)

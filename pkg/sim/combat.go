@@ -911,6 +911,9 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	primaryAdmitted := physicalHit || physicalEmpty && secondaryPresent
 	secondaryAdded := rollHit || physicalEmpty
 	if !primaryAdmitted && !secondPresent {
+		// A miss reaches the attacker store like any swing (AI-641).
+		w.flipOnBlow(ai, ti, blowDirect)
+		w.resolveDamageAttribution(ai, ti, int8(a.XPSlot))
 		w.reportPhysicalBlow(*t, ti)
 		w.weaponRiderApply(ai, ti, false, obs)
 		return
@@ -975,6 +978,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 		}
 	}
 	if dmg <= 0 {
+		w.resolveDamageAttribution(ai, ti, int8(a.XPSlot))
 		w.reportPhysicalBlow(*t, ti)
 		w.weaponRiderApply(ai, ti, false, obs)
 		return

@@ -2391,10 +2391,13 @@ func (w *World) knownRestorative(ci int) (SpellRule, bool) {
 }
 
 func (w *World) autoCastOrder(ci int) []SpellRule {
-	// Retreat owns the actor until replaced. A new automatic cast is not
-	// pre-existing action progress and must not starve the next away decision.
-	// Keep AutoSpell armed; existing wind-up/recovery advances independently.
-	if w.entities[ci].ActorState == actorStateRetreat {
+	// A unit Retreat keeps walking away from a living hostile casts nothing
+	// new: an automatic cast is not pre-existing action progress and must not
+	// starve the next away decision. With no living hostile in the flee radius
+	// the state runs the ordinary acquisition (AI-RETREAT-273) and the unit may
+	// heal or buff. Keep AutoSpell armed; existing wind-up/recovery advances
+	// independently.
+	if w.retreatFleeing(ci) {
 		return nil
 	}
 	// The sweep now visits every entity rather than only the armed ones, so the
@@ -2480,7 +2483,7 @@ func (w *World) autoCast(ci int) {
 			return
 		}
 	}
-	if e := w.entities[ci]; e.KnownSpells != 0 && e.ActorState != actorStateRetreat && !underCommand(e) && w.supportAllowed(ci) {
+	if e := w.entities[ci]; e.KnownSpells != 0 && !w.retreatFleeing(ci) && !underCommand(e) && w.supportAllowed(ci) {
 		w.supportCast(ci)
 	}
 }

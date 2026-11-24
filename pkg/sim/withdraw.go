@@ -222,7 +222,10 @@ func (w *World) teleportEscape(i int, hostile []int, reach int64, needLiving boo
 	}
 	w.clearOrder(i)
 	w.entities[i].clearAttackBetweenCycles()
-	return w.castOrder(i, CastAt(e.ID, SpellID(id), CellPoint{X: tx, Y: ty}))
+	// A cast the cell admission refuses keeps the mana and leaves the caster
+	// in place: the original issues it with no cell test (R2-ENGINE-1498).
+	w.castOrder(i, CastAt(e.ID, SpellID(id), CellPoint{X: tx, Y: ty}))
+	return true
 }
 
 // answerRefusedFlee ends a withdrawal move whose far search found no route,

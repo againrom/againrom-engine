@@ -693,8 +693,10 @@ func TestNothingFlipsOnAMissAnOutOfReachSwingOrANamelessParty(t *testing.T) {
 		if got := cbAt(t, w, 2).HP; got != 100 {
 			t.Fatalf("the fixture is meant to miss; the victim is at %d", got)
 		}
-		if rel := w.Relations(); rel.Hostile(2, 3) || rel.Hostile(3, 2) {
-			t.Errorf("a miss flipped the relation: [2][3]=%v [3][2]=%v",
+		// The damage resolver's tail runs on a miss as on a hit (AI-641), so
+		// the swing flips both relations.
+		if rel := w.Relations(); !rel.Hostile(2, 3) || !rel.Hostile(3, 2) {
+			t.Errorf("a miss left the relation: [2][3]=%v [3][2]=%v",
 				rel.Hostile(2, 3), rel.Hostile(3, 2))
 		}
 	})

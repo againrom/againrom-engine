@@ -431,15 +431,22 @@ func TestPlayerRetreat1089AutocastKeepsOnlyPreexistingProgress(t *testing.T) {
 					t.Fatal("fixture did not reach recovery")
 				}
 			}
-			beforeMana := w.entities[0].Mana
 			Step(w, []Command{{Kind: KindGroupRetreat, Entity: 1, Player: SelfSlot, Group: 1}})
 			if phase == "windup" && (len(w.bookCasts) != 1 || w.entities[0].X != 20) {
 				t.Fatal("Retreat canceled a pre-existing autocast")
 			}
 			back := retreatRoundTrip1089(t, w)
-			releases := 0
+			// A hostile in the flee radius holds new casts back; past it the
+			// mage acts as an idle one (AI-RETREAT-273).
+			releases, spent, left := 0, int32(0), false
 			for n := 0; n < 100; n++ {
-				releases += len(StepObserved(w, nil))
+				fleeing, mana := w.retreatFleeing(0), w.entities[0].Mana
+				events := StepObserved(w, nil)
+				left = left || !fleeing
+				if !left {
+					releases += len(events)
+					spent += mana - w.entities[0].Mana
+				}
 				Step(back, nil)
 				if w.Hash() != back.Hash() {
 					t.Fatal("native autocast/Retreat continuation", n)
@@ -451,7 +458,7 @@ func TestPlayerRetreat1089AutocastKeepsOnlyPreexistingProgress(t *testing.T) {
 			}
 			e := w.entities[0]
 			if e.X >= 20 || e.ActorState != actorStateRetreat || e.AutoSpell != 1 ||
-				releases != wantReleases || e.Mana != beforeMana-int32(wantReleases) || w.actorCastBusy(0) {
+				releases != wantReleases || spent != int32(wantReleases) || w.actorCastBusy(0) && w.retreatFleeing(0) {
 				t.Fatalf("Retreat starved or changed prior work/setting: x=%d state=%d auto=%d releases=%d mana=%d", e.X, e.ActorState, e.AutoSpell, releases, e.Mana)
 			}
 		})
