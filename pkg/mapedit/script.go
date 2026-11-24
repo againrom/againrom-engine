@@ -169,19 +169,45 @@ var errLabelLong = fmt.Errorf("mapedit: a node label is under %d bytes", alm.Scr
 // NewScriptNode builds one node record: a zero record with the label, opcode,
 // id and the parameter slots set. At most ten parameters.
 func NewScriptNode(label string, opcode, id uint32, params ...ScriptParam) ([]byte, error) {
-	if len(params) > alm.ScriptParams {
-		return nil, fmt.Errorf("mapedit: a node holds %d parameters, not %d", alm.ScriptParams, len(params))
+	return patchNode(make([]byte, alm.ScriptNodeSize), &label, opcode, id, params)
+}
+
+// checkNode refuses more than ten parameters, then a label with no closing zero.
+func checkNode(label string, params int) error {
+	if params > alm.ScriptParams {
+		return fmt.Errorf("mapedit: a node holds %d parameters, not %d", alm.ScriptParams, params)
 	}
 	if len(label) >= alm.ScriptLabelLen {
-		return nil, errLabelLong
+		return errLabelLong
 	}
-	rec := make([]byte, alm.ScriptNodeSize)
-	copy(rec, label)
+	return nil
+}
+
+// patchNode is the one writer of a node record: a copy of base with the
+// opcode, id and all parameter slots set (slots past params are cleared). A
+// non-nil label replaces the label field (an empty one clears it); nil keeps it.
+func patchNode(base []byte, label *string, opcode, id uint32, params []ScriptParam) ([]byte, error) {
+	text := ""
+	if label != nil {
+		text = *label
+	}
+	if err := checkNode(text, len(params)); err != nil {
+		return nil, err
+	}
+	rec := slices.Clone(base)
+	if label != nil {
+		clear(rec[:alm.ScriptLabelLen])
+		copy(rec, text)
+	}
 	binary.LittleEndian.PutUint32(rec[alm.ScriptNodeOpcode:], opcode)
 	binary.LittleEndian.PutUint32(rec[alm.ScriptNodeID:], id)
-	for i, p := range params {
-		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeValues+4*i:], p.Value)
-		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeTypes+4*i:], p.Type)
+	for s := 0; s < alm.ScriptParams; s++ {
+		var p ScriptParam
+		if s < len(params) {
+			p = params[s]
+		}
+		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeValues+4*s:], p.Value)
+		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeTypes+4*s:], p.Type)
 	}
 	return rec, nil
 }
@@ -433,11 +459,8 @@ func (e *Editor) SetScriptNode(k Kind, i int, label string, opcode uint32, param
 	if k != KindAction && k != KindCondition {
 		return fmt.Errorf("mapedit: %s holds no script node", sectionName(k))
 	}
-	if len(params) > alm.ScriptParams {
-		return fmt.Errorf("mapedit: a node holds %d parameters, not %d", alm.ScriptParams, len(params))
-	}
-	if len(label) >= alm.ScriptLabelLen {
-		return fmt.Errorf("mapedit: a node label is under %d bytes", alm.ScriptLabelLen)
+	if err := checkNode(label, len(params)); err != nil {
+		return err
 	}
 	w, err := e.walkIndex(k, "rewrite", i)
 	if err != nil {
@@ -445,19 +468,13 @@ func (e *Editor) SetScriptNode(k Kind, i int, label string, opcode uint32, param
 	}
 	at, l := w.at(i)
 	rec := e.data[at : at+l]
-	next := cloneBytes(rec)
+	var set *string // an empty label keeps the stored one
 	if label != "" {
-		clear(next[:alm.ScriptLabelLen])
-		copy(next, label)
+		set = &label
 	}
-	binary.LittleEndian.PutUint32(next[alm.ScriptNodeOpcode:], opcode)
-	for s := 0; s < alm.ScriptParams; s++ {
-		var p ScriptParam
-		if s < len(params) {
-			p = params[s]
-		}
-		binary.LittleEndian.PutUint32(next[alm.ScriptNodeValues+4*s:], p.Value)
-		binary.LittleEndian.PutUint32(next[alm.ScriptNodeTypes+4*s:], p.Type)
+	next, err := patchNode(rec, set, opcode, binary.LittleEndian.Uint32(rec[alm.ScriptNodeID:]), params)
+	if err != nil {
+		return err
 	}
 	if string(next) == string(rec) {
 		return nil
@@ -649,29 +666,31 @@ func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *
 				return nil, err
 			}
 		}
-		label, err := alm.ScriptLabelText.Encode(n.Label)
+		enc, err := alm.ScriptLabelText.Encode(n.Label)
 		if err != nil {
 			return nil, err
 		}
-		if len(label) >= alm.ScriptLabelLen {
+		if errors.Is(checkNode(string(enc), 0), errLabelLong) {
 			return nil, &CopyRefusalError{Why: CopyLongLabel, Kind: k, ID: id}
+		}
+		var label *string // an unchanged label keeps the node's label field
+		if n.Label != nodes[at].Label {
+			text := string(enc)
+			label = &text
+		}
+		params := make([]ScriptParam, alm.ScriptParams)
+		for s := range params {
+			params[s] = ScriptParam{Type: n.Type[s], Value: n.Value[s]}
 		}
 		// The copy is the node's record with its new id: every byte no
 		// field names (the second game's ten text fields among them) stays.
-		rec, err := e.Record(k, at)
+		base, err := e.Record(k, at)
 		if err != nil {
 			return nil, err
 		}
-		rec = slices.Clone(rec)
-		if n.Label != nodes[at].Label {
-			clear(rec[:alm.ScriptLabelLen])
-			copy(rec, label)
-		}
-		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeOpcode:], n.Opcode)
-		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeID:], next)
-		for s := 0; s < alm.ScriptParams; s++ {
-			binary.LittleEndian.PutUint32(rec[alm.ScriptNodeValues+4*s:], n.Value[s])
-			binary.LittleEndian.PutUint32(rec[alm.ScriptNodeTypes+4*s:], n.Type[s])
+		rec, err := patchNode(base, label, n.Opcode, next, params)
+		if err != nil {
+			return nil, err
 		}
 		*batch = append(*batch, Placement{k, rec})
 		out[id] = next
