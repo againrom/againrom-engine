@@ -19,15 +19,14 @@ type areaArm struct {
 	// painted cells cannot be produced again and a SAVE carries them.
 	draws bool
 	// Capabilities, one per consumer question.
-	inert         bool // no payload reaches an actor or a structure
-	unattributed  bool
-	uncapped      bool // not counted toward a cell's six records
-	sacrifice     bool // damage from the caster's pools at impact
-	footprint     bool // MAGIC-FIREDIV-047
-	onMiss        bool // a weapon rider applies without a living hit
-	blow          bool // MAGIC-LIGHTDARK-044
-	poison        bool
-	secondLasting bool // R2-ENGINE-024
+	inert        bool // no payload reaches an actor or a structure
+	unattributed bool
+	uncapped     bool // not counted toward a cell's six records
+	sacrifice    bool // damage from the caster's pools at impact
+	footprint    bool // MAGIC-FIREDIV-047
+	onMiss       bool // a weapon rider applies without a living hit
+	blow         bool // MAGIC-LIGHTDARK-044
+	poison       bool
 	// heldToNextPulse: the effect a cloud pulse lands lasts at least until
 	// the next pulse renews it, so a body standing in the cloud keeps it
 	// between pulses (DIV-4834, DIV-4835).
@@ -51,7 +50,7 @@ var areaArms = [...]areaArm{
 		overlay: areaOverlay{drawn: true, slot: 0}},
 	{arm: 4, layer: noAreaLayer, stages: 2, stage: fireSacrificeStage, sacrifice: true},
 	{arm: 7, layer: 1, clears: []uint16{7, 3}, overlay: areaOverlay{drawn: true, slot: 2, secondPass: true}},
-	{arm: 8, layer: 2, clears: []uint16{8}, yieldsTo: 3, poison: true, secondLasting: true,
+	{arm: 8, layer: 2, clears: []uint16{8}, yieldsTo: 3, poison: true,
 		overlay: areaOverlay{drawn: true, slot: 3, secondPass: true}},
 	{arm: 9, layer: noAreaLayer, stages: 6, stage: acidStreamStage},
 	{arm: 12, layer: 4, clears: []uint16{12, 17}, unattributed: true, heldToNextPulse: true},

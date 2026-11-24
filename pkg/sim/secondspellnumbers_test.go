@@ -80,14 +80,14 @@ func TestSecondGameRowsReadTheFormulaSetUnderTheirOwnNumbers(t *testing.T) {
 	w := spWorld(t, 1, nil, spEnt(1, 2, 2))
 	w.SetRules(r)
 	poison := secondRow(SpellRule{ID: 6, Area: true, Distribution: 3, SpellDuration: 5, EffectKind: EffectHealth,
-		EffectMode: EffectContinuous, EffectMagnitude: -2})
+		EffectMode: EffectContinuous, EffectMagnitude: -2, EffectDuration: 128})
 	invisible := secondRow(SpellRule{ID: 12, TargetsUnit: true, SpellDuration: 10})
 	stone := secondRow(SpellRule{ID: 18, TargetsUnit: true, SpellDuration: 2})
 	for _, c := range []struct {
 		name string
 		rule SpellRule
 		want uint16
-	}{{"Poison Cloud", poison, 5 * 16 * 2}, {"Invisibility", invisible, 3 * 16 * 2}} {
+	}{{"Poison Cloud", poison, 128}, {"Invisibility", invisible, 3 * 16 * 2}} {
 		if _, _, got, _ := w.pointEffect(0, c.rule, 70); got != c.want {
 			t.Errorf("%s lasts %d at a factor of 2000, want %d", c.name, got, c.want)
 		}
@@ -102,7 +102,7 @@ func TestSecondGameRowsReadTheFormulaSetUnderTheirOwnNumbers(t *testing.T) {
 	if _, mag, _, _ := w.pointEffect(0, slow, 70); mag != -9 {
 		t.Errorf("Slow, the second game's spell 29, has magnitude %d, want the table's -9", mag)
 	}
-	if !DurationTableRule(poison) || !DurationTableRule(invisible) || DurationTableRule(stone) || !DurationTableRule(SpellRule{ID: 20}) {
+	if DurationTableRule(poison) || !DurationTableRule(invisible) || DurationTableRule(stone) || !DurationTableRule(SpellRule{ID: 20}) {
 		t.Error("the rows a duration table reaches")
 	}
 }

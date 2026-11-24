@@ -388,3 +388,35 @@ func TestWorldMapTaskFlagFollowsHoverThenStaysOnTheChosenTask(t *testing.T) {
 		t.Fatal("Flag1 drawn at the hovered task while another task is chosen")
 	}
 }
+
+// The map's text block centres its name and each description line on the
+// block's x, the second game's flag-2 draw (R2-ENGINE-1653): a line's ink
+// spans as far left of x as right of it.
+func TestWorldMapTextBlockCentresEachLine(t *testing.T) {
+	font := chargenTestFont()
+	block := &WorldMapTextBlock{Name: "abcd", Body: "ab\nabcdefgh", NameAt: image.Pt(230, 27), LinesAt: image.Pt(230, 48),
+		LineStep: 10, Width: 320, MaxLines: 15, NameFont: font, LineFont: font}
+	dst := image.NewRGBA(image.Rect(0, 0, 640, 480))
+	drawWorldMapText(dst, block)
+	for _, row := range []struct {
+		name  string
+		y, cx int
+		width int
+	}{{"name", 27, 230, 12}, {"line 1", 48, 230, 6}, {"line 2", 58, 230, 24}} {
+		minX, maxX := -1, -1
+		for y := row.y; y < row.y+10; y++ {
+			for x := 0; x < 640; x++ {
+				if dst.RGBAAt(x, y).A == 0 {
+					continue
+				}
+				if minX < 0 || x < minX {
+					minX = x
+				}
+				maxX = max(maxX, x)
+			}
+		}
+		if minX < 0 || maxX-minX+1 != row.width || minX+maxX+1 != 2*row.cx {
+			t.Fatalf("%s ink spans %d..%d, want %d pixels centred on %d", row.name, minX, maxX, row.width, row.cx)
+		}
+	}
+}

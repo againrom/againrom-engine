@@ -83,8 +83,8 @@ func TestSecondPoisonCloudAndInvisibilityTakeTheirOwnFormulas(t *testing.T) {
 	if mag != -6 {
 		t.Errorf("second-game Poison Cloud magnitude at P 90 = %d, want -6 (-2 * (90/45 + 1))", mag)
 	}
-	if want := lastingTicks(90, 5, durationSlow); duration != want {
-		t.Errorf("second-game Poison Cloud duration at P 90 = %d, want %d (Duration 5 on the 1.025 law)", duration, want)
+	if duration != 8 {
+		t.Errorf("second-game Poison Cloud duration at P 90 = %d, want the Effects counter 8 (R2-ENGINE-1575)", duration)
 	}
 	first := poison
 	first.ID, first.Arm, first.Second = 8, 0, false

@@ -161,11 +161,28 @@ func TestReleaseSecondCampaignWorldMapSelectMode(t *testing.T) {
 		t.Fatalf("mission 93 text %+v", mission.Text)
 	}
 	t.Logf("mission 93 text: %q / %d characters", mission.Text.Name, len(mission.Text.Body))
+	if mission.Text.NameFont == nil || mission.Text.NameFont != f.documentFont() || mission.Text.LineFont != f.tipFont() {
+		t.Fatal("the text block's name is not in font4 or its lines not in the tip font")
+	}
 	noText := mission
 	noText.Text = nil
-	block := image.Rect(220, 7, 230+330, 220)
-	if in, out := secondMapChanged(ui.ComposeWorldMap(mission), ui.ComposeWorldMap(noText), block); in == 0 || out != 0 {
+	// The block's lines are centred on x 230 inside the 320-pixel wrap
+	// (R2-ENGINE-1653).
+	block := image.Rect(230-170, 7, 230+170, 220)
+	withText, without := ui.ComposeWorldMap(mission), ui.ComposeWorldMap(noText)
+	if in, out := secondMapChanged(withText, without, block); in == 0 || out != 0 {
 		t.Fatalf("the text block changed %d pixels in its block and %d outside", in, out)
+	}
+	minX, maxX := block.Max.X, block.Min.X
+	for y := block.Min.Y; y < block.Max.Y; y++ {
+		for x := block.Min.X; x < block.Max.X; x++ {
+			if withText.RGBAAt(x, y) != without.RGBAAt(x, y) {
+				minX, maxX = min(minX, x), max(maxX, x)
+			}
+		}
+	}
+	if centre := (minX + maxX + 1) / 2; centre < 226 || centre > 234 {
+		t.Fatalf("the text block spans %d..%d, centred on %d, want 230", minX, maxX, centre)
 	}
 	if in, _ := secondMapChanged(ui.ComposeWorldMap(town), ui.ComposeWorldMap(mission), image.Rect(0, 0, 640, 480)); in == 0 {
 		t.Fatal("two targets drew the same frame")
@@ -220,7 +237,7 @@ func TestReleaseSecondCampaignWorldMapTravelKeepsText(t *testing.T) {
 		}
 		withoutText := during
 		withoutText.Text = nil
-		in, out := secondMapChanged(ui.ComposeWorldMap(during), ui.ComposeWorldMap(withoutText), image.Rect(220, 7, 560, 220))
+		in, out := secondMapChanged(ui.ComposeWorldMap(during), ui.ComposeWorldMap(withoutText), image.Rect(230-170, 7, 230+170, 220))
 		if in == 0 || out != 0 {
 			t.Errorf("travel paint %d: text changed %d pixels in its block and %d outside", tick, in, out)
 		}

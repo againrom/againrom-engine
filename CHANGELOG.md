@@ -22,9 +22,12 @@ modder or developer can notice gets no entry.
 - [ROM2] An enemy's card now opens its groups by your kills of that kind for every creature, humanoid ones and kinds such as the catapult included, as in the original; before, many showed blank stats however many you killed.
 - [ROM2] The pick-up key no longer sends a hero after a sack lying where he cannot stand; a sack under his feet is still taken, as in the original.
 - [ROM2] A patrol whose point no route reaches (behind a wall or water) now turns back when it stands within two cells of that point, as in the original; farther away it waits and tries again. A point held by another unit is not covered: the patrol walks up to it and waits.
+- [ROM2] Poison Cloud's poison now stays on a unit for the same short time whatever the caster's power, and each new pulse or cast sets it back to that time, as in the original; before, a stronger caster's poison lasted much longer after the unit left the cloud.
+- [ROM2] On the world map, a place's name and description lines are now centred over the map's text area and the name is drawn in the lettering of the hero's name on the character screen, as in the original; before, each line began at the middle of the area and ran off to the right.
 
 ### For map makers and modders
 
+- [ROM2] A mod's `duration_factor` for Poison Cloud is now refused with its reason, since the second game's poison lasts a fixed time.
 - [ROM1] In the map editor's Dialog window, a dialogue reply now takes as many conditions and actions as a trigger: every condition must hold, the actions run in their order, and each row can be added, removed or moved with Alt and the arrow keys; before, a reply showed one condition and one action, and a dialogue file with longer lists was refused.
 - [ROM1] A mod can declare its own global variables, each with a number, a name and a starting value, and the triggers and dialogue replies of its maps can read, set and add to them during a mission, and a save taken in the mission keeps them; a map that names a variable its mod does not declare is refused.
 - [ROM1] A mod's global variables now last for its whole campaign: a won mission passes its values to the next mission, a lost, left or restarted mission throws away what it wrote, town and mission saves keep the values, and an original or older save starts at the declared values.

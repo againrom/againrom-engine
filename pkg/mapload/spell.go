@@ -202,7 +202,7 @@ func bookSpell(rule sim.SpellRule) sim.BookSpell {
 // MaxRange approaches 256 and a refusal over that would turn every spell
 // this build has ever loaded red for a reason a reader could learn nothing
 // from.
-func spellRules(spells []data.Spell, second bool) []sim.SpellRule {
+func spellRules(spells []data.Spell) []sim.SpellRule {
 	out := make([]sim.SpellRule, len(spells))
 	for i, sp := range spells {
 		out[i] = sim.SpellRule{
@@ -231,8 +231,9 @@ func spellRules(spells []data.Spell, second bool) []sim.SpellRule {
 			EffectMagnitude: sp.Effect.Magnitude,
 			EffectDuration:  sp.Effect.Duration,
 		}
-		// MAGIC-397: ROM1 numerical modes store low16(16*N).
-		if !second && sp.Effect.Mode&(data.SpellEffectDuration|data.SpellEffectContinuous|data.SpellEffectCharges) != 0 {
+		// Numerical modes store low16(16*N) in both games (MAGIC-397,
+		// R2-ENGINE-697).
+		if sp.Effect.Mode&(data.SpellEffectDuration|data.SpellEffectContinuous|data.SpellEffectCharges) != 0 {
 			out[i].EffectDuration = uint16(uint32(sp.Effect.Duration) << 4)
 		}
 	}
@@ -276,7 +277,7 @@ func SpellRules(t *Table) []sim.SpellRule {
 		maxDamage = 255
 	}
 	applyModSpells(t, spells, t.Mods.Spells, maxDamage)
-	rules := spellRules(spells, t.SpellArms != nil)
+	rules := spellRules(spells)
 	if t.SpellArms != nil {
 		t.SpellArms(rules)
 	}

@@ -372,3 +372,75 @@ func TestSecondMapMusicFollowsTheMusicFlag(t *testing.T) {
 		}
 	}
 }
+
+// In the second game each screen change stops the old track and starts the
+// next screen's own track at once, with no fade. Leaving a town for the map
+// starts map.wav from its first byte and plays no movie; the town restarts
+// its key. A completion movie stops the mission track; the destination's
+// entry, set and paused before the first frame, resumes after it (DIV-2863).
+// A loss goes to menu.wav from its first byte (R2-ENGINE-1636,
+// R2-ENGINE-1639, R2-ENGINE-1641, R2-ENGINE-1642, R2-ENGINE-1643).
+func TestSecondGameScreenChangesStopAndStartWithoutAFade(t *testing.T) {
+	source, device := &recordingMusicSource{}, &pausingMusicDevice{}
+	a := newTestApp(t, appRows(1), okLoader(t))
+	a.SetMusic(secondMusic, source, device, random.NewStream(3))
+	town := &trackTownMusic{recordingTownMusic{scene: MusicTown}, "b14.wav"}
+	a.SetTown(town)
+	step := func(name string, change func(), want ...string) {
+		t.Helper()
+		before := len(device.events)
+		change()
+		a.syncMusic()
+		got := device.events[before:]
+		if len(got) != len(want) {
+			t.Fatalf("%s: device %v, want %v", name, got, want)
+		}
+		for i := range want {
+			if got[i] != want[i] && !(want[i] == "start:B" && len(got[i]) == len("start:B00.wav") && got[i][:7] == want[i]) {
+				t.Fatalf("%s: device %v, want %v", name, got, want)
+			}
+		}
+		if a.music.fade != nil {
+			t.Fatalf("%s: a fade runs at a screen change", name)
+		}
+	}
+	step("town", func() {
+		if !a.flow.showTown("") {
+			t.Fatal("town transition was refused")
+		}
+	}, "stop", "start:b14.wav")
+	step("gate exit", func() { a.flow.setScreen(ScreenPicker) }, "stop", "start:map.wav")
+	if a.cutscene != nil {
+		t.Fatal("the gate exit played a movie")
+	}
+	step("town again", func() { a.flow.showTown("") }, "stop", "start:b14.wav")
+	step("mission", func() {
+		if err := a.OpenMission(okOpener(t)); err != nil {
+			t.Fatal(err)
+		}
+	}, "stop", "start:B")
+	movies := &eventMovies{present: map[string]bool{"m10/01.smk": true}}
+	a.SetCutscenes(movies)
+	a.flow.viewer.SetMissionCutscene(10)
+	a.flow.advance = func(...NoticeAction) (NoticeDest, string, MapOpener) { return NoticeToTown, "", nil }
+	step("victory movie", func() {
+		a.flow.takeNoticeAction(NoticeVictory)
+		a.startPendingCutscene()
+		if a.Screen() != ScreenCutscene {
+			t.Fatal("the victory played no movie")
+		}
+	}, "stop", "start:b14.wav", "pause")
+	step("town after the movie", func() { completeEventMovies(t, a) }, "resume")
+	if a.Screen() != ScreenTown || !slices.Equal(movies.played, []string{"m10/01.smk"}) {
+		t.Fatalf("after the movie: screen %v, movies %v", a.Screen(), movies.played)
+	}
+	step("next mission", func() {
+		if err := a.OpenMission(okOpener(t)); err != nil {
+			t.Fatal(err)
+		}
+	}, "stop", "start:B")
+	step("loss", func() { a.flow.toMenu() }, "stop", "start:menu.wav")
+	if len(device.settings) != 0 {
+		t.Fatalf("screen changes set the volume: %v", device.settings)
+	}
+}

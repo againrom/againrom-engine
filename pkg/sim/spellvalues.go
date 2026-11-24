@@ -218,9 +218,10 @@ func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
 }
 
 // lastingRule reports a row whose point effect lasts its power-scaled
-// duration: a lasting arm, or the second game's lasting area row.
+// duration: a lasting arm. Poison Cloud's Effect lasts its Effects count in
+// both games (R2-ENGINE-1575).
 func lastingRule(rule SpellRule) bool {
-	return spellArmOf(rule.arm()).lastingDuration || rule.Second && areaRow(rule.arm()).secondLasting
+	return spellArmOf(rule.arm()).lastingDuration
 }
 
 // DurationTableRule reports a row whose cast reads the duration_factor

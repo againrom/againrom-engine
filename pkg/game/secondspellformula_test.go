@@ -109,7 +109,8 @@ func TestSecondGameFormulaRefusalsNameTheRowFieldAndLimit(t *testing.T) {
 			"Invisibility has no power-scaled magnitude, so magnitude does not apply to it"},
 		{"Light", func(r *mod.SpellRow) { r.DamageFactor = spellTable(9, 60) },
 			"Light has no damage or healing pair, so damage_factor does not apply to it"},
-		{"Poison_Cloud", func(r *mod.SpellRow) { r.DurationFactor = spellTable(9, 2000) }, ""},
+		{"Poison_Cloud", func(r *mod.SpellRow) { r.DurationFactor = spellTable(9, 2000) },
+			"Poison Cloud has no power-scaled duration, so duration_factor does not apply to it"},
 		{"Shield", func(r *mod.SpellRow) { r.DurationFactor = spellTable(9, 2000) }, ""},
 		{"Slow", func(r *mod.SpellRow) { r.Magnitude = spellTable(9, -4) }, ""},
 	} {

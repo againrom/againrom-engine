@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/random"
+	"againrom/pkg/render/text"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -218,23 +219,32 @@ func (t *townScreen) stopMapSounds() {
 	}
 }
 
+// worldMapFont is the font a description's font word names: font4 for
+// "document", the install's main font for "install".
+func (t *townScreen) worldMapFont(word string) *text.Font {
+	if word == "document" {
+		return t.art.documentFont()
+	}
+	return t.in.Font.Value()
+}
+
 func (p *worldMapPage) WorldMapView() ui.WorldMapView {
 	s := p.worldMapNow()
 	if s == nil {
 		return ui.WorldMapView{Hovered: -1, Selected: -1, Problem: "world map is unavailable"}
 	}
 	t, row := p.host, p.policy()
-	words, font, task := t.in.Words, t.in.Font.Value(), 0
-	if row.Font == "document" {
-		font = t.art.documentFont()
-	}
+	words, task := t.in.Words, 0
 	if row.HomeTitle && s.homeTown.Name != "" {
 		words.WorldHomeTitle = s.homeTown.Name
 	}
 	if row.Task {
 		task = t.worldFlag1Frame
 	}
-	in := worldMapViewInput{font: font, detail: t.in.tipFont(), words: words, task: task}
+	in := worldMapViewInput{font: t.worldMapFont(row.Font), detail: t.in.tipFont(), words: words, task: task}
+	if d := s.desc(); d != nil && d.Text != nil {
+		in.name = t.worldMapFont(d.Text.NameFont)
+	}
 	if row.RecordText {
 		in.text = func(kind string, id int) (string, string) { return s.assets.worldMapRecordText(t.in, kind, id) }
 	}

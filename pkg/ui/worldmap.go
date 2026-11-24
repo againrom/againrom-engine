@@ -42,8 +42,8 @@ type WorldMapPlace struct {
 }
 
 // WorldMapTextBlock is a text block a map draws over its records: one name
-// line at NameAt, and Body wrapped to Width in lines from LinesAt, LineStep
-// apart, at most MaxLines of them.
+// line centred on NameAt, and Body wrapped to Width in lines centred on
+// LinesAt.X from LinesAt.Y, LineStep apart, at most MaxLines of them.
 type WorldMapTextBlock struct {
 	Name     string
 	Body     string
@@ -474,16 +474,19 @@ func drawWorldMapMarkers(dst *image.RGBA, v WorldMapView) {
 	}
 }
 
-// drawWorldMapText draws a map's text block: the name, then each line.
+// drawWorldMapText draws a map's text block: the name, then each line, each
+// centred on its x by half its measured width (R2-ENGINE-1653).
 func drawWorldMapText(dst *image.RGBA, t *WorldMapTextBlock) {
 	if t == nil {
 		return
 	}
 	if t.NameFont != nil && t.Name != "" {
-		t.NameFont.Draw(dst, t.Name, t.NameAt.X, t.NameAt.Y, worldMapInk)
+		w, _ := t.NameFont.Measure(t.Name)
+		t.NameFont.Draw(dst, t.Name, t.NameAt.X-w/2, t.NameAt.Y, worldMapInk)
 	}
 	for i, line := range WorldMapTextLines(t) {
-		t.LineFont.Draw(dst, line, t.LinesAt.X, t.LinesAt.Y+i*t.LineStep, worldMapInk)
+		w, _ := t.LineFont.Measure(line)
+		t.LineFont.Draw(dst, line, t.LinesAt.X-w/2, t.LinesAt.Y+i*t.LineStep, worldMapInk)
 	}
 }
 

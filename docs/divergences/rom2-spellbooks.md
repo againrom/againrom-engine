@@ -2,6 +2,14 @@
 
 Part of the ledger described in `docs/DIVERGENCES.md`.
 
+## Divergences
+
+Implementation and researched ROM1 behaviour differ, or the owner ruled against a claim.
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-5114 | ROM2 magic / Slow's stat line on an item card | - | `R2-ENGINE-998` (High / Medium): the item card's stat line is chosen by six getters that compare spell ids; line 182 answers spell 21 (Haste) only, so the card of an item that casts Slow (29) has no stat line. `R2-ENGINE-444`: Slow has no book slot and no book hover | The card of a second-game item that casts Slow states line 182 with Slow's magnitude, because a card states the caption of the arm its spell runs (`SpellCaptionOf`, `pkg/sim/spellarms.go`), and Slow shares its arm with the first game's Slow. Heal (24), Darkness (14) and Light (15) state what `R2-ENGINE-998` names (`TestSecondGameScrollCaptionStatLine`) | FIDELITY-DEBT | The card caption is data per arm; the second game's getter set is per spell id, and no caption row per second-game spell exists | A caption row per second-game spell, or an owner ruling | OPEN |
+
 ## Authored where research is silent
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

@@ -99,8 +99,9 @@
     "name": {"1": "title%d", "2": "town%d"},
     "description": {"1": "briefing%d", "2": "description%d"},
     "trim": 2,
+    "name-font": "document",
     "name-at": [230, 27], "lines-at": [230, 48], "line-step": 10, "width": 320, "max-lines": 15,
-    "cite": ["R2-ENGINE-434", "DIV-3070"]
+    "cite": ["R2-ENGINE-434", "R2-ENGINE-1653", "DIV-3070"]
   },
   "cite": ["R2-ENGINE-418", "R2-ENGINE-428", "R2-ENGINE-431", "R2-ENGINE-432", "R2-ENGINE-433", "R2-ENGINE-464", "DIV-3069", "DIV-3070"]
 }

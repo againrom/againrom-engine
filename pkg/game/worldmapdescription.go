@@ -169,13 +169,16 @@ type WorldMapMarkerRule struct {
 
 // WorldMapTextSpec is where a record's name and description come from and
 // where the text block draws them. Keys are formats over the record ID by
-// record kind; a key that finds nothing gives no text.
+// record kind; a key that finds nothing gives no text. NameAt and LinesAt
+// are the centres of the lines. NameFont is a page font word: the name draws
+// in it, the description in the tip font.
 type WorldMapTextSpec struct {
 	Source      string            `json:"source"`
 	Name        map[string]string `json:"name"`
 	Description map[string]string `json:"description"`
 	// Trim drops this many characters from the end of each text.
 	Trim     int             `json:"trim"`
+	NameFont string          `json:"name-font"`
 	NameAt   screenart.Point `json:"name-at"`
 	LinesAt  screenart.Point `json:"lines-at"`
 	LineStep int             `json:"line-step"`
@@ -309,6 +312,9 @@ func decodeWorldMap(data []byte) (*WorldMapDescription, error) {
 	}
 	if t := d.Text; t != nil && (t.Source == "" || t.Trim < 0 || t.LineStep <= 0 || t.Width <= 0) {
 		return fail("text needs a source, a line step and a width")
+	}
+	if t := d.Text; t != nil && t.NameFont != "document" && t.NameFont != "install" {
+		return fail("text name font %q is unknown", t.NameFont)
 	}
 	return &d, nil
 }

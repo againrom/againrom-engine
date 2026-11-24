@@ -18,21 +18,20 @@ func TestAreaArmCapabilitiesKeepEachSiteAnswer(t *testing.T) {
 	for _, a := range armProbe() {
 		r := areaRow(a)
 		for name, c := range map[string][2]bool{
-			"blocks":        {areaArmBlocks(a), a == 19},
-			"inert":         {r.inert, a == 19},
-			"inert export":  {AreaArmInert(a), a == 19},
-			"unattributed":  {r.unattributed, a == 19 || a == 12},
-			"uncapped":      {r.uncapped, a == 3},
-			"sacrifice":     {r.sacrifice, a == 4},
-			"footprint":     {r.footprint, a == 2},
-			"onMiss":        {r.onMiss, a == 2},
-			"blow":          {r.blow, a == 17},
-			"poison":        {r.poison, a == 8},
-			"secondLasting": {r.secondLasting, a == 8},
-			"scorches":      {r.scorches, a == 2 || a == 3},
-			"ambient":       {AreaArmAmbient(a), a == 3},
-			"magnitude":     {MagnitudeArm(a), todayMagnitudeArm(a)},
-			"duration":      {DurationArm(a), todayDurationArm(a)},
+			"blocks":       {areaArmBlocks(a), a == 19},
+			"inert":        {r.inert, a == 19},
+			"inert export": {AreaArmInert(a), a == 19},
+			"unattributed": {r.unattributed, a == 19 || a == 12},
+			"uncapped":     {r.uncapped, a == 3},
+			"sacrifice":    {r.sacrifice, a == 4},
+			"footprint":    {r.footprint, a == 2},
+			"onMiss":       {r.onMiss, a == 2},
+			"blow":         {r.blow, a == 17},
+			"poison":       {r.poison, a == 8},
+			"scorches":     {r.scorches, a == 2 || a == 3},
+			"ambient":      {AreaArmAmbient(a), a == 3},
+			"magnitude":    {MagnitudeArm(a), todayMagnitudeArm(a)},
+			"duration":     {DurationArm(a), todayDurationArm(a)},
 		} {
 			if c[0] != c[1] {
 				t.Errorf("arm %d %s = %v, today %v", a, name, c[0], c[1])
@@ -149,10 +148,6 @@ func todayPointDuration(r Rules, rule SpellRule, power int32) uint16 {
 	switch rule.arm() {
 	case 15, 5, 10, 16, 18, 20, 22, 23, 24, 27, 28:
 		return spellLastingTicksUnder(r, rule, power)
-	case 8:
-		if rule.Second {
-			return spellLastingTicksUnder(r, rule, power)
-		}
 	}
 	return rule.EffectDuration
 }

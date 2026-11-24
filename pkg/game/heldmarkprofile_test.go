@@ -19,7 +19,7 @@ import (
 func secondHeldMarkRule(row uint16, kind sim.EffectKind) sim.SpellRule {
 	rules := []sim.SpellRule{{ID: row, ManaCost: 10, School: 1, MaxRange: 8, TargetsUnit: true,
 		Defensive: true, EffectKind: kind, EffectMode: sim.EffectDuration, EffectMagnitude: 20,
-		SpellDuration: 60}}
+		SpellDuration: 60, EffectDuration: 128}}
 	sim.AssignSecondGameArms(rules)
 	return rules[0]
 }

@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	rendertext "againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
 
@@ -289,5 +290,26 @@ func TestSecondMapTextByKind(t *testing.T) {
 	s.aim(image.Pt(100, 100))
 	if v := s.view(worldMapViewInput{text: func(kind string, id int) (string, string) { return a.worldMapRecordText(nil, kind, id) }}); v.Text != nil {
 		t.Fatal("a record without a key draws a text block")
+	}
+}
+
+// The second game's text block draws the name in font4 and the description
+// in the tip font, each line centred on x 230 (R2-ENGINE-1653); the first
+// game's map has no text block.
+func TestSecondMapTextNamesItsFonts(t *testing.T) {
+	d := worldMapDescriptions["rom2"].Text
+	if d == nil || d.NameFont != "document" || d.NameAt != [2]int{230, 27} || d.LinesAt != [2]int{230, 48} {
+		t.Fatalf("second map text = %+v, want the document font centred on 230", d)
+	}
+	if worldMapDescriptions["rom1"].Text != nil {
+		t.Fatal("the first game's map has a text block")
+	}
+	main, document, tip := &rendertext.Font{}, &rendertext.Font{}, &rendertext.Font{}
+	s := secondMapState(t, secondMapSelect, image.Pt(10, 10), secondRecord(2, 2, image.Pt(100, 100)))
+	s.aim(image.Pt(100, 100))
+	v := s.view(worldMapViewInput{font: main, detail: tip, name: document,
+		text: func(string, int) (string, string) { return "Kaarg", "A town." }})
+	if v.Text == nil || v.Text.NameFont != document || v.Text.LineFont != tip {
+		t.Fatalf("text block = %+v, want the name in the named font and the lines in the tip font", v.Text)
 	}
 }

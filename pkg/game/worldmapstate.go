@@ -270,12 +270,13 @@ func (s *worldMapState) openTravel() {
 }
 
 // worldMapViewInput is what a campaign lends the view: the fonts and words
-// its scroll cards draw with and the task flag's counter.
+// its scroll cards draw with, the text block's name font and the task flag's
+// counter.
 type worldMapViewInput struct {
-	font, detail *rendertext.Font
-	words        ui.Words
-	task         int
-	text         func(kind string, id int) (name, body string)
+	font, detail, name *rendertext.Font
+	words              ui.Words
+	task               int
+	text               func(kind string, id int) (name, body string)
 }
 
 // view is the state's presentation snapshot by its description.
@@ -322,7 +323,7 @@ func (s *worldMapState) view(in worldMapViewInput) ui.WorldMapView {
 			t := d.Text
 			v.Text = &ui.WorldMapTextBlock{Name: name, Body: body,
 				NameAt: image.Pt(t.NameAt[0], t.NameAt[1]), LinesAt: image.Pt(t.LinesAt[0], t.LinesAt[1]),
-				LineStep: t.LineStep, Width: t.Width, MaxLines: t.MaxLines, NameFont: in.font, LineFont: in.detail}
+				LineStep: t.LineStep, Width: t.Width, MaxLines: t.MaxLines, NameFont: in.name, LineFont: in.detail}
 		}
 	}
 	return v

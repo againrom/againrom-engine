@@ -45,7 +45,8 @@ func scrollCaptionTable(second bool) *mapload.Table {
 // none. The first game's caption of the same scrolls does not move.
 func TestSecondGameScrollCaptionStatLine(t *testing.T) {
 	const lightning = 10
-	getter := map[uint16]int{21: 182, 20: 185, 28: 187, 4: 183, 11: 186, 14: 184, lightning: 0}
+	const heal = 24
+	getter := map[uint16]int{21: 182, 20: 185, 28: 187, 4: 183, 11: 186, 14: 184, 15: 184, lightning: 0, heal: 0}
 	for install, words := range captionInstallWords() {
 		for id, label := range getter {
 			item := sim.ItemInstance{Code: 0x0e10, Kind: 4, Price: 137,

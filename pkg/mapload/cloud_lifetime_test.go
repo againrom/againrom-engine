@@ -23,7 +23,7 @@ func TestSpellInnerEffectSingleLandingLifetime(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rows := make([]data.Spell, tc.id)
 			rows[tc.id-1] = data.Spell{TargetsUnit: true, MaxRange: 8, Effect: data.SpellEffect{Kind: tc.kind, Mode: tc.mode, Magnitude: -2, Duration: tc.raw}}
-			rule := spellRules(rows, false)[tc.id-1]
+			rule := spellRules(rows)[tc.id-1]
 			for _, loss := range []bool{false, true} {
 				r := rule
 				if loss {
@@ -75,7 +75,7 @@ func TestSpellInnerEffectSingleLandingLifetime(t *testing.T) {
 func TestSpellNumericEffectCountersFollowMode(t *testing.T) {
 	for _, mode := range []data.SpellEffectMode{data.SpellEffectDuration, data.SpellEffectContinuous, data.SpellEffectCharges, data.SpellEffectSingleUse, 0} {
 		rows := []data.Spell{{Effect: data.SpellEffect{Kind: data.SpellEffectSpeed, Mode: mode, Magnitude: -3, Duration: 4097}}}
-		got := spellRules(rows, false)[0]
+		got := spellRules(rows)[0]
 		want := uint16(4097)
 		if mode&(data.SpellEffectDuration|data.SpellEffectContinuous|data.SpellEffectCharges) != 0 {
 			want = 16
@@ -86,20 +86,19 @@ func TestSpellNumericEffectCountersFollowMode(t *testing.T) {
 	}
 }
 
-func TestSecondGameSightCountersKeepBaseDuration(t *testing.T) {
+// A second-game sight row cast at a unit lands its Effects count times 16,
+// the parser's store in both games (R2-ENGINE-697, R2-ENGINE-1534).
+func TestSecondGameSightCountersStoreSixteenTimesTheCount(t *testing.T) {
 	for _, id := range []int{14, 15} {
 		rows := make([]data.Spell, 15)
 		rows[id-1] = data.Spell{TargetsUnit: true, MaxRange: 8, Effect: data.SpellEffect{Kind: data.SpellEffectScanRange, Mode: data.SpellEffectDuration, Magnitude: -2, Duration: 1}}
-		for _, loss := range []bool{false, true} {
-			rules := spellRules(rows, !loss)
+		{
+			rules := spellRules(rows)
 			SecondGameSpellArms(rules)
 			r := rules[id-1]
-			want := uint16(1)
-			if loss {
-				want = 16
-			}
+			want := uint16(16)
 			if !r.Second || r.EffectDuration != want {
-				t.Fatalf("row %d loss=%v: counter %d, want %d", id, loss, r.EffectDuration, want)
+				t.Fatalf("row %d: counter %d, want %d", id, r.EffectDuration, want)
 			}
 			caster := sim.Entity{ID: 1, X: 2, Y: 2, HP: 100, MaxHP: 100, Mana: 100, MaxMana: 100, Mind: 30, KnownSpells: 1 << id, ScanRange: 10, TokenSize: 1}
 			target := caster
@@ -120,12 +119,12 @@ func TestSecondGameSightCountersKeepBaseDuration(t *testing.T) {
 				}
 			}
 			if remaining != want {
-				t.Fatalf("row %d loss=%v: landing %d, want %d", id, loss, remaining, want)
+				t.Fatalf("row %d: landing %d, want %d", id, remaining, want)
 			}
 			for tick := uint16(1); tick <= want; tick++ {
 				sim.Step(w, nil)
 				if got := w.HasEffectSpell(2, uint16(id)); got != (tick < want) {
-					t.Fatalf("row %d loss=%v tick %d: attached=%v", id, loss, tick, got)
+					t.Fatalf("row %d tick %d: attached=%v", id, tick, got)
 				}
 			}
 		}
