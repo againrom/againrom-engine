@@ -22,26 +22,26 @@ func bodyHealthAt(t *testing.T, second bool, hp int32, ticks uint64) (int32, Dec
 	return got.HP, got.Decay
 }
 
-// R2-ENGINE-1207 and R2-ENGINE-776: a second-game body loses 1 health per 64
-// sub-ticks to the pool pass and, taking the first game's rule, 1 per 64 to
-// corpse ageing above -10 and 1 per 32 from -10 down.
+// R2-ENGINE-1207 and R2-ENGINE-1765: a second-game body above -10 loses 1
+// health per 64 sub-ticks to the pool pass alone; from -10 down it is in the
+// dead state, which the pool pass skips, and corpse ageing takes 1 per 32.
 func TestSecondGameBodyLosesHealthAtTheClaimsSum(t *testing.T) {
 	t.Parallel()
 	want := func(ticks uint64) int32 {
-		// The pool pass takes its point first on every 64th sub-tick; the walk
-		// then takes one per 64 above -10 and one per 32 from -10 down.
+		// The pool pass takes its point first on every 64th sub-tick while the
+		// body is above -10; the walk then takes one per 32 from -10 down.
 		hp := int32(-1)
 		for k := uint64(0); k < ticks; k++ {
-			if k%64 == 12 {
+			if k%64 == 12 && hp > -10 {
 				hp--
 			}
-			if k%64 == 12 || hp <= -10 && k%32 == 12 {
+			if hp <= -10 && k%32 == 12 {
 				hp--
 			}
 		}
 		return hp
 	}
-	for _, ticks := range []uint64{12, 13, 45, 77, 109, 256, 640} {
+	for _, ticks := range []uint64{12, 13, 45, 77, 109, 256, 524, 525, 556, 640, 1200} {
 		hp, stage := bodyHealthAt(t, true, -1, ticks)
 		if hp != want(ticks) {
 			t.Errorf("after %d sub-ticks health %d, want %d", ticks, hp, want(ticks))

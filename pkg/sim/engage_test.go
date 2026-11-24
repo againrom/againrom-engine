@@ -54,6 +54,14 @@ func engFighter(id EntityID, owner uint32, x, y int32) Entity {
 		ScanRange: engSight, DamageBase: 3, AlwaysHits: true}
 }
 
+// engFighterOne is engFighter with a charge of one: the second game's charge
+// byte of zero lasts 256 steps, the first game's one step.
+func engFighterOne(id EntityID, owner uint32, x, y int32) Entity {
+	e := engFighter(id, owner, x, y)
+	e.AttackCharge = 1
+	return e
+}
+
 // engSight is the range every fighter this file builds is given, and it is THIS
 // FILE'S OWN NUMBER rather than anything production carries.
 //

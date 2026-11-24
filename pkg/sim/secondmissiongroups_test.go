@@ -10,13 +10,13 @@ import (
 // original file read, over terrain[0] when one is given.
 func missionStartWorld(t *testing.T, cells []cell, terrain ...Terrain) *World {
 	t.Helper()
-	ents := []Entity{engFighter(leashHero, SelfSlot, 5, 5)}
+	ents := []Entity{engFighterOne(leashHero, SelfSlot, 5, 5)}
 	for k, c := range cells {
-		m := engFighter(EntityID(2+k), leashSlot, c.x, c.y)
+		m := engFighterOne(EntityID(2+k), leashSlot, c.x, c.y)
 		m.Group, m.ScanRange, m.HP, m.MaxHP = 1, leashSight, 400, 400
 		ents = append(ents, m)
 	}
-	other := engFighter(EntityID(2+len(cells)), leashSlot, 30, 30)
+	other := engFighterOne(EntityID(2+len(cells)), leashSlot, 30, 30)
 	other.Group = 2
 	ents = append(ents, other)
 	rel := engRel(t, [3]uint32{leashSlot, SelfSlot, 1}, [3]uint32{SelfSlot, leashSlot, 2})

@@ -82,8 +82,12 @@ func (w *World) prismaticVictims(ci, ti int, rule SpellRule, power int32) []int 
 	primary := w.entities[ti]
 	facing := w.headingBetween(caster, primary)
 	scores := make([]uint32, len(cands))
+	reach := rayReachRules[w.game.rayReach]
 	for k, i := range cands {
 		scores[k] = (uint32(edgeDistance(&caster, &w.entities[i]))<<8 + w.prismaticTurnCost(facing, caster, w.entities[i])) & 0xffff
+		if !reach.keeps(scores[k], rule.MaxRange) {
+			scores[k] = 65535
+		}
 	}
 	type winner struct{ at, score uint32 }
 	var winners []winner
@@ -110,4 +114,24 @@ func (w *World) prismaticVictims(ci, ti int, rule SpellRule, power int32) []int 
 		out = out[:limit]
 	}
 	return out
+}
+
+type rayReachRule uint8
+
+const (
+	rayReachAny rayReachRule = iota
+	rayReachKeyed
+)
+
+// rayReachPolicy decides whether a ranked candidate may take a ray.
+type rayReachPolicy struct {
+	keeps func(score uint32, rangeByte uint8) bool
+}
+
+// rayReachRules: the first game's selector is independent of the spell's
+// range; the second game keeps a candidate only while its key, 256 x edge
+// distance + turn, is within 256 x the spell's range byte (R2-ENGINE-1766).
+var rayReachRules = [...]rayReachPolicy{
+	rayReachAny:   {keeps: func(uint32, uint8) bool { return true }},
+	rayReachKeyed: {keeps: func(score uint32, r uint8) bool { return score <= uint32(r)<<8 }},
 }

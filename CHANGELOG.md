@@ -22,6 +22,10 @@ modder or developer can notice gets no entry.
 - [BASE] A mage under the Retreat order now casts its automatic spells, healing and strengthening itself and its friends, whenever no living enemy stands near; before, it never cast while retreating.
 - [BASE] A swing that misses, or whose damage armour or resistance cancels, now still counts as an attack on its victim: the victim's side turns hostile and the attacker is remembered, as in the original; before, only a blow that hurt did.
 - [ROM2] A unit that flees by Teleport and whose cast is refused now stays where it stands instead of walking away, as in the original.
+- [ROM2] Prismatic Spray now skips a side target farther from the caster than the spell's range, as in the original; before, it took the nearest enemies in sight at any distance.
+- [ROM2] A fallen body now fades more slowly, as in the original: one at -10 health or lower loses a point every 32 ticks and one above -10 a point every 64; before, the two kinds of loss were added together.
+- [ROM2] A unit killed after a Drain Life hit now credits the caster with the kill, as in the original; before, the kill earned the caster nothing.
+- [ROM2] A unit whose weapon charge is 0 now waits 256 turns before its blow, as in the original; before, it struck at once.
 - [ROM2] An enchanted armour, shield or weapon now costs its base plus one surcharge on the sum of its effect sizes, as in the original; before, each effect was priced alone, so two effects of 70 cost 14000 instead of 26798.
 - [ROM2] A fallen body above -10 health now loses health half as fast as one below -10, as in the original; before, every fallen body lost it at the faster rate.
 - [BASE] A walking unit now stays on the cell it leaves until it is halfway across and keeps both cells while it steps, so no other unit walks into either; a unit blocked by a walker waits for it to move on, one blocked by a standing unit goes round it, and a blocked unit searches again only after a set number of passes, as in the original.

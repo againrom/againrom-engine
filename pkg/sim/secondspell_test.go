@@ -75,6 +75,33 @@ func TestSecondDrainLifeIsCutByAstralResistance(t *testing.T) {
 	}
 }
 
+// A second-game Drain Life hit writes the caster and the spell as the victim's
+// killer (R2-ENGINE-1767); the first game's arm writes none.
+func TestSecondDrainLifeWritesTheKiller(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		rule SpellRule
+		want bool
+	}{
+		{"second game", secondRow(SpellRule{ID: 26, School: 5, DamageMin: 40, DamageMax: 60, TargetsUnit: true}), true},
+		{"first game", SpellRule{ID: 11, School: 5, DamageMin: 40, DamageMax: 60, TargetsUnit: true}, false},
+	} {
+		caster, victim := spEnt(1, 0, 0), spEnt(2, 1, 0)
+		w := spWorld(t, 9, []SpellRule{tc.rule}, caster, victim)
+		if !w.ordinaryEffectPayload(0, 1, tc.rule, 0, blowDirect) {
+			t.Fatalf("%s: Drain Life did not land", tc.name)
+		}
+		got := w.entities[1]
+		if tc.want {
+			if !got.HasKillCredit || got.KillCreditSource != 1 || got.KillCreditSpell != int8(tc.rule.ID) {
+				t.Errorf("%s: killer %d spell %d held %v, want the caster and spell %d", tc.name, got.KillCreditSource, got.KillCreditSpell, got.HasKillCredit, tc.rule.ID)
+			}
+		} else if got.HasKillCredit {
+			t.Errorf("%s: killer %d written, want none", tc.name, got.KillCreditSource)
+		}
+	}
+}
+
 func TestSecondPoisonCloudAndInvisibilityTakeTheirOwnFormulas(t *testing.T) {
 	poison := secondRow(SpellRule{ID: 6, School: 2, Area: true, Distribution: 3, SpellDuration: 5,
 		EffectKind: EffectHealth, EffectMode: EffectContinuous, EffectMagnitude: -2, EffectDuration: 8})

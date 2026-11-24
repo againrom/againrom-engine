@@ -8,10 +8,10 @@ import (
 // whole guard member (entity 2) of slot 3's Group 1 and a second foe.
 func strikeFixture(t *testing.T) *World {
 	t.Helper()
-	ents := []Entity{engFighter(leashHero, SelfSlot, 5, 5)}
-	m := engFighter(2, leashSlot, 20, 20)
+	ents := []Entity{engFighterOne(leashHero, SelfSlot, 5, 5)}
+	m := engFighterOne(2, leashSlot, 20, 20)
 	m.Group, m.ScanRange, m.HP, m.MaxHP = 1, leashSight, 400, 400
-	other := engFighter(3, leashSlot, 30, 30)
+	other := engFighterOne(3, leashSlot, 30, 30)
 	other.Group = 2
 	ents = append(ents, m, other)
 	rel := engRel(t, [3]uint32{leashSlot, SelfSlot, 1}, [3]uint32{SelfSlot, leashSlot, 2})

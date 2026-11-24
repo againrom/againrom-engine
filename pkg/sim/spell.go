@@ -317,6 +317,13 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, b
 		w.entities[ti].setCurrentHealth(int32(int64(w.entities[ti].HP) - amount))
 		w.reportHealthLoss(before, ti)
 		w.clearFelled(ti)
+		if rule.Second && ci >= 0 {
+			// The second game's arm stores the caster and the spell as the
+			// victim's killer on every hit that takes health (R2-ENGINE-1767);
+			// the kill route applies its own class, health and owner test.
+			w.entities[ti].KillCreditSource, w.entities[ti].HasKillCredit = w.entities[ci].ID, true
+			w.entities[ti].KillCreditSpell = int8(rule.ID)
+		}
 		if ci >= 0 {
 			hp := int64(w.entities[ci].HP) + amount
 			if hp > int64(w.entities[ci].MaxHP) {

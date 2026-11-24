@@ -204,20 +204,35 @@ func (e *Entity) clearKillCredit() {
 	e.KillCreditSource, e.HasKillCredit = 0, false
 }
 
-// chargeTicks is how long e's charge lasts: its own number, and ONE where that
-// number is below one.
-//
-// The floor is ours, and it buys REPRESENTABILITY rather than behaviour. A count
-// this returns is written straight into the countdown, and a negative one there
-// is a state the byte form refuses; the floor is what makes it impossible for any
-// site to store one, a later site that returns between the write and the blow
-// included. What it does NOT buy is a different cycle: the decrement below is
-// guarded on owing something, so a charge of nought and a charge of one load
-// counts that fire on the same advance and no tick can tell the two apart. That
-// is worth writing down because a floor usually IS behaviour, and this one is
-// not — the test that would witness it does not exist and cannot.
-func chargeTicks(e Entity) int64 {
-	if e.AttackCharge < 1 {
+type chargeZeroRule uint8
+
+const (
+	chargeZeroFloors chargeZeroRule = iota
+	chargeZeroWraps
+)
+
+// chargeZeroTicks is how long a charge byte of zero lasts: the first game
+// floors it at one (no tick tells nought from one there); the second game's
+// count wraps, so a byte of zero runs 256 steps (R2-ENGINE-1763).
+var chargeZeroTicks = [...]int64{chargeZeroFloors: 1, chargeZeroWraps: 256}
+
+// chargeTicks is how long e's charge lasts: its own number, a zero by the
+// game's rule, and ONE for a number below zero, which the byte form refuses.
+func (w *World) chargeTicks(e Entity) int64 {
+	if e.AttackCharge == 0 {
+		return chargeZeroTicks[w.game.chargeZero]
+	}
+	return chargeCeiling(e)
+}
+
+// chargeCeiling is the longest charge e can load under either game: its own
+// number, 256 for zero, and ONE below zero. attackFault bounds a stored
+// countdown by it, since a decoded entity carries no game.
+func chargeCeiling(e Entity) int64 {
+	switch {
+	case e.AttackCharge == 0:
+		return chargeZeroTicks[chargeZeroWraps]
+	case e.AttackCharge < 0:
 		return 1
 	}
 	return int64(e.AttackCharge)
@@ -311,9 +326,9 @@ func attackFault(e Entity) error {
 	case e.AttackCountdown < 0:
 		return fmt.Errorf("attack countdown is %d, which no tick can leave", e.AttackCountdown)
 	case (e.AttackPhase == AttackCharging || e.AttackPhase == AttackCasting) &&
-		int64(e.AttackCountdown) >= chargeTicks(e)+maxRangedExtra(e):
+		int64(e.AttackCountdown) >= chargeCeiling(e)+maxRangedExtra(e):
 		return fmt.Errorf("%d tick(s) owed on a charge of %d plus its ranged bound, which no tick can leave",
-			e.AttackCountdown, chargeTicks(e))
+			e.AttackCountdown, chargeCeiling(e))
 	case e.AttackPhase == AttackRelaxing && int64(e.AttackCountdown) > relaxTicks(e)+relaxJitter+12:
 		return fmt.Errorf("%d tick(s) owed on a relax of %d, whose longest is %d",
 			e.AttackCountdown, relaxTicks(e), relaxTicks(e)+relaxJitter+12)
@@ -760,13 +775,13 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		}
 		_, weaponSpellEligible := w.weaponSpell(*e)
 		weaponSpellEligible = weaponSpellEligible && !structure
-		e.startAction(w.tick, chargeTicks(*e)+relaxTicks(*e))
+		e.startAction(w.tick, w.chargeTicks(*e)+relaxTicks(*e))
 		if weaponSpellEligible {
 			e.AttackPhase = AttackCasting
-			e.AttackCountdown = int32(chargeTicks(*e))
+			e.AttackCountdown = int32(w.chargeTicks(*e))
 		} else {
 			e.AttackPhase = AttackCharging
-			e.AttackCountdown = int32(chargeTicks(*e) + flight)
+			e.AttackCountdown = int32(w.chargeTicks(*e) + flight)
 		}
 	}
 	if e.AttackCountdown > 0 {

@@ -15,6 +15,10 @@ func asWorld(t *testing.T, second bool, ents ...Entity) *World {
 	var s *Script
 	if second {
 		s = secondGameScript(t, nil, nil, nil)
+		// A charge byte of zero lasts 256 steps there; a fixture asks for one.
+		for i := range ents {
+			ents[i].AttackCharge = max(ents[i].AttackCharge, 1)
+		}
 	}
 	w, err := NewStockedSpelledWorld(1, Bounds{Width: 64, Height: 64}, ModeCanonical, Terrain{}, ents, s, rel, nil, nil, nil)
 	if err != nil {

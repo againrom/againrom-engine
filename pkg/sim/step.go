@@ -1957,20 +1957,15 @@ func indexOfEntity(ents []Entity, id EntityID) int {
 // 12+scriptCycle is ours, and the choice can only move the tick index a rung is
 // reached on, never the ladder itself.
 const (
-	decayCycle     = 2 * scriptCycle
-	decayLiveCycle = 4 * scriptCycle
-	decayPhase     = 12
+	decayCycle = 2 * scriptCycle
+	decayPhase = 12
 )
 
-// decayCycleFor is the period of the walk for a body at health hp: a body above
-// the first threshold is on the live list and loses a point every fourth full
-// tick, from the threshold down it is on the dead list, every second. Both carry
-// phase 12, which the live list's filter fixes.
-func decayCycleFor(hp int32) uint64 {
-	if LifeBones.Holds(int64(hp), 0, false) {
-		return decayCycle
-	}
-	return decayLiveCycle
+// decayAges reports whether the corpse ageing reaches a body at health hp: from
+// -10 down, where the death call set the dead state (DIV-5123). A body above -10
+// loses only the pool pass's point, and a body in the dead state loses none.
+func decayAges(hp int32) bool {
+	return LifeBones.Holds(int64(hp), 0, false)
 }
 
 // runNativeTickPhase runs the native tick's script, world and report passes
@@ -2046,7 +2041,7 @@ func nativeDecayStage(stage DecayStage) bool { return stage != DecayNone }
 // nativeDecayStep takes one health on the walk tick; it saturates at the
 // representation's floor rather than wrapping.
 func nativeDecayStep(w *World, e *Entity) {
-	if w.tick%decayCycleFor(e.HP) == decayPhase && e.InLife(LifeDecayWalk) {
+	if w.tick%decayCycle == decayPhase && decayAges(e.HP) && e.InLife(LifeDecayWalk) {
 		e.setCurrentHealth(e.HP - 1)
 	}
 }

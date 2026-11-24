@@ -109,6 +109,12 @@ type gameProfile struct {
 	castPay castPayRule
 	// blowRelation: reverse-hostility gate on area blows (blowRelationRules).
 	blowRelation blowRelationRule
+	// rayReach: the range bound on Prismatic Spray's side targets
+	// (rayReachRules, R2-ENGINE-1766).
+	rayReach rayReachRule
+	// chargeZero: how long a charge byte of zero lasts (chargeZeroTicks,
+	// R2-ENGINE-1763).
+	chargeZero chargeZeroRule
 	// bookWalkNoFallback: the engage book walk has no fallback row.
 	bookWalkNoFallback bool
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
@@ -180,8 +186,8 @@ type gameProfile struct {
 	// game restores nothing at health zero or below, an undying unit
 	// included (R2-ENGINE-1207).
 	regenLife LifeState
-	// regenBodyLoss: the pool pass takes one health from a unit below zero on
-	// every fourth pass, beside the decay walk (R2-ENGINE-1207).
+	// regenBodyLoss: the pool pass takes one health from a unit between -9 and
+	// -1 on every fourth pass (R2-ENGINE-1207).
 	regenBodyLoss bool
 	// decayWalk: the decay pass's walk rule (decayWalks).
 	decayWalk decayWalkRule
@@ -328,6 +334,8 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		paysFacingAim:              true,
 		castPay:                    castPayBeforeRefusal,
 		blowRelation:               blowRelationAreaGated,
+		rayReach:                   rayReachKeyed,
+		chargeZero:                 chargeZeroWraps,
 		bookWalkNoFallback:         true,
 		postKeepsDying:             true,
 		projectileAim:              aimAtSavedPoint,

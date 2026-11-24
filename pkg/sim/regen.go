@@ -55,11 +55,12 @@ func (w *World) regenPass() {
 	})
 }
 
-// regenBodyLoss takes one health from each on-map body the decay walk takes
-// from, on the pass the pool pass loses health in; the walk takes its own on top.
+// regenBodyLoss takes one health from each on-map body above -10 the decay walk
+// lists, on the pass the pool pass loses health in. From -10 down the body is in
+// the dead state, which the pool pass leaves alone (R2-ENGINE-1207).
 func (w *World) regenBodyLoss() {
 	for i := range w.entities {
-		if e := &w.entities[i]; !e.OffMap && e.Decay != DecayNone && e.InLife(LifeDecayWalk) {
+		if e := &w.entities[i]; !e.OffMap && e.Decay != DecayNone && e.InLife(LifeDecayWalk) && !decayAges(e.HP) {
 			e.setCurrentHealth(e.HP - 1)
 		}
 	}

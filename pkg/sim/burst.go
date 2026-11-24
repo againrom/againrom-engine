@@ -123,7 +123,7 @@ func (w *World) WindUpElapsed(id EntityID) (int, bool) {
 	if !ok || (e.AttackPhase != AttackCharging && e.AttackPhase != AttackCasting) || !e.ActionClock.Known {
 		return 0, false
 	}
-	total := chargeTicks(e) + relaxTicks(e)
+	total := w.chargeTicks(e) + relaxTicks(e)
 	left := int64(int32(e.ActionClock.End - uint32(w.tick)))
 	n := total - left
 	if n < 0 || n > total {

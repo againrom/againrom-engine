@@ -9,6 +9,7 @@ func secondGameActivityWorld(t *testing.T, controlledX, controlledY int32) *Worl
 	t.Helper()
 	s := secondGameScript(t, nil, []ScriptInstant{{Op: 39, Group: 9, HasGroup: true}}, nil)
 	enemy := engFighter(2, 2, 96, 96)
+	enemy.AttackCharge = 1
 	enemy.Group = 9
 	victim := engFighter(3, 3, 97, 96)
 	w, err := NewRelatedWorld(1, Bounds{Width: 128, Height: 128}, ModeCanonical, Terrain{}, []Entity{{ID: 1, Owner: SelfSlot, X: controlledX, Y: controlledY, HP: 20, MaxHP: 20}, enemy, victim}, s, engRel(t, [3]uint32{2, 3, 1}))

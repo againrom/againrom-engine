@@ -6,9 +6,9 @@ import "testing"
 // hostile at (12,5), in the game the profile names.
 func moveOntoEnemyWorld(t *testing.T, second bool, foeOwner uint32, foeX, foeY int32) *World {
 	t.Helper()
-	hero := engFighter(1, SelfSlot, 4, 5)
+	hero := engFighterOne(1, SelfSlot, 4, 5)
 	hero.HP, hero.MaxHP = 2000, 2000
-	foe := engFighter(2, foeOwner, foeX, foeY)
+	foe := engFighterOne(2, foeOwner, foeX, foeY)
 	foe.HP, foe.MaxHP = 2000, 2000
 	foe.DamageBase = 0
 	foe.ScanRange = 0
