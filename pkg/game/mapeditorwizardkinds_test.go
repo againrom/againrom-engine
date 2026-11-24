@@ -445,7 +445,7 @@ func TestTriggerWizardAsksToExtendTheMapForAConditionOnTheLastRegister(t *testin
 		wizPress(t, e, "", 0)
 		r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
 		trigClick(t, e, r, ok, "Apply")
-		want := x.inspectionUTF8(fmt.Sprintf(book.Text("editor.wizard.registers"), 99))
+		want := x.inspectionUTF8(fmt.Sprintf(book.Text("editor.wizard.registers"), 99, 100))
 		notes := strings.Join(strings.Fields(strings.Join(e.PromptNotes(), " ")), " ")
 		if !slices.Contains(e.OpenWindows(), "prompt") || !strings.HasPrefix(notes, strings.Join(strings.Fields(want), " ")) || strings.Contains(notes, "would share") || !bytes.Equal(before, e.Document().SourceBytes) {
 			t.Fatalf("%s: the condition on the last register did not ask to extend the map in the editor's words:\n%q", c.profile.Language, notes)

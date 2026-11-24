@@ -36,10 +36,6 @@ type ScriptSlot = scriptprofile.Slot
 // command (TRIG-GROUP-005); its signature follows that command.
 const ScriptGroupCommand = 6
 
-// scriptFollowCommand is the group command whose shipped nodes store the
-// target group in the slot after the command, not in the last slot.
-const scriptFollowCommand = 15
-
 // The Againrom operations' opcodes (DIV-4009).
 const (
 	opHealthBelow = uint32(sim.ScriptCheckHealthBelow)
@@ -49,10 +45,6 @@ const (
 // ScriptConstant is the build-time operation: a condition preset to its value
 // (TRIG-COND-003) or the action that is the drop cell (TRIG-DROP-013).
 const ScriptConstant = 0x10002
-
-type slots []ScriptSlot
-
-var group = ScriptSlot{Type: ScriptGroup, Role: "group"}
 
 // ScriptGroupCommands are the commands action 6 can be authored with
 // (TRIG-GROUP-005), in order.
@@ -65,26 +57,11 @@ var ScriptGroupCommands = func() []uint32 {
 // game's rows, and false when no claim states them. For an operation with
 // group commands, command is its first parameter.
 func ScriptSignatureIn(ops scriptprofile.Ops, condition bool, opcode, command uint32) ([10]ScriptSlot, bool) {
-	var out [10]ScriptSlot
 	row, ok := scriptprofile.OpRow(ops, condition, opcode)
 	if !ok {
-		return out, false
+		return [10]ScriptSlot{}, false
 	}
-	s := slots(row.Signature)
-	ok = row.HasSignature()
-	if len(row.Commands) > 0 {
-		// The command is the Const first parameter; the target group stands
-		// in the last slot, and for Follow in the slot after the command.
-		s, ok = row.CommandSignatures[command]
-		if ok && command == scriptFollowCommand {
-			s = append(slots{{Type: ScriptConst, Role: "command"}, group}, s...)
-		} else if ok {
-			s = append(slots{{Type: ScriptConst, Role: "command"}}, s...)
-			out[9] = group
-		}
-	}
-	copy(out[:], s)
-	return out, ok
+	return row.Slots(command)
 }
 
 // ScriptSignature is the first game's signature of an operation.

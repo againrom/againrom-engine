@@ -155,6 +155,18 @@ func (c InspectionScriptCatalog) signature(condition bool, opcode, command uint3
 	return c.Signature(condition, opcode, command)
 }
 
+// nodeSignature is the signature a node of opcode with command takes, and
+// that command: a group command whose command states none takes stand
+// ground, the command without parameters.
+func (c InspectionScriptCatalog) nodeSignature(condition bool, opcode, command uint32) ([10]InspectionScriptSlot, uint32, bool) {
+	sig, ok := c.signature(condition, opcode, command)
+	if !ok && !condition && opcode == scriptGroupCommand {
+		command = 3
+		sig, ok = c.signature(false, scriptGroupCommand, command)
+	}
+	return sig, command, ok
+}
+
 // InspectionScriptNode is one condition or action node.
 type InspectionScriptNode struct {
 	Record            int // its document record

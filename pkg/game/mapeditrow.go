@@ -46,10 +46,12 @@ type editRow struct {
 	// manyValues: one new record takes several values.
 	manyValues bool
 	// wholeScripts: a script node or trigger takes every field edit; off, an
-	// edit writes the parameter words of a decoded node or moves a trigger.
+	// edit writes the operation and parameter words of a decoded node or
+	// moves a trigger.
 	wholeScripts bool
-	// scriptRefusal and undecoded are the words of that narrower write.
-	scriptRefusal, undecoded string
+	// scriptRefusal, undecoded and unstated are the words of that narrower
+	// write; unstated refuses an operation whose slots no claim states.
+	scriptRefusal, undecoded, unstated string
 	// structureKind refuses a structure kind the format has no building for.
 	structureKind func(*MapInspector, int64) error
 	// kindTable says the install holds the table structureKind reads.
@@ -113,6 +115,7 @@ var editRows = map[alm.Format]*editRow{
 		playerRecords:  true,
 		structureOwner: true,
 		refusal:        "editor.map.secondtool", scriptRefusal: "editor.map.secondscript", undecoded: "editor.map.secondundecoded",
+		unstated:      "editor.map.secondunstated",
 		newSteps:      map[string]bool{"identity": true, "kind": true, "item": true}, // a new player takes the roster's defaults
 		structureKind: checkBuildingKind,
 		kindTable:     func(x *MapInspector) bool { return x.table != nil },

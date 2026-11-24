@@ -50,7 +50,7 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 		}
 	} else {
 		if k == mapedit.KindCondition && limits.Registers > 0 && m.Count(k) >= limits.Registers {
-			return 0, errChecksFull
+			return 0, errChecksFull(limits)
 		}
 		var err error
 		if id, err = m.NextScriptID(k); err != nil {
@@ -105,7 +105,7 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (_ *ui.InspectionDocument, s
 			}
 		}
 		if limits.Registers > 0 && len(sc.Conditions)+added > limits.Registers {
-			return false, s.checkWords(errChecksFull)
+			return false, s.checkWords(errChecksFull(limits))
 		}
 		if err := registerCollision(sc, added); err != nil {
 			return false, s.checkWords(err)
@@ -455,18 +455,37 @@ func scriptCoordinateAllowed(view *alm.Map, ops scriptprofile.Ops, k mapedit.Kin
 	if err != nil {
 		return err
 	}
-	n := scriptNodes(sc, k)[index]
+	return scriptSlotAllowed(view, ops, scriptNodes(sc, k)[index].Type[slot], value)
+}
+
+// scriptParamAllowed is the parameter check of the narrower node write: the
+// raw value of slot, of slot type typ, of a node of operation opcode. An int
+// or constant is signed; the register a variable operation names is held to
+// the profile's registers, then the value to the map.
+func scriptParamAllowed(view *alm.Map, limits scriptprofile.Profile, condition bool, opcode uint32, slot int, typ, raw uint32) error {
+	value := int64(raw)
+	if typ == mapload.ScriptInt || typ == mapload.ScriptConst {
+		value = int64(int32(raw))
+	}
+	if scriptAddressesVariable(condition, opcode) && slot == 0 && (value < 0 || value >= int64(limits.Registers)) {
+		return wordErr("editor.script.variableout", value, limits.Registers-1)
+	}
+	return scriptSlotAllowed(view, limits.Ops, typ, value)
+}
+
+// scriptSlotAllowed holds a value of slot type typ to the map.
+func scriptSlotAllowed(view *alm.Map, ops scriptprofile.Ops, typ uint32, value int64) error {
 	limit := 0
-	if n.Type[slot] == 5 {
+	if typ == 5 {
 		limit = view.Width
 	}
-	if n.Type[slot] == 6 {
+	if typ == 6 {
 		limit = view.Height
 	}
 	if limit > 0 && (value < 0 || value >= int64(limit)) {
 		return wordErr("editor.err.coordinate", value, limit-1)
 	}
-	return scriptObjectAllowed(view, ops, n.Type[slot], value)
+	return scriptObjectAllowed(view, ops, typ, value)
 }
 
 // scriptObjectAllowed refuses a parameter of the profile's object type whose

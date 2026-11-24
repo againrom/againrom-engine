@@ -44,7 +44,7 @@ func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (_ *ui.InspectionD
 func (s *mapInspectionEdits) checkWords(err error) error {
 	var taken registerTaken
 	if errors.As(err, &taken) {
-		err = lifted(err, "editor.wizard.registers", taken.register)
+		err = lifted(err, "editor.wizard.registers", taken.register, s.model.Profile().Registers)
 	}
 	return s.inspector.inLanguage(err)
 }
@@ -345,8 +345,15 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 	if err != nil {
 		return 0, err
 	}
+	// A format whose trigger window writes the narrower node edit holds a row's
+	// values to that edit's parameter check, in the same words.
+	narrow := !rowFor(m).wholeScripts
 	for s := 0; s < last; s++ {
-		if err := scriptObjectAllowed(view, m.Profile().Ops, n.Types[s], int64(n.Values[s])); err != nil {
+		err := scriptObjectAllowed(view, m.Profile().Ops, n.Types[s], int64(n.Values[s]))
+		if narrow {
+			err = scriptParamAllowed(view, m.Profile(), condition, n.Opcode, s, n.Types[s], n.Values[s])
+		}
+		if err != nil {
 			return 0, err
 		}
 		params = append(params, mapedit.ScriptParam{Type: n.Types[s], Value: n.Values[s]})
@@ -374,7 +381,7 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 	}
 	if condition {
 		if limits.Registers > 0 && len(sc.Conditions)+1 > limits.Registers {
-			return 0, errChecksFull
+			return 0, errChecksFull(limits)
 		}
 		if err := registerCollision(sc, 1); err != nil {
 			return 0, err

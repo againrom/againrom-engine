@@ -279,9 +279,160 @@ func (it wizItem) sourceValue() uint32 {
 const scriptConstantOp = 0x10002
 
 // wizardTables are each game's ready actions and conditions, keyed by its
-// operation vocabulary. The second game has none: every row of its trigger
-// reads as a kept row.
-var wizardTables = map[scriptprofile.Ops][2][]wizItem{scriptprofile.OpsFirst: {wizActions, wizConditions}}
+// operation vocabulary: the first game's lists, the second game's built from
+// its operation rows.
+var wizardTables = map[scriptprofile.Ops][2][]wizItem{
+	scriptprofile.OpsFirst:  {wizActions, wizConditions},
+	scriptprofile.OpsSecond: {opItems(scriptprofile.OpsSecond, false), opItems(scriptprofile.OpsSecond, true)},
+}
+
+// opItems are the ready items of a game's operation rows: one per offered
+// row whose slots and effect a claim reads, under its row's word, each slot
+// a parameter in the slot it fills. A check is compared with a number by the
+// comparison the row chooses. An operation with group commands gives one
+// item per slot layout of its commands, the first listed and the rest its
+// variants, each defaulting to its first command.
+func opItems(ops scriptprofile.Ops, condition bool) []wizItem {
+	var out []wizItem
+	for _, op := range scriptprofile.OpRows(ops, condition) {
+		if !op.Offered || !op.Decoded || op.Again || op.EffectUnread || op.ID >= scriptConstantOp {
+			continue
+		}
+		commands := op.Commands
+		if len(commands) == 0 {
+			commands = []uint32{0}
+		}
+		var layouts [][10]scriptprofile.Slot
+		for _, c := range commands {
+			slots, ok := op.Slots(c)
+			if !ok || slices.Contains(layouts, slots) {
+				continue
+			}
+			layouts = append(layouts, slots)
+			it := wizItem{labelWord: op.Word, opcode: op.ID, variant: len(layouts) > 1, params: slotParams(slots, int64(c))}
+			it.subject = paramSubject(it.params)
+			if condition {
+				it.params = append(it.params, wizParam{kind: wpNumber, labelWord: "editor.wizard.p.value", def: 1})
+				it.chooseCmp, it.rightParam = true, len(it.params)-1
+			}
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// slotParams are the parameters of a signature's slots, each standing in its
+// own slot: a cell its X and Y slots, two cells of the corner roles one box.
+// A unit, player, group, item, structure and command are chosen; any other
+// slot is a number under its role's word.
+func slotParams(slots [10]scriptprofile.Slot, c int64) []wizParam {
+	var out []wizParam
+	for s := 0; s < len(slots); s++ {
+		p, width := slotParam(slots[s], c), len(paramTypes(slotKind(slots[s])))
+		if p.kind == wpCell && s+3 < len(slots) && slots[s].Role == "corner" && slots[s+2].Role == "corner2" {
+			p = pArea
+			width = 4
+		}
+		if slots[s].Type == scriptNone {
+			continue
+		}
+		p.at = s + 1
+		out = append(out, p)
+		s += width - 1
+	}
+	return out
+}
+
+// slotKind is the parameter kind of a slot type.
+func slotKind(s scriptprofile.Slot) wizParamKind {
+	switch s.Type {
+	case scriptUnit:
+		return wpUnit
+	case scriptPlayer:
+		return wpPlayer
+	case scriptGroup:
+		return wpGroup
+	case scriptX:
+		return wpCell
+	case scriptItem:
+		return wpItem
+	case scriptStructure:
+		return wpStructure
+	case scriptConst:
+		return wpCommand
+	}
+	return wpNumber
+}
+
+// slotParam is the parameter of one slot, with the defaults of the first
+// game's parameter of its role where one is.
+func slotParam(s scriptprofile.Slot, c int64) wizParam {
+	switch slotKind(s) {
+	case wpUnit:
+		if s.Role == "unit2" {
+			return pUnit2
+		}
+		return pUnit
+	case wpPlayer:
+		if s.Role == "player2" {
+			return pToPlayer
+		}
+		return pPlayer
+	case wpGroup:
+		return pGroup
+	case wpCell:
+		if s.Role == "cell2" {
+			return pTo
+		}
+		return pPoint
+	case wpItem:
+		return pItem
+	case wpStructure:
+		return pStructure
+	case wpCommand:
+		return command(c)
+	}
+	p := wizParam{kind: wpNumber, labelWord: "editor.param.number", inNode: true}
+	if w, ok := signatureRoleWords[s.Role]; ok {
+		p.labelWord = w
+	}
+	p.def = roleDefaults[s.Role]
+	return p
+}
+
+// roleDefaults are the first game's defaults of a number by its role.
+var roleDefaults = map[string]int64{"spell": pSpell.def, "power": pPower.def, "time": pTime.def, "range": pRange.def, "money": 500}
+
+// paramSubject is the list heading of an item with params: the spells for
+// an item naming a spell, the items for one naming an item, else its first
+// parameter's subject, the mission for none.
+func paramSubject(params []wizParam) int {
+	if slices.ContainsFunc(params, func(p wizParam) bool { return p.labelWord == signatureRoleWords["spell"] }) {
+		return subjectSpells
+	}
+	if slices.ContainsFunc(params, func(p wizParam) bool { return p.kind == wpItem }) {
+		return subjectItems
+	}
+	if len(params) == 0 {
+		return subjectMission
+	}
+	switch params[0].kind {
+	case wpUnit:
+		return subjectUnits
+	case wpPlayer:
+		return subjectPlayers
+	case wpGroup, wpCommand:
+		return subjectGroups
+	case wpCell, wpBox:
+		return subjectCells
+	case wpStructure:
+		return subjectStructures
+	}
+	if params[0].labelWord == signatureRoleWords["variable"] {
+		return subjectVariables
+	}
+	return subjectMission
+}
 
 // wizItems are the ready conditions, or actions, of the map's game.
 func (e *MapEditor) wizItems(condition bool) []wizItem {

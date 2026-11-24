@@ -18,16 +18,15 @@ import (
 )
 
 // TestReleaseTriggerWizardOpensShippedTriggers opens every trigger of every
-// installed map in the wizard: each opens, each offers Details, and the
-// count of triggers every row of which is a ready item is logged. A row the
-// wizard cannot read shows as "Other" and stays as it is.
+// installed map of either game in the wizard: each opens, each offers
+// Details, and the count of triggers every row of which is a ready item is
+// logged. A row the wizard cannot read shows as "Other" and stays as it is.
 func TestReleaseTriggerWizardOpensShippedTriggers(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	total, full, partial, rowsAll, keptAll := 0, 0, 0, 0, 0
 	for _, key := range installedMapKeys(x) {
 		e := x.Editor()
-		e.Layout(1280, 800)
+		e.Layout(1920, 1080)
 		if err := e.Open(key); err != nil {
 			t.Fatal(key, err)
 		}

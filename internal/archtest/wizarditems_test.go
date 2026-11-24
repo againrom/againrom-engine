@@ -17,8 +17,9 @@ var wizardRowCode = map[string][]string{
 	"pkg/game/": {"writeWizardTrigger", "wizardNode"},
 }
 
-// wizardTables are the one item table's two halves.
-var wizardTables = map[string]bool{"wizConditions": true, "wizActions": true}
+// wizardTables are the one item table's two halves: the first game's lists
+// and opItems, which makes a game's items of its operation rows.
+var wizardTables = map[string]bool{"wizConditions": true, "wizActions": true, "opItems": true}
 
 func wizardSelector(e ast.Expr, names ...string) bool {
 	sel, ok := e.(*ast.SelectorExpr)
@@ -72,6 +73,9 @@ func checkWizardItems(name, src string) (found int, vs []string) {
 				}
 			}
 		}
+		if fn, ok := d.(*ast.FuncDecl); ok && fn.Recv == nil && wizardTables[fn.Name.Name] {
+			table[fn] = true
+		}
 	}
 	if strings.HasPrefix(name, "pkg/ui/") {
 		ast.Inspect(f, func(n ast.Node) bool {
@@ -79,7 +83,7 @@ func checkWizardItems(name, src string) (found int, vs []string) {
 				return false
 			}
 			if lit, ok := n.(*ast.CompositeLit); ok && lit.Type != nil && wizardItemType(lit.Type) {
-				vs = append(vs, name+": a wizard item built outside wizConditions and wizActions; an item is a row of the one table")
+				vs = append(vs, name+": a wizard item built outside wizConditions, wizActions and opItems; an item is a row of the one table")
 			}
 			return true
 		})
@@ -133,6 +137,8 @@ func TestCheckWizardItems(t *testing.T) {
 		{"a kind switch", "pkg/game/a.go", "package game\nfunc writeWizardTrigger(m *M, t T) error { switch n.Opcode { case 34: return nil }; return nil }\n", true},
 		{"a second table", "pkg/ui/a.go", "package ui\nvar wizMore = []wizItem{{opcode: 3}}\n", true},
 		{"an item built in code", "pkg/ui/a.go", "package ui\nfunc more() { _ = wizItem{opcode: 3} }\n", true},
+		{"the items of the operation rows", "pkg/ui/a.go", "package ui\nfunc opItems() []wizItem { return []wizItem{{opcode: op.ID}} }\n", false},
+		{"a method named as the builder", "pkg/ui/a.go", "package ui\nfunc (e *E) opItems() { _ = wizItem{opcode: 3} }\n", true},
 	}
 	for _, tc := range cases {
 		_, vs := checkWizardItems(tc.file, tc.src)

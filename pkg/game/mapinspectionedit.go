@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -137,7 +138,8 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 		err = raiseVariables(next)
 	}
 	err = s.checkWords(err)
-	if need := formNeeded(s.model, err, s.inspector.word); need != nil {
+	// A format with no Againrom script record refuses in its own words.
+	if need := formNeeded(s.model, err, s.inspector.word); need != nil && s.Offers(reflect.TypeFor[ui.InspectionScriptForm]()) {
 		return nil, need
 	}
 	if err != nil {

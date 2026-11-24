@@ -119,7 +119,7 @@ func TestFormQuestionForTheChecksIsInTheEditorsLanguage(t *testing.T) {
 		e := openHeroLabelMap(t, x, full)
 		_, err := formHost(e).AddScript(ui.KindCondition)
 		var need *ui.ScriptFormNeeded
-		want := words.For(c.profile.Language).Text("editor.wizard.checksfull")
+		want := fmt.Sprintf(words.For(c.profile.Language).Text("editor.wizard.checksfull"), 100)
 		if !errors.As(err, &need) || need.Why != want {
 			t.Fatalf("%s: the question reads %v, want %q", c.profile.Language, err, want)
 		}

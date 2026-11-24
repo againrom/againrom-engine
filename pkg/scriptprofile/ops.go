@@ -16,6 +16,7 @@ const (
 	slotUnit      = 4
 	slotX         = 5
 	slotY         = 6
+	slotConst     = 7
 	slotItem      = 8
 	slotStructure = 9
 )
@@ -60,10 +61,40 @@ type Op struct {
 	// CommandSignatures are the slots after the command parameter by
 	// command; the target group is added by the signature reader.
 	CommandSignatures map[uint32][]Slot
+	// EffectUnread is that a claim reads the operation's slots but not what
+	// it does: the trigger wizard offers no ready row of it.
+	EffectUnread bool
 }
 
 // HasSignature reports that a claim states the operation's parameter slots.
 func (o Op) HasSignature() bool { return o.Signature != nil }
+
+// followCommand is the group command whose shipped nodes store the target
+// group in the slot after the command, not in the last slot.
+const followCommand = 15
+
+// Slots are the ten parameter slots of the operation, false where no claim
+// states them. For an operation with group commands, command is its first
+// parameter: a Const slot, the target group in the last slot, and for
+// Follow in the slot after the command.
+func (o Op) Slots(command uint32) ([10]Slot, bool) {
+	var out [10]Slot
+	s, ok := o.Signature, o.HasSignature()
+	if len(o.Commands) > 0 {
+		s, ok = o.CommandSignatures[command]
+		head := []Slot{{slotConst, "command"}}
+		if ok && command == followCommand {
+			head = append(head, group...)
+		} else if ok {
+			out[9] = group[0]
+		}
+		s = append(head, s...)
+	}
+	if ok {
+		copy(out[:], s)
+	}
+	return out, ok
+}
 
 // Vocabulary is what differs between the games' operation vocabularies
 // beyond the rows: the fallback word of an operation with no word, whether
@@ -339,7 +370,8 @@ var secondActions = []Op{
 	{Ops: OpsSecond, ID: 22, Name: "Give each group member to player", Word: "editor.second.action.22", Decoded: true, Offered: true, Signature: sig(group, player("player"))},                                   // R2-ENGINE-1745
 	{Ops: OpsSecond, ID: 23, Name: "Add gold to player", Word: "editor.second.action.23", Decoded: true, Offered: true, Signature: sig(player("player"), number("money"))},                                       // R2-ENGINE-1746
 	{Ops: OpsSecond, ID: 24, Name: "Cast spell from cell at unit", Word: "editor.second.action.24", Decoded: true, Offered: true, Signature: sig(cell("cell"), unit("unit"), number("spell"), number("power"))},  // R2-ENGINE-1742
-	{Ops: OpsSecond, ID: 25, Name: "Cell descriptor of eight bytes", Word: "editor.second.action.25", Decoded: true, Offered: true, Signature: sig(number(""), number(""), cell("cell"), cell("cell2"), cell(""))},
+	// The terrain effect of the eight bytes is unread.
+	{Ops: OpsSecond, ID: 25, Name: "Cell descriptor of eight bytes", Word: "editor.second.action.25", Decoded: true, Offered: true, EffectUnread: true, Signature: sig(number(""), number(""), cell("cell"), cell("cell2"), cell(""))},
 	{Ops: OpsSecond, ID: 28, Name: "Move unit's bag into the second unit's bag", Word: "editor.second.action.28", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},                        // R2-ENGINE-1748
 	{Ops: OpsSecond, ID: 29, Name: "Set time left of a spell's area effects at cell", Word: "editor.second.action.29", Decoded: true, Offered: true, Signature: sig(cell("cell"), number("spell"), number("time"))}, // R2-ENGINE-1749
 	{Ops: OpsSecond, ID: 30, Name: "Set duration of a spell's effects on unit", Word: "editor.second.action.30", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("spell"), number("time"))},       // R2-ENGINE-1749
@@ -352,7 +384,8 @@ var secondActions = []Op{
 	{Ops: OpsSecond, ID: 39, Name: "Clear group forced activity", Word: "editor.second.action.39", Decoded: true, Offered: true, Signature: sig(group)},
 	// The compiler appends the node's value slots 0 and 1 as bytes to a list
 	// whatever trigger names it (R2-ENGINE-042, R2-ENGINE-1727): a trigger
-	// copy names the same node, so the list gains no entry.
+	// copy names the same node, so the list gains no entry. The list's reader
+	// is unread.
 	{Ops: OpsSecond, ID: constantOp, Name: "Compiler parameter", Word: "editor.second.action.65538", Decoded: true, Offered: true, Signature: sig(cell("")),
-		CopyNamed: true},
+		CopyNamed: true, EffectUnread: true},
 }

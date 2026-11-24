@@ -74,7 +74,7 @@ func questionWindows() []questionWindow {
 			e.message = fmt.Sprintf(e.plainWord("editor.newmap.badheight"), "130")
 		}},
 		{"scriptform", func(e *MapEditor) {
-			e.openPrompt(editorPrompt{kind: promptScriptForm, form: &formPrompt{need: &ScriptFormNeeded{Why: e.plainWord("editor.wizard.checksfull")}}})
+			e.openPrompt(editorPrompt{kind: promptScriptForm, form: &formPrompt{need: &ScriptFormNeeded{Why: fmt.Sprintf(e.plainWord("editor.wizard.checksfull"), 100)}}})
 		}},
 		{"scriptfold", func(e *MapEditor) {
 			e.openPrompt(editorPrompt{kind: promptScriptForm, form: &formPrompt{need: &ScriptFormNeeded{Fold: true, Why: e.plainWord("editor.scriptform.fits")}}})

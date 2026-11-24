@@ -344,7 +344,13 @@ func (e *MapEditor) scriptFields(v scriptView) []InspectionField {
 		extended := e.doc.Script != nil && e.doc.Script.Extended
 		return e.triggerFields(t, len(t.Left), len(t.Acts), extended)
 	}
-	fields := e.nodeFields(v, e.obj.types, v.node.Opcode, groupCommand(v.condition, v.node.Opcode, v.node.Values))
+	return e.nodeEditFields(v, e.obj.types, v.node.Opcode, groupCommand(v.condition, v.node.Opcode, v.node.Values))
+}
+
+// nodeEditFields are a node's fields for its slot types as the popup edits
+// them: on a second-game map with the fields it keeps shown only.
+func (e *MapEditor) nodeEditFields(v scriptView, types [10]uint32, opcode, command uint32) []InspectionField {
+	fields := e.nodeFields(v, types, opcode, command)
 	if e.secondScript() {
 		fields = e.secondNodeFields(v, fields)
 	}
@@ -357,14 +363,22 @@ func (e *MapEditor) secondScript() bool {
 	return e.doc != nil && e.doc.Script != nil && scriptprofile.VocabularyOf(e.doc.Script.Profile().Ops).ReadOnlyUndecoded
 }
 
-// secondNodeFields keeps the label and the parameter fields of a decoded
-// operation editable. The operation and the trigger row are shown only, and
-// so is every field of an operation no claim decodes.
+// secondNodeFields keeps the label, the operation and the parameter fields
+// of a decoded operation editable. The trigger row is shown only, and so is
+// every field of an operation no claim decodes.
 func (e *MapEditor) secondNodeFields(v scriptView, fields []InspectionField) []InspectionField {
-	decoded := e.doc.Script.Catalog.named(v.condition, v.node.Opcode)
+	c := e.doc.Script.Catalog
+	decoded := c.named(v.condition, v.node.Opcode)
 	for i := range fields {
 		f := &fields[i]
-		f.ReadOnly = !decoded || f.Key != "name" && !strings.HasPrefix(f.Key, "value") && !strings.HasPrefix(f.Key, "cell")
+		f.ReadOnly = !decoded || f.Key != "name" && f.Key != "opcode" && !strings.HasPrefix(f.Key, "value") && !strings.HasPrefix(f.Key, "cell")
+		if f.Key == "opcode" {
+			// A node changes only to an operation whose slots a claim states.
+			f.Choices = slices.DeleteFunc(slices.Clone(f.Choices), func(o InspectionChoice) bool {
+				_, _, ok := c.nodeSignature(v.condition, uint32(o.Value), 0)
+				return !ok && uint32(o.Value) != v.node.Opcode
+			})
+		}
 	}
 	return fields
 }
@@ -546,11 +560,10 @@ func (e *MapEditor) retypeNode() {
 		return
 	}
 	o.signature = key
-	sig, ok := e.doc.Script.Catalog.signature(v.condition, uint32(opcode), uint32(command))
-	if !ok && !v.condition && opcode == scriptGroupCommand {
-		command, o.signature[1] = 3, 3 // stand ground, the command without parameters
-		text["value0"] = "3"
-		sig, ok = e.doc.Script.Catalog.signature(false, scriptGroupCommand, 3)
+	sig, stated, ok := e.doc.Script.Catalog.nodeSignature(v.condition, uint32(opcode), uint32(command))
+	if int64(stated) != command {
+		command, o.signature[1] = int64(stated), int64(stated)
+		text["value0"] = strconv.FormatInt(command, 10)
 	}
 	old := o.types
 	if ok {
@@ -558,7 +571,7 @@ func (e *MapEditor) retypeNode() {
 			o.types[s] = sig[s].Type
 		}
 	}
-	o.fields = e.nodeFields(v, o.types, uint32(opcode), uint32(command))
+	o.fields = e.nodeEditFields(v, o.types, uint32(opcode), uint32(command))
 	o.buf = o.buf[:0]
 	for _, f := range o.fields {
 		b := fieldInput(f)
