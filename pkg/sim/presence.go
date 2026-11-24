@@ -204,10 +204,9 @@ func (w *World) enterPresenceCells(i int) {
 // Unknown (`TRIG-RETURN-042`): the routine was not read. This build's answer is
 // authored on that seam and provenance.md names it.
 //
-// IT IS A LINEAR SCAN AND NOT A routeScratch. placementOpen owns that scan
-// because the script pass runs before the tick's scratch plane is built. It
-// reads counted, which is the seed's own predicate, and the shared footprint
-// geometry, so the two cannot disagree about who covers a cell.
+// IT IS THE ROUTE PLANNER'S OWN OCCUPANCY PREDICATE over a plan built here from
+// the entities as they stand (placementOpen), so placement and routing cannot
+// disagree about who covers a cell.
 //
 // THE ASKER IS SKIPPED. It is off the map at every call this package makes, so
 // counted already answers false for it; skipping by index says so once rather

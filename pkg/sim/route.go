@@ -595,34 +595,17 @@ func footprintsOverlap(ax, ay int32, as uint8, bx, by int32, bs uint8) bool {
 	return ax < bx+bn && bx < ax+an && ay < by+bn && by < ay+an
 }
 
-// placementOpen is the linear fit test used before the tick's route scratch
-// exists: every destination cell is terrain-open and no other counted actor on
-// the mover's occupancy layer overlaps any part of the destination footprint.
+// placementOpen is the fit test outside a search: terrain-open on every cell and
+// admitted by occupancyOpenFootprint over a pooled one-off plan.
 func (w *World) placementOpen(self int, x, y int32) bool {
 	e := w.entities[self]
 	if !w.terrainOpenFootprint(e, x, y) {
 		return false
 	}
-	if w.savedMotion != nil || w.savedCellPlanes != nil {
-		return w.occupancyOpenFootprint(newRouteScratch(w), self, x, y)
-	}
-	layer := e.Domain.layer()
-	for j := range w.entities {
-		if j == self {
-			continue
-		}
-		o := w.entities[j]
-		if !counted(&o) || o.Domain.layer() != layer {
-			continue
-		}
-		if footprintsOverlap(x, y, e.TokenSize, o.X, o.Y, o.TokenSize) {
-			return false
-		}
-		if c, held := o.heldCell(); held && footprintsOverlap(x, y, e.TokenSize, c.x, c.y, o.TokenSize) {
-			return false
-		}
-	}
-	return true
+	s := tickRouteScratch(w)
+	ok := w.occupancyOpenFootprint(s, self, x, y)
+	releaseRouteScratch(s)
+	return ok
 }
 
 // occupancyOpenFootprint is placementOpen's scratch-backed occupancy half.

@@ -80,6 +80,20 @@ func TestCellEntry1084AttemptPrecedesOccupancyButNotSearch(t *testing.T) {
 	if len(w.casts) != 2 || w.cellTails[0].Bytes != ([6]byte{13, 1, 9, 10, 11, 12}) {
 		t.Fatal("repeat attempt mutated or consumed the binding")
 	}
+	t.Run("unbound imported slot", func(t *testing.T) {
+		w.cellRecords = []SavedActorCell{{Cell: 6<<8 | 5, Ground: SavedActorSlot{Key: 0x1234}}}
+		s := newRouteScratch(w)
+		for y := int32(0); y < 12; y++ {
+			for x := int32(0); x < 12; x++ {
+				if got, want := w.placementOpen(0, x, y), w.enterable(s, 0, x, y); got != want {
+					t.Fatalf("(%d,%d): placementOpen=%v enterable=%v", x, y, got, want)
+				}
+			}
+		}
+		if w.placementOpen(0, 5, 6) {
+			t.Fatal("unbound slot cell accepted")
+		}
+	})
 }
 
 func TestCellEntry1084UsesOrdinaryProtectionAndEveryCoveredCell(t *testing.T) {
