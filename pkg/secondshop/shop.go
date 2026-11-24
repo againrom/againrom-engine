@@ -139,11 +139,16 @@ func SaleCell(price int64) int64 { return (price + 1) / 2 }
 // priceCap is the total price ceiling (R2-ENGINE-267).
 const priceCap = 19999999
 
-// EffectPrice is the price of an effect of size S other than a spell:
-// trunc(50*S*(1+(S/70)^1.5)) (R2-ENGINE-267).
+// EffectPrice is the one surcharge an item's ordinary effects add, S being
+// the sum of their sizes: trunc((pow(S/70, 1.5)+1)*S*50), the first
+// multiplication in that order (R2-ENGINE-1764). A sum past the price cap
+// returns the cap, which the total reaches whatever the base.
 func EffectPrice(s int) int64 {
+	if s <= 0 {
+		return 0
+	}
 	v := float64(s)
-	return int64(50 * v * (1 + math.Pow(v/70, 1.5)))
+	return int64(min((math.Pow(v/70, 1.5)+1)*v*50, priceCap))
 }
 
 // SpellEffectPrice is the price of an enchanted spell of base c20 at level L:

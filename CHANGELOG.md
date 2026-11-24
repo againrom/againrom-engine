@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] An enchanted armour, shield or weapon now costs its base plus one surcharge on the sum of its effect sizes, as in the original; before, each effect was priced alone, so two effects of 70 cost 14000 instead of 26798.
 - [ROM2] A fallen body above -10 health now loses health half as fast as one below -10, as in the original; before, every fallen body lost it at the faster rate.
 - [ROM2] An enemy's card now opens its groups by your kills of that kind for every creature, humanoid ones and kinds such as the catapult included, as in the original; before, many showed blank stats however many you killed.
 - [ROM2] The pick-up key no longer sends a hero after a sack lying where he cannot stand; a sack under his feet is still taken, as in the original.

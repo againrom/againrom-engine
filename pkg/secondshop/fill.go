@@ -189,11 +189,11 @@ func (t Tables) enchant() shopstock.Enchant {
 		CastSpells:     castSpells,
 		CastPriceTimes: [2]int64{100, 10},
 		PointsPrice: func(points []int32) int64 {
-			p := int64(0)
+			s := 0
 			for _, n := range points {
-				p += EffectPrice(int(n))
+				s += int(n)
 			}
-			return p
+			return EffectPrice(s)
 		},
 		PriceCap:       priceCap,
 		CastInCapacity: true,
