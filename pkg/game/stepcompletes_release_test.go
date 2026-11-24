@@ -13,11 +13,12 @@ import (
 // stepFigure is where the figure is drawn, in cells: the cell it entered, less
 // the part of the step still owed.
 func stepFigure(e sim.Entity) (float64, float64) {
-	x, y := float64(e.X), float64(e.Y)
+	sx, sy := e.StepCell()
+	x, y := float64(sx), float64(sy)
 	if e.Transit > 0 && e.Stride.Present && e.TransitTotal > 0 {
 		f := float64(e.Transit) / float64(e.TransitTotal)
-		x -= float64(e.X-e.Stride.FromX) * f
-		y -= float64(e.Y-e.Stride.FromY) * f
+		x -= float64(sx-e.Stride.FromX) * f
+		y -= float64(sy-e.Stride.FromY) * f
 	}
 	return x, y
 }
@@ -71,7 +72,8 @@ func TestReleaseSpellClickMidStepCompletesTheStep(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	f, mage, foe := spellClickFixture(t)
 	e := stepWalking(t, f, mage)
-	cell := [2]int32{e.X, e.Y}
+	cx, cy := e.StepCell()
+	cell := [2]int32{cx, cy}
 	px, py := stepFigure(e)
 	mana := e.Mana
 	f.live.attackOrCast(uint32(mage.ID), uint32(foe.ID), 1, 0, 0, false)

@@ -76,7 +76,9 @@ func TestReleaseMinimapRetiresAFallenMercenaryDot(t *testing.T) {
 		}
 		party = append(party, member{id: e.ID, start: image.Pt(int(e.X), int(e.Y)), merc: merc})
 	}
-	cellOf := func(e sim.Entity) image.Point { return image.Pt(int(e.X), int(e.Y)) }
+	// A unit on a step is marked at the cell its step enters; its logical
+	// cell stays the origin until the crossing.
+	cellOf := drawnCell
 	fogAt := func(fe *FrontEnd, c image.Point) uint8 {
 		if c.X < 0 || c.Y < 0 || c.X >= fe.live.fog.cols || c.Y >= fe.live.fog.rows {
 			return ui.FogUnseen

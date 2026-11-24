@@ -147,8 +147,10 @@ func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
 			sim.Step(treated, nil)
 		}
 		for id, e := range stood {
-			if got, _ := treated.Entity(id); got.X != e.X || got.Y != e.Y || got.HasTarget {
-				t.Fatalf("group %d member %d moved from (%d,%d) to (%d,%d) after Stand Ground", a.node.Group, id, e.X, e.Y, got.X, got.Y)
+			// A member on a step finishes it: it stops on the cell the step enters.
+			sx, sy := e.StepCell()
+			if got, _ := treated.Entity(id); got.X != sx || got.Y != sy || got.HasTarget {
+				t.Fatalf("group %d member %d moved from (%d,%d) to (%d,%d) after Stand Ground", a.node.Group, id, sx, sy, got.X, got.Y)
 			}
 		}
 		form, err := treated.MarshalBinary()
@@ -196,8 +198,9 @@ func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
 			back.live.tick()
 		}
 		for id, e := range stood {
-			if got, _ := back.live.entity(id); got.X != e.X && got.Y != e.Y {
-				t.Fatalf("loaded member %d left (%d,%d) for (%d,%d)", id, e.X, e.Y, got.X, got.Y)
+			sx, sy := e.StepCell()
+			if got, _ := back.live.entity(id); got.X != sx && got.Y != sy {
+				t.Fatalf("loaded member %d left (%d,%d) for (%d,%d)", id, sx, sy, got.X, got.Y)
 			}
 		}
 		if witnessed == 0 {

@@ -38,10 +38,33 @@ func insertFixtureRuntimeIDs(w *sim.World) *sim.World {
 	return w
 }
 
+// beforeWalkRefreshForm peels the outermost walk-refresh wrapper (version 145,
+// tag WLK1: section, uint32 span, base version, tag) off a World form. Every
+// older form held none, so the peel drops the section's records.
+func beforeWalkRefreshForm(t *testing.T, form []byte) []byte {
+	t.Helper()
+	if len(form) == 0 || form[0] != 145 {
+		return form
+	}
+	end := len(form)
+	if end < 47 || string(form[end-4:]) != "WLK1" || form[end-5] >= 145 {
+		t.Fatal("invalid walk-refresh wrapper")
+	}
+	span := uint64(binary.LittleEndian.Uint32(form[end-9:]))
+	if span > uint64(end-9-38) {
+		t.Fatal("invalid walk-refresh span", span)
+	}
+	base := form[end-5]
+	form = bytes.Clone(form[:end-9-int(span)])
+	form[0] = base
+	return form
+}
+
 // beforeRuntimeIDForm peels the outer runtime-id wrapper (version 128, tag
 // RID1: section, uint32 span, base version, tag) off a World form.
 func beforeRuntimeIDForm(t *testing.T, form []byte) []byte {
 	t.Helper()
+	form = beforeWalkRefreshForm(t, form)
 	if len(form) == 0 || form[0] != 128 {
 		return form
 	}
