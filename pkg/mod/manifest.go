@@ -14,15 +14,15 @@
 //   - values that are a basic string ("..." with the escapes \" \\ \n \r \t), a
 //     literal string ('...'), or a one-line array of such strings, each followed
 //     by an optional '#' comment;
-//   - a table header ("[name]" or "[[name]]") ends the top-level keys; every
-//     line after it is ignored.
+//   - a table header ("[name]") ends the top-level keys; the lines after it
+//     are read by the same rules and then ignored, so a malformed one is an
+//     error with its line.
 //
 // A top-level key that is not one of ManifestKeys, or one given twice, is an
 // error. id, title and version are required.
 package mod
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -30,7 +30,6 @@ import (
 	"regexp"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 
 	"againrom/pkg/base"
@@ -76,51 +75,22 @@ func ParseManifest(data []byte, authoring ...bool) (Manifest, error) {
 	}
 	var m Manifest
 	seen := map[string]bool{}
-	lines := strings.Split(string(bytes.TrimPrefix(data, utf8BOM)), "\n")
-	for n := 0; n < len(lines); n++ {
-		t := strings.TrimSpace(lines[n])
-		if t == "" || t[0] == '#' {
-			continue
-		}
-		if t[0] == '[' {
-			break
-		}
-		eq := strings.IndexByte(t, '=')
-		if eq <= 0 {
-			return Manifest{}, fmt.Errorf("line %d: expected key = value", n+1)
-		}
-		key := strings.TrimSpace(t[:eq])
-		if !validKey(key) {
-			return Manifest{}, fmt.Errorf("line %d: %q is not a plain key", n+1, key)
-		}
-		if seen[key] {
-			return Manifest{}, fmt.Errorf("line %d: %s is given twice", n+1, key)
-		}
-		seen[key] = true
-		val := strings.TrimSpace(t[eq+1:])
-		row, ok := ManifestKeyNamed(key)
+	tables, err := parseTOMLWith(data, tomlOptions{})
+	if err != nil {
+		return Manifest{}, err
+	}
+	for _, p := range tables[0].pairs {
+		row, ok := ManifestKeyNamed(p.key)
 		if !ok {
-			return Manifest{}, fmt.Errorf("line %d: %q is not a mod.toml key; the keys are %s", n+1, key, strings.Join(manifestKeyNames(), ", "))
+			return Manifest{}, fmt.Errorf("line %d: %q is not a mod.toml key; the keys are %s", p.line, p.key, strings.Join(manifestKeyNames(), ", "))
 		}
-		var value any
-		var err error
-		switch row.Value {
-		case ManifestString:
-			value, err = parseString(val)
-		case ManifestInt:
-			value, err = parseInt(val)
-		default:
-			if row.Continued {
-				val, n, _, _ = continueList(val, lines, n)
-				val = strings.TrimSpace(val)
-			}
-			value, err = parseStrings(val)
-		}
+		seen[p.key] = true
+		value, err := manifestValue(row, p)
 		if err != nil {
 			if !strict && row.Lenient {
 				continue
 			}
-			return Manifest{}, fmt.Errorf("line %d: %s: %w", n+1, key, err)
+			return Manifest{}, fmt.Errorf("line %d: %s: %w", p.line, p.key, err)
 		}
 		row.Set(&m, value)
 	}
@@ -160,6 +130,41 @@ func ParseManifest(data []byte, authoring ...bool) (Manifest, error) {
 		}
 	}
 	return m, nil
+}
+
+// manifestValue is the value of pair p as the key row wants it: a string, an
+// int, or a list of strings, a lone string being a list of one.
+func manifestValue(row ManifestKey, p tomlPair) (any, error) {
+	v := p.val
+	switch row.Value {
+	case ManifestString:
+		if v.kind != tomlString {
+			return nil, errors.New("expected a quoted string")
+		}
+		return v.str, nil
+	case ManifestInt:
+		if v.kind != tomlInt || int64(int(v.num)) != v.num {
+			return nil, errors.New("expected an integer")
+		}
+		return int(v.num), nil
+	}
+	if p.last > p.line && !row.Continued {
+		return nil, errors.New("the array must be on one line")
+	}
+	if v.kind == tomlString {
+		return []string{v.str}, nil
+	}
+	if v.kind != tomlArray {
+		return nil, errors.New("expected a quoted string or an array of them")
+	}
+	var out []string
+	for _, item := range v.list {
+		if item.kind != tomlString {
+			return nil, errors.New("expected a quoted string")
+		}
+		out = append(out, item.str)
+	}
+	return out, nil
 }
 
 func validKey(k string) bool {
@@ -253,18 +258,6 @@ func continueList(first string, lines []string, n int) (string, int, string, boo
 	return code, last, tail, depth <= 0
 }
 
-// parseString reads one string value and the optional comment after it.
-func parseString(v string) (string, error) {
-	s, rest, err := readString(v)
-	if err != nil {
-		return "", err
-	}
-	if err := onlyComment(rest); err != nil {
-		return "", err
-	}
-	return s, nil
-}
-
 func onlyComment(rest string) error {
 	rest = strings.TrimSpace(rest)
 	if rest != "" && rest[0] != '#' {
@@ -330,54 +323,6 @@ func readString(v string) (value, rest string, err error) {
 		return "", "", errors.New("unterminated string")
 	}
 	return "", "", errors.New("expected a quoted string")
-}
-
-// parseInt reads a decimal integer and the optional comment after it.
-func parseInt(v string) (int, error) {
-	end := 0
-	for end < len(v) && (v[end] >= '0' && v[end] <= '9' || end == 0 && (v[end] == '-' || v[end] == '+')) {
-		end++
-	}
-	if end == 0 {
-		return 0, errors.New("expected an integer")
-	}
-	n, err := strconv.Atoi(v[:end])
-	if err != nil {
-		return 0, fmt.Errorf("%q is not an integer", v[:end])
-	}
-	if err := onlyComment(v[end:]); err != nil {
-		return 0, err
-	}
-	return n, nil
-}
-
-// parseStrings reads a string or a one-line array of strings.
-func parseStrings(v string) ([]string, error) {
-	if !strings.HasPrefix(v, "[") {
-		s, err := parseString(v)
-		if err != nil {
-			return nil, err
-		}
-		return []string{s}, nil
-	}
-	rest := strings.TrimSpace(v[1:])
-	var out []string
-	for {
-		if strings.HasPrefix(rest, "]") {
-			return out, onlyComment(rest[1:])
-		}
-		s, after, err := readString(rest)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, s)
-		rest = strings.TrimSpace(after)
-		if strings.HasPrefix(rest, ",") {
-			rest = strings.TrimSpace(rest[1:])
-		} else if !strings.HasPrefix(rest, "]") {
-			return nil, errors.New("expected ',' or ']' in the array")
-		}
-	}
 }
 
 // Entry is one mod, a folder or a packed RES file, and what reading it gave.

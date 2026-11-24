@@ -8,7 +8,7 @@ import (
 
 func TestOrdinaryLoadKeepsDocumentaryMetadataAndIgnoredOrderingEntries(t *testing.T) {
 	for _, extra := range []string{
-		"author = ['A', 'B']", "author = 5", "description = 42", "description = ['notes']", "description = \"\"\"multi\"\"\"",
+		"author = ['A', 'B']", "author = 5", "description = 42", "description = ['notes']",
 		"conflicts = ['Old_Mod!']", "load-after = ['Other Mod']",
 	} {
 		t.Run(extra, func(t *testing.T) {

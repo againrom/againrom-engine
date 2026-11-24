@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseManifestReadsTheFourFields(t *testing.T) {
-	src := "# a mod\nid = \"dark-rules\"   # trailing\ntitle = 'Dark \"rules\"'\nversion = \"1.2.0\"\napplies-to = [\"en\", \"ru\"]\nrequires = [\n  \"base\", # multi\n  \"other\",\n]\nauthor = \"A\"\n\n[extra]\nid = \"ignored\"\nnot a pair at all\n"
+	src := "# a mod\nid = \"dark-rules\"   # trailing\ntitle = 'Dark \"rules\"'\nversion = \"1.2.0\"\napplies-to = [\"en\", \"ru\"]\nrequires = [\n  \"base\", # multi\n  \"other\",\n]\nauthor = \"A\"\n\n[extra]\nid = \"ignored\"\n"
 	m, err := ParseManifest([]byte(src))
 	if err != nil {
 		t.Fatal(err)

@@ -203,8 +203,8 @@ func MoveSpeakerMaps(src []byte, moves []FileMove) (out []byte, moved bool, err 
 			continue
 		}
 		line := s.fieldLine("map") - 1
-		if lines[line], err = rewritePair(lines[line], writeString(moves[i].To)); err != nil {
-			return nil, false, err
+		if _, err = rewritePair(lines, line, 0, writeString(moves[i].To)); err != nil {
+			return nil, false, fmt.Errorf("line %d: %w", line+1, err)
 		}
 		moved = true
 	}

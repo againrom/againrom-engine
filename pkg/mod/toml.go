@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -275,4 +276,63 @@ func wordEnd(v string, i int) bool {
 	}
 	c := v[i]
 	return !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-')
+}
+
+// sameTOMLValue reports whether a and b read as one value; a lone string is
+// the list of it, as the manifest reads a list key.
+func sameTOMLValue(a, b tomlValue) bool {
+	one := func(v tomlValue) tomlValue {
+		if v.kind == tomlString {
+			return tomlValue{kind: tomlArray, list: []tomlValue{v}}
+		}
+		return v
+	}
+	return reflect.DeepEqual(one(a), one(b))
+}
+
+// rewritePair is the one pair writer of the manifest and the data files: the
+// pair whose "=" is first at or after byte from of lines[n] takes value, and
+// its value's lines after the first are emptied; last is the line the pair
+// ended on. The value's own text is read strictly; an old value equal to value
+// leaves every line as it was, a comment after the value stays, and so does
+// the text before the value.
+func rewritePair(lines []string, n, from int, value string) (last int, err error) {
+	line := lines[n]
+	eq := strings.IndexByte(line[from:], '=')
+	if eq < 0 {
+		return n, errors.New("missing assignment")
+	}
+	start := from + eq + 1
+	for start < len(line) && (line[start] == ' ' || line[start] == '\t') {
+		start++
+	}
+	key := strings.TrimSpace(strings.TrimPrefix(line[:from+eq], string(utf8BOM)))
+	code, last, tail, closed := continueList(line[start:], lines, n)
+	if !closed {
+		return n, fmt.Errorf("%s: the array is not closed", key)
+	}
+	old, rest, err := parseTOMLValue(code)
+	if err == nil {
+		err = onlyComment(rest)
+	}
+	if err != nil {
+		return n, fmt.Errorf("%s: %w", key, err)
+	}
+	next, _, err := parseTOMLValue(value)
+	if err != nil {
+		return n, fmt.Errorf("%s: new value: %w", key, err)
+	}
+	if last == n {
+		tail = line[start+len(code):]
+	}
+	span := strings.Join(lines[n+1:last+1], "")
+	if sameTOMLValue(old, next) {
+		lines[n] = line + span
+	} else {
+		lines[n] = line[:start] + value + tail
+	}
+	for k := n + 1; k <= last; k++ {
+		lines[k] = ""
+	}
+	return last, nil
 }

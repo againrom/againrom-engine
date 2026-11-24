@@ -249,19 +249,14 @@ func writeRows(source []byte, before, after []sourceRow, pad func(string) string
 			// a whole: they are replaced by one line or all removed.
 			line, last := p.line-t.line, p.last-t.line
 			if value, ok := newValues[p.key]; ok {
-				if last == line {
-					block[line], err = rewritePair(block[line], value)
-				} else {
-					block[line], err = rewriteSpan(block[line], block[last], value)
-				}
+				_, err = rewritePair(block, line, 0, value)
 			} else {
-				block[line] = ""
-			}
-			for k := line + 1; k <= last; k++ {
-				block[k] = ""
+				for k := line; k <= last; k++ {
+					block[k] = ""
+				}
 			}
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("line %d: %w", p.line, err)
 			}
 		}
 		text := strings.Join(block, "") + tails[index]
@@ -282,43 +277,6 @@ func writeRows(source []byte, before, after []sourceRow, pad func(string) string
 	return []byte(out.String()), nil
 }
 
-// rewriteSpan is the pair that opens on first and ends on last, a value over
-// lines, made one line holding value up to last's line end.
-func rewriteSpan(first, last, value string) (string, error) {
-	eq := strings.IndexByte(first, '=')
-	if eq < 0 {
-		return "", fmt.Errorf("missing assignment")
-	}
-	start := eq + 1
-	for start < len(first) && (first[start] == ' ' || first[start] == '\t') {
-		start++
-	}
-	return first[:start] + value + last[len(strings.TrimRight(last, "\r\n")):], nil
-}
-
-func rewritePair(line, value string) (string, error) {
-	eq := strings.IndexByte(line, '=')
-	if eq < 0 {
-		return "", fmt.Errorf("missing assignment")
-	}
-	start := eq + 1
-	for start < len(line) && (line[start] == ' ' || line[start] == '\t') {
-		start++
-	}
-	_, rest, err := parseTOMLValue(strings.TrimSpace(line[start:]))
-	if err != nil {
-		return "", err
-	}
-	end := len(strings.TrimRight(line, "\r\n"))
-	if rest != "" {
-		end = start + len(strings.TrimSpace(line[start:])) - len(rest)
-	}
-	for end > start && (line[end-1] == ' ' || line[end-1] == '\t') {
-		end--
-	}
-	return line[:start] + value + line[end:], nil
-}
-
 // ValueEdit is the string value that the pair at Line of a row file takes.
 type ValueEdit struct {
 	Line  int
@@ -334,11 +292,9 @@ func RewriteValues(source []byte, edits []ValueEdit) ([]byte, error) {
 		if e.Line < 1 || e.Line > len(lines) {
 			return nil, fmt.Errorf("line %d is not in the file", e.Line)
 		}
-		line, err := rewritePair(lines[e.Line-1], writeString(e.Value))
-		if err != nil {
+		if _, err := rewritePair(lines, e.Line-1, 0, writeString(e.Value)); err != nil {
 			return nil, fmt.Errorf("line %d: %w", e.Line, err)
 		}
-		lines[e.Line-1] = line
 	}
 	out := []byte(strings.Join(lines, ""))
 	if _, err := parseTOMLWith(out, tomlOptions{arrays: true, quotedKeys: true}); err != nil {

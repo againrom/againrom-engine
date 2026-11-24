@@ -3,7 +3,6 @@ package mod
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -81,28 +80,11 @@ func WriteManifest(source []byte, values map[string]any) ([]byte, error) {
 			out.WriteString(line)
 			continue
 		}
-		start := eq + 1
-		for start < len(line) && (line[start] == ' ' || line[start] == '\t') {
-			start++
+		last, err := rewritePair(lines, i, 0, value)
+		if err != nil {
+			return nil, fmt.Errorf("line %d: %w", i+1, err)
 		}
-		code, last, tail, _ := continueList(line[start:], lines, i)
-		line = strings.Join(lines[i:last+1], "")
-		old := strings.TrimSpace(line[start:])
-		var prior any
-		var err error
-		switch values[key].(type) {
-		case string:
-			prior, _, err = readString(old)
-		case int:
-			prior, err = parseInt(old)
-		default:
-			prior, err = parseStrings(code)
-		}
-		if err == nil && reflect.DeepEqual(prior, values[key]) {
-			out.WriteString(line)
-		} else {
-			out.WriteString(line[:start] + value + tail)
-		}
+		out.WriteString(lines[i])
 		delete(encoded, key)
 		i = last
 	}

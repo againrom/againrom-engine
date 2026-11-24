@@ -277,11 +277,9 @@ func writeStrings(rel string, source []byte, d Data) ([]byte, error) {
 				_, rest, _ := readString(t)
 				end = len(line) - len(rest)
 			}
-			value, err := rewritePair(line[end:], writeString(v))
-			if err != nil {
+			if _, err := rewritePair(lines, p.line-1, len(bom)+end, writeString(v)); err != nil {
 				return nil, fileError(rel, fmt.Errorf("line %d: %w", p.line, err))
 			}
-			lines[p.line-1] = bom + line[:end] + value
 		case len(added) > 0:
 			lines[p.line-1], added = bom+pair(added[0], want[added[0]], eol), added[1:]
 		default:
