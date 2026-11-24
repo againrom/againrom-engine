@@ -2,7 +2,7 @@ package sim
 
 import "fmt"
 
-// Native X/Y names the accepted destination. SAV Position names the current
+// Native StepCell names the accepted destination. SAV Position names the current
 // near cell and fractional displacement (SAV-TOKENPOS-074). NativeStride is
 // the retained request-time rate; recomputing a rate here would change a step
 // after damage, equipment or terrain updates.
@@ -16,7 +16,8 @@ func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh 
 		}
 		return uint16(x) | uint16(y)<<8, nil
 	}
-	here, err := pack(e.X, e.Y)
+	// here is the step's claim while one is owed (StepCell).
+	here, err := pack(e.StepCell())
 	if err != nil {
 		return m, err
 	}

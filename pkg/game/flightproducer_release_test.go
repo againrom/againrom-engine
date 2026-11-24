@@ -472,7 +472,10 @@ func producerPhysical(t *testing.T, family string) {
 		if target.Width == 0 {
 			t.Fatal("mission 10 has no structure 4")
 		}
-		if err := mw.world.HeadlessPlace(shooter, target.Col-6, target.Row); err != nil {
+		// Four cells out, the walk to range keeps the mission's hostile unit
+		// out of the shooter's sight, so its group decision leaves the
+		// structure order standing.
+		if err := mw.world.HeadlessPlace(shooter, target.Col-4, target.Row); err != nil {
 			t.Fatal(err)
 		}
 		mw.pending = append(mw.pending, sim.AttackStructure(shooter, id))

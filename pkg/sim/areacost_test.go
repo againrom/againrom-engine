@@ -166,15 +166,17 @@ func TestASecondActorReadsTheDecayedByte(t *testing.T) {
 	t.Parallel()
 	key := cellKey(2, 1)
 	run := func(layer bool) (first, second uint16) {
-		ents := []Entity{{ID: 1, X: 2, Y: 1, Speed: 16}, {ID: 2, X: 1, Y: 1, Speed: 16}}
+		// A step holds the cell it leaves until it lands, so a second mover
+		// cannot step onto that cell in the same tick; both readers leave it.
+		ents := []Entity{{ID: 1, X: 2, Y: 1, Speed: 16}, {ID: 2, X: 2, Y: 1, Speed: 16}}
 		w := srWorld(t, srPlane(8), nil, ents)
 		if layer {
 			w.effects = []cellEffect{{Key: key, Spell: 3, Remaining: 200, Mode: areaModeCloud, Cells: []uint16{key}}}
 			w.syncAreaCosts()
 		}
-		Step(w, []Command{acMove(1, 3, 1), acMove(2, 2, 1)})
+		Step(w, []Command{acMove(1, 3, 1), acMove(2, 1, 1)})
 		es := w.Entities()
-		if es[0].X != 3 || es[1].X != 2 {
+		if stepX(es[0]) != 3 || stepX(es[1]) != 1 {
 			t.Fatalf("movers at (%d,%d) and (%d,%d)", es[0].X, es[0].Y, es[1].X, es[1].Y)
 		}
 		return es[0].TransitTotal, es[1].TransitTotal
@@ -267,8 +269,8 @@ func TestAZeroCostByteFaultsNowhere(t *testing.T) {
 		t.Errorf("rate %d transit %d ok %v over a zero byte", rate, transit, ok)
 	}
 	Step(w, []Command{acMove(1, 4, 1)})
-	if e := w.Entities()[0]; e.X != 2 {
-		t.Errorf("the mover stands at x=%d, want it across the zero-cost cell", e.X)
+	if e := w.Entities()[0]; stepX(e) != 2 {
+		t.Errorf("the mover steps to x=%d, want it across the zero-cost cell", stepX(e))
 	}
 }
 

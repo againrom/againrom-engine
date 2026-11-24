@@ -21,9 +21,16 @@ func strideRelocationWant1115(t *testing.T, e Entity, transit uint16) {
 	t.Helper()
 	want := NativeStride{Present: true, FromX: 2, FromY: 2, ToX: 3, ToY: 2,
 		Rate: 16, StepX: 16, StepY: 0, Direction: 2}
-	if e.Stride != want || e.X != 3 || e.Y != 2 || e.Transit != transit || e.TransitTotal != 16 {
-		t.Fatalf("stride/position/crossing = %+v (%d,%d) %d/%d, want %+v (3,2) %d/16",
-			e.Stride, e.X, e.Y, e.Transit, e.TransitTotal, want, transit)
+	// The step is drawn toward (3,2); its logical cell is (2,2) until the
+	// crossing on the eighth call.
+	x, y := e.StepCell()
+	logical := int32(2)
+	if transit <= 8 {
+		logical = 3
+	}
+	if e.Stride != want || x != 3 || y != 2 || e.X != logical || e.Y != 2 || e.Transit != transit || e.TransitTotal != 16 {
+		t.Fatalf("stride/position/crossing = %+v (%d,%d) %d/%d, want %+v (%d,2) toward (3,2) %d/16",
+			e.Stride, e.X, e.Y, e.Transit, e.TransitTotal, want, logical, transit)
 	}
 }
 
@@ -215,7 +222,7 @@ func TestNativeStrideRelocation1115ScriptReturnAndSameCell(t *testing.T) {
 		if w.entities[0].OffMap {
 			t.Fatal("script return left actor off map")
 		}
-		strideRelocationAbsent1115(t, w.entities[0], 3, 2, 15, 16)
+		strideRelocationAbsent1115(t, w.entities[0], 2, 2, 15, 16)
 	})
 	t.Run("on-map same-cell placement invalidates", func(t *testing.T) {
 		w := strideRelocationWorld1115(t)
@@ -260,7 +267,8 @@ func TestNativeStrideRelocation1115HeadlessDeathAndCompaction(t *testing.T) {
 		if w.entities[0].Alive() {
 			t.Fatal("damage did not kill the actor")
 		}
-		strideRelocationAbsent1115(t, w.entities[0], 3, 2, 0, 0)
+		// Felled before its crossing, the body keeps the departure cell (MOVE-089).
+		strideRelocationAbsent1115(t, w.entities[0], 2, 2, 0, 0)
 	})
 	t.Run("compaction preserves survivor identity", func(t *testing.T) {
 		a := spEnt(1, 2, 2)

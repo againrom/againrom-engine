@@ -23,8 +23,8 @@ func TestGroundStepUphillRoundingByGame(t *testing.T) {
 				t.Errorf("step rate and transit = %d/%d, adjacent %t, ok %t, want %d/%d", rate, transit, adjacent, ok, tc.rate, tc.transit)
 			}
 			Step(w, []Command{MoveTo(1, CellPoint{X: 2, Y: 1})})
-			if e := w.entities[0]; e.X != 2 || e.Y != 1 || int32(e.TransitTotal) != tc.transit {
-				t.Errorf("mover = (%d,%d) with transit %d, want (2,1) with transit %d", e.X, e.Y, e.TransitTotal, tc.transit)
+			if e := w.entities[0]; stepX(e) != 2 || e.Y != 1 || int32(e.TransitTotal) != tc.transit {
+				t.Errorf("mover steps to (%d,%d) with transit %d, want (2,1) with transit %d", stepX(e), e.Y, e.TransitTotal, tc.transit)
 			}
 		})
 	}

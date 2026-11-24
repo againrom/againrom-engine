@@ -130,7 +130,7 @@ func TestTheResolutionOrderIsAscendingIdUnderBothModes(t *testing.T) {
 			t.Errorf("mode %d: the lower id is %+v, want %+v", mode, got, want)
 		}
 		want := Entity{ID: 2, X: 2, Y: 2, TargetX: 1, TargetY: 1, HasTarget: true, Stall: 1, ActorState: actorStateGuard, Reach: 1,
-			PostX: 2, PostY: 2}
+			PostX: 2, PostY: 2, Walk: WalkRefresh{Searches: 1}}
 		if got := ents[1]; got != want {
 			t.Errorf("mode %d: the higher id is %+v, want %+v", mode, got, want)
 		}

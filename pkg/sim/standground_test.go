@@ -95,9 +95,11 @@ func TestHoldPressedMidStepEndsTheStepAtTheNextCellCentre(t *testing.T) {
 	}
 	Step(w, []Command{GroupStance(1, OrderStandGround, 1)})
 	held := entityAt(t, w, 1)
-	if held.HasTarget || held.Transit != crossing.Transit-1 || held.X != crossing.X || held.Y != crossing.Y {
-		t.Fatalf("Hold mid-step: destination %v, transit %d (was %d), at (%d,%d) (was (%d,%d)); the step must be paid out",
-			held.HasTarget, held.Transit, crossing.Transit, held.X, held.Y, crossing.X, crossing.Y)
+	hx, hy := held.StepCell()
+	cx, cy := crossing.StepCell()
+	if held.HasTarget || held.Transit != crossing.Transit-1 || hx != cx || hy != cy {
+		t.Fatalf("Hold mid-step: destination %v, transit %d (was %d), stepping to (%d,%d) (was (%d,%d)); the step must be paid out",
+			held.HasTarget, held.Transit, crossing.Transit, hx, hy, cx, cy)
 	}
 	for n := 0; n < 100; n++ {
 		Step(w, nil)

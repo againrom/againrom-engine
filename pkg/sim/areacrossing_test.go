@@ -81,7 +81,7 @@ func TestStrideCrossingTakesTheOctantCorrection(t *testing.T) {
 func TestStrideFinePointFollowsTheStepLaw(t *testing.T) {
 	t.Parallel()
 	e := Entity{X: 4, Y: 2}
-	e.retainStride(cell{3, 3}, 16)
+	e.retainStride(cell{3, 3}, cell{4, 2}, 16)
 	if e.Stride.StepX != 11 || e.Stride.StepY != -11 || e.Stride.Direction != 1 || transitOf(16, true) != 24 {
 		t.Fatalf("speed 16 diagonal stride %+v, %d calls", e.Stride, transitOf(16, true))
 	}
@@ -101,7 +101,7 @@ func TestStrideFinePointFollowsTheStepLaw(t *testing.T) {
 		}
 	}
 	slow := Entity{X: 4, Y: 4, HP: 1, MaxHP: 1, TransitTotal: uint16(transitOf(1, true)), Transit: 255}
-	slow.retainStride(cell{3, 3}, 1)
+	slow.retainStride(cell{3, 3}, cell{4, 4}, 1)
 	if slow.Stride.StepX != 0 || slow.Stride.StepY != 0 || slow.TransitTotal != 256 || strideFault(slow) != nil {
 		t.Errorf("rate-1 diagonal: stride %+v, %d calls, fault %v", slow.Stride, slow.TransitTotal, strideFault(slow))
 	}
@@ -138,6 +138,7 @@ func TestACrossingRecomputesTheWholeFootprint(t *testing.T) {
 	}
 	Step(w, []Command{acMove(1, 2, 1)})
 	e := w.Entities()[0]
+	e.X, e.Y = e.StepCell()
 	if e.X != 2 || e.Y != 1 || !e.Stride.Present {
 		t.Fatalf("the mover stands at (%d,%d), stride present %v", e.X, e.Y, e.Stride.Present)
 	}
@@ -221,6 +222,7 @@ func TestSavedPlaneLayerEndsAfterTheActorsOfItsTick(t *testing.T) {
 	transit := func(w *World) uint16 {
 		Step(w, []Command{acMove(1, 0x11, 0x11)})
 		e := w.Entities()[0]
+		e.X, e.Y = e.StepCell()
 		if e.X != 0x11 || e.Y != 0x11 {
 			t.Fatalf("the mover stands at (%d,%d)", e.X, e.Y)
 		}

@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM2] An enchanted armour, shield or weapon now costs its base plus one surcharge on the sum of its effect sizes, as in the original; before, each effect was priced alone, so two effects of 70 cost 14000 instead of 26798.
 - [ROM2] A fallen body above -10 health now loses health half as fast as one below -10, as in the original; before, every fallen body lost it at the faster rate.
+- [BASE] A walking unit now stays on the cell it leaves until it is halfway across and keeps both cells while it steps, so no other unit walks into either; a unit blocked by a walker waits for it to move on, one blocked by a standing unit goes round it, and a blocked unit searches again only after a set number of passes, as in the original.
 - [ROM2] An enemy's card now opens its groups by your kills of that kind for every creature, humanoid ones and kinds such as the catapult included, as in the original; before, many showed blank stats however many you killed.
 - [ROM2] The pick-up key no longer sends a hero after a sack lying where he cannot stand; a sack under his feet is still taken, as in the original.
 - [ROM2] The Retreat order now makes a unit look for enemies within 10 cells, not its own sight range, and a mage with Teleport and mana teleports away by it, as in the original.

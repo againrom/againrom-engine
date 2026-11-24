@@ -39,7 +39,7 @@ func strideStartEast(t *testing.T, f *FrontEnd) {
 	f.live.enqueue(uint32(e.ID), 20, 16)
 	f.live.tick()
 	e = strideActor1115(t, f)
-	if e.X != 16 || e.Y != 16 || e.Transit != 4 || e.TransitTotal != 5 || e.Facing != 64 || e.Stride != strideEast1115() {
+	if x, y := e.StepCell(); x != 16 || y != 16 || e.Transit != 4 || e.TransitTotal != 5 || e.Facing != 64 || e.Stride != strideEast1115() {
 		t.Fatalf("accepted east crossing was not captured: %+v", e)
 	}
 }
@@ -113,7 +113,7 @@ func TestSavedStride1115BothDoorsMenuSaveAndContinuation(t *testing.T) {
 					if f.live.world.Hash() != fresh.live.world.Hash() || !reflect.DeepEqual(e, loaded) {
 						t.Fatalf("native continuation diverged at tick %d", tick)
 					}
-					if tick <= int(owed) && (e.X != 16 || e.Y != 16 || e.Transit != owed-uint16(tick) || e.Stride != strideEast1115()) {
+					if sx, sy := e.StepCell(); tick <= int(owed) && (sx != 16 || sy != 16 || e.Transit != owed-uint16(tick) || e.Stride != strideEast1115()) {
 						t.Fatalf("accepted crossing changed while paying tick %d: %+v", tick, e)
 					}
 					if e.Stride == strideEast1115() && e.Facing != 64 {
@@ -123,8 +123,9 @@ func TestSavedStride1115BothDoorsMenuSaveAndContinuation(t *testing.T) {
 						independentFacing = true
 					}
 					if replace && e.Stride.Present && e.Stride != strideEast1115() {
-						want := sim.NativeStride{Present: true, FromX: e.X - 1, FromY: e.Y + 1,
-							ToX: e.X, ToY: e.Y, Rate: 63, StepX: 44, StepY: -44, Direction: 1}
+						sx, sy := e.StepCell()
+						want := sim.NativeStride{Present: true, FromX: sx - 1, FromY: sy + 1,
+							ToX: sx, ToY: sy, Rate: 63, StepX: 44, StepY: -44, Direction: 1}
 						if e.Stride != want || e.TransitTotal != 6 {
 							t.Fatalf("replacement's accepted diagonal at tick %d = %+v, want %+v", tick, e.Stride, want)
 						}

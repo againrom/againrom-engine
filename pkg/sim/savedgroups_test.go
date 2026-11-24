@@ -440,7 +440,7 @@ func TestSavedGroupsNativeEscortCommandsDispatchAndSurviveSave(t *testing.T) {
 				t.Fatal("escort next step changed across SAVE")
 			}
 		}
-		if e := w.entities[0]; e.X == 8 && e.Y == 8 {
+		if e := w.entities[0]; stepX(e) == 8 && e.Y == 8 {
 			t.Fatal("native escort did not dispatch", command, e)
 		}
 	}
@@ -549,7 +549,7 @@ func TestSavedGroupsIncomingEscortAtomicAdmissionAndNativeValidation(t *testing.
 			t.Fatal("incoming bound escort continuation changed")
 		}
 	}
-	if w.entities[0].X == 8 && w.entities[0].Y == 8 {
+	if sx, sy := w.entities[0].StepCell(); sx == 8 && sy == 8 {
 		t.Fatal("incoming escort remained metadata")
 	}
 	w.remove([]EntityID{30})
@@ -602,7 +602,7 @@ func TestSavedGroupsIncomingEscortAlreadyAdmittedDeadExactKey(t *testing.T) {
 			t.Fatal("corpse escort changed across SAVE")
 		}
 	}
-	if e := w.entities[0]; !e.HasEscortTarget || e.EscortTarget != 30 || e.X == 8 && e.Y == 8 {
+	if e := w.entities[0]; !e.HasEscortTarget || e.EscortTarget != 30 || stepX(e) == 8 && e.Y == 8 {
 		t.Fatal("exact corpse target did not drive movement", e)
 	}
 	// A second materialized actor claiming that source key is not first-wins.

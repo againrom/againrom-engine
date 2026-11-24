@@ -33,8 +33,8 @@ func TestSavedMotion1134ContinuationFromImportWalksToRouteGoal(t *testing.T) {
 		at = indexOfEntity(w.entities, EntityID(7))
 		if e := w.entities[at]; !e.HasTarget {
 			arrived = true
-			if e.X != 17 || e.Y != 16 {
-				t.Fatalf("order ended away from the route's last cell: x=%d y=%d", e.X, e.Y)
+			if sx, sy := e.StepCell(); sx != 17 || sy != 16 {
+				t.Fatalf("order ended away from the route's last cell: x=%d y=%d", sx, sy)
 			}
 			break
 		}

@@ -17,6 +17,7 @@ func acStepOnto(t *testing.T, w *World) uint16 {
 	t.Helper()
 	Step(w, []Command{acMove(1, 2, 1)})
 	e := w.Entities()[0]
+	e.X, e.Y = e.StepCell()
 	if e.X != 2 || e.Y != 1 {
 		t.Fatalf("the mover stands at (%d,%d), want the layered cell (2,1)", e.X, e.Y)
 	}

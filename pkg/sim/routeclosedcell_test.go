@@ -145,7 +145,7 @@ func TestAMoverReachesItsDestinationPastALongLivedWallOnItsRoute(t *testing.T) {
 	if !landed {
 		t.Fatal("the wall never landed")
 	}
-	if e := w.entities[0]; e.X != 34 || e.Y != 20 {
-		t.Fatalf("the mover stopped at (%d,%d) short of (34,20); order held: %v", e.X, e.Y, e.HasTarget)
+	if e := w.entities[0]; stepX(e) != 34 || e.Y != 20 {
+		t.Fatalf("the mover stopped at (%d,%d) short of (34,20); order held: %v", stepX(e), e.Y, e.HasTarget)
 	}
 }

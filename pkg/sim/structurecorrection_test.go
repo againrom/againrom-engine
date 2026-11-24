@@ -101,7 +101,8 @@ func TestStructureSpellRuinClearsPursuitButPaysCurrentCrossing(t *testing.T) {
 		after.Stall != 0 || len(w.routes[0]) != 0 {
 		t.Fatalf("ruin left pursuit state: %+v route=%v", after, w.routes[0])
 	}
-	if after.X != before.X || after.Y != before.Y || after.Transit != before.Transit-1 || after.TransitTotal != before.TransitTotal {
+	bx, by := before.StepCell()
+	if ax, ay := after.StepCell(); ax != bx || ay != by || after.Transit != before.Transit-1 || after.TransitTotal != before.TransitTotal {
 		t.Fatal("cancellation discarded or moved the already-started crossing")
 	}
 	b, err := w.MarshalBinary()
@@ -116,7 +117,7 @@ func TestStructureSpellRuinClearsPursuitButPaysCurrentCrossing(t *testing.T) {
 		Step(w, nil)
 		Step(&restored, nil)
 		e := w.entities[0]
-		if w.Hash() != restored.Hash() || e.X != before.X || e.Y != before.Y || e.HasTarget || e.HasAttackTarget {
+		if ex, ey := e.StepCell(); w.Hash() != restored.Hash() || ex != bx || ey != by || e.HasTarget || e.HasAttackTarget {
 			t.Fatalf("cancelled pursuit moved or lost save continuity at tick %d", n)
 		}
 	}

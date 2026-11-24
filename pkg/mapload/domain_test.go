@@ -172,7 +172,7 @@ func TestAGhostContendsWithAWalkerAndAFlyerDoesNot(t *testing.T) {
 			{Entity: 1, X: 14, Y: southRow},
 		}
 		sim.Step(w, cmds)
-		for tick := 1; tick < 200; tick++ {
+		for tick := 1; tick < 300; tick++ {
 			a, b := w.Entities()[0], w.Entities()[1]
 			if a.X == b.X && a.Y == b.Y {
 				t.Fatalf("the two flyers share the cell (%d,%d) after tick %d", a.X, a.Y, tick)

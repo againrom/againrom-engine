@@ -215,6 +215,7 @@ var nstPinned = []struct {
 		{"Class", "int32"},
 		{"HasTarget", "bool"},
 		{"Stall", "uint8"},
+		{"Walk", "sim.WalkRefresh"},
 		{"HP", "int32"},
 		{"MaxHP", "int32"},
 		{"Withdraw", "int32"},
@@ -627,6 +628,10 @@ func nstShape(t *testing.T, tick int, form []byte, cells, units, routeCells, gro
 			"route section are what the contract says",
 			tick, units, cells, routeCells, groups, len(form), want)
 	}
+	// A unit holding a walk wraps the form in the walk refresh section.
+	if e, ok := readWrapper(form, walkRefreshFormVersion); form[0] == walkRefreshFormVersion && ok {
+		form = e.base()
+	}
 	if form[0] != formatVersion {
 		t.Fatalf("tick %d: the form's version byte is %d, want %d", tick, form[0], formatVersion)
 	}
@@ -644,7 +649,7 @@ func nstRouteCells(w *World) int {
 func TestTheByteFormAndItsDigestAreTheOnesAlreadyPinned(t *testing.T) {
 	w := pinWorld(t)
 	form := nstForm(t, w)
-	nstShape(t, 0, form, 20, 3, 0, len(w.groups), registryFormGrowth(w))
+	nstShape(t, 0, form, 20, 3, 0, len(w.groups), registryFormGrowth(w)+walkFormGrowth(w))
 	if !bytes.Equal(form, pinBytes) {
 		t.Errorf("the pinned world marshals to\n % x\npinned as\n % x", form, pinBytes)
 	}
@@ -774,11 +779,11 @@ func nstRecord(t *testing.T) nstRun {
 	t.Helper()
 	w := mustWorld(t, 1, conBounds, nstStart)
 	out := nstRun{forms: [][]byte{nstForm(t, w)}, digests: []uint64{w.Hash()}}
-	nstShape(t, 0, out.forms[0], nstCells, len(nstStart), nstRouteCells(w), len(w.groups), registryFormGrowth(w))
+	nstShape(t, 0, out.forms[0], nstCells, len(nstStart), nstRouteCells(w), len(w.groups), registryFormGrowth(w)+walkFormGrowth(w))
 	for tick, cmds := range nstSchedule {
 		Step(w, cmds)
 		form := nstForm(t, w)
-		nstShape(t, tick+1, form, nstCells, len(nstStart), nstRouteCells(w), len(w.groups), registryFormGrowth(w))
+		nstShape(t, tick+1, form, nstCells, len(nstStart), nstRouteCells(w), len(w.groups), registryFormGrowth(w)+walkFormGrowth(w))
 		out.forms = append(out.forms, form)
 		out.digests = append(out.digests, w.Hash())
 		out.cells = append(out.cells, w.Entities())

@@ -58,7 +58,7 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 			template.ActorState = actorStateGuard
 		}
 		template.OffMap = true
-		template.HasTarget = false
+		template.dropWalk()
 		template.clearAttack()
 		template.SourceBinding.ArchiveIndex = 0
 		template.SourceBinding.GroupIndex, template.SourceBinding.GroupSelector, template.SourceBinding.GroupOwnerKey = 0, 0, 0

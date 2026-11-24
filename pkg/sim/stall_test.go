@@ -139,6 +139,11 @@ func TestAStalledTickWritesTheCountAndNothingElse(t *testing.T) {
 			before.TargetX, before.TargetY, before.HasTarget = boxedTargetX, boxedTargetY, true
 		}
 		before.Stall = after.Stall
+		// Each failed near search also counts toward the static refresh.
+		if after.Walk != (WalkRefresh{Searches: uint8(tick)}) {
+			t.Errorf("tick %d: walk refresh %+v, want %d near searches", tick, after.Walk, tick)
+		}
+		before.Walk = after.Walk
 		if after != before {
 			t.Errorf("tick %d: the entity is %+v, want %+v with the count alone moved", tick, after, before)
 		}
@@ -255,8 +260,8 @@ func TestAdvancingReturnsTheCountToZero(t *testing.T) {
 			Step(w, nil)
 		}
 		ents := w.Entities()
-		if got := (Entity{ID: 1, X: 0, Y: 1, TargetX: 4, TargetY: 1, HasTarget: true, Stall: uint8(tick), ActorState: actorStateGuard, Reach: 1,
-			PostX: 0, PostY: 1}); ents[0] != got {
+		if got := (Entity{ID: 1, X: 0, Y: 1, TargetX: 4, TargetY: 1, HasTarget: true, Stall: uint8(tick), Walk: WalkRefresh{Searches: uint8(tick)},
+			ActorState: actorStateGuard, Reach: 1, PostX: 0, PostY: 1}); ents[0] != got {
 			t.Fatalf("tick %d: A is %+v, want %+v", tick, ents[0], got)
 		}
 		if ents[1] != (Entity{ID: 2, X: 1, Y: 1, ActorState: actorStateGuard, Reach: 1, PostX: 1, PostY: 1}) {
@@ -281,7 +286,7 @@ func TestAdvancingReturnsTheCountToZero(t *testing.T) {
 	// Tick 5: the corridor is clear, A advances one cell — and does NOT arrive,
 	// so the zero below is the advance's own reset and not a clearing's.
 	Step(w, nil)
-	want := Entity{ID: 1, X: 1, Y: 1, TargetX: 4, TargetY: 1, HasTarget: true, Stall: 0, Facing: facingOfDir(2), DesiredFacing: facingOfDir(2), ActorState: actorStateGuard, Reach: 1,
+	want := Entity{ID: 1, X: 1, Y: 1, TargetX: 4, TargetY: 1, HasTarget: true, Stall: 0, Walk: WalkRefresh{Searches: 5}, Facing: facingOfDir(2), DesiredFacing: facingOfDir(2), ActorState: actorStateGuard, Reach: 1,
 		PostX: 0, PostY: 1}
 	if got := w.Entities()[0]; got != want {
 		t.Errorf("tick 5: A is %+v, want %+v", got, want)

@@ -30,7 +30,7 @@ func TestHeadlessTakePaysAlreadyClaimedCell(t *testing.T) {
 			w, mw := pickupArrivalWorld(t)
 			sim.Step(w, []sim.Command{sim.MoveTo(7, sim.CellPoint{X: 4, Y: 3})})
 			e, _ := w.Entity(7)
-			if e.X != 4 || e.Y != 3 || e.Transit != 15 {
+			if x, y := e.StepCell(); x != 4 || y != 3 || e.Transit != 15 {
 				t.Fatal("fixture did not claim the cell on its first crossing payment", e)
 			}
 			if route == "live" {

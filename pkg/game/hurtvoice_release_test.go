@@ -59,10 +59,12 @@ func (h *hurtVoiceHeard) RequestSample(s audio.Sample, request audio.Request) au
 			h.t.Fatalf("positional request differs from independent camera/fine-coordinate terms: %+v; geometry=%+v attenuation=%d pan=%d placement=%+v", request, geometry, attenuation, pan, placement)
 		}
 		for _, e := range h.front.live.world.Entities() {
+			// A stepping actor sounds from the cell its step enters.
 			x, y, ok := h.front.live.world.ActorFinePosition(e.ID)
-			fine := image.Pt(int(e.X)*256+128, int(e.Y)*256+128)
+			cx, cy := e.StepCell()
+			fine := image.Pt(int(cx)*256+128, int(cy)*256+128)
 			if ok {
-				fine = image.Pt(int(e.X)*256+int(x), int(e.Y)*256+int(y))
+				fine = image.Pt(int(cx)*256+int(x), int(cy)*256+int(y))
 			}
 			if fine == request.SourceFine {
 				recipients = append(recipients, e.ID)

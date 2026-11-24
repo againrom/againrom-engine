@@ -268,7 +268,9 @@ func TestMultiCellAreaRuinCancelsPhysicalPursuitAcrossNativeSave(t *testing.T) {
 			t.Fatalf("ruin/pursuit save tick%d", tick)
 		}
 		actor := w.entities[0]
-		if actor.HasAttackTarget || actor.HasTarget || len(w.routes[0]) != 0 || actor.X != before.X || actor.Y != before.Y {
+		ax, ay := actor.StepCell()
+		bx, by := before.StepCell()
+		if actor.HasAttackTarget || actor.HasTarget || len(w.routes[0]) != 0 || ax != bx || ay != by {
 			t.Fatalf("ruin retained pursuit at tick%d: %+v", tick, actor)
 		}
 		if tick == 0 && actor.Transit != before.Transit-1 {

@@ -241,7 +241,7 @@ func TestTheTickOneDigestIsTheContractsRoutesFirstCell(t *testing.T) {
 	// is derived over.
 	want := Entity{ID: 1, X: 2, Y: 2, TargetX: rlxTargetX, TargetY: rlxTargetY, HasTarget: true,
 		Facing: facingOfDir(6), DesiredFacing: facingOfDir(6), ActorState: actorStateGuard, Reach: 1,
-		PostX: rlxUnit.X, PostY: rlxUnit.Y}
+		PostX: rlxUnit.X, PostY: rlxUnit.Y, Walk: WalkRefresh{Searches: 1}}
 	if got := w.Entities()[0]; got != want {
 		t.Errorf("after one tick the unit is %+v, want %+v", got, want)
 	}
@@ -254,7 +254,7 @@ func TestTheTickOneDigestIsTheContractsRoutesFirstCell(t *testing.T) {
 	}
 	// registryFormGrowth: the move command's order record and the activity
 	// gate's +0x45 write make the Group registry part of the form.
-	if want := registryFormGrowth(w) + 61 + 34 + 3*25 + relationLen + 492 + 4 + 2*8 + groupCountLen + sackCountLen + carryCountLen + equipRecordLen + treasureRecordLen + purseLen + spellCountLen + itemWeightCountLen + 2*castingCountLen + relationSlots + tailCountLen + structureCountLen + len(emptyItemStatePin(1)) + 4 + 4 + 4 + 4 + 4 + scriptStateLen + scriptCountsLen + entityIDFloorLen + spellDeliverySpanLen; len(form) != want {
+	if want := registryFormGrowth(w) + walkFormGrowth(w) + 61 + 34 + 3*25 + relationLen + 492 + 4 + 2*8 + groupCountLen + sackCountLen + carryCountLen + equipRecordLen + treasureRecordLen + purseLen + spellCountLen + itemWeightCountLen + 2*castingCountLen + relationSlots + tailCountLen + structureCountLen + len(emptyItemStatePin(1)) + 4 + 4 + 4 + 4 + 4 + scriptStateLen + scriptCountsLen + entityIDFloorLen + spellDeliverySpanLen; len(form) != want {
 		t.Fatalf("the tick-1 form is %d bytes, want %d", len(form), want)
 	}
 	// The route the form carries, cell for cell: the far search's answer less the
@@ -519,7 +519,7 @@ func TestTheSecondGridsTickOneDigest(t *testing.T) {
 	Step(w, []Command{{Entity: hybUnit.ID, X: hybTargetX, Y: hybTargetY}})
 
 	want := Entity{ID: 1, X: 0, Y: 6, TargetX: hybTargetX, TargetY: hybTargetY, HasTarget: true,
-		ActorState: actorStateGuard, Reach: 1, PostX: hybUnit.X, PostY: hybUnit.Y}
+		ActorState: actorStateGuard, Reach: 1, PostX: hybUnit.X, PostY: hybUnit.Y, Walk: WalkRefresh{Searches: 1}}
 	if got := w.Entities()[0]; got != want {
 		t.Errorf("after one tick the unit is %+v, want %+v", got, want)
 	}
@@ -527,7 +527,7 @@ func TestTheSecondGridsTickOneDigest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MarshalBinary: %v", err)
 	}
-	if want := registryFormGrowth(w) + 61 + 34 + 3*64 + relationLen + 492 + 4 + 7*8 + groupCountLen + sackCountLen + carryCountLen + equipRecordLen + treasureRecordLen + purseLen + spellCountLen + itemWeightCountLen + 2*castingCountLen + relationSlots + tailCountLen + structureCountLen + len(emptyItemStatePin(1)) + 4 + 4 + 4 + 4 + 4 + scriptStateLen + scriptCountsLen + entityIDFloorLen + spellDeliverySpanLen; len(form) != want {
+	if want := registryFormGrowth(w) + walkFormGrowth(w) + 61 + 34 + 3*64 + relationLen + 492 + 4 + 7*8 + groupCountLen + sackCountLen + carryCountLen + equipRecordLen + treasureRecordLen + purseLen + spellCountLen + itemWeightCountLen + 2*castingCountLen + relationSlots + tailCountLen + structureCountLen + len(emptyItemStatePin(1)) + 4 + 4 + 4 + 4 + 4 + scriptStateLen + scriptCountsLen + entityIDFloorLen + spellDeliverySpanLen; len(form) != want {
 		t.Fatalf("the tick-1 form is %d bytes, want %d", len(form), want)
 	}
 	checkRoute(t, "the route stored after one tick", w.routes[0], true,

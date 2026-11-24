@@ -62,7 +62,11 @@ func TestNativeStride1115EveryDirectionCapturesActualRateAndLastPayment(t *testi
 				Rate: rate, StepX: int8(delta[0]) * axis, StepY: int8(delta[1]) * axis, Direction: uint8(direction)}
 			for paid := uint16(1); paid <= total; paid++ {
 				e := w.Entities()[0]
-				if e.Stride != want || e.X != want.ToX || e.Y != want.ToY || e.TransitTotal != total || e.Transit != total-paid || e.HasTarget {
+				lx, ly := want.FromX, want.FromY
+				if want.committed(int32(paid), int32(total)) {
+					lx, ly = want.ToX, want.ToY
+				}
+				if sx, sy := e.StepCell(); e.Stride != want || sx != want.ToX || sy != want.ToY || e.X != lx || e.Y != ly || e.TransitTotal != total || e.Transit != total-paid || e.HasTarget {
 					t.Fatalf("direction%d speed%d paid%d: stride=%+v transit%d/%d target%t", direction, speed, paid, e.Stride, e.Transit, e.TransitTotal, e.HasTarget)
 				}
 				var cold World

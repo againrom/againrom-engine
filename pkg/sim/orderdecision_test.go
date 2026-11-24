@@ -146,7 +146,7 @@ func TestEmptyWalkStopAndArrivalKeepDifferentLatches(t *testing.T) {
 
 func TestFirstGameOrderCellsKeepTheirBytes(t *testing.T) {
 	t.Parallel()
-	for primary, want := range map[uint8]uint64{4: 16317512651219598567, 7: 10724637488198771854, 255: 3477048198492198742} {
+	for primary, want := range map[uint8]uint64{4: 13013084208677157029, 7: 1178238351820925272, 255: 14599907545513940288} {
 		w := primaryCellScene(t, false, primary)
 		for range 20 {
 			Step(w, nil)

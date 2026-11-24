@@ -60,13 +60,53 @@ func strideAxis(v int32, diagonal bool) int32 {
 
 // retainStride consumes the rate already computed for this accepted step.
 // It does not recompute terrain, speed or duration, or move the actor again.
-func (e *Entity) retainStride(from cell, rate int32) {
-	dx, dy := int64(e.X)-int64(from.x), int64(e.Y)-int64(from.y)
+func (e *Entity) retainStride(from, to cell, rate int32) {
+	dx, dy := int64(to.x)-int64(from.x), int64(to.y)-int64(from.y)
 	d := dirOfSigns[signIndex(int32(dy))][signIndex(int32(dx))]
 	axis := strideAxis(rate, dx != 0 && dy != 0)
 	e.Stride = NativeStride{Present: true, FromX: from.x, FromY: from.y,
-		ToX: e.X, ToY: e.Y, Rate: uint8(rate), StepX: int8(dx * int64(axis)),
+		ToX: to.x, ToY: to.y, Rate: uint8(rate), StepX: int8(dx * int64(axis)),
 		StepY: int8(dy * int64(axis)), Direction: uint8(d)}
+}
+
+// committed reports whether a stride's position has crossed into its
+// destination after elapsed of its total calls: the y cell byte has changed,
+// or the x byte for a step with no y motion (strideEntersStep). The step's
+// logical cell is its origin until then and its destination from then on
+// (MOVE-088, MOVE-194).
+func (s NativeStride) committed(elapsed, total int32) bool {
+	c := strideCell(s, elapsed, total)
+	if s.StepY != 0 {
+		return c.y != s.FromY
+	}
+	return c.x != s.FromX
+}
+
+// stepping reports whether e is inside a rated step: a retained stride with
+// transit still owed.
+func (e Entity) stepping() bool { return e.Stride.Present && e.Transit > 0 }
+
+// StepCell is the cell e stands on, or during a rated step the cell the step
+// enters. A view draws the step toward it while the logical cell X, Y stays
+// the origin until the crossing.
+func (e Entity) StepCell() (x, y int32) {
+	if e.stepping() {
+		return e.Stride.ToX, e.Stride.ToY
+	}
+	return e.X, e.Y
+}
+
+// heldCell is the second anchor a stepping mover holds on its layer's plane:
+// the destination it claimed at the step's start until the crossing, then
+// the origin it vacates until it lands centred (MOVE-CLAIM-007).
+func (e Entity) heldCell() (cell, bool) {
+	if !e.stepping() {
+		return cell{}, false
+	}
+	if e.X == e.Stride.ToX && e.Y == e.Stride.ToY {
+		return cell{x: e.Stride.FromX, y: e.Stride.FromY}, true
+	}
+	return cell{x: e.Stride.ToX, y: e.Stride.ToY}, true
 }
 
 func strideFault(e Entity) error {
@@ -80,8 +120,12 @@ func strideFault(e Entity) error {
 	if !e.Alive() || e.TransitTotal == 0 || e.Transit >= e.TransitTotal {
 		return fmt.Errorf("native stride lacks a living valid transit")
 	}
-	if e.X != s.ToX || e.Y != s.ToY {
-		return fmt.Errorf("native stride destination differs from actor position")
+	// The logical cell is the origin before the crossing and the destination
+	// after it. A form an earlier build wrote holds the destination from the
+	// start, and that step finishes as it began.
+	atTo, atFrom := e.X == s.ToX && e.Y == s.ToY, e.X == s.FromX && e.Y == s.FromY
+	if !atTo && !(atFrom && !s.committed(int32(e.TransitTotal-e.Transit), int32(e.TransitTotal))) {
+		return fmt.Errorf("native stride logical cell differs from actor position")
 	}
 	dx, dy := int64(s.ToX)-int64(s.FromX), int64(s.ToY)-int64(s.FromY)
 	if dx < -1 || dx > 1 || dy < -1 || dy > 1 || dx == 0 && dy == 0 {

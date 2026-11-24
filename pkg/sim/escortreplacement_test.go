@@ -116,8 +116,9 @@ func TestScriptMoveAndSwarmReplaceEscortBeforeActorPass(t *testing.T) {
 						before := w.entities[1]
 						w.tick = 1
 						Step(w, nil)
-						if e := w.entities[1]; !e.HasTarget || e.TargetX != before.TargetX || e.TargetY != before.TargetY ||
-							e.X == before.X && e.Y == before.Y && e.TurnRemaining == 0 {
+						e := w.entities[1]
+						if sx, sy := e.StepCell(); !e.HasTarget || e.TargetX != before.TargetX || e.TargetY != before.TargetY ||
+							sx == before.X && sy == before.Y && e.TurnRemaining == 0 {
 							t.Fatal("escort overrode the scripted destination before the next actor pass")
 						}
 						assertEscortReplacementSave(t, w)

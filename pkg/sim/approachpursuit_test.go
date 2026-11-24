@@ -185,11 +185,16 @@ func TestAcquiredVictimBeyondReachTurnsWithoutAPath(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			w := pursuitEscapeWorld(t)
+			// The victim is moved beyond reach once the writer took it: a step
+			// leaves its logical cell only at the crossing, so a victim that
+			// walks out of reach draws a swing first.
 			move := MoveTo(2, CellPoint{X: 28, Y: 20})
 			if acquired {
 				w.acquireStanding(0)
+				w.entities[1].X = 22
 				Step(w, []Command{move})
 			} else {
+				w.entities[1].X = 22
 				Step(w, []Command{Attack(1, 2), move})
 			}
 			if !w.entities[0].HasAttackTarget {

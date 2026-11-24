@@ -216,7 +216,9 @@ type Entity struct {
 	Class            int32
 	HasTarget        bool
 	Stall            uint8
-	HP, MaxHP        int32
+	// Walk is the walk's dynamic route state; zero while no walk is held.
+	Walk      WalkRefresh
+	HP, MaxHP int32
 	// Withdraw and Wimpy are absolute-health thresholds carried by the actor's
 	// definition. They are canonical because the full-tick AI tail reads them;
 	// zero is inert for every living actor, whose HP is positive.

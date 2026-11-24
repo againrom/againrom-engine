@@ -334,8 +334,13 @@ func TestACommandedWorldRoundTripsAndHashesToTheSameDigest(t *testing.T) {
 	// the constant says, and the version's own tripwire is the pinned form and
 	// digest in binary_test.go and hash_test.go, which no unexamined bump can
 	// satisfy.
-	if b[0] != formatVersion {
-		t.Fatalf("the form's version byte is %d, want the constant %d", b[0], formatVersion)
+	// A unit holding a walk wraps the form in the walk refresh section.
+	version := byte(formatVersion)
+	if walkFormGrowth(w) > 0 {
+		version = walkRefreshFormVersion
+	}
+	if b[0] != version {
+		t.Fatalf("the form's version byte is %d, want the constant %d", b[0], version)
 	}
 
 	var back World

@@ -1131,7 +1131,7 @@ func TestTheDerivedPlaneIsCarriedHashedAndReadBack(t *testing.T) {
 	sim.Step(w, []sim.Command{{Entity: 0, X: 14, Y: 14}})
 	const gfTurnBound = 20
 	for i := 0; ; i++ {
-		if e := w.Entities()[0]; e.X != gfCellX || e.Y != gfCellY {
+		if x, y := w.Entities()[0].StepCell(); x != gfCellX || y != gfCellY {
 			break
 		}
 		if i >= gfTurnBound {

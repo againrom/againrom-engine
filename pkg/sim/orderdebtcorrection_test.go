@@ -52,10 +52,14 @@ func TestAComputerUnitHoldingAnAttackTargetDoesNotLookAround(t *testing.T) {
 	w.commandGroup([]int{0}, orderNone, cell{})
 	w.savedOrder(asHero).Raw[8] = 0xb
 	w.orderAttack(0, asFoeA)
+	moved := false
 	for range 120 {
 		Step(w, nil)
+		if x, y := w.entities[0].StepCell(); x != 30 || y != 40 {
+			moved = true
+		}
 	}
-	if e := w.entities[0]; e.X == 30 && e.Y == 40 {
+	if e := w.entities[0]; !moved {
 		t.Fatalf("the unit holding an attack target never moved (target %v)", e.HasAttackTarget)
 	}
 }

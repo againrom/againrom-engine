@@ -272,7 +272,7 @@ var simMoverRecords = map[string]string{
 	"walk/1":                        "8536d2a521071fa4",
 	"walk/2":                        "ae1ddd969bcdc990",
 	"walk/3":                        "4f800573d01727e8",
-	"walk/hash":                     "d575717e7871c57c",
+	"walk/hash":                     "72b67d69992f069e",
 	"walkclaim/arrived":             "2b337b2e6ff5306f",
 	"walkclaim/lowered":             "a2ca7420394d343a",
 }

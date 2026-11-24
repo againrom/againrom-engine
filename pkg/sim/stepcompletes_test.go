@@ -35,11 +35,12 @@ func stcWorld(t *testing.T) *World {
 // stcFigure is where the figure is drawn, in cells: the cell it entered, less
 // the part of the step still owed.
 func stcFigure(e Entity) (float64, float64) {
-	x, y := float64(e.X), float64(e.Y)
+	sx, sy := e.StepCell()
+	x, y := float64(sx), float64(sy)
 	if e.Transit > 0 && e.Stride.Present && e.TransitTotal > 0 {
 		f := float64(e.Transit) / float64(e.TransitTotal)
-		x -= float64(e.X-e.Stride.FromX) * f
-		y -= float64(e.Y-e.Stride.FromY) * f
+		x -= float64(sx-e.Stride.FromX) * f
+		y -= float64(sy-e.Stride.FromY) * f
 	}
 	return x, y
 }
@@ -124,7 +125,7 @@ func stcShielded(w *World) bool {
 func TestCastOrderedMidStepActsAtTheStepsEnd(t *testing.T) {
 	w := stcWorld(t)
 	stcWalk(t, w)
-	cell := w.entities[0].X
+	cell := stepX(w.entities[0])
 	Step(w, []Command{Cast(stcMage, stcMage, 18)})
 	if p := w.entities[0].PendingOrder; p.Kind != PendingActorCast || p.Spell != 18 {
 		t.Fatalf("the cast is not the waiting order: %+v", p)

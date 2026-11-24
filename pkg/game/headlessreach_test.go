@@ -25,6 +25,12 @@ func liveWalk(t *testing.T, mw *mapWorld, id sim.EntityID, x, y int32) {
 	}
 }
 
+// stepsTo reports whether e stands on (x, y) or is stepping to it.
+func stepsTo(e sim.Entity, x, y int32) bool {
+	sx, sy := e.StepCell()
+	return sx == x && sy == y
+}
+
 // livePlaceAndWalk is HeadlessPlace near (x, y), then liveWalk.
 func livePlaceAndWalk(t *testing.T, mw *mapWorld, id sim.EntityID, x, y int32) {
 	t.Helper()
@@ -89,7 +95,7 @@ func worldWalk(t *testing.T, w *sim.World, id sim.EntityID, x, y int32) {
 // sack underfoot on the pickup key's world route.
 func liveTakeAt(t *testing.T, mw *mapWorld, id sim.EntityID, x, y int32) sim.Sack {
 	t.Helper()
-	if e, _ := mw.entity(id); e.X != x || e.Y != y {
+	if e, _ := mw.entity(id); !stepsTo(e, x, y) {
 		livePlaceAndWalk(t, mw, id, x, y)
 	}
 	waitHeadlessCrossing(t, mw.world, id, func() { mw.tick() })
@@ -99,7 +105,7 @@ func liveTakeAt(t *testing.T, mw *mapWorld, id sim.EntityID, x, y int32) sim.Sac
 // worldTakeAt is liveTakeAt over bare Steps on a mission without a map.
 func worldTakeAt(t *testing.T, ms *Mission, id sim.EntityID, x, y int32) sim.Sack {
 	t.Helper()
-	if e, _ := ms.World.Entity(id); e.X != x || e.Y != y {
+	if e, _ := ms.World.Entity(id); !stepsTo(e, x, y) {
 		worldPlaceAndWalk(t, ms.World, id, x, y)
 	}
 	waitHeadlessCrossing(t, ms.World, id, func() { sim.Step(ms.World, nil) })

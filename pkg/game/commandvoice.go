@@ -1,7 +1,6 @@
 package game
 
 import (
-	"image"
 	"time"
 
 	"againrom/pkg/random"
@@ -188,7 +187,7 @@ func (r *unitVoiceRules) commandRecording(rec voiceRecording, voice unitVoice, h
 func (a runtimeMissionAudio) unitReplies(mw *mapWorld, draw voiceDraw) (command func(ui.VoiceGesture, []uint32, time.Time), selection func([]uint32, time.Time)) {
 	speak := func(speaker sim.Entity, path, source string) {
 		if sample, ok := a.in.SoundBank.namedSample(path); ok {
-			mw.view.PlayReplySample(a.rt.speech.player, sample, source, "voice:"+path, speaker.Owner, image.Pt(int(speaker.X), int(speaker.Y)), mw.actorSoundFine(speaker))
+			mw.view.PlayReplySample(a.rt.speech.player, sample, source, "voice:"+path, speaker.Owner, drawnCell(speaker), mw.actorSoundFine(speaker))
 		}
 	}
 	ready := func() bool {

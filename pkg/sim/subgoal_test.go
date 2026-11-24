@@ -122,8 +122,7 @@ func TestAMoverThatLandsOnItsRoutesThirdCellDropsThatCellAndEveryCellBefore(t *t
 	} {
 		w := sgWorld(t, []Entity{{ID: 1, X: 0, Y: 0, TargetX: 4, TargetY: 1, HasTarget: true}},
 			append([]cell(nil), route...))
-		w.entities[0].X, w.entities[0].Y = tc.at.x, tc.at.y
-		w.consume(0)
+		w.consume(0, tc.at)
 		checkRoute(t, "landing on "+tc.what, w.routes[0], true, tc.want)
 	}
 }

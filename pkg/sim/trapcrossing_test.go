@@ -50,7 +50,7 @@ func TestCellTrapIsRequestedOnTheStepsCrossingCall(t *testing.T) {
 				Step(w, cmds)
 				cmds = nil
 				e := w.entities[0]
-				if start == 0 && e.X == 3 && e.Y == 3 {
+				if sx, sy := e.StepCell(); start == 0 && sx == 3 && sy == 3 {
 					if !e.Stride.Present {
 						t.Fatal("the step retained no stride")
 					}

@@ -494,8 +494,9 @@ func assertPushSurvives(t *testing.T, l *drawnLeg, tick int, resolved map[string
 			t.Fatalf("at tick %d entry %d carries id %d, want %d — the snapshot is in the world's own order",
 				tick, i, d.ID, e.ID)
 		}
-		if d.Cell != (image.Point{X: int(e.X), Y: int(e.Y)}) {
-			t.Fatalf("at tick %d entity %d is pushed on %v and stands on (%d,%d)", tick, e.ID, d.Cell, e.X, e.Y)
+		// A step is drawn toward the cell it steps to (StepCell).
+		if sx, sy := e.StepCell(); d.Cell != (image.Point{X: int(sx), Y: int(sy)}) {
+			t.Fatalf("at tick %d entity %d is pushed on %v and steps to (%d,%d)", tick, e.ID, d.Cell, sx, sy)
 		}
 		// The stream carries two blows and a kill, so the life byte is not a
 		// constant here: it is compared against this file's own transcription

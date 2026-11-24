@@ -224,13 +224,16 @@ func TestReleaseTeleportBookAndScrollDrawAtDestination(t *testing.T) {
 			for range 256 {
 				mw.tick()
 				teleportJumpLogHash(t, mw, name)
+				// The drawn cell changes on the step's first tick; the
+				// logical cell waits for the crossing.
 				e := releaseEntity(t, mw, walkerID)
-				if e.X == walker.X && e.Y == walker.Y {
+				sx, sy := e.StepCell()
+				if sx == walker.X && sy == walker.Y {
 					continue
 				}
 				walked = true
 				draw := teleportJumpPushed(t, mw, walkerID)
-				inspectionCentre(mw, int(e.X), int(e.Y))
+				inspectionCentre(mw, int(sx), int(sy))
 				mid := teleportJumpGeometry(t, mw, draw, mw.clock.Period()/2)
 				full := teleportJumpGeometry(t, mw, draw, mw.clock.Period())
 				if draw.Step == (image.Point{}) || max(intmath.Abs(int32(draw.Step.X)), intmath.Abs(int32(draw.Step.Y))) != 1 || mid["sprite"] == full["sprite"] {

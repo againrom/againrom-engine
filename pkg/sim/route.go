@@ -202,6 +202,10 @@ func (s *routeScratch) occupy(w *World) {
 			continue
 		}
 		s.addFootprint(w, e.Domain.layer(), e.TokenSize, e.X, e.Y, 1)
+		// A stepping mover holds both cells of its step (heldCell).
+		if c, held := e.heldCell(); held {
+			s.addFootprint(w, e.Domain.layer(), e.TokenSize, c.x, c.y, 1)
+		}
 	}
 	w.occupySavedMotions(s)
 }
@@ -608,8 +612,13 @@ func (w *World) placementOpen(self int, x, y int32) bool {
 			continue
 		}
 		o := w.entities[j]
-		if counted(&o) && o.Domain.layer() == layer &&
-			footprintsOverlap(x, y, e.TokenSize, o.X, o.Y, o.TokenSize) {
+		if !counted(&o) || o.Domain.layer() != layer {
+			continue
+		}
+		if footprintsOverlap(x, y, e.TokenSize, o.X, o.Y, o.TokenSize) {
+			return false
+		}
+		if c, held := o.heldCell(); held && footprintsOverlap(x, y, e.TokenSize, c.x, c.y, o.TokenSize) {
 			return false
 		}
 	}
@@ -633,6 +642,9 @@ func (w *World) occupancyOpenFootprint(s *routeScratch, self int, x, y int32) bo
 			}
 			occupants := s.at(layer, i)
 			if m != nil && m.Current && w.motionOwnsCell(e.ID, layer, cx, cy) || (m == nil || !m.Current) && counted(e) && entityCoversCell(e, cx, cy) {
+				occupants--
+			}
+			if c, held := e.heldCell(); held && (m == nil || !m.Current) && counted(e) && footprintsOverlap(cx, cy, 0, c.x, c.y, e.TokenSize) {
 				occupants--
 			}
 			if occupants != 0 {

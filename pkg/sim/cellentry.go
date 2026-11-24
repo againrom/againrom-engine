@@ -115,7 +115,7 @@ func (w *World) relocateActor(i int, x, y int32, obs *castObs) bool {
 	e.X, e.Y = x, y
 	w.invalidateActorMotion(e.ID, "native teleport supersedes original movement")
 	e.clearStride()
-	e.HasTarget = false
+	e.dropWalk()
 	w.routes[i] = nil
 	obs.recordRelocation(*e, fromX, fromY)
 	return true

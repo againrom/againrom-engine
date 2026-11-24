@@ -4419,6 +4419,13 @@ func (mw *mapWorld) crossingSpan(e sim.Entity) int {
 
 // cellStep keeps adjacent crossings continuous and draws a longer relocation
 // at its destination without walking or interpolation.
+// drawnCell is the cell a figure is drawn toward: the cell a step enters
+// from its first tick, while the logical cell changes at the crossing.
+func drawnCell(e sim.Entity) image.Point {
+	x, y := e.StepCell()
+	return image.Pt(int(x), int(y))
+}
+
 func (mw *mapWorld) cellStep(id sim.EntityID, cell image.Point) (image.Point, bool) {
 	was, seen := mw.prev[id]
 	if !seen {
@@ -4468,7 +4475,7 @@ func (mw *mapWorld) advanceOdometers() {
 			continue
 		}
 
-		step, _ := mw.cellStep(e.ID, image.Pt(int(e.X), int(e.Y)))
+		step, _ := mw.cellStep(e.ID, drawnCell(e))
 
 		if step == (image.Point{}) {
 			// Standing still — blocked, waiting, ordered nowhere, downed or
@@ -5141,7 +5148,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		if e.Alive() {
 			delete(mw.died, e.ID)
 		}
-		cell := image.Point{X: int(e.X), Y: int(e.Y)}
+		cell := drawnCell(e)
 		fineX, fineY, finePosition := mw.world.ActorFinePosition(e.ID)
 		stone := mw.world.HasEffectArm(e.ID, sim.StoneCurseSpellArm())
 		if stone && !finePosition {
@@ -5168,7 +5175,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		}
 		transit, span := int(e.Transit), mw.crossingSpan(e)
 		if slide, sliding := mw.deathSlide[e.ID]; sliding && !e.Alive() && !stone {
-			// A body felled mid-step goes on to the cell it was entering.
+			// A body felled mid-step slides to its logical cell's centre.
 			step, jump, finePosition = slide.step, false, false
 			transit, span = slide.owed, slide.span
 		}

@@ -24,7 +24,10 @@ func (m SavedActorMotion) NativeStrideCompatible() bool {
 	}
 	// Reuse the native endpoint, direction, rate, signed-axis and duration
 	// invariants without recalculating current equipment or terrain speed.
-	e := Entity{X: s.ToX, Y: s.ToY, HP: 1, MaxHP: 1, Transit: total - elapsed, TransitTotal: total, Stride: s}
+	e := Entity{X: s.FromX, Y: s.FromY, HP: 1, MaxHP: 1, Transit: total - elapsed, TransitTotal: total, Stride: s}
+	if s.committed(int32(elapsed), int32(total)) {
+		e.X, e.Y = s.ToX, s.ToY
+	}
 	if strideFault(e) != nil {
 		return false
 	}

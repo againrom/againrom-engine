@@ -87,7 +87,7 @@ func TestSavedTurn1147CompletesBeforeFollowingRoute(t *testing.T) {
 		t.Fatal("turn handoff left an imported occupancy bit behind")
 	}
 	Step(w, nil)
-	if w.entities[0].X != 16 || w.entities[0].Y != 17 {
+	if sx, sy := w.entities[0].StepCell(); sx != 16 || sy != 17 {
 		t.Fatalf("following body update did not move: %+v", w.entities[0])
 	}
 }

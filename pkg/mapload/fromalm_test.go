@@ -340,7 +340,7 @@ func TestSteppingALoadedWorldLeavesTheMapUnchanged(t *testing.T) {
 	// walked anywhere, which is exactly the shape a blocked fixture fails in.
 	moved := 0
 	for i, e := range w.Entities() {
-		if e.X != wantEntities()[i].X || e.Y != wantEntities()[i].Y {
+		if x, y := e.StepCell(); x != wantEntities()[i].X || y != wantEntities()[i].Y {
 			moved++
 		}
 	}

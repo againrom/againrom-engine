@@ -868,10 +868,10 @@ func (w *World) attachAttack(i int, victim EntityID, kind AttackTargetKind, queu
 	// original's order rewrite leaves the mover alone (AI-REISSUE-077,
 	// DIV-2558).
 	keep := kind == AttackTargetUnit && e.HasAttackTarget && e.AttackTargetKind == kind && e.AttackTarget == victim && e.Pursuit.Held
-	route, tx, ty, has := w.routes[i], e.TargetX, e.TargetY, e.HasTarget
+	route, tx, ty, has, walk := w.routes[i], e.TargetX, e.TargetY, e.HasTarget, e.Walk
 	w.clearOrder(i)
 	if keep {
-		w.routes[i], e.TargetX, e.TargetY, e.HasTarget = route, tx, ty, has
+		w.routes[i], e.TargetX, e.TargetY, e.HasTarget, e.Walk = route, tx, ty, has, walk
 	}
 	e.PendingOrder = PendingOrder{}
 	e.clearPendingAttack()

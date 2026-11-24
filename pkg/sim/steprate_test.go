@@ -70,6 +70,7 @@ func TestStepRateIsTheNumberTheAdvanceUses(t *testing.T) {
 
 			Step(w, []Command{{Entity: 1, X: 2, Y: 1}})
 			e := w.Entities()[0]
+			e.X, e.Y = e.StepCell()
 			if e.X != 2 || e.Y != 1 {
 				t.Fatalf("the mover stands at (%d,%d) — it did not take the step under test", e.X, e.Y)
 			}

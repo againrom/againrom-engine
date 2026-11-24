@@ -61,10 +61,14 @@ func (mw *mapWorld) playSpellSound(slot int, owner uint32, cell image.Point, sou
 	}
 }
 
+// actorSoundFine places an actor's sound on its drawn cell, the cell the
+// viewer's hurt and death sounds use, so every sound of one actor comes from
+// one place during a step.
 func (mw *mapWorld) actorSoundFine(e sim.Entity) image.Point {
-	fine := image.Pt(int(e.X)*256+128, int(e.Y)*256+128)
+	cell := drawnCell(e)
+	fine := cell.Mul(256).Add(image.Pt(128, 128))
 	if x, y, ok := mw.world.ActorFinePosition(e.ID); ok {
-		fine = image.Pt(int(e.X)*256+int(x), int(e.Y)*256+int(y))
+		fine = cell.Mul(256).Add(image.Pt(int(x), int(y)))
 	}
 	return fine
 }
@@ -85,7 +89,7 @@ func (mw *mapWorld) playActorSound(source string, slot int, e sim.Entity) {
 	if slot <= 0 {
 		return
 	}
-	cell := image.Pt(int(e.X), int(e.Y))
+	cell := drawnCell(e)
 	if mw.semanticSound != nil {
 		mw.semanticSound(source, slot, e.Owner, cell, mw.actorSoundFine(e))
 	} else if source == "unit-swing" && mw.swingSound != nil {
@@ -185,7 +189,7 @@ func (mw *mapWorld) scheduleBookCastSound(ev sim.CastEvent, span int) {
 	phase := int(snd.AttackDelay)
 	cue := spellSoundCue{slot: slot, ticks: phase + 1, caster: ev.Caster, run: r.identity, phase: phase}
 	if mw.files().teleportCast.soundAtStart && mw.teleportBookCast(ev) {
-		cue.start, cue.cell, cue.fine = true, image.Pt(int(e.X), int(e.Y)), mw.actorSoundFine(e)
+		cue.start, cue.cell, cue.fine = true, drawnCell(e), mw.actorSoundFine(e)
 	}
 	mw.spellSoundCues = append(mw.spellSoundCues, cue)
 }

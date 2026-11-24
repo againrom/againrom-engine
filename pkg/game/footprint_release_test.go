@@ -134,9 +134,10 @@ func TestReleaseWideMoverRetreatsFromItsRawPosition(t *testing.T) {
 }
 
 // A body that falls on a layered cell is torn down when its dying time ends,
-// and the teardown recomputes every cell of its footprint. A first mover is
-// felled at the layered cell on the tick after its read decayed the cell's
-// byte, before its crossing; a second mover that enters the cell after the
+// and the teardown recomputes every cell of its footprint. A first mover on
+// the layered cell starts a step off it, which reads the cell and decays its
+// byte, and is felled on the next tick, before its crossing, so its body lies
+// on the cell (MOVE-089). A second mover that enters the cell after the
 // teardown finds the recomputed byte and takes the baseline transit, where a
 // world that never recomputes finds the decayed one.
 func TestReleaseTeardownRecomputesTheLayeredCellUnderABody(t *testing.T) {
@@ -144,8 +145,8 @@ func TestReleaseTeardownRecomputesTheLayeredCellUnderABody(t *testing.T) {
 	r := openAreaCostRig(t)
 	scratch := r.world(t, [2]int{}, [2]int{}, nil)
 	triples := r.triples(r.cast(t, scratch))
-	build := func(a, b, c [2]int, cost []byte, layer bool) *sim.World {
-		w := shortDyingAreaWorld(t, r, b, c, cost)
+	build := func(first, second [2]int, cost []byte, layer bool) *sim.World {
+		w := shortDyingAreaWorld(t, r, first, second, cost)
 		if layer {
 			r.cast(t, w)
 		}
@@ -155,8 +156,8 @@ func TestReleaseTeardownRecomputesTheLayeredCellUnderABody(t *testing.T) {
 		sim.Step(w, []sim.Command{sim.MoveTo(id, sim.CellPoint{X: int32(a[0]), Y: int32(a[1])})})
 		for _, e := range w.Entities() {
 			if e.ID == id {
-				if e.X != int32(a[0]) || e.Y != int32(a[1]) {
-					t.Fatalf("mover %d stands at (%d,%d), want the layered cell %v", id, e.X, e.Y, a)
+				if x, y := e.StepCell(); x != int32(a[0]) || y != int32(a[1]) || e.Transit == 0 {
+					t.Fatalf("mover %d steps toward (%d,%d), want the layered cell %v", id, x, y, a)
 				}
 				return e.TransitTotal
 			}
@@ -168,14 +169,19 @@ func TestReleaseTeardownRecomputesTheLayeredCellUnderABody(t *testing.T) {
 		base := r.cost[a[1]*r.width+a[0]]
 		decayed := append([]byte(nil), r.cost...)
 		decayed[a[1]*r.width+a[0]] = base >> 2
-		plain := enter(build(a, b, c, nil, false), areaCostSecond, a)
-		quarter := enter(build(a, b, c, decayed, false), areaCostSecond, a)
+		plain := enter(build(c, b, nil, false), areaCostSecond, a)
+		quarter := enter(build(c, b, decayed, false), areaCostSecond, a)
 		if plain == quarter {
 			continue
 		}
-		w := build(a, b, c, nil, true)
+		w := build(a, b, nil, true)
 		// The first mover's start tick reads the layered cell once.
-		sim.Step(w, []sim.Command{sim.MoveTo(areaCostFirst, sim.CellPoint{X: int32(a[0]), Y: int32(a[1])})})
+		sim.Step(w, []sim.Command{sim.MoveTo(areaCostFirst, sim.CellPoint{X: int32(c[0]), Y: int32(c[1])})})
+		for _, e := range w.Entities() {
+			if e.ID == areaCostFirst && (e.X != int32(a[0]) || e.Y != int32(a[1]) || e.Transit == 0) {
+				t.Fatalf("the first mover is not stepping off the layered cell %v: (%d,%d) transit %d", a, e.X, e.Y, e.Transit)
+			}
+		}
 		sim.Step(w, []sim.Command{sim.TerminalKill(areaCostFirst)})
 		for i := 0; i < 8; i++ {
 			sim.Step(w, nil)

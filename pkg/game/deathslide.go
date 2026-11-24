@@ -14,10 +14,12 @@ type crossingMemo struct {
 }
 
 // advanceDeathSlides runs after each tick. The simulation drops a felled
-// unit's crossing at once and leaves the body on the cell it was entering, so
-// the drawing keeps what the unit owed when it was last seen alive: a unit
-// that is not alive after the tick starts a slide from that record, and every
-// slide pays one tick of its crossing and ends when none is owed.
+// unit's crossing at once and leaves the body on its logical cell, the cell it
+// was entering once the crossing is made and the cell it was leaving before.
+// The drawing keeps the slide to that cell's centre from where the unit was
+// last drawn alive: a unit that is not alive after the tick starts a slide
+// from that record, and every slide pays one tick and ends when none is owed
+// (DIV-5128).
 func (mw *mapWorld) advanceDeathSlides() {
 	for _, e := range mw.world.EntityView() {
 		if e.Alive() {
@@ -45,10 +47,14 @@ func (mw *mapWorld) advanceDeathSlides() {
 	}
 }
 
-// rememberCrossing keeps the step a living unit is in the middle of, or
-// forgets it when the unit stands or has just been relocated.
+// rememberCrossing keeps the slide a living unit's body would make from where
+// it is drawn, or forgets it when the unit stands or has just been relocated.
+// Past the crossing the body goes on to the cell it entered; before it, the
+// logical cell is still the one it leaves, and the body goes back to that
+// cell's centre over the ticks the step has run, so it never jumps.
 func (mw *mapWorld) rememberCrossing(e sim.Entity) {
-	step := image.Pt(int(e.X), int(e.Y)).Sub(mw.prev[e.ID])
+	from := mw.prev[e.ID]
+	step := drawnCell(e).Sub(from)
 	if e.Transit == 0 || step == (image.Point{}) || step.X < -1 || step.X > 1 || step.Y < -1 || step.Y > 1 {
 		delete(mw.crossing, e.ID)
 		return
@@ -56,5 +62,9 @@ func (mw *mapWorld) rememberCrossing(e sim.Entity) {
 	if mw.crossing == nil {
 		mw.crossing = make(map[sim.EntityID]crossingMemo)
 	}
-	mw.crossing[e.ID] = crossingMemo{step: step, owed: int(e.Transit), span: mw.crossingSpan(e)}
+	memo := crossingMemo{step: step, owed: int(e.Transit), span: mw.crossingSpan(e)}
+	if image.Pt(int(e.X), int(e.Y)) == from {
+		memo.step, memo.owed = step.Mul(-1), memo.span-int(e.Transit)
+	}
+	mw.crossing[e.ID] = memo
 }

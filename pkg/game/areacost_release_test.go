@@ -16,10 +16,11 @@ import (
 // order are fixtures; the cloud, its cells and the cost bytes the movers read
 // are the install's and the engine's.
 //
-// The first mover leaves a layered cell and the second enters it on the same
-// tick. Each read of a layered cell divides its stored byte by four and stores
-// it back, and the recompute at a crossing comes later, so the second read
-// answers a quarter of the first. The first read answers the baseline.
+// The first mover leaves a layered cell and the second mover's step into it
+// is read on the same tick. Each read of a layered cell divides its stored
+// byte by four and stores it back, and the recompute at a crossing comes
+// later, so the second read answers a quarter of the first. The first read
+// answers the baseline.
 
 type areaCostRig struct {
 	f      *FrontEnd
@@ -165,28 +166,58 @@ func (r *areaCostRig) triples(cells []uint16) (out [][3][2]int) {
 	return out
 }
 
-// transits runs the one tick of orders and reports the two movers' transits.
+// transits runs the first mover's order from a to c for one tick and reports
+// its transit and the transit the second mover's step from b into a would
+// take after that tick.
+//
+// The first mover holds a until it lands, so no second walker reads a during
+// the step. The second read is StepRate: the step-duration reader's answer for
+// that step, which divides the stored byte as the step would and stores
+// nothing back.
 func areaCostTransits(t *testing.T, w *sim.World, a, b, c [2]int) (first, second uint16) {
 	t.Helper()
-	sim.Step(w, []sim.Command{
-		sim.MoveTo(areaCostFirst, sim.CellPoint{X: int32(c[0]), Y: int32(c[1])}),
-		sim.MoveTo(areaCostSecond, sim.CellPoint{X: int32(a[0]), Y: int32(a[1])}),
-	})
+	sim.Step(w, []sim.Command{sim.MoveTo(areaCostFirst, sim.CellPoint{X: int32(c[0]), Y: int32(c[1])})})
 	for _, e := range w.Entities() {
-		switch e.ID {
-		case areaCostFirst:
-			if e.X != int32(c[0]) || e.Y != int32(c[1]) {
-				t.Fatalf("the first mover stands at (%d,%d), want its goal %v", e.X, e.Y, c)
+		if e.ID == areaCostFirst {
+			if x, y := e.StepCell(); x != int32(c[0]) || y != int32(c[1]) || e.Transit == 0 {
+				t.Fatalf("the first mover steps toward (%d,%d) with transit %d, want a step to its goal %v", x, y, e.Transit, c)
 			}
 			first = e.TransitTotal
-		case areaCostSecond:
-			if e.X != int32(a[0]) || e.Y != int32(a[1]) {
-				t.Fatalf("the second mover stands at (%d,%d), want the layered cell %v", e.X, e.Y, a)
-			}
-			second = e.TransitTotal
 		}
 	}
-	return first, second
+	return first, areaCostSecondRead(t, w, a)
+}
+
+// areaCostSecondRead is the transit the second mover's step into a takes if
+// it starts now.
+func areaCostSecondRead(t *testing.T, w *sim.World, a [2]int) uint16 {
+	t.Helper()
+	_, transit, adjacent, ok := w.StepRate(areaCostSecond, int32(a[0]), int32(a[1]))
+	if !ok || !adjacent {
+		t.Fatalf("the second mover has no rated step into %v: ok %v adjacent %v", a, ok, adjacent)
+	}
+	return uint16(transit)
+}
+
+// areaCostEntry orders the second mover into a and returns the transit its
+// step takes, after checking that StepRate answered the same just before.
+func areaCostEntry(t *testing.T, w *sim.World, a [2]int) uint16 {
+	t.Helper()
+	predicted := areaCostSecondRead(t, w, a)
+	sim.Step(w, []sim.Command{sim.MoveTo(areaCostSecond, sim.CellPoint{X: int32(a[0]), Y: int32(a[1])})})
+	for _, e := range w.Entities() {
+		if e.ID == areaCostSecond {
+			if x, y := e.StepCell(); x != int32(a[0]) || y != int32(a[1]) || e.Transit == 0 {
+				t.Fatalf("the second mover steps toward (%d,%d), want the layered cell %v", x, y, a)
+			}
+			if e.TransitTotal != predicted {
+				t.Fatalf("the second mover's step into %v takes %d, StepRate said %d", a, e.TransitTotal, predicted)
+			}
+			return e.TransitTotal
+		}
+	}
+	t.Fatal("no second mover")
+	return 0
 }
 
 // areaCostWitness is the claim under test: over the layered cell the first
@@ -229,6 +260,14 @@ func TestReleaseAreaLayerMovementCost(t *testing.T) {
 		if want2 == plain2 {
 			continue
 		}
+		// The second read is the step's own: with the first mover parked at c
+		// and a empty, the step into a takes what StepRate answers.
+		if got := areaCostEntry(t, r.world(t, c, b, nil), a); got != plain2 {
+			t.Fatalf("over bare ground the step into %v takes %d, want %d", a, got, plain2)
+		}
+		if got := areaCostEntry(t, r.world(t, c, b, decayed), a); got != want2 {
+			t.Fatalf("over the divided byte the step into %v takes %d, want %d", a, got, want2)
+		}
 
 		layered := r.world(t, a, b, nil)
 		if got := r.cast(t, layered); len(got) != len(cells) {
@@ -268,9 +307,9 @@ func areaCostCrossingTick(t *testing.T, s sim.NativeStride) int {
 	return 0
 }
 
-// areaCostPair runs the first mover from a to c on tick 0 and the second mover
-// from b onto a on tick delay, and returns the second mover's transit and the
-// first mover's crossing tick.
+// areaCostPair runs the first mover from a to c on tick 0 and on through tick
+// delay, and returns the second mover's read of a after tick delay (see
+// areaCostTransits) and the first mover's crossing tick.
 func areaCostPair(t *testing.T, w *sim.World, a, b, c [2]int, delay int) (second uint16, crossing int) {
 	t.Helper()
 	sim.Step(w, []sim.Command{sim.MoveTo(areaCostFirst, sim.CellPoint{X: int32(c[0]), Y: int32(c[1])})})
@@ -282,26 +321,22 @@ func areaCostPair(t *testing.T, w *sim.World, a, b, c [2]int, delay int) (second
 			crossing = areaCostCrossingTick(t, e.Stride)
 		}
 	}
-	for i := 1; i < delay; i++ {
+	for i := 1; i <= delay; i++ {
 		sim.Step(w, nil)
 	}
-	sim.Step(w, []sim.Command{sim.MoveTo(areaCostSecond, sim.CellPoint{X: int32(a[0]), Y: int32(a[1])})})
 	for _, e := range w.Entities() {
-		if e.ID == areaCostSecond {
-			if e.X != int32(a[0]) || e.Y != int32(a[1]) {
-				t.Fatalf("the second mover stands at (%d,%d), want the layered cell %v", e.X, e.Y, a)
-			}
-			second = e.TransitTotal
+		if e.ID == areaCostFirst && e.Transit == 0 {
+			t.Fatalf("the first mover landed by tick %d", delay)
 		}
 	}
-	return second, crossing
+	return areaCostSecondRead(t, w, a), crossing
 }
 
 // The first mover leaves a layered cell, and its crossing recomputes the cell
-// on one tick. A second mover that reads the cell one tick earlier finds the
-// byte the first mover's read left, a quarter of the baseline; on the crossing
-// tick, after the first mover in the entity list, it finds the recomputed byte
-// and gets the baseline transit. Bare ground gives the baseline on both ticks.
+// on one tick. The second mover's read of the cell after the tick before the
+// crossing finds the byte the first mover's read left, a quarter of the
+// baseline; after the crossing tick it finds the recomputed byte and gets the
+// baseline transit. Bare ground gives the baseline on both ticks.
 func TestReleaseAreaLayerCostRecomputesOnTheCrossingTick(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	r := openAreaCostRig(t)
@@ -349,9 +384,10 @@ func TestReleaseAreaLayerCostRecomputesOnTheCrossingTick(t *testing.T) {
 
 // The area-effect tick runs after every actor tick. A cast whose cloud lands
 // on a tick is laid after that tick's movers: the first mover leaves the cell
-// on the landing tick and reads no layer, so a second mover entering on the
-// next tick is the first reader and gets the baseline. With the cloud already
-// standing the same two movers give the second one the quarter byte.
+// on the landing tick and reads no layer, so the second mover's read after the
+// next tick is the first read of the layer and gets the baseline. With the
+// cloud already standing the same two movers give the second one the quarter
+// byte.
 func TestReleaseAreaLayerLandsAfterTheActorsOfItsTick(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	r := openAreaCostRig(t)
@@ -380,25 +416,17 @@ func TestReleaseAreaLayerLandsAfterTheActorsOfItsTick(t *testing.T) {
 			}
 			sim.Step(w, cmds)
 		}
-		sim.Step(w, []sim.Command{sim.MoveTo(areaCostSecond, sim.CellPoint{X: int32(a[0]), Y: int32(a[1])})})
-		var second uint16
-		for _, e := range w.Entities() {
-			if e.ID == areaCostSecond {
-				second = e.TransitTotal
-			}
-		}
-		if second != plain2 {
+		sim.Step(w, nil)
+		if second := areaCostSecondRead(t, w, a); second != plain2 {
 			t.Errorf("cloud landing on tick %d over %v: the second mover's transit is %d, want the baseline's %d", land, a, second, plain2)
 		}
 		// Loss control: the cloud standing before the first mover leaves.
 		standing := r.world(t, a, b, nil)
 		r.cast(t, standing)
 		sim.Step(standing, []sim.Command{sim.MoveTo(areaCostFirst, sim.CellPoint{X: int32(c[0]), Y: int32(c[1])})})
-		sim.Step(standing, []sim.Command{sim.MoveTo(areaCostSecond, sim.CellPoint{X: int32(a[0]), Y: int32(a[1])})})
-		for _, e := range standing.Entities() {
-			if e.ID == areaCostSecond && e.TransitTotal != want2 {
-				t.Errorf("with the cloud standing the second mover's transit is %d, want the quarter byte's %d", e.TransitTotal, want2)
-			}
+		sim.Step(standing, nil)
+		if second := areaCostSecondRead(t, standing, a); second != want2 {
+			t.Errorf("with the cloud standing the second mover's transit is %d, want the quarter byte's %d", second, want2)
 		}
 		return
 	}
@@ -482,7 +510,8 @@ func TestReleaseAreaLayerCostContinuesAcrossSaveAndLoad(t *testing.T) {
 		x.live.pending = append(x.live.pending, sim.MoveTo(mage.ID, sim.CellPoint{X: int32(target[0]), Y: int32(target[1])}))
 		x.live.tick()
 		e := releaseEntity(t, x.live, mage.ID)
-		for i := 0; i < 5 && x == h && (e.X != int32(target[0]) || e.Y != int32(target[1])); i++ {
+		// The mage stands on the layered cell from its step's crossing.
+		for i := 0; i < 400 && (e.X != int32(target[0]) || e.Y != int32(target[1])); i++ {
 			x.live.tick()
 			e = releaseEntity(t, x.live, mage.ID)
 		}
@@ -528,7 +557,7 @@ func TestReleaseAreaLayerCostContinuesAcrossSaveAndLoad(t *testing.T) {
 			t.Fatal("the transit onto the layered cell never ended")
 		}
 		x.live.pending = append(x.live.pending, sim.MoveTo(mage.ID, sim.CellPoint{X: int32(mage.X), Y: int32(mage.Y)}))
-		for i := 0; i < 10 && (e.X != mage.X || e.Y != mage.Y); i++ {
+		for i := 0; i < 400 && (e.X != mage.X || e.Y != mage.Y); i++ {
 			x.live.tick()
 			e = releaseEntity(t, x.live, mage.ID)
 		}

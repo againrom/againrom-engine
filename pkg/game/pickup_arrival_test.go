@@ -46,7 +46,7 @@ func TestPickupArrivalWaitsForRatedStride(t *testing.T) {
 	for paid := 1; paid <= 15; paid++ {
 		mw.tick()
 		e, _ := w.Entity(7)
-		if e.X != 4 || e.Y != 3 || e.TransitTotal != 16 || int(e.Transit) != 16-paid {
+		if x, y := e.StepCell(); x != 4 || y != 3 || e.TransitTotal != 16 || int(e.Transit) != 16-paid {
 			t.Fatalf("fixture lost the sixteen-tick eastward stride at payment %d: %+v", paid, e)
 		}
 		requirePickupArrivalGround(t, w, mw)
@@ -91,7 +91,7 @@ func TestPickupArrivalUnderfootCannotInterruptStride(t *testing.T) {
 			sim.Step(w, []sim.Command{sim.MoveTo(7, sim.CellPoint{X: 4, Y: 3})})
 			for paid := 1; paid <= 15; paid++ {
 				e, _ := w.Entity(7)
-				if e.X != 4 || e.Y != 3 || int(e.Transit) != 16-paid {
+				if x, y := e.StepCell(); x != 4 || y != 3 || int(e.Transit) != 16-paid {
 					t.Fatalf("crossing fixture changed at payment %d: %+v", paid, e)
 				}
 				before := w.Hash()

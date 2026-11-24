@@ -165,6 +165,8 @@ func TestStructureUse1150Footer(t *testing.T) {
 	w := structureUseWorld(t, 28)
 	w.structures[0].Col = 13
 	Step(w, []Command{{Kind: KindUseStructure, X: 0}})
+	// The walk refresh wrapper is not this footer's subject.
+	w.entities[0].Walk = WalkRefresh{}
 	b := mustMarshal(t, w)
 	span := int(binary.LittleEndian.Uint32(b[len(b)-entityIDFloorLen-spellDeliverySpanLen-16:]))
 	if b[0] != formatVersion || span != 26 {

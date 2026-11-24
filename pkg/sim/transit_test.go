@@ -25,7 +25,7 @@ func walkTicks(t *testing.T, w *World, id EntityID, tx, ty int32) int {
 		Step(w, cmds)
 		cmds = nil
 		e := w.Entities()[indexOfEntity(w.Entities(), id)]
-		if e.X == tx && e.Y == ty {
+		if x, y := e.StepCell(); x == tx && y == ty {
 			return n
 		}
 	}
@@ -51,8 +51,8 @@ func TestARatedMoverCrossesOneCellPerTransit(t *testing.T) {
 	Step(w, []Command{{Entity: 1, X: 10, Y: 2}})
 
 	e := w.Entities()[0]
-	if e.X != 1 || e.Y != 2 {
-		t.Fatalf("after the ordering tick the mover is at (%d,%d), want (1,2)", e.X, e.Y)
+	if x, y := e.StepCell(); x != 1 || y != 2 {
+		t.Fatalf("after the ordering tick the mover steps to (%d,%d), want (1,2)", x, y)
 	}
 	if int32(e.TransitTotal) != want || int32(e.Transit) != want-1 {
 		t.Fatalf("the crossing is %d/%d, want %d owed of %d", e.Transit, e.TransitTotal, want-1, want)
@@ -64,8 +64,8 @@ func TestARatedMoverCrossesOneCellPerTransit(t *testing.T) {
 	for k := int32(1); k < want; k++ {
 		Step(w, nil)
 		e = w.Entities()[0]
-		if e.X != 1 || e.Y != 2 {
-			t.Fatalf("tick %d of the crossing moved the mover to (%d,%d)", k, e.X, e.Y)
+		if x, y := e.StepCell(); x != 1 || y != 2 {
+			t.Fatalf("tick %d of the crossing moved the mover's step to (%d,%d)", k, x, y)
 		}
 		if int32(e.Transit) != want-1-k {
 			t.Fatalf("tick %d of the crossing left %d owed, want %d", k, e.Transit, want-1-k)
@@ -77,8 +77,8 @@ func TestARatedMoverCrossesOneCellPerTransit(t *testing.T) {
 	// And the tick after it steps again, which is what makes the cadence the
 	// transit's own length rather than one more than it.
 	Step(w, nil)
-	if e = w.Entities()[0]; e.X != 2 {
-		t.Fatalf("the tick after the crossing left the mover at (%d,%d), want column 2", e.X, e.Y)
+	if e = w.Entities()[0]; stepX(e) != 2 {
+		t.Fatalf("the tick after the crossing left the mover stepping to column %d, want column 2", stepX(e))
 	}
 }
 
@@ -149,16 +149,16 @@ func TestAnOrderArrivingMidCrossingWaitsForIt(t *testing.T) {
 	w := mustWorldGrid(t, 1, trBounds, ModeCanonical, nil,
 		[]Entity{{ID: 1, X: 5, Y: 2, Speed: speed}})
 	Step(w, []Command{{Entity: 1, X: 10, Y: 2}})
-	if e := w.Entities()[0]; e.X != 6 {
-		t.Fatalf("the mover is at column %d, want 6", e.X)
+	if e := w.Entities()[0]; stepX(e) != 6 {
+		t.Fatalf("the mover steps to column %d, want 6", stepX(e))
 	}
 
 	// Re-ordered the other way, two ticks into a sixteen-tick crossing.
 	Step(w, nil)
 	Step(w, []Command{{Entity: 1, X: 0, Y: 2}})
 	e := w.Entities()[0]
-	if e.X != 6 {
-		t.Errorf("the re-order moved a mover mid-crossing, to column %d", e.X)
+	if stepX(e) != 6 {
+		t.Errorf("the re-order moved a mover mid-crossing, to column %d", stepX(e))
 	}
 	if e.TargetX != 0 {
 		t.Errorf("the re-order did not reach the target: it is %d", e.TargetX)
@@ -166,12 +166,12 @@ func TestAnOrderArrivingMidCrossingWaitsForIt(t *testing.T) {
 	// It turns round on the tick the crossing ends, and not one earlier.
 	for k := 0; k < 13; k++ {
 		Step(w, nil)
-		if got := w.Entities()[0].X; got != 6 {
+		if got := stepX(w.Entities()[0]); got != 6 {
 			t.Fatalf("the mover left column 6 on tick %d of the crossing, at column %d", k+3, got)
 		}
 	}
 	Step(w, nil)
-	if got := w.Entities()[0].X; got != 5 {
+	if got := stepX(w.Entities()[0]); got != 5 {
 		t.Errorf("the mover is at column %d after the crossing ended, want 5 — back the way it came", got)
 	}
 }

@@ -95,8 +95,9 @@ func walkerNotInParty(t *testing.T, live *mapWorld, minOwed uint16) (sim.EntityI
 
 // TestReleaseUnitKilledMidStepFinishesTheStepBeforeItsBodyLies drives a real
 // mission's walking actor, kills it between two cells and follows its drawn
-// state tick by tick. The body keeps the offset of the step it was in, draws
-// no health bar, and has paid the whole step before the death frames end.
+// state tick by tick. The body lies on its logical cell, draws no health bar,
+// slides from where it was last drawn alive by no more than one tick of its
+// step per tick, and stands at the cell's centre before the death frames end.
 func TestReleaseUnitKilledMidStepFinishesTheStepBeforeItsBodyLies(t *testing.T) {
 	missions := []int{41, 20, 2, 3, 4, 5, 6, 7, 8, 9, 10, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 43, 44}
 	if v := os.Getenv("AGAINROM_DEATHSTEP_MISSION"); v != "" {
@@ -129,6 +130,13 @@ func TestReleaseUnitKilledMidStepFinishesTheStepBeforeItsBodyLies(t *testing.T) 
 			t.Fatalf("mission %d actor %d is not mid-step before the blow: %+v", n, id, before)
 		}
 		cellBefore := image.Pt(int(before.X), int(before.Y))
+		alive, ok := drawOf(live, id)
+		if !ok {
+			t.Fatalf("no draw for %d before the blow", id)
+		}
+		drawnAt := func(d ui.MapEntity) image.Point { return d.Cell.Mul(terrain.CellSize).Add(drawnOffset(d)) }
+		// One tick of the step, plus a pixel of rounding at each end.
+		lastAt, perTick := drawnAt(alive), terrain.CellSize/max(alive.TransitSpan, 1)+2
 		if err := live.world.HeadlessKill(id); err != nil {
 			t.Fatal(err)
 		}
@@ -150,13 +158,17 @@ func TestReleaseUnitKilledMidStepFinishesTheStepBeforeItsBodyLies(t *testing.T) 
 				t.Fatalf("tick %d: the felled unit is drawn %d, not dead, so it would show a health bar", k, d.Life)
 			}
 			if d.Cell != cellBefore {
-				t.Fatalf("tick %d: the body left the cell it was stepping into: %v, want %v", k, d.Cell, cellBefore)
+				t.Fatalf("tick %d: the body left its logical cell: %v, want %v", k, d.Cell, cellBefore)
 			}
+			if at := drawnAt(d).Sub(lastAt); max(at.X, -at.X) > perTick || max(at.Y, -at.Y) > perTick {
+				t.Fatalf("tick %d: the body jumped %v in one tick, more than one tick of its step (%d pixels)", k, at, perTick)
+			}
+			lastAt = drawnAt(d)
 			if k == 0 && off == (image.Point{}) {
 				t.Fatalf("the body drew at its cell centre on the first tick after the blow; it was %d ticks from the end of its step", owedAtBlow)
 			}
 			if k > 0 && absPoint(off) > absPoint(last) {
-				t.Fatalf("tick %d: the body moved away from the cell it was entering: %v after %v", k, off, last)
+				t.Fatalf("tick %d: the body moved away from its cell's centre: %v after %v", k, off, last)
 			}
 			if k >= owedAtBlow && off != (image.Point{}) {
 				t.Fatalf("tick %d: the body is still %v short of the cell, %d ticks after a step with %d owed", k, off, k, owedAtBlow)
@@ -167,7 +179,7 @@ func TestReleaseUnitKilledMidStepFinishesTheStepBeforeItsBodyLies(t *testing.T) 
 			}
 		}
 		if !reached {
-			t.Fatalf("mission %d actor %d: the body never reached the cell it was stepping into", n, id)
+			t.Fatalf("mission %d actor %d: the body never reached its cell's centre", n, id)
 		}
 		// A unit felled standing dies where it stands.
 		standing, found := sim.EntityID(0), false

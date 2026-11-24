@@ -63,6 +63,7 @@ type ActorContinuation struct {
 	AcquirePursuit                                              bool             `json:",omitempty"`
 	PursuitIdle                                                 bool             `json:",omitempty"`
 	Pursuit                                                     *PursuitSearch   `json:",omitempty"`
+	Walk                                                        *WalkRefresh     `json:",omitempty"`
 	AttackPhase                                                 AttackPhase
 	AttackCountdown                                             int32
 	CastWait                                                    uint8
@@ -235,6 +236,10 @@ func (w *World) Actions() ActionContinuations {
 		if e.Pursuit.Held {
 			p := e.Pursuit
 			a.Actors[len(a.Actors)-1].Pursuit = &p
+		}
+		if e.Walk != (WalkRefresh{}) {
+			r := e.Walk
+			a.Actors[len(a.Actors)-1].Walk = &r
 		}
 		if e.FlightRun.Active {
 			run := e.FlightRun
@@ -519,6 +524,10 @@ func (w *World) restoreActions(a ActionContinuations, objects map[SavedObjectID]
 		if v.Pursuit != nil {
 			e.Pursuit = *v.Pursuit
 		}
+		e.Walk = WalkRefresh{}
+		if v.Walk != nil {
+			e.Walk = *v.Walk
+		}
 		e.AttackPhase, e.AttackCountdown, e.CastWait, e.AutoSpell = v.AttackPhase, v.AttackCountdown, v.CastWait, v.AutoSpell
 		e.ActionClock, e.Withdraw, e.Wimpy = v.ActionClock, v.Withdraw, v.Wimpy
 		e.FlightRun = FlightRun{}
@@ -619,6 +628,9 @@ func (w *World) restoreActions(a ActionContinuations, objects map[SavedObjectID]
 		_, aimIn := cellIndexIn(n.bounds, e.Pursuit.AimX, e.Pursuit.AimY)
 		if p := e.Pursuit; p.Held && (!e.HasAttackTarget || e.AttackTargetKind != AttackTargetUnit || !endIn || !aimIn) || !p.Held && p != (PursuitSearch{}) {
 			return fmt.Errorf("sim: invalid pursuit search record")
+		}
+		if e.Walk != (WalkRefresh{}) && !e.HasTarget {
+			return fmt.Errorf("sim: walk refresh state requires a walk")
 		}
 	}
 	if err := restoreActionOrderOrdinals(n.savedGroups, a.Actors); err != nil {

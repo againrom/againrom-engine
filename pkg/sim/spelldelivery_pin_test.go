@@ -9,6 +9,12 @@ import (
 // Never discard a paid cast or a pending effect to make an old pin agree.
 func strippedSpellDeliveryPin(form []byte) []byte {
 	out := bytes.Clone(form)
+	// A walk refresh wrapper is newer than every historical pin.
+	if len(out) != 0 && out[0] == walkRefreshFormVersion {
+		if e, ok := readWrapper(out, walkRefreshFormVersion); ok {
+			out = bytes.Clone(e.base())
+		}
+	}
 	if len(out) == 0 || out[0] != 95 {
 		return out
 	}

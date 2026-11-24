@@ -41,11 +41,13 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 		if !native[e.ID] && (m == nil || m.Current) || !e.Alive() {
 			continue
 		}
+		// A step reconciles from its start: its destination is not yet bound.
 		need := e.OffMap
+		sx, sy := e.StepCell()
 		if !need {
 			for y := int32(0); y < footprintSide(e.TokenSize) && !need; y++ {
 				for x := int32(0); x < footprintSide(e.TokenSize); x++ {
-					c := w.motionCell(uint16(e.Y+y)<<8 | uint16(e.X+x))
+					c := w.motionCell(uint16(sy+y)<<8 | uint16(sx+x))
 					if c == nil || !motionSlot(c, e.Domain.layer()).Bound || motionSlot(c, e.Domain.layer()).Entity != e.ID {
 						need = true
 						break

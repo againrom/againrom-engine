@@ -201,9 +201,9 @@ func TestRefusedEntryEndsTheOccupyLoopAndTheCrossingGoesOn(t *testing.T) {
 	}
 }
 
-// A mover felled in transit lies on the cell its stride committed, and its
-// teardown recomputes that cell. The cell it left keeps the byte a read
-// decayed: the body is not stored there.
+// A mover felled in transit before its crossing lies on the cell it is
+// leaving, its logical cell (MOVE-088), and its teardown recomputes that cell.
+// The cell it was stepping to keeps the byte a read decayed.
 func TestTeardownRecomputesTheBodyCellOfAMoverFelledInTransit(t *testing.T) {
 	t.Parallel()
 	b := Bounds{Width: 12, Height: 8}
@@ -216,14 +216,14 @@ func TestTeardownRecomputesTheBodyCellOfAMoverFelledInTransit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	left, body := cell{1, 1}, cell{2, 1}
-	keys := []uint16{cellKey(left.x, left.y), cellKey(body.x, body.y)}
+	left, body := cell{2, 1}, cell{1, 1}
+	keys := []uint16{cellKey(body.x, body.y), cellKey(left.x, left.y)}
 	w.effects = []cellEffect{{Key: keys[0], Spell: 3, Remaining: 2000, Mode: areaModeCloud, Cells: keys}}
 	w.syncAreaCosts()
 	stored := func(c cell) uint8 { a, _, _ := w.areaStored(cellKey(c.x, c.y), 8); return a }
 	Step(w, []Command{acMove(1, 2, 1)})
-	if e := w.Entities()[0]; !e.Stride.Present || e.Transit == 0 || e.X != 2 {
-		t.Fatalf("no transit to cut short: %+v", e)
+	if e := w.Entities()[0]; !e.Stride.Present || e.Transit == 0 || e.X != 1 || stepX(e) != 2 {
+		t.Fatalf("no transit to cut short before its crossing: %+v", e)
 	}
 	leftBefore := stored(left)
 	if leftBefore == 32 || stored(body) == 32 {
@@ -237,7 +237,7 @@ func TestTeardownRecomputesTheBodyCellOfAMoverFelledInTransit(t *testing.T) {
 		t.Errorf("the body's cell stores %d after the teardown, want the recomputed 32", got)
 	}
 	if got := stored(left); got != leftBefore {
-		t.Errorf("the cell the mover left stores %d, want its decayed %d", got, leftBefore)
+		t.Errorf("the cell the mover was stepping to stores %d, want its decayed %d", got, leftBefore)
 	}
 }
 

@@ -58,7 +58,7 @@ func TestOriginalActionEscortAdmissionKeepsExactTargetAndPendingOrder(t *testing
 						t.Fatal("escort continuation changed")
 					}
 				}
-				if mode == "bound" && w.entities[0].X == before.X && w.entities[0].Y == before.Y {
+				if sx, sy := w.entities[0].StepCell(); mode == "bound" && sx == before.X && sy == before.Y {
 					t.Fatal("restored escort did not take its actual move step")
 				}
 			})

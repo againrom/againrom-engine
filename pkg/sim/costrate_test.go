@@ -27,6 +27,7 @@ func crTransit(t *testing.T, cost, height []byte, speed int32) uint16 {
 	}
 	Step(w, []Command{{Entity: 1, X: 3, Y: 0}})
 	e := w.Entities()[0]
+	e.X, e.Y = e.StepCell()
 	if e.X != 1 {
 		t.Fatalf("the mover is at x=%d after one tick, want 1 — it took no transit to measure", e.X)
 	}
@@ -119,6 +120,7 @@ func TestATransitOffTheMapComposesAsItDidBeforeThePlanes(t *testing.T) {
 		}
 		Step(w, []Command{{Entity: 1, X: 3, Y: 0}})
 		e := w.Entities()[0]
+		e.X, e.Y = e.StepCell()
 		if e.X != 0 {
 			t.Fatalf("the mover is at x=%d, want the map's own first column", e.X)
 		}

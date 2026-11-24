@@ -76,7 +76,7 @@ func TestSavedTactical1115DefendSelectedAcquireCloseAndCover(t *testing.T) {
 			if e := w.entities[0]; !e.HasAttackTarget || e.AttackTarget != 3 || e.HasTarget || e.X != 20 {
 				t.Fatalf("selected subject did not acquire in place: %+v", e)
 			}
-			if e := w.entities[1]; !e.HasTarget || e.TargetX != 20 || e.X <= 10 || e.HasAttackTarget || w.savedOrder(2).Raw[0x70] != 3 {
+			if e := w.entities[1]; !e.HasTarget || e.TargetX != 20 || stepX(e) <= 10 || e.HasAttackTarget || w.savedOrder(2).Raw[0x70] != 3 {
 				t.Fatalf("far defender did not close at its native range: %+v", e)
 			}
 			g := w.savedGroupFor(2)
