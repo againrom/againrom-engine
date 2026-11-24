@@ -9,7 +9,7 @@ import (
 	"againrom/pkg/sim"
 )
 
-func restoreCurrentActorIdentities(ms *Mission, a *currentActionData) error {
+func restoreCurrentActorIdentities(ms *Mission, a *currentActionData, ids map[sim.EntityID]sim.EntityID) error {
 	byObject := map[uint16]sim.EntityID{}
 	for _, b := range ms.savedDocument.Actors {
 		if !b.Retired {
@@ -48,7 +48,6 @@ func restoreCurrentActorIdentities(ms *Mission, a *currentActionData) error {
 	if err := ms.World.RetireUnboundConstructors(unbound); err != nil {
 		return err
 	}
-	ids := map[sim.EntityID]sim.EntityID{}
 	reserved := map[sim.EntityID]bool{}
 	var next uint64
 	for _, b := range a.Bindings {
@@ -119,13 +118,6 @@ func restoreCurrentActorIdentities(ms *Mission, a *currentActionData) error {
 			roster[ids[id]] = p
 		}
 		ms.Start.Roster = roster
-	}
-	if ms.DeadArt != nil {
-		art := make(map[sim.EntityID]uint16, len(ms.DeadArt))
-		for id, v := range ms.DeadArt {
-			art[ids[id]] = v
-		}
-		ms.DeadArt = art
 	}
 	slices.SortFunc(ms.savedDocument.Actors, func(x, y SnapshotSAVActor) int { return cmp.Compare(x.EntityID, y.EntityID) })
 	if g := ms.savedDocument.GroupBindings; g != nil {

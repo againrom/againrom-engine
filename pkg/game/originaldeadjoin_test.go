@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/sim"
 )
 
 // applyOriginalDead is the dead body row's archive decode over source with at
@@ -17,5 +18,5 @@ func applyOriginalDead(ms *Mission, source []sav.DeadActor, report *OriginalSave
 	if len(states) == 1 {
 		state = states[0]
 	}
-	return applyOriginalDeadWithOrigins(ms, source, report, state, nil)
+	return applyOriginalDeadWithOrigins(ms, source, report, state, nil, map[sim.EntityID]uint16{})
 }

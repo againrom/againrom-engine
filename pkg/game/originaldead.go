@@ -55,7 +55,7 @@ func writeBodyReferences(doc *sav.DocumentData, record *sav.DocumentRecordData, 
 // observed producer is a hired mercenary, never an ALM placement -- and is
 // carried instead as a virtual dead actor with no live entity, at a freshly
 // minted ID beyond every ID this World already holds.
-func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *OriginalSaveResume, state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin) error {
+func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *OriginalSaveResume, state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin, art map[sim.EntityID]uint16) error {
 	if ms == nil || ms.Map == nil || ms.World == nil {
 		return fmt.Errorf("original dead actors: no map/world")
 	}
@@ -127,10 +127,7 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 			// freshly minted id are both in hand; sim.OriginalDeadSource
 			// itself carries no class-resolving field (originaldead.go's
 			// own doc).
-			if ms.DeadArt == nil {
-				ms.DeadArt = map[sim.EntityID]uint16{}
-			}
-			ms.DeadArt[id] = d.TypeID
+			art[id] = d.TypeID
 		} else {
 			ids := byMap[d.MapUnitID]
 			if authored[d.MapUnitID] != 1 || len(ids) != 1 || party[ids[0]] || originalPartyCarriesMapUnit(ms.Party, d.MapUnitID) {

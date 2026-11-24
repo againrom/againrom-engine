@@ -1,6 +1,7 @@
 package game
 
 import (
+	"maps"
 	"slices"
 
 	"againrom/pkg/formats/alm"
@@ -32,6 +33,15 @@ type worldCarrier struct {
 	// town moves the family between the town and its saved forms, keyed by
 	// the point it runs at.
 	town map[carrierTownPoint]func(c carrierTown) error
+	// detach copies the family onto the mission the autosave writes from.
+	detach func(c carrierDetach)
+}
+
+// carrierDetach is what a detach step reads and writes: the live mission and
+// the copy the autosave writes from.
+type carrierDetach struct {
+	live     *Mission
+	detached *Mission
 }
 
 // carrierRecord is the record a decode reads, and so the point it runs at.
@@ -258,7 +268,14 @@ func worldCarrierSet() []worldCarrier {
 			writer: func(c carrierSave) error { return graftUnknownObjects(c.doc, c.state, c.s.loadedDocument, c.world) }, stage: graftStage},
 		{home: "World actor identities of the actions leaf, remapped once",
 			decode: map[carrierRecord]func(carrierDecode) error{
-				identityRecord: func(c carrierDecode) error { return restoreCurrentActorIdentities(c.ms, c.actions) }}},
+				identityRecord: func(c carrierDecode) error {
+					ids := map[sim.EntityID]sim.EntityID{}
+					if err := restoreCurrentActorIdentities(c.ms, c.actions, ids); err != nil {
+						return err
+					}
+					remapDeadArt(c.ms, ids)
+					return nil
+				}}},
 		{home: "World terminal actors and their held state (CurrentTerminalActor.held)",
 			decode: map[carrierRecord]func(carrierDecode) error{terminalRecord: importCurrentTerminalActors}},
 		{home: "World actor actions, with the order words U40 and U5C the loaded record keeps for a body no entity holds",
@@ -303,9 +320,20 @@ func worldCarrierSet() []worldCarrier {
 		{home: "World original dead bodies and their held state",
 			decode: map[carrierRecord]func(carrierDecode) error{
 				archiveDead: func(c carrierDecode) error {
-					return applyOriginalDeadWithOrigins(c.ms, c.src.dead, c.report, c.src.missionDocument, c.src.documentOrigins)
+					art := map[sim.EntityID]uint16{}
+					if err := applyOriginalDeadWithOrigins(c.ms, c.src.dead, c.report, c.src.missionDocument, c.src.documentOrigins, art); err != nil {
+						return err
+					}
+					for id, typeID := range art {
+						if c.ms.DeadArt == nil {
+							c.ms.DeadArt = map[sim.EntityID]uint16{}
+						}
+						c.ms.DeadArt[id] = typeID
+					}
+					return nil
 				},
 				heldRecord: restoreSavedDeadArt},
+			detach: func(c carrierDetach) { c.detached.DeadArt = maps.Clone(c.live.DeadArt) },
 			writer: func(c carrierSave) error { return projectDeadActors(c.state, c.world, c.s.loadedDocument) }, stage: graphStage,
 			build: map[carrierBuildPoint]func(carrierBuild) error{
 				keysBuild:       func(c carrierBuild) error { return c.b.reserveRetainedDeadEffectKeys(c.w) },
@@ -531,6 +559,18 @@ func restoreSavedDeadArt(c carrierDecode) error {
 		}
 	}
 	return nil
+}
+
+// remapDeadArt moves each dead body's art to its remapped actor ID.
+func remapDeadArt(ms *Mission, ids map[sim.EntityID]sim.EntityID) {
+	if ms.DeadArt == nil {
+		return
+	}
+	art := make(map[sim.EntityID]uint16, len(ms.DeadArt))
+	for id, v := range ms.DeadArt {
+		art[ids[id]] = v
+	}
+	ms.DeadArt = art
 }
 
 // restoreResumedSessionHead gives a native resume's World the absent session
@@ -770,6 +810,15 @@ func seatTownCarriers(at carrierTownPoint, c carrierTown) error {
 		}
 	}
 	return nil
+}
+
+// detachWorldCarriers runs each detach step, in row order.
+func detachWorldCarriers(c carrierDetach) {
+	for _, carrier := range worldCarrierSet() {
+		if carrier.detach != nil {
+			carrier.detach(c)
+		}
+	}
 }
 
 // writeWorldCarriers runs the document writers of one stage.

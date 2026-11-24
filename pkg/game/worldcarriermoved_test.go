@@ -192,6 +192,9 @@ func TestTheLoadedRecordSitesAreStepsOfTheirRows(t *testing.T) {
 	if dead.decode[heldRecord] == nil || dead.build[absentDeadBuild] == nil {
 		t.Error("the dead body row does not decode and write the dead body art")
 	}
+	if dead.detach == nil {
+		t.Error("the dead body row does not copy the art onto the autosave's mission")
+	}
 	r := mustNewRecord("Unit")
 	body := sim.OriginalDeadRecord{OriginalDeadActor: sim.OriginalDeadActor{ID: 4}}
 	if err := buildWorldCarriers(absentDeadBuild, carrierBuild{ms: &Mission{DeadArt: map[sim.EntityID]uint16{4: 42}}, record: &r, body: body}); err != nil {
@@ -199,6 +202,21 @@ func TestTheLoadedRecordSitesAreStepsOfTheirRows(t *testing.T) {
 	}
 	if got, err := savedStructureValue(&r, "T0E"); err != nil || got != 42 {
 		t.Fatalf("the absent dead point wrote T0E %d (%v), want 42", got, err)
+	}
+}
+
+// The autosave's detached mission keeps a copy of the dead body art that
+// shares no map with the live mission.
+func TestTheDetachedMissionCopiesTheDeadArt(t *testing.T) {
+	live := &Mission{DeadArt: map[sim.EntityID]uint16{4: 42}}
+	detached := &Mission{}
+	detachWorldCarriers(carrierDetach{live: live, detached: detached})
+	if detached.DeadArt[4] != 42 || len(detached.DeadArt) != 1 {
+		t.Fatalf("the detached mission holds the art %v, want {4: 42}", detached.DeadArt)
+	}
+	detached.DeadArt[5] = 7
+	if len(live.DeadArt) != 1 {
+		t.Fatal("the detached copy writes into the live mission's art")
 	}
 }
 

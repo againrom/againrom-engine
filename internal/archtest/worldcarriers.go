@@ -74,6 +74,7 @@ var worldCarrierOwners = map[string][]string{
 	"againrom/pkg/game.graftUnknownObjects":                                    {worldCarrierSet},
 	"againrom/pkg/game.graftUnknownSingletons":                                 {"againrom/pkg/game.graftUnknownObjects"},
 	"againrom/pkg/game.restoreSavedDeadArt":                                    {worldCarrierSet},
+	"againrom/pkg/game.remapDeadArt":                                           {worldCarrierSet},
 	"againrom/pkg/game.importSavedDeadList":                                    {worldCarrierSet},
 	"againrom/pkg/sim.World.LoadDeadList":                                      {"againrom/pkg/game.importSavedDeadList"},
 	"againrom/pkg/game.writeDeadArt":                                           {worldCarrierSet},
@@ -114,15 +115,13 @@ const worldCarrierSetFile = "worldcarriers.go"
 
 // worldCarrierFields are the fields a carrier owns outside the World, each
 // with the functions outside the set file that may write it: the loaded
-// document the mission writers read, the town's carried Diary, and the dead
-// body art the dead body row's original LOAD hook decodes, the identity
-// step remaps and the autosave's detached mission copies.
+// document the mission writers read, the town's carried Diary, the town's
+// mod globals and the dead body art, which only the set file writes.
 var worldCarrierFields = map[string][]string{
 	"againrom/pkg/game.Snapshot.loadedDocument": nil,
 	"againrom/pkg/game.Town.knowledge":          nil,
 	"againrom/pkg/game.Town.globals":            nil,
-	"againrom/pkg/game.Mission.DeadArt": {"againrom/pkg/game.applyOriginalDeadWithOrigins",
-		"againrom/pkg/game.restoreCurrentActorIdentities", "againrom/pkg/game.FrontEnd.detachedMission"},
+	"againrom/pkg/game.Mission.DeadArt":         nil,
 }
 
 // worldCarrierLoadedFields are the Snapshot fields that hold the loaded

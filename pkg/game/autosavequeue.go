@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"maps"
 	"sync"
 
 	"againrom/pkg/ui"
@@ -162,8 +161,9 @@ func (f *FrontEnd) detachedMission(s Snapshot) (Snapshot, *mapWorld) {
 		return s, &mapWorld{}
 	}
 	ms := f.live.mission.state
-	return s, &mapWorld{mission: &missionNotices{state: &Mission{
-		Number: ms.Number, Address: ms.Address, Map: ms.Map, DeadArt: maps.Clone(ms.DeadArt)}}}
+	detached := &Mission{Number: ms.Number, Address: ms.Address, Map: ms.Map}
+	detachWorldCarriers(carrierDetach{live: ms, detached: detached})
+	return s, &mapWorld{mission: &missionNotices{state: detached}}
 }
 
 // runsAutosaveInline is true for deterministic headless runs, which write an

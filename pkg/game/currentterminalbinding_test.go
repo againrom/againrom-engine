@@ -34,7 +34,7 @@ func TestCurrentTerminalBindingsImportWithoutSnapshotActorEntity(t *testing.T) {
 		t.Fatal(err)
 	}
 	ms := &Mission{World: w, savedDocument: state}
-	if err := restoreCurrentActorIdentities(ms, &a); err != nil {
+	if err := restoreCurrentActorIdentities(ms, &a, map[sim.EntityID]sim.EntityID{}); err != nil {
 		t.Fatalf("terminal identity restore without a snapshot actor row: %v", err)
 	}
 	if got := w.CurrentTerminalActors(); !reflect.DeepEqual(got, []sim.CurrentTerminalActor{terminal}) {
@@ -82,7 +82,7 @@ func TestCurrentTerminalBindingRejectsMissingDeadRootBeforeRetiringConstructor(t
 	}
 	before := w.Hash()
 	ms := &Mission{World: w, savedDocument: state}
-	if err := restoreCurrentActorIdentities(ms, &a); err == nil || w.Hash() != before || len(w.Entities()) != 1 {
+	if err := restoreCurrentActorIdentities(ms, &a, map[sim.EntityID]sim.EntityID{}); err == nil || w.Hash() != before || len(w.Entities()) != 1 {
 		t.Fatal("terminal import without an exact DeadActors root removed a constructed actor")
 	}
 }

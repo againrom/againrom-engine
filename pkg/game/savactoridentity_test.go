@@ -32,7 +32,7 @@ func TestCurrentActorIdentityBindingsPreserveZeroMissingAndMetadata(t *testing.T
 	floor := uint64(30)
 	a := &currentActionData{Bindings: []currentActionBinding{{ID: 9, Object: 1}, {ID: 0, Object: 2}, {ID: 2, Missing: true}},
 		Policy: &sim.CurrentWorldPolicy{EntityIDFloor: &floor}}
-	if err := restoreCurrentActorIdentities(m, a); err != nil {
+	if err := decodeWorldCarriersFrom(identityRecord, carrierDecode{w: m.World, ms: m, state: m.savedDocument, actions: a}); err != nil {
 		t.Fatal(err)
 	}
 	ents := m.World.Entities()
@@ -67,7 +67,7 @@ func TestCurrentActorIdentityBindingsRejectAmbiguityBeforeMutation(t *testing.T)
 	} {
 		m := identityMission(t)
 		before := m.World.Hash()
-		if err := restoreCurrentActorIdentities(m, &currentActionData{Bindings: bindings}); err == nil || m.World.Hash() != before || m.Start.IDs[0] != 1 {
+		if err := restoreCurrentActorIdentities(m, &currentActionData{Bindings: bindings}, map[sim.EntityID]sim.EntityID{}); err == nil || m.World.Hash() != before || m.Start.IDs[0] != 1 {
 			t.Fatal("invalid current binding was accepted or partially applied", bindings, err)
 		}
 	}
