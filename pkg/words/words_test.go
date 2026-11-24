@@ -186,7 +186,7 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 				case *ast.KeyValueExpr:
 					if key, ok := n.Key.(*ast.Ident); ok {
 						switch {
-						case key.Name == "word" || strings.HasSuffix(key.Name, "Word"):
+						case key.Name == "word" || key.Name == "CopyRefused" || strings.HasSuffix(key.Name, "Word"):
 							args = append(args, n.Value)
 						case key.Name == "Label" || key.Name == "save" || key.Name == "refusal" || key.Name == "scriptRefusal" || key.Name == "undecoded":
 							args = append(args, n.Value)
@@ -228,6 +228,18 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "wordCause" && len(n.Args) >= 2 {
 						args = append(args, n.Args[1])
 					}
+					// secondWord(condition, id) forms the second game's word id.
+					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "secondWord" && len(n.Args) == 2 {
+						if cond, ok := n.Args[0].(*ast.Ident); ok {
+							if num, ok := n.Args[1].(*ast.BasicLit); ok {
+								kind := "action"
+								if cond.Name == "true" {
+									kind = "check"
+								}
+								args = append(args, &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("editor.second." + kind + "." + num.Value)})
+							}
+						}
+					}
 					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "wordRef" && len(n.Args) == 1 {
 						args = append(args, n.Args[0])
 					}
@@ -235,6 +247,15 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					// in its language.
 					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "lifted" && len(n.Args) >= 2 {
 						args = append(args, n.Args[1])
+					}
+				case *ast.AssignStmt:
+					// A word id held in a local named key or word.
+					if len(n.Lhs) == len(n.Rhs) {
+						for i, l := range n.Lhs {
+							if name, ok := l.(*ast.Ident); ok && (name.Name == "key" || name.Name == "word") {
+								args = append(args, n.Rhs[i])
+							}
+						}
 					}
 				case *ast.ValueSpec:
 					for i, v := range n.Values {
@@ -273,6 +294,12 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					}
 					id, err := strconv.Unquote(lit.Value)
 					if err != nil || !strings.Contains(id, ".") || strings.ContainsAny(id, " /\\") {
+						continue
+					}
+					// A format id read with a figure (CommandWord) is read by its
+					// literal prefix, like a prefix plus a key.
+					if head, _, found := strings.Cut(id, "%d"); found {
+						prefixes = append(prefixes, head)
 						continue
 					}
 					used[id] = true
