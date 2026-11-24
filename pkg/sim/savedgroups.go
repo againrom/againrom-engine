@@ -457,25 +457,50 @@ const patrolTailReach = 3
 // patrol keeps its point as PatrolLeg, a loaded one in its order block.
 func (w *World) patrolRefusedTail(i int) {
 	e := &w.entities[i]
-	if w.nativePatrol(i) {
-		if cellOf(e).chebyshevTo(cell{x: e.legX(), y: e.legY()}) < patrolTailReach {
-			e.PatrolLeg ^= 1
+	native := w.nativePatrol(i)
+	var o *SavedActorOrder
+	var ring []cell
+	var at int
+	if native {
+		ring = []cell{{x: e.PatrolHeadX, y: e.PatrolHeadY}, {x: e.PatrolTailX, y: e.PatrolTailY}}
+		at = 1
+		if e.PatrolLeg == patrolLegHead {
+			at = 0
+		}
+	} else {
+		o = w.savedOrder(e.ID)
+		if o == nil || o.State != uint32(actorStatePatrol) {
+			return
+		}
+		binary.LittleEndian.PutUint32(o.Raw[4:], 1)
+		o.Raw[8] = 0
+		at = slices.Index(o.Patrol, binary.LittleEndian.Uint16(o.Raw[2:]))
+		ring = make([]cell, len(o.Patrol))
+		for k, word := range o.Patrol {
+			ring[k] = cell{x: int32(word & 0xff), y: int32(word >> 8)}
+		}
+	}
+	next, moved := patrolTailNext(cellOf(e), ring, at)
+	if native {
+		if moved {
+			e.PatrolLeg = uint8(next)
 		}
 		w.syncNativePatrol(i)
 		return
 	}
-	o := w.savedOrder(e.ID)
-	if o == nil || o.State != uint32(actorStatePatrol) {
-		return
+	if moved {
+		binary.LittleEndian.PutUint16(o.Raw[2:], o.Patrol[next])
 	}
-	binary.LittleEndian.PutUint32(o.Raw[4:], 1)
-	o.Raw[8] = 0
-	cursor := binary.LittleEndian.Uint16(o.Raw[2:])
-	at := slices.Index(o.Patrol, cursor)
-	point := cell{x: int32(cursor & 0xff), y: int32(cursor >> 8)}
-	if at >= 0 && cellOf(e).chebyshevTo(point) < patrolTailReach {
-		binary.LittleEndian.PutUint16(o.Raw[2:], o.Patrol[(at+1)%len(o.Patrol)])
+}
+
+// patrolTailNext is the empty-route rule for one ring: the patrol moves on to
+// the next node only when the actor stands within patrolTailReach of its
+// current node. at is that node's index, or -1 when it is not in the ring.
+func patrolTailNext(from cell, ring []cell, at int) (int, bool) {
+	if at < 0 || from.chebyshevTo(ring[at]) >= patrolTailReach {
+		return at, false
 	}
+	return (at + 1) % len(ring), true
 }
 
 func (w *World) savedActorDispatch(i int) {
