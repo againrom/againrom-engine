@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"image"
 
@@ -16,6 +17,9 @@ func seedSource(seed uint32) func(int) int { return random.NewGo(int64(seed)).In
 // RandomTerrain draws every tile word anew among its look-alikes from seed,
 // as one edit (TERR-248).
 func (s *mapInspectionEdits) RandomTerrain(seed uint32) (_ *ui.InspectionDocument, said error) {
+	if !s.row().randomTerrain {
+		return nil, errors.New(s.inspector.word("editor.map.secondrandomterrain"))
+	}
 	defer s.worded(&said)
 	return s.change(func(m *mapedit.Editor) (bool, error) { return m.RandomizeTerrain(seedSource(seed)) })
 }

@@ -96,8 +96,8 @@ const (
 // radius and a drawn change up or down, each through the height brush's own
 // rule (heights: cosine fall-off, clamp 0..127, row step 31), added to the
 // heights the map has. The draws per stroke are x, y, radius, change, sign.
-// Tiles, objects and every record are not touched. It reports whether a
-// byte changed.
+// The format's edge ring (Band), tiles, objects and every record are not
+// touched. It reports whether a byte changed.
 func (e *Editor) RandomizeHeights(src func(n int) int) (bool, error) {
 	if src == nil {
 		return false, fmt.Errorf("mapedit: random heights need a random source")
@@ -109,7 +109,7 @@ func (e *Editor) RandomizeHeights(src func(n int) int) (bool, error) {
 	next := old
 	for range max(1, w*h/reliefArea) {
 		c := Cell{X: draw(src, w), Y: draw(src, h)}
-		b := Brush{Plane: PlaneHeight, Radius: reliefRadius + draw(src, reliefRadii), Falloff: FalloffCosine}
+		b := Brush{Plane: PlaneHeight, Radius: reliefRadius + draw(src, reliefRadii), Falloff: FalloffCosine, Band: e.Band(PlaneHeight)}
 		b.Value = reliefStep + draw(src, reliefSteps)
 		if draw(src, 2) == 0 {
 			b.Value = -b.Value

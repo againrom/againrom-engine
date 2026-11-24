@@ -79,6 +79,26 @@ type Brush struct {
 	// the stroke covers once, however many centres cover it.
 	Once       bool
 	Rectangles RectangleBrush
+	// Band is the edge ring, in cells, the brush writes no cell of. Paint
+	// and the whole-map heights take it from the map's format (Band).
+	Band int
+}
+
+// Band is the edge ring a brush of plane p leaves on this map: the format's
+// for the height, object and impassable planes, none for the others.
+func (e *Editor) Band(p Plane) int {
+	if p == PlaneHeight || p == PlaneObject || p == PlaneImpassable {
+		return formatRows[e.format].band
+	}
+	return 0
+}
+
+// BandError refuses a stroke that covers no cell inside the edge ring the
+// map's format keeps.
+type BandError struct{ Band int }
+
+func (b *BandError) Error() string {
+	return fmt.Sprintf("mapedit: the stroke covers no cell inside the %d-cell edge ring", b.Band)
 }
 
 // Scatter is the forest form of an object stroke. Each covered cell is drawn
@@ -158,7 +178,7 @@ func (b Brush) walk(c Cell, w, h int, fn func(x, y, d2 int)) {
 			if b.Shape == BrushSquare {
 				d2 = max(dx*dx, dy*dy)
 			}
-			if x, y := c.X+dx, c.Y+dy; d2 <= r*r && x >= 0 && y >= 0 && x < w && y < h {
+			if x, y := c.X+dx, c.Y+dy; d2 <= r*r && x >= b.Band && y >= b.Band && x < w-b.Band && y < h-b.Band {
 				fn(x, y, d2)
 			}
 		}
@@ -220,6 +240,9 @@ func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, erro
 		if c.X < 0 || c.Y < 0 || c.X >= w || c.Y >= h {
 			return false, fmt.Errorf("mapedit: stroke cell (%d,%d) is outside the %dx%d grid", c.X, c.Y, w, h)
 		}
+	}
+	if b.Band = e.Band(b.Plane); b.Band > 0 && len(b.Footprint(at, w, h)) == 0 {
+		return false, &BandError{Band: b.Band}
 	}
 	var ed edit
 	switch b.Plane {

@@ -69,8 +69,15 @@ func init() {
 		s.tally = alm.SecondMetaScriptCount
 		own[k] = s
 	}
-	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second}
+	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second, band: secondBand}
 }
+
+// secondBand is the edge ring the game's map band admits no cell of: x from
+// 8 to W - 9 and y from 8 to H - 9 (R2-ENGINE-1668). The server overwrites
+// the ring's block plane whatever the cell holds (R2-ENGINE-1341), and the
+// client copies no type-3 byte outside x 8..W - 9, y 8..H - 5
+// (R2-ENGINE-1667).
+const secondBand = 8
 
 // secondUnitFields are the settable fields of a second-game type-6 unit record
 // (R2-ENGINE-1510 to R2-ENGINE-1512, R2-ASSET-313 to R2-ASSET-316).

@@ -41,6 +41,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM2] In the map editor, a second-game map now takes the height brush, the passability brush, random heights and the object brush to clear objects, each inside the map's 8-cell edge ring; object classes, bridges and random terrain are refused with their reason; before, every brush but terrain was off.
 - [ROM2] A mod's `duration_factor` for Poison Cloud is now refused with its reason, since the second game's poison lasts a fixed time.
 - [ROM1] In the map editor's Dialog window, a dialogue reply now takes as many conditions and actions as a trigger: every condition must hold, the actions run in their order, and each row can be added, removed or moved with Alt and the arrow keys; before, a reply showed one condition and one action, and a dialogue file with longer lists was refused.
 - [ROM1] A mod can declare its own global variables, each with a number, a name and a starting value, and the triggers and dialogue replies of its maps can read, set and add to them during a mission, and a save taken in the mission keeps them; a map that names a variable its mod does not declare is refused.

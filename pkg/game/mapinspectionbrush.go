@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -79,8 +80,14 @@ func (s *mapInspectionEdits) BrushObjects() []ui.BrushObject {
 
 // Paint applies one stroke to the model as one edit.
 func (s *mapInspectionEdits) Paint(op ui.BrushStroke) (_ *ui.InspectionDocument, said error) {
-	if !s.row().planes && op.Plane != ui.BrushPlaneTerrain {
-		return nil, s.refuse()
+	if paints := s.row().paints; paints != nil {
+		rule, ok := paints[op.Plane]
+		if !ok {
+			return nil, s.refuse()
+		}
+		if rule.values != nil && (!slices.Contains(rule.values, op.Value) || len(op.Forest.Kinds) > 0) {
+			return nil, errors.New(s.inspector.word(rule.refusal))
+		}
 	}
 	defer s.worded(&said)
 	if op.Plane == ui.BrushPlaneObjects {
@@ -90,7 +97,13 @@ func (s *mapInspectionEdits) Paint(op ui.BrushStroke) (_ *ui.InspectionDocument,
 			}
 		}
 	}
-	return s.change(func(m *mapedit.Editor) (bool, error) { return paintStroke(m, op, s.inspector.table) })
+	return s.change(func(m *mapedit.Editor) (bool, error) {
+		changed, err := paintStroke(m, op, s.inspector.table)
+		if band := (*mapedit.BandError)(nil); errors.As(err, &band) {
+			return false, wordErr("editor.err.brushband", band.Band)
+		}
+		return changed, err
+	})
 }
 
 // BrushObjectIcon is the picture of an object class the forest grid shows:
@@ -238,7 +251,7 @@ func strokeCells(op ui.BrushStroke) []mapedit.Cell {
 func (s *mapInspectionEdits) BrushCells(op ui.BrushStroke) []image.Point {
 	w, h := s.model.GridSize()
 	b := brushPlanes[op.Plane]
-	b.Radius, b.Shape, b.Set, b.Flat = op.Radius, brushShapes[op.Shape], op.Set, op.Flat
+	b.Radius, b.Shape, b.Set, b.Flat, b.Band = op.Radius, brushShapes[op.Shape], op.Set, op.Flat, s.model.Band(b.Plane)
 	var out []image.Point
 	for _, c := range b.Footprint(strokeCells(op), w, h) {
 		out = append(out, image.Pt(c.X, c.Y))

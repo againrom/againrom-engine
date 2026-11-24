@@ -34,8 +34,13 @@ type editRow struct {
 	unitNoRowWord string
 	unitNoRowID   func(alm.Unit) int64
 	structureName func(*MapInspector, alm.Object) string
-	// planes: the brush paints every plane, not the terrain alone.
-	planes bool
+	// paints are the brush planes a stroke writes, each with its rule; nil:
+	// every plane, any value. A plane outside it takes refusal.
+	paints map[ui.BrushPlane]planeRule
+	// randomTerrain: the whole-map terrain command redraws tile words. The
+	// second game's is off: a look-alike word may hold another tile class
+	// and terrain cost there (R2-ENGINE-1665).
+	randomTerrain bool
 	// newSteps are the keys of a new record the palettes offer; nil: all.
 	newSteps map[string]bool
 	// manyValues: one new record takes several values.
@@ -76,7 +81,7 @@ type editRow struct {
 // editRows is the one table of rows, keyed by the map's format.
 var editRows = map[alm.Format]*editRow{
 	alm.FirstFormat: {
-		wholeScripts: true, fields: true, planes: true, manyValues: true,
+		wholeScripts: true, fields: true, randomTerrain: true, manyValues: true,
 		unitNoRowWord: "editor.unit.nodef",
 		unitNoRowID: func(u alm.Unit) int64 {
 			if u.DefID != 0 {
@@ -121,9 +126,31 @@ var editRows = map[alm.Format]*editRow{
 			reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups](),
 			reflect.TypeFor[ui.InspectionItemLook](),
 			reflect.TypeFor[ui.InspectionTriggerCopy](), reflect.TypeFor[ui.InspectionTriggerWizard](),
+			reflect.TypeFor[ui.InspectionWholeMap](),
 		},
+		paints:          secondPaints,
 		templatePlacing: true, centredCells: true, admissions: secondAdmissions,
 	},
+}
+
+// planeRule is what a brush plane writes on a format: values are the stroke
+// values it takes, nil any, and refusal the word of another value.
+type planeRule struct {
+	values  []int
+	refusal string
+}
+
+// secondPaints are the second game's brush planes. The type-1 word's bit
+// 0x2000 and the type-2 height plane are read by the game (R2-ENGINE-1340,
+// R2-ENGINE-1666); which object a type-3 byte shows is not, so the object
+// brush only clears (R2-ENGINE-1667), and no game reader of the type-4 bridge
+// element is read (R2-ASSET-262).
+var secondPaints = map[ui.BrushPlane]planeRule{
+	ui.BrushPlaneTerrain:     {},
+	ui.BrushPlaneHeight:      {},
+	ui.BrushPlanePassability: {},
+	ui.BrushPlaneObjects:     {values: []int{0}, refusal: "editor.map.secondobjects"},
+	ui.BrushPlaneBridge:      {values: []int{}, refusal: "editor.map.secondbridge"},
 }
 
 // placedKinds are the records the second game's palettes place: units,
