@@ -186,6 +186,12 @@ const (
 	// townWin keeps on the town what a won mission's World holds, at the win
 	// alone: a mission left, lost or restarted takes no such step.
 	townWin
+	// townMarked puts the mod mark's globals on the town an original file decodes to.
+	townMarked
+	// townGuestReturn puts back the globals a guest's stash LOAD replaced.
+	townGuestReturn
+	// townWinRefused puts back the globals a refused win had entered.
+	townWinRefused
 )
 
 // carrierTown is what a town step reads. A field the point does not have is
@@ -272,9 +278,12 @@ func worldCarrierSet() []worldCarrier {
 		{home: "World mod globals, from the campaign store on the town or the initials of the mod that plays the mission (DIV-5108)",
 			seat: map[carrierSeatPoint]func(carrierSeat) error{entrySeat: seatModGlobals},
 			town: map[carrierTownPoint]func(carrierTown) error{
-				townCapture: func(c carrierTown) error { c.s.globals = c.t.globals; return nil },
-				townRestore: func(c carrierTown) error { c.t.globals = c.s.globals; return nil },
-				townWin:     carryModGlobals}},
+				townCapture:     func(c carrierTown) error { c.s.globals = c.t.globals; return nil },
+				townRestore:     restoreModGlobals,
+				townMarked:      restoreModGlobals,
+				townGuestReturn: restoreModGlobals,
+				townWinRefused:  restoreModGlobals,
+				townWin:         carryModGlobals}},
 		{home: "World purse of the local Player, unless the loaded record binds the Player purses",
 			seat: map[carrierSeatPoint]func(carrierSeat) error{entrySeat: seatTownPurse, lineSeat: seatTownPurse}},
 		{home: "World saved Diaries, by owner (sim.CompareSavedDiaryOwners)",
@@ -404,6 +413,12 @@ func seatModGlobals(c carrierSeat) error {
 		list = append(list, sim.ScriptGlobal{ID: g.ID, Value: v})
 	}
 	return c.ms.World.SeatScriptGlobals(list)
+}
+
+// restoreModGlobals puts a Snapshot's globals on the town.
+func restoreModGlobals(c carrierTown) error {
+	c.t.globals = c.s.globals
+	return nil
 }
 
 // carryModGlobals keeps on the town, as its mod's entry in the campaign

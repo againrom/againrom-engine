@@ -115,7 +115,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, skills sim.Rule
 		return nil, err
 	}
 	if decoded.town != nil {
-		decoded.town.globals = marked.globals
+		_ = seatTownCarriers(townMarked, carrierTown{t: decoded.town, s: &Snapshot{globals: marked.globals}})
 	}
 	if marked.changed && decoded.mission == 0 {
 		marked.dropped = append(droppedMissionRows(decoded.dropped), adoptChangedGuests(decoded.session, mods)...)

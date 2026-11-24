@@ -106,13 +106,16 @@ func (f *FrontEnd) finishWin(in winInput) (int, string) {
 	// run, so a waiting party's stash written on the way holds them; a win
 	// the rows refuse puts the store back.
 	town := f.Town
-	kept := town.modGlobals()
+	kept := &Snapshot{}
+	if town != nil {
+		_ = seatTownCarriers(townCapture, carrierTown{t: town, s: kept})
+	}
 	if m := f.missionIdentity(in.n).mapMission(); m != nil {
 		_ = seatTownCarriers(townWin, carrierTown{t: town, w: in.w, mod: m.Mod})
 	}
 	next, line := f.finishWinRows(in)
 	if next < 0 && town != nil {
-		town.globals = kept
+		_ = seatTownCarriers(townWinRefused, carrierTown{t: town, s: kept})
 	}
 	return next, line
 }
@@ -265,11 +268,12 @@ func guestHome(f *FrontEnd, in winInput, s *winState) (int, string) {
 		}
 		back = &guestMission{mission: s.joiner, start: start, member: member}
 	}
-	globals := f.Town.modGlobals()
+	kept := &Snapshot{}
+	_ = seatTownCarriers(townCapture, carrierTown{t: f.Town, s: kept})
 	if _, _, _, err := f.restoreOriginal(g.stash, back); err != nil {
 		return -1, fmt.Sprintf("mission %d won - the waiting party did not come back: %v", in.n, err)
 	}
-	f.Town.globals = globals
+	_ = seatTownCarriers(townGuestReturn, carrierTown{t: f.Town, s: kept})
 	if campaign {
 		if member == nil {
 			f.Town.guest = f.Town.guest.previous

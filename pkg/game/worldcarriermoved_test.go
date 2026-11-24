@@ -201,3 +201,15 @@ func TestTheLoadedRecordSitesAreStepsOfTheirRows(t *testing.T) {
 		t.Fatalf("the absent dead point wrote T0E %d (%v), want 42", got, err)
 	}
 }
+
+// The mod globals row answers each point that puts a store back: a mark's
+// decode, a guest's return and a refused win.
+func TestTheModGlobalsRowPutsBackAtEachReturnPoint(t *testing.T) {
+	kept := modGlobalStore{"m": nil}
+	for _, at := range []carrierTownPoint{townMarked, townGuestReturn, townWinRefused} {
+		town := &Town{globals: modGlobalStore{}}
+		if err := seatTownCarriers(at, carrierTown{t: town, s: &Snapshot{globals: kept}}); err != nil || !reflect.DeepEqual(town.globals, kept) {
+			t.Fatalf("point %d put %+v (%v)", at, town.globals, err)
+		}
+	}
+}
