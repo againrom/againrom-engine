@@ -244,14 +244,21 @@ type InspectionScriptTarget struct {
 
 // newRecordRow is one choice that creates a record from a parameter list: its
 // marker, the refusal a command or host edit gives it, the script parameter
-// kind whose fields offer it, whether the editor's field offers it, and the
-// creation a list handler runs on that field.
+// kind whose fields offer it, whether the editor's field offers it, the
+// creation a list handler runs on that field, and whether a host edit makes
+// the record itself rather than refusing the choice.
 type newRecordRow struct {
 	choice  int64
 	refusal string
 	param   uint32
 	fits    func(*MapEditor, int) bool
 	create  func(*MapEditor, int) error
+	host    func(InspectionMessageMaker, InspectionMessageOwner) (*InspectionDocument, error)
+}
+
+// InspectionMessageMaker is the host edit a create row makes a message with.
+type InspectionMessageMaker interface {
+	NewMessage(owner InspectionMessageOwner) (*InspectionDocument, error)
 }
 
 // newRecordRows is the one table of create choices, in the order the list
@@ -260,9 +267,18 @@ var newRecordRows []newRecordRow
 
 func init() {
 	newRecordRows = []newRecordRow{
-		{NewGlobalChoice, "a new global is added on the Globals page", ScriptGlobalParameter, (*MapEditor).globalChoiceField, (*MapEditor).newGlobal},
-		{NewMessageChoice, "a new message is written in the window's message editor", ScriptMessageParameter, (*MapEditor).messageField, newMessageRow},
+		{NewGlobalChoice, "a new global is added on the Globals page", ScriptGlobalParameter, (*MapEditor).globalChoiceField, (*MapEditor).newGlobal, nil},
+		{NewMessageChoice, "a new message is written in the window's message editor", ScriptMessageParameter, (*MapEditor).messageField, newMessageRow, InspectionMessageMaker.NewMessage},
 	}
+}
+
+// HostCreate is the host edit that makes the record a create choice names,
+// and the parameter kind it fills; ok is false when the row has none.
+func HostCreate(value int64) (param uint32, make func(InspectionMessageMaker, InspectionMessageOwner) (*InspectionDocument, error), ok bool) {
+	if r := newRecordRowOf(value); r != nil && r.host != nil {
+		return r.param, r.host, true
+	}
+	return 0, nil, false
 }
 
 // createChoice is the create choice of a script parameter kind, read from the
@@ -320,7 +336,7 @@ func (m *InspectionScriptModel) OpenTarget(kind, value uint32) *InspectionScript
 	}
 	for i := range m.Targets[kind] {
 		t := &m.Targets[kind][i]
-		if t.NewChoice != createChoice(ScriptMessageParameter) && t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0 || kind == ScriptMessageParameter) {
+		if t.NewChoice == 0 && t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0 || kind == ScriptMessageParameter) {
 			return t
 		}
 	}

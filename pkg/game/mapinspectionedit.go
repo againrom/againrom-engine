@@ -588,7 +588,9 @@ func (s *mapInspectionEdits) ownChoice(kind ui.RecordKind, index int, key string
 // range, its reference check and the record's placement check pass on the
 // edited map.
 func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string, value int64) (_ *ui.InspectionDocument, said error) {
-	if word, ok := ui.NewChoiceRefusal(value); ok && !s.ownChoice(kind, index, key, value) && !(value == ui.NewMessageChoice && kind == ui.KindAction && key == "value0") {
+	param, create, hosted := ui.HostCreate(value)
+	hosted = hosted && kind == ui.KindAction && key == "value0"
+	if word, ok := ui.NewChoiceRefusal(value); ok && !s.ownChoice(kind, index, key, value) && !hosted {
 		said = errors.New(word)
 		s.worded(&said)
 		return nil, said
@@ -597,10 +599,10 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 		return s.SetFields(kind, index, []ui.InspectionFieldValue{{Key: key, Value: value}})
 	}
 	defer s.worded(&said)
-	if value == ui.NewMessageChoice && kind == ui.KindAction && key == "value0" {
+	if hosted {
 		if view, err := s.model.Map(); err == nil {
-			if sc, err := view.Script(); err == nil && index >= 0 && index < len(sc.Actions) && scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) == ui.ScriptMessageParameter {
-				return s.NewMessage(ui.InspectionMessageOwner{Kind: kind, Index: index, Key: key})
+			if sc, err := view.Script(); err == nil && index >= 0 && index < len(sc.Actions) && scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) == param {
+				return create(s, ui.InspectionMessageOwner{Kind: kind, Index: index, Key: key})
 			}
 		}
 	}
