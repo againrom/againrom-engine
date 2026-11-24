@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.160.0
+
 ### For players
 
 - [BASE] A mage under the Retreat order now casts its automatic spells, healing and strengthening itself and its friends, whenever no living enemy stands near; before, it never cast while retreating.
