@@ -27,6 +27,9 @@ modder or developer can notice gets no entry.
 - [ROM2] The Retreat order now makes a unit look for enemies within 10 cells, not its own sight range, and a mage with Teleport and mana teleports away by it, as in the original.
 - [ROM2] A patrol whose point no route reaches (behind a wall or water) now turns back when it stands within two cells of that point, as in the original; farther away it waits and tries again. A point held by another unit is not covered: the patrol walks up to it and waits.
 - [ROM2] Poison Cloud's poison now stays on a unit for the same short time whatever the caster's power, and each new pulse or cast sets it back to that time, as in the original; before, a stronger caster's poison lasted much longer after the unit left the cloud.
+- [ROM1] A Heal ordered at a body at -10 health or below, or at a unit with no health, now costs its mana and does nothing, as in the original; before, the order was refused without cost.
+- [BASE] Poison now keeps lowering a fallen unit's health until it runs out or the body is gone, and the body's effects end with it, as in the original; a decaying corpse shows no poison picture. Before, poison stopped on a unit it had killed.
+- [ROM2] Acid Stream now paints its first stage one tick after the cast lands, like Blizzard, as in the original; before, it painted at once.
 - [ROM2] On the world map, a place's name and description lines are now centred over the map's text area and the name is drawn in the lettering of the hero's name on the character screen, as in the original; before, each line began at the middle of the area and ran off to the right.
 
 ### For map makers and modders

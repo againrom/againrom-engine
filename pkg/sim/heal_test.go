@@ -185,28 +185,24 @@ func TestACommandedHealAtAFullyHealthyTargetIsCast(t *testing.T) {
 
 // ---------------------------------------------------------------- AC-3
 
-func TestAHealAtACorpseLeavesTheWorldByteIdentical(t *testing.T) {
+func TestAHealAtACorpseChargesManaAndHealsNothing(t *testing.T) {
 	t.Parallel()
 
 	// Owner 1 is hostile to owner 2 and back; relationHostile is bit 0, the
 	// bit Hostile itself reads.
 	rel := engRel(t, [3]uint32{1, 2, relationHostile}, [3]uint32{2, 1, relationHostile})
 
-	// A CONTROL WORLD RATHER THAN THE SAME WORLD BEFORE THE STEP. A tick
-	// changes state that has nothing to do with the cast — a corpse's decay
-	// ladder among it — so "the world after is byte-identical to the world
-	// before" is only a true statement of a REFUSED cast when the comparison
-	// is against the same world stepped with no command at all.
+	// The refusal stands after the payment (MAGIC-TARGET-017, MAGIC-406):
+	// the caster pays the cost and the corpse is not raised.
 	compare := func(t *testing.T, build func() *World, cmd Command) {
 		t.Helper()
-		cast, control := build(), build()
-		Step(cast, []Command{cmd})
-		Step(control, nil)
-		if !bytes.Equal(hlBytes(t, cast), hlBytes(t, control)) {
-			t.Error("the refused heal left a world the same tick with no command at all does not")
+		cast := build()
+		spRunCast(cast, cmd)
+		if got := spAt(t, cast, 1).Mana; got != 40 {
+			t.Errorf("the caster holds %d mana, want 40 after paying the cost 10", got)
 		}
-		if got := spAt(t, cast, 1).Mana; got != 50 {
-			t.Errorf("the caster holds %d mana, want its own untouched 50", got)
+		if got := spAt(t, cast, 2).HP; got > -50 {
+			t.Errorf("the corpse holds %d health, want it unhealed", got)
 		}
 	}
 

@@ -2080,7 +2080,7 @@ func nativeDecayTeardown(*World, *Entity) {}
 func (w *World) decayPass() {
 	rule := decayWalks[w.game.decayWalk]
 	rule.beforeWalk(w)
-	var gone []EntityID
+	var gone, expiring []EntityID
 	for i := range w.entities {
 		e := &w.entities[i]
 		beforeHP, beforeStage := e.HP, e.Decay
@@ -2120,6 +2120,7 @@ func (w *World) decayPass() {
 				w.releaseAtTeardown(i)
 			}
 			gone = append(gone, e.ID)
+			expiring = append(expiring, e.ID)
 		} else if s > e.Decay {
 			// The stage never falls, and this test is what says so rather than a
 			// comment: health only falls and the ladder is monotone in it, so
@@ -2130,6 +2131,7 @@ func (w *World) decayPass() {
 			e.Decay = s
 			if teardown {
 				w.releaseAtTeardown(i)
+				expiring = append(expiring, e.ID)
 				w.detachSavedMember(e.ID)
 				w.joinDeadList(i)
 			}
@@ -2138,6 +2140,10 @@ func (w *World) decayPass() {
 			w.clearInvalidTargetReferences(e.ID)
 		}
 		w.syncOriginalDeadState(*e, beforeHP, beforeStage)
+	}
+	// Expiry may copy the world, so it runs after the walk over its entities.
+	for _, id := range expiring {
+		w.expireBodyAttachments(id)
 	}
 	if len(gone) > 0 {
 		w.remove(gone)

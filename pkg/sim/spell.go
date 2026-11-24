@@ -982,8 +982,9 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, obs *castObs)
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	if !castPayRules[w.game.castPay].payAndCheck(w, ci, rule, w.bookAlreadyPaid(caster.ID, spellID), func() string {
-		return w.castUnitApplyRefusal(ci, vi, rule, power, aimX, aimY)
+	if !castPayRules[w.game.castPay].payAndCheck(w, ci, rule, w.bookAlreadyPaid(caster.ID, spellID), castRefusals{
+		heal:  func() string { return castUnitHealRefusal(*target, rule) },
+		apply: func() string { return w.castUnitApplyRefusal(ci, vi, rule, power, aimX, aimY) },
 	}) {
 		return false
 	}
@@ -1076,8 +1077,9 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 	if _, inside := cellIndexIn(w.bounds, x, y); !inside {
 		return false
 	}
-	if !castPayRules[w.game.castPay].payAndCheck(w, ci, rule, w.bookAlreadyPaid(caster.ID, spellID), func() string {
-		return w.areaLandingRefusal(rule, uint16(power), x, y)
+	if !castPayRules[w.game.castPay].payAndCheck(w, ci, rule, w.bookAlreadyPaid(caster.ID, spellID), castRefusals{
+		heal:  noRefusal,
+		apply: func() string { return w.areaLandingRefusal(rule, uint16(power), x, y) },
 	}) {
 		return false
 	}
@@ -1283,8 +1285,8 @@ func (w *World) weaponRiderApply(ai, ti int, positiveLivingHit bool, obs *castOb
 // damage arm does not do. A damage roll saturates at minHP because health is
 // carried whole below zero and a wrap would resurrect a corpse; a heal has a
 // ceiling instead, because MaxHP is the health the entity was built with.
-// Useful-outcome admission above prevents a full-health target from reaching
-// this tail, paying mana, training or producing a visual event.
+// A full-health target is admitted, pays mana and reaches this tail with
+// nothing to add (DIV-1655, DIV-1656).
 //
 // AN ENTITY WITH NO HEALTH SYSTEM IS NOT HEALED. MaxHP not positive is that
 // state (Entity.MaxHP's own doc, world.go), and raising such an entity's HP
@@ -1519,7 +1521,7 @@ const (
 
 type castPayPolicy struct {
 	admitRefusal func(applyRefusal func() string) string
-	payAndCheck  func(w *World, ci int, rule SpellRule, alreadyPaid bool, applyRefusal func() string) bool
+	payAndCheck  func(w *World, ci int, rule SpellRule, alreadyPaid bool, refusals castRefusals) bool
 	dropsTarget  func(target Entity, rule SpellRule) bool
 }
 
@@ -1538,8 +1540,17 @@ var castPayRules = [...]castPayPolicy{
 	},
 }
 
-func (w *World) castUnitApplyRefusal(ci, vi int, rule SpellRule, power, aimX, aimY int32) string {
-	target := w.entities[vi]
+// castRefusals are the two application refusals of a cast: heal is the
+// restorative arm's own (a target at -10 or below, or with no health system),
+// apply is every other one. A pay-order row says which of them stands before
+// the mana debit.
+type castRefusals struct{ heal, apply func() string }
+
+func noRefusal() string { return "" }
+
+// castUnitHealRefusal is the restorative arm's refusal of its target
+// (MAGIC-TARGET-017, R2-ENGINE-026).
+func castUnitHealRefusal(target Entity, rule SpellRule) string {
 	if rule.Restorative {
 		if !spellTargetable(target, rule) {
 			return "target state refuses spell"
@@ -1548,14 +1559,18 @@ func (w *World) castUnitApplyRefusal(ci, vi int, rule SpellRule, power, aimX, ai
 			return "heal target has no health system"
 		}
 	}
+	return ""
+}
+
+func (w *World) castUnitApplyRefusal(ci, vi int, rule SpellRule, power, aimX, aimY int32) string {
 	if r := w.pointEffectRefusal(ci, vi, rule, power); r != "" {
 		return r
 	}
 	return w.areaLandingRefusal(rule, uint16(power), aimX, aimY)
 }
 
-func castPayAfterApplyRefusal(w *World, ci int, rule SpellRule, alreadyPaid bool, applyRefusal func() string) bool {
-	if applyRefusal() != "" {
+func castPayAfterApplyRefusal(w *World, ci int, rule SpellRule, alreadyPaid bool, refusals castRefusals) bool {
+	if refusals.apply() != "" {
 		return false
 	}
 	caster := &w.entities[ci]
@@ -1565,10 +1580,10 @@ func castPayAfterApplyRefusal(w *World, ci int, rule SpellRule, alreadyPaid bool
 	if !alreadyPaid {
 		debitBook(caster, rule)
 	}
-	return true
+	return refusals.heal() == ""
 }
 
-func castPayBeforeApplyRefusal(w *World, ci int, rule SpellRule, alreadyPaid bool, applyRefusal func() string) bool {
+func castPayBeforeApplyRefusal(w *World, ci int, rule SpellRule, alreadyPaid bool, refusals castRefusals) bool {
 	caster := &w.entities[ci]
 	if w.orderState(caster).recoveryWaiting() || !alreadyPaid && !bookAffords(*caster, rule) {
 		return false
@@ -1576,7 +1591,7 @@ func castPayBeforeApplyRefusal(w *World, ci int, rule SpellRule, alreadyPaid boo
 	if !alreadyPaid {
 		debitBook(caster, rule)
 	}
-	return applyRefusal() == ""
+	return refusals.heal() == "" && refusals.apply() == ""
 }
 
 func withinCellCastReach(a, b castReachEnd, reach int64) bool {

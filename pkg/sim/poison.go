@@ -10,16 +10,14 @@ func poisonDamage(magnitude, protection int32) int64 {
 	return damage
 }
 
-// applyPoisonAttachment puts one poison tick on the target. A unit that has
-// died takes no harm and shows no number; it reports false and the caller
-// ends the record. Signed healing poison still reaches a fallen unit.
-func (w *World) applyPoisonAttachment(index, target int) bool {
+// applyPoisonAttachment puts one poison tick on the target. The tick tests no
+// health of the target (MAGIC-399, ANIM-074, MAGIC-454): a fallen unit keeps
+// losing health below zero until the record runs out or the body is torn
+// down, where every attachment of the body expires (expireBodyAttachments).
+func (w *World) applyPoisonAttachment(index, target int) {
 	damage := poisonDamage(w.attached[index].Magnitude, w.entities[target].Protection[1])
-	if damage > 0 && w.entities[target].Dead() {
-		return false
-	}
 	if damage == 0 {
-		return true
+		return
 	}
 	// This branch does not invoke the potion/derive dispatcher or cap HP at
 	// MaxHP. The ordinary presentation delta sees no hit for a computed zero.
@@ -34,5 +32,4 @@ func (w *World) applyPoisonAttachment(index, target int) bool {
 	// This is not a claim about original Poison revival scheduling.
 	w.restoreAfterHealthGain(target, before)
 	w.clearFelled(target)
-	return true
 }

@@ -217,7 +217,7 @@ func TestSecondGameInsufficientManaChargesNothing(t *testing.T) {
 	})
 }
 
-func TestFirstGameApplicationRefusalsKeepManaUnchanged(t *testing.T) {
+func TestFirstGameHealRefusalFollowsPaymentAndAreaRefusalPrecedesIt(t *testing.T) {
 	t.Parallel()
 	t.Run("heal at minus ten", func(t *testing.T) {
 		heal := SpellRule{ID: 6, School: 5, ManaCost: 15, MaxRange: 8, DamageMin: 10, DamageMax: 20, TargetsUnit: true, Restorative: true}
@@ -227,8 +227,8 @@ func TestFirstGameApplicationRefusalsKeepManaUnchanged(t *testing.T) {
 		w := spWorld(t, 16, []SpellRule{heal}, caster, target)
 		w.entities[1].HP, w.entities[1].Decay = -10, DecayBones
 		spRunCast(w, Cast(1, 2, 6))
-		if w.castSpell(0, 2, 6, nil) || spAt(t, w, 1).Mana != 100 {
-			t.Fatalf("first-game Heal at -10 charged mana: got %d, want 100", spAt(t, w, 1).Mana)
+		if got := spAt(t, w, 1).Mana; got != 85 {
+			t.Fatalf("first-game Heal at -10 left %d mana, want 85 after the cost 15", got)
 		}
 	})
 
@@ -507,9 +507,7 @@ func TestSecondGamePoisonTickTurnsNeutralVictimAtOnce(t *testing.T) {
 		Target: 2, Caster: 1, HasCaster: true, Spell: uint16(fire.ID),
 		Kind: EffectHealth, Mode: EffectContinuous, Magnitude: 2, Remaining: 100,
 	})
-	if !w.applyPoisonAttachment(0, 1) {
-		t.Fatal("poison tick was not applied")
-	}
+	w.applyPoisonAttachment(0, 1)
 	if !w.relations.Hostile(SelfSlot, 2) || !w.relations.Hostile(2, SelfSlot) {
 		t.Fatalf("one poison tick: fwd=%v rev=%v, want both true",
 			w.relations.Hostile(SelfSlot, 2), w.relations.Hostile(2, SelfSlot))

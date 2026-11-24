@@ -517,7 +517,7 @@ func (w *World) attachEffectTransaction(ti int, caster EntityID, rule SpellRule,
 func (w *World) applyAttachedAt(i, ti int, poison bool) {
 	e := w.attached[i]
 	if poison {
-		_ = w.applyPoisonAttachment(i, ti)
+		w.applyPoisonAttachment(i, ti)
 	} else if applied, moved := w.applyEffectDelta(ti, e.Kind, e.Magnitude); moved && e.Mode&EffectContinuous == 0 {
 		w.attached[i].Magnitude = applied
 	}
@@ -543,6 +543,16 @@ func (w *World) awardPoisonTick(effectIndex, targetIndex int, damage int64) {
 	w.awardSpellDamage(ci, targetIndex, rule, damage)
 }
 
+// expireBodyAttachments ends every attachment of a body that is torn down
+// (MAGIC-399: the terminal action expires everything the body carries).
+func (w *World) expireBodyAttachments(id EntityID) {
+	for i := 0; i < len(w.attached); {
+		if w.attached[i].Target != id || !w.removeAttachedAt(i) {
+			i++
+		}
+	}
+}
+
 func (w *World) stepAttachedEffects() {
 	for i := 0; i < len(w.attached); {
 		e := &w.attached[i]
@@ -564,12 +574,7 @@ func (w *World) stepAttachedEffects() {
 		if e.Mode&EffectContinuous != 0 && beforeRemaining > 0 && beforeRemaining%8 == 0 {
 			if ti := indexOfEntity(w.entities, e.Target); ti >= 0 {
 				if areaRow(w.spellArm(e.Spell)).poison {
-					if !w.applyPoisonAttachment(i, ti) {
-						if !w.removeAttachedAt(i) {
-							i++
-						}
-						continue
-					}
+					w.applyPoisonAttachment(i, ti)
 				} else if _, ok := w.applyEffectDelta(ti, e.Kind, e.Magnitude); !ok && w.entities[ti].ActorLoad.Source.Class != 0 {
 					i++
 					continue

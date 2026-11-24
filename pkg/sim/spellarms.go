@@ -209,7 +209,7 @@ var spellArms = [...]spellArm{
 	{arm: 7, magnitude: slowMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, caption: captionRow{kind: SpellCaptionSpeed},
 		second: renews},
 	{arm: 8, magnitude: poisonPointMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, second: secondArmRow{keepsLarger: true, skipsFirstHealth: true}},
-	{arm: 9, creatureAim: creatureAimStepCell, second: renews},
+	{arm: 9, creatureAim: creatureAimStepCell, second: secondArmRow{keepsLarger: true, firstStageDelay: 1}},
 	{arm: 10, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 3, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
 	{arm: 11, applies: true, drain: true, creatureAim: creatureAimVictim, second: renews},
