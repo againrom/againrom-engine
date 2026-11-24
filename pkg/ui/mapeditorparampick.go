@@ -89,7 +89,7 @@ func (e *MapEditor) wizardFieldTarget(f int) paramTarget {
 	if row.item < 0 {
 		return targetNone
 	}
-	params := wizItems(row.condition)[row.item].params
+	params := e.wizItems(row.condition)[row.item].params
 	if p >= len(params) {
 		return targetNone
 	}

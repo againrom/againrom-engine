@@ -56,65 +56,66 @@
 0 false 0x10002|Drop location (build time)|DO-|5:cell,6:
 0 false 0x10003|Object form (build time)|-O-|none
 0 false 0x4100|Set undying (Againrom)|DOA|4:unit,1:undying
-1 true 0x1|Unknown operation|---|none
+1 true 0x1|Group member count|DO-|2:group
 1 true 0x2|Unknown operation|---|none
 1 true 0x3|Unknown operation|---|none
-1 true 0x4|Unknown operation|---|none
-1 true 0x5|Unit state is not 16|DO-|none
-1 true 0x6|Unknown operation|---|none
-1 true 0x7|Unknown operation|---|none
-1 true 0x8|Unknown operation|---|none
-1 true 0x9|Unknown operation|---|none
-1 true 0xa|Unknown operation|---|none
+1 true 0x4|Unit field by selector|DO-|4:unit,1:
+1 true 0x5|Unit state is not 16|DO-|4:unit
+1 true 0x6|Location metric between units|DO-|4:unit,4:unit2
+1 true 0x7|Location metric from unit to cell|DO-|4:unit,5:cell,6:
+1 true 0x8|Member count of a player's groups|DO-|3:player
+1 true 0x9|Unit's kind-5 record word|DO-|4:unit
+1 true 0xa|Relation between players|DO-|3:player,3:player2
 1 true 0xb|Unknown operation|---|none
 1 true 0xc|Unknown operation|---|none
 1 true 0xd|Unknown operation|---|none
-1 true 0xe|Unknown operation|---|none
-1 true 0xf|Unknown operation|---|none
-1 true 0x10|Unknown operation|---|none
-1 true 0x11|Unknown operation|---|none
-1 true 0x12|Failure counter while unit is in state 16|DO-|none
-1 true 0x13|Map register|DO-|none
+1 true 0xe|Terrain test at cell|DO-|5:cell,6:
+1 true 0xf|Nearest metric from a player's units to cell|DO-|3:player,5:cell,6:
+1 true 0x10|Metric from a unit's item to cell|DO-|4:unit,8:item,5:cell,6:
+1 true 0x11|Unit holds item|DO-|4:unit,8:item
+1 true 0x12|Failure counter while unit is in state 16|DO-|4:unit
+1 true 0x13|Map register|DO-|1:variable
 1 true 0x14|Unknown operation|---|none
-1 true 0x15|Unknown operation|---|none
+1 true 0x15|Word 0x42 of a type-9 object|DO-|9:
 1 true 0x16|Unknown operation|---|none
-1 true 0x17|Scenario variable|DO-|none
-1 true 0x18|Scenario variable 752+n|DO-|none
-1 true 0x19|Cell effect layer present|DO-|none
-1 true 0x1a|Unit effect active|DO-|none
+1 true 0x17|Scenario variable|DO-|1:
+1 true 0x18|Scenario variable 752+n|DO-|1:
+1 true 0x19|Cell effect layer present|DO-|5:cell,6:,1:
+1 true 0x1a|Unit effect active|DO-|4:unit,1:
 1 true 0x1b|Unit tile position|DO-|none
 1 true 0x10002|Compiler parameter|DO-|none
 1 false 0x1|Unknown operation|---|none
-1 false 0x2|Send event|DO-|none
-1 false 0x3|Set map register|DO-|none
-1 false 0x4|Add to win counter|DO-|none
-1 false 0x5|Store failure reason|DO-|none
-1 false 0x8|Increment map register|DO-|none
+1 false 0x2|Send event|DO-|1:
+1 false 0x3|Set map register|DO-|1:variable,1:value
+1 false 0x4|Add to win counter|DO-|empty
+1 false 0x5|Store failure reason|DO-|1:
+1 false 0x6|Group arm by selector|DO-|none
+1 false 0x8|Increment map register|DO-|1:variable
 1 false 0x9|Unknown operation|---|none
-1 false 0xa|Set relation|DO-|none
+1 false 0xa|Set relation|DO-|1:,1:,1:value
 1 false 0xb|Unknown operation|---|none
-1 false 0xc|Unknown operation|---|none
-1 false 0xd|Unknown operation|---|none
-1 false 0x10|Unknown operation|---|none
-1 false 0x11|Unknown operation|---|none
-1 false 0x12|Unknown operation|---|none
-1 false 0x13|Unknown operation|---|none
-1 false 0x14|Unknown operation|---|none
-1 false 0x15|Unknown operation|---|none
-1 false 0x16|Unknown operation|---|none
-1 false 0x17|Unknown operation|---|none
-1 false 0x18|Unknown operation|---|none
-1 false 0x19|Unknown operation|---|none
+1 false 0xc|Item into a unit's collection|DO-|4:unit,8:item
+1 false 0xd|Item out of a unit's collection|DO-|4:unit,8:item
+1 false 0x10|Unit call of group action 32|DO-|4:unit
+1 false 0x11|Unit call of group action 33|DO-|4:unit
+1 false 0x12|Call of action 16, then a location call on the second unit|DO-|4:unit,4:unit2
+1 false 0x13|Owner call of unit and player|DO-|4:unit,3:player
+1 false 0x14|New item collection for unit|DO-|4:unit
+1 false 0x15|Two-cell call with two numbers|DO-|5:cell,6:,5:cell2,6:,1:,1:
+1 false 0x16|Owner call of each group member and player|DO-|2:group,3:player
+1 false 0x17|Player call with a number|DO-|3:player,1:
+1 false 0x18|Cell and unit call with two numbers|DO-|5:cell,6:,4:unit,1:,1:
+1 false 0x19|Cell descriptor of eight bytes|DO-|1:,1:,5:cell,6:,5:cell2,6:,5:,6:
 1 false 0x1a|Unknown operation|---|none
 1 false 0x1b|Unknown operation|---|none
-1 false 0x1c|Unknown operation|---|none
-1 false 0x1d|Unknown operation|---|none
-1 false 0x1e|Unknown operation|---|none
-1 false 0x20|Unknown operation|---|none
-1 false 0x21|Unknown operation|---|none
-1 false 0x22|Unknown operation|---|none
-1 false 0x23|Set scenario variable|DO-|none
-1 false 0x24|Set scenario state 752+n|DO-|none
-1 false 0x26|Take item from units|DO-|none
-1 false 0x27|Clear group forced activity|DO-|none
-1 false 0x10002|Compiler parameter|DO-|none
+1 false 0x1c|Item collection moved to the second unit|DO-|4:unit,4:unit2
+1 false 0x1d|Word 0x50 of the matching cell object|DO-|5:cell,6:,1:,1:value
+1 false 0x1e|Word 0x42 of the matching unit entry|DO-|4:unit,1:,1:value
+1 false 0x20|Call of action 16 on each group member|DO-|2:group
+1 false 0x21|Call of action 17 on each group member|DO-|2:group
+1 false 0x22|Unit field by selector 6, 15 or 16|DO-|4:unit,1:,1:value
+1 false 0x23|Set scenario variable|DO-|1:,1:value
+1 false 0x24|Set scenario state 752+n|DO-|1:,1:value
+1 false 0x26|Take item from units|DO-|8:item
+1 false 0x27|Clear group forced activity|DO-|2:group
+1 false 0x10002|Compiler parameter|DO-|5:,6:

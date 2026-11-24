@@ -92,11 +92,13 @@ var editRows = map[alm.Format]*editRow{
 		unitOverrides: true, spellSets: true, playerRecords: true, structureOwner: true, storedKeys: true, playableRing: true, workspace: true,
 	},
 	alm.SecondFormat: {
-		moves:          placedKinds,
-		adds:           kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true},
-		deletes:        placedKinds,
-		sets:           kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true},
-		fieldKinds:     kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindStock: true, ui.KindPlayer: true},
+		moves: placedKinds,
+		adds:  kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindPlayer: true},
+		// A node goes as the first game's does; the type-7 rows keep +0x28.
+		deletes: kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindAction: true, ui.KindCondition: true},
+		sets:    kindSet{ui.KindAction: true, ui.KindCondition: true, ui.KindTrigger: true},
+		// A trigger's 184 bytes are the first game's fields (R2-ENGINE-1316).
+		fieldKinds:     kindSet{ui.KindUnit: true, ui.KindStructure: true, ui.KindSack: true, ui.KindStock: true, ui.KindPlayer: true, ui.KindTrigger: true},
 		unitNoRowWord:  "editor.unit.norow",
 		unitNoRowID:    func(u alm.Unit) int64 { return int64(u.ServerID) },
 		structureName:  (*MapInspector).structureCatalogLine,
@@ -115,6 +117,7 @@ var editRows = map[alm.Format]*editRow{
 			reflect.TypeFor[ui.InspectionFieldSet](), reflect.TypeFor[ui.InspectionTextFields](),
 			reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups](),
 			reflect.TypeFor[ui.InspectionItemLook](),
+			reflect.TypeFor[ui.InspectionTriggerCopy](), reflect.TypeFor[ui.InspectionTriggerWizard](),
 		},
 		templatePlacing: true, centredCells: true, admissions: secondAdmissions,
 	},

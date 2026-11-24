@@ -1315,7 +1315,7 @@ func (e *MapEditor) commandWriteTriggerDialogue(w triggerWrite) (editorChange, e
 // commandWizardRow is the wizard row an MCP row names, its parameter texts as the
 // row's fields would hold them.
 func (e *MapEditor) commandWizardRow(condition bool, a triggerRowArgs) (wizRow, error) {
-	items := wizItems(condition)
+	items := e.wizItems(condition)
 	at := -1
 	for i, it := range items {
 		if at < 0 && wizItemKey(it) == a.Item {
@@ -1409,7 +1409,7 @@ func (e *MapEditor) decodeWriteTrigger(raw json.RawMessage) (triggerWrite, error
 				return triggerWrite{trigger: t}, err
 			}
 			if dialogue == k && !list.condition {
-				shows = slices.IndexFunc(wizItems(false)[row.item].params, func(p wizParam) bool { return p.kind == wpMessage })
+				shows = slices.IndexFunc(e.wizItems(false)[row.item].params, func(p wizParam) bool { return p.kind == wpMessage })
 				if shows < 0 {
 					return triggerWrite{trigger: t}, fmt.Errorf("item %q shows no message page; parts go on an action whose item does", r.Item)
 				}

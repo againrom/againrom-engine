@@ -35,6 +35,10 @@ type section struct {
 	cellShift   uint // shift stored coordinates left to get fixed-point words
 	create      bool // Place may create this absent counted payload
 	insertAfter uint32
+	// tally, when not 0, is a type-0 word that counts this section's records
+	// with those of the other rows that name it: an add or a removal moves it
+	// by the records added or removed.
+	tally int
 
 	// layout, when set, finds the records inside a payload that holds several
 	// counted arrays, in place of the type-0 count word and a payload that is
@@ -329,14 +333,23 @@ func (e *Editor) appendRecordParts(w walk, record []byte) (int, edit) {
 
 func (e *Editor) appendRecordsParts(w walk, record []byte, count int) (int, edit) {
 	if !w.frame.carries(w.sec.typeID) {
-		return 0, e.insertSectionParts(w, record, count)
+		return 0, append(e.insertSectionParts(w, record, count), e.tallyParts(w, count)...)
 	}
 	n := w.n()
-	return n, edit{
+	return n, append(edit{
 		replace(w.span.abs(w.starts[n]), nil, record),
 		e.sizeWordPart(w.span, len(record)),
 		e.wordPart(w.countAt, count),
+	}, e.tallyParts(w, count)...)
+}
+
+// tallyParts is the part that moves w's tally word by delta records; none
+// for a row without one.
+func (e *Editor) tallyParts(w walk, delta int) []part {
+	if w.sec.tally == 0 || delta == 0 {
+		return nil
 	}
+	return []part{e.wordPart(w.frame.required(alm.TypeMeta).abs(w.sec.tally), delta)}
 }
 
 func (e *Editor) insertSectionParts(w walk, record []byte, count int) edit {
@@ -488,6 +501,7 @@ func (e *Editor) Delete(k Kind, i int) error {
 			e.wordPart(w.countAt, -1),
 		}
 	}
+	ed = append(ed, e.tallyParts(w, -1)...)
 	if w.sec.deleteParts != nil {
 		parts, err := w.sec.deleteParts(e, w, i)
 		if err != nil {
@@ -644,6 +658,21 @@ func (e *Editor) PlaceAll(batch []Placement) ([]int, error) {
 	}
 	for _, sp := range spans {
 		ed = append(ed, e.sizeWordPart(sp, total[sp]))
+	}
+	// Rows that share a tally word move it by one part.
+	tally := map[int]int{}
+	var tallyAt []int
+	for _, k := range kinds {
+		if w := walks[k]; w.sec.tally != 0 {
+			at := w.frame.required(alm.TypeMeta).abs(w.sec.tally)
+			if _, ok := tally[at]; !ok {
+				tallyAt = append(tallyAt, at)
+			}
+			tally[at] += counts[k]
+		}
+	}
+	for _, at := range tallyAt {
+		ed = append(ed, e.wordPart(at, tally[at]))
 	}
 	e.apply(ed)
 	return index, nil

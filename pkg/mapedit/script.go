@@ -510,11 +510,11 @@ func (e *Editor) AddDropZone(x, y uint32) (int, error) {
 // CopyTrigger places a copy of trigger i named name right after it as one
 // edit and returns the copy's index; later triggers move by one, through
 // Reorder. Each distinct condition and action id trigger i names that one
-// node carries gets a new node of the same label, operation and parameters
-// under the next free id, so the copy shares no node with trigger i. An id no
-// node carries stays as it is, and a slot word trigger i holds stands unchecked
-// as in SetTriggerSlots. A node no new node can carry, and a drop action, is
-// a *CopyRefusalError. action, when not nil, may change each action node's
+// node carries gets a copy of that node's record under the next free id, so
+// the copy shares no node with trigger i. An id no node carries stays as it
+// is, and a slot word trigger i holds stands unchecked as in SetTriggerSlots.
+// A node no new node can carry, and one whose operation row refuses a copy,
+// is a *CopyRefusalError. action, when not nil, may change each action node's
 // copy before it is built; its error copies nothing.
 func (e *Editor) CopyTrigger(i int, name string, action func(*alm.ScriptNode) error) (int, error) {
 	view, err := e.Map()
@@ -578,14 +578,16 @@ const (
 	CopySharedID  CopyRefused = iota // several nodes of the array carry ID
 	CopyIDsFull                      // a new node would take an id above ID, the cap
 	CopyLongLabel                    // node ID's label fills its field
-	CopyDropZone                     // action ID is a drop action: its copy would be a second zone on the cell
+	CopyOperation                    // node ID's operation row refuses a copy in its word
 )
 
-// CopyRefusalError is why CopyTrigger copies nothing: Kind is the node array.
+// CopyRefusalError is why CopyTrigger copies nothing: Kind is the node array;
+// Word is the operation row's refusal word of a CopyOperation.
 type CopyRefusalError struct {
 	Why  CopyRefused
 	Kind Kind
 	ID   uint32
+	Word string
 }
 
 func (e *CopyRefusalError) Error() string {
@@ -594,8 +596,8 @@ func (e *CopyRefusalError) Error() string {
 		return fmt.Sprintf("mapedit: several %s nodes carry ID %d", sectionName(e.Kind), e.ID)
 	case CopyIDsFull:
 		return fmt.Sprintf("mapedit: the next node ID exceeds %d", e.ID)
-	case CopyDropZone:
-		return fmt.Sprintf("mapedit: action %d is a drop action", e.ID)
+	case CopyOperation:
+		return fmt.Sprintf("mapedit: the operation of %s node %d refuses a copy", sectionName(e.Kind), e.ID)
 	}
 	return fmt.Sprintf("mapedit: %s node %d has a label of %d bytes", sectionName(e.Kind), e.ID, alm.ScriptLabelLen)
 }
@@ -609,7 +611,8 @@ func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *
 	if err != nil {
 		return nil, err
 	}
-	maxID := scriptprofile.Of(e.Extended()).MaxID
+	profile := e.Profile()
+	maxID := profile.MaxID
 	out := map[uint32]uint32{}
 	for _, id := range ids {
 		if _, done := out[id]; done || id == 0 {
@@ -620,8 +623,8 @@ func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *
 			if nodes[n].ID != id {
 				continue
 			}
-			if k == KindAction && nodes[n].Opcode == dropOpcode {
-				return nil, &CopyRefusalError{Why: CopyDropZone, Kind: k, ID: id}
+			if op, ok := scriptprofile.OpRow(profile.Ops, k == KindCondition, nodes[n].Opcode); ok && op.CopyRefused != "" {
+				return nil, &CopyRefusalError{Why: CopyOperation, Kind: k, ID: id, Word: op.CopyRefused}
 			}
 			if at >= 0 {
 				return nil, &CopyRefusalError{Why: CopySharedID, Kind: k, ID: id}
@@ -644,16 +647,25 @@ func (e *Editor) copyNodes(k Kind, nodes []alm.ScriptNode, ids []uint32, batch *
 		if err != nil {
 			return nil, err
 		}
-		params := make([]ScriptParam, alm.ScriptParams)
-		for s := range params {
-			params[s] = ScriptParam{Type: n.Type[s], Value: n.Value[s]}
-		}
-		rec, err := NewScriptNode(string(label), n.Opcode, next, params...)
-		if errors.Is(err, errLabelLong) {
+		if len(label) >= alm.ScriptLabelLen {
 			return nil, &CopyRefusalError{Why: CopyLongLabel, Kind: k, ID: id}
 		}
+		// The copy is the node's record with its new id: every byte no
+		// field names (the second game's ten text fields among them) stays.
+		rec, err := e.Record(k, at)
 		if err != nil {
 			return nil, err
+		}
+		rec = slices.Clone(rec)
+		if n.Label != nodes[at].Label {
+			clear(rec[:alm.ScriptLabelLen])
+			copy(rec, label)
+		}
+		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeOpcode:], n.Opcode)
+		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeID:], next)
+		for s := 0; s < alm.ScriptParams; s++ {
+			binary.LittleEndian.PutUint32(rec[alm.ScriptNodeValues+4*s:], n.Value[s])
+			binary.LittleEndian.PutUint32(rec[alm.ScriptNodeTypes+4*s:], n.Type[s])
 		}
 		*batch = append(*batch, Placement{k, rec})
 		out[id] = next

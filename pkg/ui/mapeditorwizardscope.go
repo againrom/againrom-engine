@@ -208,7 +208,7 @@ func (e *MapEditor) wizardItemScope(r int, at map[string]int, heroes *bool, drop
 		}
 		return item
 	}
-	it := wizItems(wr.condition)[wr.item]
+	it := e.wizItems(wr.condition)[wr.item]
 	if slices.ContainsFunc(it.params, wizParam.isDialog) {
 		item.flag("configure")
 	}

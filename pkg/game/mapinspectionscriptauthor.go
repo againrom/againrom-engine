@@ -87,7 +87,7 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (_ *ui.InspectionDocument, s
 		if index < 0 || index >= len(sc.Triggers) {
 			return false, wordErr("editor.err.notrigger", index+1)
 		}
-		limits := scriptprofile.Of(sc.Extended)
+		limits := m.Profile()
 		if n := len(sc.Triggers); n >= limits.Triggers {
 			return false, lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitTriggers, Max: int64(limits.Triggers), Got: int64(n)},
 				"editor.script.triggersfull", limits.Triggers)
@@ -109,7 +109,12 @@ func (s *mapInspectionEdits) CopyTrigger(index int) (_ *ui.InspectionDocument, s
 		if err := registerCollision(sc, added); err != nil {
 			return false, s.checkWords(err)
 		}
-		at, err = m.CopyTrigger(index, copyName(t.Name, s.inspector.word("editor.trigger.copyname")), s.copyMessagePage)
+		// Only a game whose parameters carry message kinds has pages to copy.
+		var page func(*alm.ScriptNode) error
+		if scriptprofile.VocabularyOf(limits.Ops).Kinds {
+			page = s.copyMessagePage
+		}
+		at, err = m.CopyTrigger(index, copyName(t.Name, s.inspector.word("editor.trigger.copyname")), page)
 		return err == nil, copyRefusal(err, s.inspector.word)
 	})
 	if d != nil {
@@ -147,7 +152,6 @@ var copyRefusals = map[mapedit.CopyRefused]struct{ conditionWord, actionWord str
 	mapedit.CopySharedID:  {conditionWord: "editor.trigger.copysharedcondition", actionWord: "editor.trigger.copysharedaction"},
 	mapedit.CopyIDsFull:   {conditionWord: "editor.trigger.copyidsfull", actionWord: "editor.trigger.copyidsfull"},
 	mapedit.CopyLongLabel: {conditionWord: "editor.trigger.copylongcondition", actionWord: "editor.trigger.copylongaction"},
-	mapedit.CopyDropZone:  {conditionWord: "editor.trigger.copydropzone", actionWord: "editor.trigger.copydropzone"},
 }
 
 // copyRefusal is err in the words of word when it is a node the copy
@@ -160,6 +164,9 @@ func copyRefusal(err error, word func(string) string) error {
 	key := copyRefusals[r.Why].conditionWord
 	if r.Kind == mapedit.KindAction {
 		key = copyRefusals[r.Why].actionWord
+	}
+	if r.Word != "" {
+		key = r.Word
 	}
 	return &liftedLimit{text: fmt.Sprintf(word(key), r.ID), cause: err}
 }

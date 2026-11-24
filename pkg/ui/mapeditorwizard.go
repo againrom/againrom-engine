@@ -272,11 +272,22 @@ func (it wizItem) sourceValue() uint32 {
 // drop cell action.
 const scriptConstantOp = 0x10002
 
-func wizItems(condition bool) []wizItem {
-	if condition {
-		return wizConditions
+// wizardTables are each game's ready actions and conditions, keyed by its
+// operation vocabulary. The second game has none: every row of its trigger
+// reads as a kept row.
+var wizardTables = map[scriptprofile.Ops][2][]wizItem{scriptprofile.OpsFirst: {wizActions, wizConditions}}
+
+// wizItems are the ready conditions, or actions, of the map's game.
+func (e *MapEditor) wizItems(condition bool) []wizItem {
+	var script *InspectionScriptModel
+	if e.doc != nil {
+		script = e.doc.Script
 	}
-	return wizActions
+	t := wizardTables[script.Profile().Ops]
+	if condition {
+		return t[1]
+	}
+	return t[0]
 }
 
 // paramTypes are the slot types a parameter kind fills.
@@ -533,7 +544,7 @@ func (e *MapEditor) readPair(left, right, cmp uint32) (int, []string) {
 	}
 	v, constant := e.constantValue(right)
 	rn, rok := e.nodeByID(true, right)
-	for i, it := range wizConditions {
+	for i, it := range e.wizItems(true) {
 		params := make([]string, len(it.params))
 		switch {
 		case it.holds && left == right && n.Opcode == it.opcode && (cmp == 0 || cmp == 4 || cmp == 5):
@@ -577,7 +588,7 @@ func (it wizItem) reads(cmp uint32, v int64) bool {
 func (e *MapEditor) readAction(id uint32) (int, []string) {
 	n, ok := e.nodeByID(false, id)
 	if ok {
-		for i, it := range wizActions {
+		for i, it := range e.wizItems(false) {
 			params := make([]string, len(it.params))
 			if e.readParams(it, n, false, params) {
 				return i, append([]string{strconv.Itoa(i)}, params...)
@@ -589,7 +600,7 @@ func (e *MapEditor) readAction(id uint32) (int, []string) {
 
 // wizardDefaults are a fresh row's field texts for item i.
 func (e *MapEditor) wizardDefaults(condition bool, i int) []string {
-	it := wizItems(condition)[i]
+	it := e.wizItems(condition)[i]
 	out := []string{strconv.Itoa(i)}
 	mid := image.Pt(min(e.doc.Width, 256)/2, min(e.doc.Height, 256)/2)
 	for _, p := range it.params {
@@ -679,7 +690,7 @@ func (e *MapEditor) pullWizard() {
 	}
 	for r := range w.rows {
 		for k := range w.rows[r].vals {
-			if i, ok := at[w.wizardKey(r, wizPart(w.rows[r], k))]; ok && i < len(o.buf) {
+			if i, ok := at[w.wizardKey(r, e.wizPart(w.rows[r], k))]; ok && i < len(o.buf) {
 				w.rows[r].vals[k] = o.buf[i]
 			}
 		}
@@ -687,11 +698,11 @@ func (e *MapEditor) pullWizard() {
 }
 
 // wizPart is the key part of field text k of row r.
-func wizPart(r wizRow, k int) string {
+func (e *MapEditor) wizPart(r wizRow, k int) string {
 	switch {
 	case k == 0:
 		return "item"
-	case r.item >= 0 && k > len(wizItems(r.condition)[r.item].params):
+	case r.item >= 0 && k > len(e.wizItems(r.condition)[r.item].params):
 		return "cmp"
 	}
 	return fmt.Sprintf("p%d", k-1)
@@ -717,7 +728,7 @@ func (e *MapEditor) wizardRowFields() {
 	o := &e.obj
 	w := o.wiz
 	for r, row := range w.rows {
-		items := wizItems(row.condition)
+		items := e.wizItems(row.condition)
 		choices, shut := e.itemChoices(w, r)
 		orig := row.orig
 		if row.item != row.origItem {
@@ -758,7 +769,7 @@ func (e *MapEditor) wizardRowFields() {
 // choice of what the parameter can name, or typed text. The wizard's rows
 // ask a parameter through it.
 func (e *MapEditor) paramField(condition bool, i, k int, value string) InspectionField {
-	it := wizItems(condition)[i]
+	it := e.wizItems(condition)[i]
 	p := it.params[k]
 	f := InspectionField{Label: e.word(p.labelWord)}
 	n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
@@ -805,7 +816,7 @@ const wizHeading = -10
 // entry, and Other for a row read as kept.
 func (e *MapEditor) itemChoices(w *wizardState, r int) ([]InspectionChoice, []int64) {
 	row := w.rows[r]
-	items := wizItems(row.condition)
+	items := e.wizItems(row.condition)
 	var choices []InspectionChoice
 	var shut []int64
 	for s, subject := range wizSubjectWords {
@@ -824,7 +835,7 @@ func (e *MapEditor) itemChoices(w *wizardState, r int) ([]InspectionChoice, []in
 				value = int64(row.item)
 			}
 			label := e.word(it.labelWord)
-			if w.shut(r, i) {
+			if w.shut(items, r, i) {
 				label = fmt.Sprintf(e.word("editor.wizard.onlyone"), label)
 				shut = append(shut, value)
 			}
@@ -851,7 +862,7 @@ func familyOf(items []wizItem, i int) int {
 // commandItem is the item of item i's family that offers group command c,
 // -1 for none.
 func (e *MapEditor) commandItem(condition bool, i int, c uint32) int {
-	items := wizItems(condition)
+	items := e.wizItems(condition)
 	for k := range items {
 		if familyOf(items, k) == familyOf(items, i) && slices.Contains(e.itemCommands(items[k]), c) {
 			return k
@@ -862,9 +873,8 @@ func (e *MapEditor) commandItem(condition bool, i int, c uint32) int {
 
 // shut reports that row r may not take item i: the item is one per trigger
 // and another row of the trigger has it.
-func (w *wizardState) shut(r, i int) bool {
+func (w *wizardState) shut(items []wizItem, r, i int) bool {
 	row := w.rows[r]
-	items := wizItems(row.condition)
 	if i < 0 || i >= len(items) || !items[i].onePerTrigger || row.item == i {
 		return false
 	}
@@ -980,7 +990,7 @@ func (e *MapEditor) rewizard() {
 	for r := range w.rows {
 		row := &w.rows[r]
 		item, err := strconv.Atoi(strings.TrimSpace(row.vals[0]))
-		if err != nil || item < -1 || item >= len(wizItems(row.condition)) || item == -1 && row.origItem != -1 {
+		if err != nil || item < -1 || item >= len(e.wizItems(row.condition)) || item == -1 && row.origItem != -1 {
 			item = row.item
 		}
 		if item == row.item {
@@ -990,7 +1000,7 @@ func (e *MapEditor) rewizard() {
 			continue
 		}
 		rebuilt = true
-		if w.shut(r, item) {
+		if w.shut(e.wizItems(row.condition), r, item) {
 			row.vals[0] = strconv.Itoa(row.item)
 			continue
 		}
@@ -1028,7 +1038,7 @@ func (e *MapEditor) commandSwitch(row wizRow) (int, []string, bool) {
 	if row.item < 0 {
 		return 0, nil, false
 	}
-	items := wizItems(row.condition)
+	items := e.wizItems(row.condition)
 	k := slices.IndexFunc(items[row.item].params, func(p wizParam) bool { return p.kind == wpCommand || p.kind == wpSource })
 	if k < 0 {
 		return 0, nil, false
@@ -1105,6 +1115,11 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 		e.wizardRefill()
 	case actAddPair, actAddGroup, actAddAct:
 		condition := act != actAddAct
+		// A game with no ready rows writes no new node.
+		if len(e.wizItems(condition)) == 0 {
+			o.note = e.word(scriptprofile.VocabularyOf(e.doc.Script.Profile().Ops).NewRecord)
+			return
+		}
 		// A list past the extended record's limit is refused in words.
 		most, word := scriptprofile.Extended.Pairs, "editor.wizard.full.conditions"
 		if !condition {
@@ -1197,7 +1212,7 @@ func (e *MapEditor) wizardRowOf(f int) (int, int) {
 	key := e.obj.fields[f].Key
 	for r := range w.rows {
 		for k := range w.rows[r].vals {
-			if w.wizardKey(r, wizPart(w.rows[r], k)) == key {
+			if w.wizardKey(r, e.wizPart(w.rows[r], k)) == key {
 				return r, k - 1
 			}
 		}
@@ -1213,7 +1228,7 @@ func (e *MapEditor) wizardSquare(f int) bool {
 		return false
 	}
 	row := e.obj.wiz.rows[r]
-	it := wizItems(row.condition)[row.item]
+	it := e.wizItems(row.condition)[row.item]
 	return it.params[p].kind == wpCell && e.wizardRadiusField(f) >= 0
 }
 
@@ -1229,7 +1244,7 @@ func (e *MapEditor) wizardRadiusField(f int) int {
 	if !row.condition || row.item < 0 {
 		return -1
 	}
-	for k, p := range wizItems(true)[row.item].params {
+	for k, p := range e.wizItems(true)[row.item].params {
 		if p.labelWord == wizRadiusWord {
 			key := w.wizardKey(r, fmt.Sprintf("p%d", k))
 			for i, fl := range e.obj.fields {
@@ -1322,7 +1337,7 @@ func (e *MapEditor) rowsPlan(t WizardTrigger, rows []wizRow) (WizardTrigger, err
 // constant of the item's type, or the item's second check node) and the
 // comparison.
 func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, error) {
-	it := wizItems(row.condition)[row.item]
+	it := e.wizItems(row.condition)[row.item]
 	n, rn := WizardNode{Opcode: it.opcode}, WizardNode{Opcode: scriptConstantOp}
 	_, at, fixed := it.itemSlots(false)
 	_, rat, _ := it.itemSlots(true)
@@ -1436,7 +1451,7 @@ func (e *MapEditor) wizardParam(it wizItem, k int, text string) ([]int64, error)
 // parameters the node does not hold. The row names n, so the trigger takes n
 // itself; false when no item reads n so.
 func (e *MapEditor) loneRow(n InspectionScriptNode) (wizRow, bool) {
-	for i, it := range wizConditions {
+	for i, it := range e.wizItems(true) {
 		if it.twoNodes() || it.holds {
 			continue
 		}
@@ -1536,7 +1551,7 @@ func (e *MapEditor) wizardAreaLines() []editorLine {
 		if !row.condition || row.item < 0 {
 			continue
 		}
-		it := wizConditions[row.item]
+		it := e.wizItems(true)[row.item]
 		var r image.Rectangle
 		var centre image.Point
 		radius, hasCell := -1, false

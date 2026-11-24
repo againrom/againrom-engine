@@ -24,7 +24,9 @@ const secondMaxID = math.MaxInt16
 // (R2-ASSET-231); a record the map lacks is inserted after its predecessors.
 var secondWriteOrder = []uint32{0, 1, 2, 3, 5, 11, 4, 9, 8, 6, 7, 10, 12}
 
-// The second format's row: these three sections, and its own script profile.
+// The second format's row: these sections, the three type-7 arrays whose
+// adds and removals keep the type-0 word +0x28 at their sum, and its own
+// script profile.
 func init() {
 	own := map[Kind]*section{
 		KindUnit: {name: "unit", typeID: alm.TypeUnits, count: alm.MetaUnitCount, x: alm.UnitX, y: alm.UnitY, create: true,
@@ -62,6 +64,10 @@ func init() {
 				return nil, fmt.Errorf("mapedit: a second-game player is not deleted: the owner words that name it are not renumbered")
 			},
 		},
+	}
+	for k, s := range map[Kind]*section{KindAction: scriptSection("action", 0), KindCondition: scriptSection("condition", 1), KindTrigger: scriptSection("trigger", 2)} {
+		s.tally = alm.SecondMetaScriptCount
+		own[k] = s
 	}
 	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second}
 }

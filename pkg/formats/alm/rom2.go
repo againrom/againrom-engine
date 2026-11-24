@@ -264,4 +264,7 @@ const (
 	SecondType11B     = rom2Type11B
 	SecondType11C     = rom2Type11C
 	SecondMeta11Count = 0x34
+	// SecondMetaScriptCount is the type-0 word that equals the sum of the
+	// three type-7 counts (R2-ASSET-255).
+	SecondMetaScriptCount = 0x28
 )

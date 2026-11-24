@@ -175,6 +175,9 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 	if t.Index < -1 || t.Index >= len(sc.Triggers) {
 		return wordErr("editor.err.notrigger", t.Index+1)
 	}
+	if w := scriptprofile.VocabularyOf(m.Profile().Ops).NewRecord; w != "" && t.Index < 0 {
+		return wordErr(w)
+	}
 	var before []alm.ScriptTrigger
 	if t.Index >= 0 {
 		before = append(before, sc.Triggers[t.Index])
@@ -363,6 +366,9 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 			}
 		}
 		return n.ID, m.SetScriptNode(kind, at, label, n.Opcode, params...)
+	}
+	if w := scriptprofile.VocabularyOf(m.Profile().Ops).NewRecord; w != "" {
+		return 0, wordErr(w)
 	}
 	limits := scriptprofile.Of(sc.Extended)
 	if condition {

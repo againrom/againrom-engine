@@ -130,7 +130,7 @@ func TestTriggerWizardEveryItemChoiceHolds(t *testing.T) {
 		{"a2.item", false, 2, 0, [2]uint32{}, false},
 	}
 	for _, c := range cases {
-		items := wizItems(c.condition)
+		items := e.wizItems(c.condition)
 		f := e.WizardField(c.key)
 		var values []int64
 		for _, ch := range e.obj.fields[f].Choices {
@@ -144,7 +144,7 @@ func TestTriggerWizardEveryItemChoiceHolds(t *testing.T) {
 		}
 		orig := append([]string(nil), e.obj.wiz.rows[r].vals...)
 		for _, value := range append(values, c.orig) {
-			if value <= wizHeading || e.obj.wiz.shut(r, int(value)) {
+			if value <= wizHeading || e.obj.wiz.shut(items, r, int(value)) {
 				continue // a subject heading, or an item the trigger holds once
 			}
 			wizardChoose(t, e, c.key, value)

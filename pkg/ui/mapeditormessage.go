@@ -286,7 +286,7 @@ func (e *MapEditor) messageField(field int) bool {
 			return false
 		}
 		row := e.obj.wiz.rows[r]
-		return !row.condition && row.item >= 0 && p < len(wizItems(false)[row.item].params) && wizItems(false)[row.item].params[p].kind == wpMessage
+		return !row.condition && row.item >= 0 && p < len(e.wizItems(false)[row.item].params) && e.wizItems(false)[row.item].params[p].kind == wpMessage
 	}
 	return v.node != nil && e.obj.fields[field].Key == "value0" && e.nodeParameterKind(v, uint32(e.obj.signature[0]), e.obj.types, 0) == ScriptMessageParameter
 }
@@ -1212,7 +1212,7 @@ func (e *MapEditor) configureDialog(r int) {
 		return
 	}
 	row := w.rows[r]
-	it := wizActions[row.item]
+	it := e.wizItems(false)[row.item]
 	action := 0
 	for k := 0; k < r; k++ {
 		if !w.rows[k].condition {
@@ -1235,7 +1235,7 @@ func (e *MapEditor) configureDialog(r int) {
 	if k < 0 {
 		return
 	}
-	key := w.wizardKey(r, wizPart(row, k+1))
+	key := w.wizardKey(r, e.wizPart(row, k+1))
 	field := slices.IndexFunc(e.obj.fields, func(f InspectionField) bool { return f.Key == key })
 	if field < 0 {
 		return

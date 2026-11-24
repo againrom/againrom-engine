@@ -44,9 +44,9 @@ func TestSecondGameOperationNames(t *testing.T) {
 	}
 }
 
-// On a second-game map only the parameter fields of a decoded operation are
-// editable; the label and the operation are shown, and every field of an
-// operation no claim decodes is shown.
+// On a second-game map only the label and the parameter fields of a decoded
+// operation are editable; the operation is shown, so is a type-9 slot, and
+// every field of an operation no claim decodes is shown.
 func TestSecondGameNodeFieldsEditOnlyDecodedParameters(t *testing.T) {
 	e := newMapEditorFixture(t)
 	e.doc.Script = &InspectionScriptModel{Limits: scriptprofile.Second, Catalog: InspectionScriptCatalog{
@@ -57,9 +57,13 @@ func TestSecondGameNodeFieldsEditOnlyDecodedParameters(t *testing.T) {
 	}
 	for _, c := range []struct {
 		opcode uint32
+		types  [10]uint32
 		want   []bool
-	}{{3, []bool{true, true, false, false}}, {7, []bool{true, true, true, true}}} {
-		v := scriptView{node: &InspectionScriptNode{Opcode: c.opcode}}
+	}{{3, [10]uint32{1, 5, 6}, []bool{false, true, false, false}}, {7, [10]uint32{1, 5, 6}, []bool{true, true, true, true}},
+		// The record a type-9 slot names is unread: that slot alone stays shown.
+		{3, [10]uint32{9, 5, 6}, []bool{false, true, true, false}}} {
+		v := scriptView{node: &InspectionScriptNode{Opcode: c.opcode, Types: c.types}}
+		e.obj.types = c.types
 		for i, f := range e.secondNodeFields(v, fields()) {
 			if f.ReadOnly != c.want[i] {
 				t.Errorf("operation %d field %s: read-only %v, want %v", c.opcode, f.Key, f.ReadOnly, c.want[i])

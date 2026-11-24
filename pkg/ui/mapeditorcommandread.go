@@ -424,7 +424,7 @@ func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 	}
 	list := func(condition bool) []map[string]any {
 		out := []map[string]any{}
-		for i, it := range wizItems(condition) {
+		for i, it := range e.wizItems(condition) {
 			defaults := e.wizardDefaults(condition, i)
 			params := []map[string]any{}
 			for k, p := range it.params {

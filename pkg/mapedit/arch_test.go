@@ -70,7 +70,7 @@ var almReferences = nameTable{
 	"second.go/" + fileScope: {"alm.SecondType11A", "alm.SecondType11B", "alm.SecondType11C", "alm.SecondUnitClass", "alm.SecondUnitDef", "alm.SecondUnitField0A", "alm.SecondUnitField20",
 		"alm.SecondUnitFlags", "alm.SecondUnitFlags10", "alm.SecondUnitGroup", "alm.SecondUnitHP", "alm.SecondUnitHPMax", "alm.SecondUnitOwner"},
 	"second.go/reshapeSecondStructure":           {"alm.SecondObjectExtBit"},
-	"second.go/init":                             {"alm.SecondFormat", "alm.SecondUnitSize"},
+	"second.go/init":                             {"alm.SecondFormat", "alm.SecondMetaScriptCount", "alm.SecondUnitSize"},
 	"second.go/secondCloneUnitParts":             {"alm.SecondUnitSack", "alm.SecondUnitTag"},
 	"second.go/secondMoveUnitParts":              {"alm.SecondUnitTag"},
 	"second.go/secondRenumberUnit":               {"alm.SecondUnitTag"},

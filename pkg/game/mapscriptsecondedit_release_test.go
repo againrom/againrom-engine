@@ -3,9 +3,11 @@
 package game
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"againrom/pkg/base"
@@ -115,12 +117,14 @@ func TestReleaseSecondMapParameterEditSavesAndReloads(t *testing.T) {
 	t.Logf("PASS: %d action and %d check parameter edits saved, reloaded and compared (%s)", tried[false], tried[true], installLanguage(x))
 }
 
-// A not-decoded operation, a rename, an opcode change and an added node are
-// refused with their one line; a trigger moves in the stored order.
-func TestReleaseSecondMapOtherScriptEditsAreRefused(t *testing.T) {
+// A trigger's name, once flag and first comparison and a node's label edit,
+// save and reload with only those changed; a slot of type 9 and an opcode
+// change are refused with their one line; a trigger moves in the stored
+// order.
+func TestReleaseSecondMapTriggerFieldsAndLabelsEdit(t *testing.T) {
 	x := installedInspector(t)
 	sources, raws := installedSecondMaps(t, x)
-	undecoded, moved := 0, 0
+	edited, unread, moved := 0, 0, 0
 	for i, source := range sources {
 		sc := secondScriptOf(t, raws[i])
 		d, err := x.Open(source)
@@ -128,24 +132,47 @@ func TestReleaseSecondMapOtherScriptEditsAreRefused(t *testing.T) {
 			t.Fatal(err)
 		}
 		host := d.Edits.(*mapInspectionEdits)
-		if len(sc.Triggers) > 0 {
-			if _, err := host.SetFields(ui.KindTrigger, 0, []ui.InspectionFieldValue{{Key: "name", Text: true, TextValue: "x"}}); err == nil || err.Error() != x.word("editor.map.secondscript") {
-				t.Fatalf("%s: rename not refused with its line: %v", source, err)
-			}
-		}
 		for index, n := range sc.Conditions {
-			if mapload.ScriptOperationDecoded(scriptprofile.OpsSecond, true, n.Opcode) {
+			if n.Type[0] == 9 {
+				want := fmt.Sprintf(x.word("editor.map.secondtype"), 9)
+				if _, err := host.SetField(ui.KindCondition, index, "value0", int64(n.Value[0])+1); err == nil || err.Error() != want {
+					t.Fatalf("%s: type-9 slot not refused with its line: %v", source, err)
+				}
 				if _, err := host.SetField(ui.KindCondition, index, "opcode", 5); err == nil || err.Error() != x.word("editor.map.secondscript") {
 					t.Fatalf("%s: opcode change not refused with its line: %v", source, err)
 				}
-				continue
+				unread++
 			}
-			if undecoded < 3 {
-				if _, err := host.SetField(ui.KindCondition, index, "value0", 1); err == nil {
-					t.Fatalf("%s: undecoded check %d took an edit", source, index)
-				}
-				undecoded++
+		}
+		if len(sc.Triggers) > 0 && len(sc.Actions) > 0 && edited < 3 {
+			tr := sc.Triggers[0]
+			edit := []ui.InspectionFieldValue{{Key: "name", Text: true, TextValue: "Edited trigger"}, {Key: "once", Value: int64(1 - min(tr.Once, 1))},
+				{Key: scriptprofile.CmpKey(0), Value: int64((tr.Cmp[0] + 1) % 6)}}
+			if _, err := host.SetFields(ui.KindTrigger, 0, edit); err != nil {
+				t.Fatalf("%s: trigger edit: %v", source, err)
 			}
+			if _, err := host.SetFields(ui.KindAction, 0, []ui.InspectionFieldValue{{Key: "name", Text: true, TextValue: "Edited node"}}); err != nil {
+				t.Fatalf("%s: node label: %v", source, err)
+			}
+			target, err := host.SaveAs(filepath.Join(t.TempDir(), "edited.alm"))
+			if err != nil {
+				t.Fatal(source, err)
+			}
+			saved, err := os.ReadFile(target)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := secondScriptOf(t, saved)
+			want := tr
+			want.Name, want.Once, want.Cmp[0] = "Edited trigger", uint32(1-min(tr.Once, 1)), (tr.Cmp[0]+1)%6
+			wantAction := sc.Actions[0]
+			wantAction.Label = "Edited node"
+			if !reflect.DeepEqual(got.Triggers[0], want) || !reflect.DeepEqual(got.Triggers[1:], sc.Triggers[1:]) || !reflect.DeepEqual(got.Actions[0], wantAction) ||
+				!reflect.DeepEqual(got.Actions[1:], sc.Actions[1:]) || !reflect.DeepEqual(got.Conditions, sc.Conditions) || len(saved) != len(raws[i]) {
+				t.Fatalf("%s: the edit did not reload as made: %+v", source, got.Triggers[0])
+			}
+			edited++
+			continue
 		}
 		if len(sc.Triggers) >= 2 && moved < 3 {
 			if _, err := host.SetField(ui.KindTrigger, 0, "order", 1); err != nil {
@@ -166,10 +193,94 @@ func TestReleaseSecondMapOtherScriptEditsAreRefused(t *testing.T) {
 			moved++
 		}
 	}
-	if undecoded == 0 || moved == 0 {
-		t.Fatalf("undecoded %d, moved %d", undecoded, moved)
+	if edited == 0 || unread == 0 || moved == 0 {
+		t.Fatalf("edited %d, type-9 refusals %d, moved %d", edited, unread, moved)
 	}
-	t.Logf("PASS: %d undecoded refusals, %d trigger moves (%s)", undecoded, moved, installLanguage(x))
+	t.Logf("PASS: %d trigger and label edits saved and reloaded, %d type-9 refusals, %d trigger moves (%s)", edited, unread, moved, installLanguage(x))
+}
+
+// Every operation number the installed maps hold is shown in words, and on
+// its first node every typed slot but type 9 takes a write; a number slot
+// written one higher saves and reloads with only that word changed.
+func TestReleaseSecondMapEveryOperationFamilyEdits(t *testing.T) {
+	x := installedInspector(t)
+	sources, raws := installedSecondMaps(t, x)
+	type family struct {
+		condition bool
+		opcode    uint32
+	}
+	done := map[family]bool{}
+	for i, source := range sources {
+		sc := secondScriptOf(t, raws[i])
+		for _, condition := range []bool{true, false} {
+			nodes, kind := sc.Actions, ui.KindAction
+			if condition {
+				nodes, kind = sc.Conditions, ui.KindCondition
+			}
+			for index, n := range nodes {
+				f := family{condition, n.Opcode}
+				if done[f] {
+					continue
+				}
+				done[f] = true
+				t.Run(fmt.Sprintf("%v-%d", condition, n.Opcode), func(t *testing.T) {
+					d, err := x.Open(source)
+					if err != nil {
+						t.Fatal(err)
+					}
+					shown := d.Script.Actions
+					if condition {
+						shown = d.Script.Conditions
+					}
+					if line := d.Records[shown[index].Record].Lines[0].Text; strings.Contains(line, "not decoded") {
+						t.Errorf("%s node %d: %q", source, index, line)
+					}
+					host, number := d.Edits.(*mapInspectionEdits), -1
+					for s, typ := range n.Type {
+						if typ == 0 {
+							continue
+						}
+						_, err := host.SetField(kind, index, fmt.Sprintf("value%d", s), int64(n.Value[s]))
+						if (err == nil) == (typ == 9) {
+							t.Fatalf("%s node %d slot %d type %d: write error %v", source, index, s, typ, err)
+						}
+						if typ == mapload.ScriptInt && number < 0 && !scriptAddressesVariable(condition, n.Opcode) {
+							number = s
+						}
+					}
+					if number < 0 {
+						return
+					}
+					if _, err := host.SetField(kind, index, fmt.Sprintf("value%d", number), int64(n.Value[number])+1); err != nil {
+						t.Fatalf("%s node %d slot %d: %v", source, index, number, err)
+					}
+					target, err := host.SaveAs(filepath.Join(t.TempDir(), "edited.alm"))
+					if err != nil {
+						t.Fatal(err)
+					}
+					saved, err := os.ReadFile(target)
+					if err != nil {
+						t.Fatal(err)
+					}
+					got, want := secondScriptOf(t, saved), n
+					gotNodes := got.Actions
+					if condition {
+						gotNodes = got.Conditions
+					}
+					want.Value[number]++
+					if !reflect.DeepEqual(gotNodes[index], want) || differs(saved, raws[i]) > 4 {
+						t.Fatalf("%s node %d: reloaded %+v, %d bytes differ", source, index, gotNodes[index], differs(saved, raws[i]))
+					}
+				})
+			}
+		}
+	}
+	for f := range done {
+		if !mapload.ScriptOperationDecoded(scriptprofile.OpsSecond, f.condition, f.opcode) {
+			t.Errorf("operation %+v is not decoded", f)
+		}
+	}
+	t.Logf("PASS: %d operation families (%s)", len(done), installLanguage(x))
 }
 
 // The first game's trigger save is as before.

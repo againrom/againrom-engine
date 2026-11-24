@@ -8,37 +8,23 @@ import (
 
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
-// setScriptWords is the script edit of a format whose row does not take whole
-// script edits: it writes the parameter words of a decoded node, or moves a
-// trigger in the stored order. Every other script edit is refused with one
-// line. The caller has worded the error.
+// setScriptWords is the node edit of a format whose row does not take whole
+// script edits: it writes the label and the parameter words of a decoded
+// node, a slot of a type whose record is unread refused. A trigger takes the
+// whole edit through the row's field kinds; any other script edit is refused
+// with one line. The caller has worded the error.
 func (s *mapInspectionEdits) setScriptWords(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (*ui.InspectionDocument, error) {
 	row := s.row()
 	k, err := editKind(kind)
 	if err != nil || len(values) == 0 || !row.sets.has(kind) {
 		return nil, s.refuse()
 	}
-	switch k {
-	case mapedit.KindAction, mapedit.KindCondition:
+	if k == mapedit.KindAction || k == mapedit.KindCondition {
 		return s.setParameterWords(k, index, values)
-	case mapedit.KindTrigger:
-		if len(values) != 1 || values[0].Key != "order" || values[0].Text || values[0].New {
-			return nil, errors.New(s.inspector.word(row.scriptRefusal))
-		}
-		to := values[0].Value
-		return s.change(func(m *mapedit.Editor) (bool, error) {
-			if to < 0 || to >= int64(m.Count(k)) {
-				return false, wordErr("editor.err.triggerposition", to)
-			}
-			if to == int64(index) {
-				return false, nil
-			}
-			err := m.Reorder(k, index, int(to))
-			return err == nil, err
-		})
 	}
 	return nil, s.refuse()
 }
@@ -66,10 +52,19 @@ func (s *mapInspectionEdits) setParameterWords(k mapedit.Kind, index int, values
 		return nil, fmt.Errorf(s.inspector.word(row.undecoded), n.Opcode)
 	}
 	var sets []mapedit.FieldSet
+	var names []string
+	vocabulary := scriptprofile.VocabularyOf(profile.Ops)
 	for _, v := range values {
+		if v.Key == "name" && v.Text {
+			names = append(names, v.TextValue)
+			continue
+		}
 		slot, err := strconv.Atoi(strings.TrimPrefix(v.Key, "value"))
 		if !strings.HasPrefix(v.Key, "value") || err != nil || slot < 0 || slot >= len(n.Type) || n.Type[slot] == 0 || v.Text || v.New {
 			return nil, errors.New(s.inspector.word(row.scriptRefusal))
+		}
+		if vocabulary.TypeUnread(n.Type[slot]) {
+			return nil, wordErr("editor.map.secondtype", n.Type[slot])
 		}
 		if scriptAddressesVariable(condition, n.Opcode) && slot == 0 &&
 			(v.Value < 0 || v.Value >= int64(profile.Registers)) {
@@ -81,6 +76,14 @@ func (s *mapInspectionEdits) setParameterWords(k mapedit.Kind, index int, values
 		sets = append(sets, mapedit.FieldSet{Key: v.Key, Value: v.Value})
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
+		named := false
+		for _, name := range names {
+			c, err := setTextFieldOn(m, k, index, "name", name)
+			if err != nil {
+				return false, err
+			}
+			named = named || c
+		}
 		var todo []mapedit.FieldSet
 		for _, set := range sets {
 			if old, err := m.FieldValue(k, index, set.Key); err != nil {
@@ -90,7 +93,7 @@ func (s *mapInspectionEdits) setParameterWords(k mapedit.Kind, index int, values
 			}
 		}
 		if len(todo) == 0 {
-			return false, nil
+			return named, nil
 		}
 		err := m.SetFields(k, index, todo...)
 		return err == nil, err

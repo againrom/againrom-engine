@@ -53,7 +53,7 @@ func TestPlayersWindowAndWizardNameARelationByTheSameWord(t *testing.T) {
 
 func TestWizardChangeRelationWritesCommandTenForEachValue(t *testing.T) {
 	e, _ := wizardChoiceEditor(t)
-	item := slices.IndexFunc(wizItems(false), func(it wizItem) bool { return it.opcode == 10 })
+	item := slices.IndexFunc(e.wizItems(false), func(it wizItem) bool { return it.opcode == 10 })
 	if item < 0 {
 		t.Fatal("the wizard has no action item for command 10")
 	}
@@ -61,7 +61,7 @@ func TestWizardChangeRelationWritesCommandTenForEachValue(t *testing.T) {
 		e.SetWords(words.For(lang))
 		row, _ := scriptprofile.OpRow(scriptprofile.OpsFirst, false, 10)
 		got := e.word(row.Word)
-		if want := e.word(wizItems(false)[item].labelWord); got != want {
+		if want := e.word(e.wizItems(false)[item].labelWord); got != want {
 			t.Fatalf("language %q: the trigger list names command 10 %q, the wizard %q", lang, got, want)
 		}
 	}

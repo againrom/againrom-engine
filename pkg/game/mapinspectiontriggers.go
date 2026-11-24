@@ -270,8 +270,8 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 		if tag == 0 && n.Value[i] == 0 {
 			continue
 		}
-		name := "Unknown"
-		if tag <= 9 {
+		name, unread := "Unknown", scriptprofile.VocabularyOf(s.profile.Ops).TypeUnread(tag)
+		if tag <= 9 && !unread {
 			name = mapload.ScriptParameterNames[tag]
 		}
 		label := fmt.Sprintf("Par%d %s [tag %d] = %d", i, name, tag, n.Value[i])
@@ -279,7 +279,9 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 		if tag > 9 {
 			s.issue(r, fmt.Sprintf("Par%d unknown type tag %d", i, tag))
 		}
-		s.parameter(r, role, tag, n.Value[i])
+		if !unread {
+			s.parameter(r, role, tag, n.Value[i])
+		}
 	}
 	// All ten positions remain visible, even tag-0 values and trailing zeros.
 	s.line(r, fmt.Sprintf("Raw values: %v", n.Value), "")
