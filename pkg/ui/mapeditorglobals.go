@@ -50,7 +50,7 @@ func (e *MapEditor) newGlobal(f int) error {
 	e.doc.Script.Targets[ScriptGlobalParameter] = targets
 	var made *InspectionScriptTarget
 	for i, t := range targets {
-		if !t.NewGlobal && !had[t.Value] {
+		if t.NewChoice != NewGlobalChoice && !had[t.Value] {
 			made = &targets[i]
 		}
 	}

@@ -297,7 +297,7 @@ func (e *MapEditor) messageChoiceAlone(field int, value int64) bool {
 	}
 	found := false
 	for _, target := range e.doc.Script.Targets[ScriptMessageParameter] {
-		found = found || !target.NewMessage && int64(target.Value) == value
+		found = found || target.NewChoice != NewMessageChoice && int64(target.Value) == value
 	}
 	if !found {
 		return false
@@ -319,7 +319,7 @@ func (e *MapEditor) messageText(field int) (string, bool) {
 		return "", false
 	}
 	for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
-		if !t.NewMessage && int64(t.Value) == v {
+		if t.NewChoice != NewMessageChoice && int64(t.Value) == v {
 			return t.Text, t.Text != ""
 		}
 	}

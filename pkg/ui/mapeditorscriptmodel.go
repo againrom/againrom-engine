@@ -215,25 +215,64 @@ type InspectionArea struct {
 // InspectionScriptTarget is one value a parameter can name, the document
 // record link (-1 none, <=-2 a variable row), member count and display name.
 type InspectionScriptTarget struct {
-	Value      uint32
-	Record     int
-	Members    int
-	Name       string
-	Choice     string
-	NewMessage bool
-	NewGlobal  bool
+	Value   uint32
+	Record  int
+	Members int
+	Name    string
+	Choice  string
+	// NewChoice is the create row's marker this target stands for, 0 for a
+	// record.
+	NewChoice int64
 	// Text is a message page's whole text, line by line; the choice label
 	// shows its first line.
 	Text string
 	Uses []InspectionScriptUse
 }
 
-func (t InspectionScriptTarget) ChoiceValue() int64 {
-	if t.NewGlobal {
-		return NewGlobalChoice
+// newRecordRow is one choice that creates a record from a parameter list: its
+// marker, the refusal a command or host edit gives it, whether a field offers
+// it, and the creation a list handler runs on that field.
+type newRecordRow struct {
+	choice  int64
+	refusal string
+	fits    func(*MapEditor, int) bool
+	create  func(*MapEditor, int) error
+}
+
+// newRecordRows is the one table of create choices, in the order the list
+// handlers try them.
+var newRecordRows = []newRecordRow{
+	{NewGlobalChoice, "a new global is added on the Globals page", (*MapEditor).globalChoiceField, (*MapEditor).newGlobal},
+	{NewMessageChoice, "a new message is written in the window's message editor", (*MapEditor).messageField, newMessageRow},
+}
+
+func newMessageRow(e *MapEditor, f int) error {
+	e.newMessage(f)
+	return nil
+}
+
+// newRecordRowOf is the create row value names, nil for a record value.
+func newRecordRowOf(value int64) *newRecordRow {
+	for i := range newRecordRows {
+		if newRecordRows[i].choice == value {
+			return &newRecordRows[i]
+		}
 	}
-	if t.NewMessage {
-		return NewMessageChoice
+	return nil
+}
+
+// NewChoiceRefusal is the word a command or host edit gives a create choice
+// value; ok is false for a record value.
+func NewChoiceRefusal(value int64) (word string, ok bool) {
+	if r := newRecordRowOf(value); r != nil {
+		return r.refusal, true
+	}
+	return "", false
+}
+
+func (t InspectionScriptTarget) ChoiceValue() int64 {
+	if t.NewChoice != 0 {
+		return t.NewChoice
 	}
 	return int64(t.Value)
 }
@@ -251,7 +290,7 @@ func (m *InspectionScriptModel) OpenTarget(kind, value uint32) *InspectionScript
 	}
 	for i := range m.Targets[kind] {
 		t := &m.Targets[kind][i]
-		if !t.NewMessage && t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0 || kind == ScriptMessageParameter) {
+		if t.NewChoice != NewMessageChoice && t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0 || kind == ScriptMessageParameter) {
 			return t
 		}
 	}

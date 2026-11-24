@@ -96,7 +96,7 @@ func TestReleaseMessagePickerPopulation(t *testing.T) {
 			messageField(t, e, 2)
 			row, found := 0, false
 			for j, target := range e.Document().Script.Targets[ui.ScriptMessageParameter] {
-				if !target.NewMessage && target.Value == n.Values[0] {
+				if target.NewChoice != ui.NewMessageChoice && target.Value == n.Values[0] {
 					row, found = j, true
 					break
 				}

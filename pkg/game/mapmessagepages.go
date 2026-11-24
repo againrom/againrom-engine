@@ -72,7 +72,7 @@ func (x *MapInspector) messageTargets(targets map[uint32][]ui.InspectionScriptTa
 		}
 		rows = append(rows, ui.InspectionScriptTarget{Value: n, Record: -1, Name: label, Choice: label, Text: strings.Join(lines, "\n")})
 	}
-	rows = append(rows, ui.InspectionScriptTarget{Record: -1, Name: x.inspectionUTF8(x.word("editor.message.new")), NewMessage: true})
+	rows = append(rows, ui.InspectionScriptTarget{Record: -1, Name: x.inspectionUTF8(x.word("editor.message.new")), NewChoice: ui.NewMessageChoice})
 	targets[ui.ScriptMessageParameter] = rows
 }
 

@@ -146,7 +146,9 @@ func TestReleaseEditorUnitBlockFrames(t *testing.T) {
 	targets := e.Document().Script.Targets[ui.ScriptMessageParameter]
 	action, longest := -1, 0
 	for n, a := range e.Document().Script.Actions {
-		k := slices.IndexFunc(targets, func(m ui.InspectionScriptTarget) bool { return !m.NewMessage && m.Value == a.Values[0] })
+		k := slices.IndexFunc(targets, func(m ui.InspectionScriptTarget) bool {
+			return m.NewChoice != ui.NewMessageChoice && m.Value == a.Values[0]
+		})
 		if a.Opcode == 2 && a.Types[0] == 1 && k >= 0 && len(targets[k].Text) > longest {
 			action, longest = n, len(targets[k].Text)
 		}
@@ -156,7 +158,7 @@ func TestReleaseEditorUnitBlockFrames(t *testing.T) {
 	}
 	e.Select(recordIndex(t, e, "Action", action), false)
 	k := slices.IndexFunc(targets, func(m ui.InspectionScriptTarget) bool {
-		return !m.NewMessage && m.Value == e.Document().Script.Actions[action].Values[0]
+		return m.NewChoice != ui.NewMessageChoice && m.Value == e.Document().Script.Actions[action].Values[0]
 	})
 	shown, whole := strings.Join(strings.Fields(popupText(e)), " "), strings.Join(strings.Fields(targets[k].Text), " ")
 	if !strings.Contains(shown, whole) || !strings.Contains(targets[k].Choice, "...") && strings.Contains(targets[k].Text, "\n") {

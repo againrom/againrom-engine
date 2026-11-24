@@ -266,7 +266,7 @@ func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) 
 
 func (e *MapEditor) messageFirstLine(value uint32) string {
 	for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
-		if t.NewMessage || t.Value != value {
+		if t.NewChoice == NewMessageChoice || t.Value != value {
 			continue
 		}
 		for _, line := range strings.Split(t.Text, "\n") {

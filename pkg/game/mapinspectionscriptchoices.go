@@ -102,7 +102,7 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 		for _, g := range x.modGlobalList() {
 			add(ui.ScriptGlobalParameter, uint32(g.ID), -1, x.inspectionUTF8(g.Name), "", 0)
 		}
-		out[ui.ScriptGlobalParameter] = append(out[ui.ScriptGlobalParameter], ui.InspectionScriptTarget{Record: -1, Name: x.inspectionUTF8(x.word("editor.param.newglobal")), NewGlobal: true})
+		out[ui.ScriptGlobalParameter] = append(out[ui.ScriptGlobalParameter], ui.InspectionScriptTarget{Record: -1, Name: x.inspectionUTF8(x.word("editor.param.newglobal")), NewChoice: ui.NewGlobalChoice})
 	}
 	registers := map[uint32]bool{}
 	for _, nodes := range [][]ui.InspectionScriptNode{d.Script.Actions, d.Script.Conditions} {

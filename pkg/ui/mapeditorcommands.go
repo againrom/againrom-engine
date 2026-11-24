@@ -1084,8 +1084,8 @@ func (e *MapEditor) fieldValue(kind RecordKind, index int, key string, value *in
 			return InspectionFieldValue{}, fmt.Errorf("field %q takes a number value", key)
 		case f.Text:
 			return InspectionFieldValue{Key: key, Text: true, TextValue: *text}, nil
-		case value != nil && *value == NewMessageChoice:
-			return InspectionFieldValue{}, fmt.Errorf("a new message is written in the window's message editor")
+		case value != nil && newRecordRowOf(*value) != nil:
+			return InspectionFieldValue{}, errors.New(newRecordRowOf(*value).refusal)
 		}
 		typed := ""
 		if value != nil {

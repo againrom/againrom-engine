@@ -571,6 +571,11 @@ func unitSections(out []ui.InspectionField) []ui.InspectionField {
 // range, its reference check and the record's placement check pass on the
 // edited map.
 func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string, value int64) (_ *ui.InspectionDocument, said error) {
+	if word, ok := ui.NewChoiceRefusal(value); ok && key != "identity" && !(value == ui.NewMessageChoice && kind == ui.KindAction && key == "value0") {
+		said = errors.New(word)
+		s.worded(&said)
+		return nil, said
+	}
 	if !s.row().wholeScripts {
 		return s.SetFields(kind, index, []ui.InspectionFieldValue{{Key: key, Value: value}})
 	}
@@ -599,6 +604,11 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 // refused field refuses the set and the model is unchanged.
 func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (_ *ui.InspectionDocument, said error) {
 	defer s.worded(&said)
+	for _, v := range values {
+		if word, ok := ui.NewChoiceRefusal(v.Value); ok && !v.Text && v.Key != "identity" {
+			return nil, errors.New(word)
+		}
+	}
 	if row := s.row(); !row.wholeScripts && !(row.fieldKinds != nil && row.fieldKinds.has(kind)) {
 		return s.setScriptWords(kind, index, values)
 	}

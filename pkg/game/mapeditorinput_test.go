@@ -113,7 +113,7 @@ func TestEditorTextInstalledFrames(t *testing.T) {
 	messageField(t, e, 2)
 	row := 0
 	for i, target := range e.Document().Script.Targets[ui.ScriptMessageParameter] {
-		if target.NewMessage {
+		if target.NewChoice == ui.NewMessageChoice {
 			row = i
 		}
 	}

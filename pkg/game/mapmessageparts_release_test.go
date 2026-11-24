@@ -47,7 +47,7 @@ func TestReleaseMessagePickerParts(t *testing.T) {
 		s := e.Document().Edits.(*mapInspectionEdits)
 		almBefore := bytes.Clone(s.model.Bytes())
 		for _, row := range e.Document().Script.Targets[ui.ScriptMessageParameter] {
-			if row.NewMessage {
+			if row.NewChoice == ui.NewMessageChoice {
 				continue
 			}
 			pages++

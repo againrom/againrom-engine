@@ -77,7 +77,7 @@ func (e *MapEditor) readMessages(raw json.RawMessage) (any, error) {
 	if a.Page == nil {
 		out := []map[string]any{}
 		for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
-			if !t.NewMessage {
+			if t.NewChoice != NewMessageChoice {
 				out = append(out, map[string]any{"page": t.Value, "text": e.mcpDisplay(t.Text)})
 			}
 		}

@@ -854,16 +854,10 @@ func (e *MapEditor) chooseObjectChoice(row int) {
 		e.chooseDialog(o.fields[f].Choices[row].Value)
 		return
 	}
-	if o.fields[o.open].Choices[row].Value == NewGlobalChoice {
+	if r := newRecordRowOf(o.fields[o.open].Choices[row].Value); r != nil && r.fits(e, o.open) {
 		field := o.open
 		o.open = -1
-		_ = e.newGlobal(field)
-		return
-	}
-	if o.fields[o.open].Choices[row].Value == NewMessageChoice && e.messageField(o.open) {
-		field := o.open
-		o.open = -1
-		e.newMessage(field)
+		_ = r.create(e, field)
 		return
 	}
 	field, value := o.open, o.fields[o.open].Choices[row].Value
@@ -1004,13 +998,11 @@ func (e *MapEditor) applyObject() {
 		return
 	}
 	for i := range e.obj.fields {
-		if e.obj.buf[i] == strconv.FormatInt(NewGlobalChoice, 10) && e.globalChoiceField(i) {
-			_ = e.newGlobal(i)
-			return
-		}
-		if e.obj.buf[i] == strconv.FormatInt(NewMessageChoice, 10) && e.messageField(i) {
-			e.newMessage(i)
-			return
+		for _, r := range newRecordRows {
+			if e.obj.buf[i] == strconv.FormatInt(r.choice, 10) && r.fits(e, i) {
+				_ = r.create(e, i)
+				return
+			}
 		}
 	}
 	o := &e.obj
