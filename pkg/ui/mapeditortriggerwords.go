@@ -68,53 +68,38 @@ func (e *MapEditor) commandWord(k uint32) (string, bool) {
 	return "", false
 }
 
+// signatureRoleWords maps a signature role to its word's locale key: the one
+// home of the role words.
+var signatureRoleWords = map[string]string{
+	"unit2":    "editor.role.unit2",
+	"player2":  "editor.role.player2",
+	"cell":     "editor.role.cell",
+	"cell2":    "editor.role.cell2",
+	"corner":   "editor.role.corner",
+	"corner2":  "editor.role.corner2",
+	"radius":   "editor.role.radius",
+	"selector": "editor.role.selector",
+	"value":    "editor.role.value",
+	"variable": "editor.role.variable",
+	"message":  "editor.role.message",
+	"money":    "editor.role.money",
+	"spell":    "editor.role.spell",
+	"power":    "editor.role.power",
+	"time":     "editor.role.time",
+	"range":    "editor.role.range",
+	"command":  "editor.role.command",
+	"health":   "editor.role.health",
+	"undying":  "editor.role.undying",
+	"global":   "editor.role.global",
+	"delta":    "editor.role.delta",
+	"reason":   "editor.role.reason",
+}
+
 // roleWord is the word of a signature role.
 func (e *MapEditor) roleWord(role string) (string, bool) {
-	switch role {
-	case "unit2":
-		return e.word("editor.role.unit2"), true
-	case "player2":
-		return e.word("editor.role.player2"), true
-	case "cell":
-		return e.word("editor.role.cell"), true
-	case "cell2":
-		return e.word("editor.role.cell2"), true
-	case "corner":
-		return e.word("editor.role.corner"), true
-	case "corner2":
-		return e.word("editor.role.corner2"), true
-	case "radius":
-		return e.word("editor.role.radius"), true
-	case "selector":
-		return e.word("editor.role.selector"), true
-	case "value":
-		return e.word("editor.role.value"), true
-	case "variable":
-		return e.word("editor.role.variable"), true
-	case "message":
-		return e.word("editor.role.message"), true
-	case "money":
-		return e.word("editor.role.money"), true
-	case "spell":
-		return e.word("editor.role.spell"), true
-	case "power":
-		return e.word("editor.role.power"), true
-	case "time":
-		return e.word("editor.role.time"), true
-	case "range":
-		return e.word("editor.role.range"), true
-	case "command":
-		return e.word("editor.role.command"), true
-	case "health":
-		return e.word("editor.role.health"), true
-	case "undying":
-		return e.word("editor.role.undying"), true
-	case "global":
-		return e.word("editor.role.global"), true
-	case "delta":
-		return e.word("editor.role.delta"), true
-	case "reason":
-		return e.word("editor.role.reason"), true
+	id, ok := signatureRoleWords[role]
+	if !ok {
+		return "", false
 	}
-	return "", false
+	return e.word(id), true
 }

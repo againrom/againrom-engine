@@ -465,7 +465,7 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 			f.Label = e.word("editor.message.parameter")
 			f.Choices = e.parameterChoices(kind, f.Value)
 		case kind == ScriptVariableParameter:
-			f.Label = e.word("editor.role.variable")
+			f.Label, _ = e.roleWord("variable")
 			f.Choices = e.parameterChoices(kind, f.Value)
 		case t == scriptX && s+1 < len(types) && types[s+1] == scriptY:
 			f.Key, f.Text = fmt.Sprintf("cell%d", s), true
