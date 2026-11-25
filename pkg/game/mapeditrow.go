@@ -43,6 +43,12 @@ type editRow struct {
 	randomTerrain bool
 	// newSteps are the keys of a new record the palettes offer; nil: all.
 	newSteps map[string]bool
+	// sceneryLabel and sceneryDetail word a cell's type-3 byte record; ""
+	// names the byte as an object class.
+	sceneryLabel, sceneryDetail string
+	// trapWord words a trap's view from its spell, power, source and target;
+	// "" words it from the kinds its mode names.
+	trapWord string
 	// manyValues: one new record takes several values; off, a sack still
 	// takes its items and a type-9 record its template and spell.
 	manyValues bool
@@ -117,8 +123,16 @@ var editRows = map[alm.Format]*editRow{
 		playerRecords:  true,
 		structureOwner: true,
 		refusal:        "editor.map.secondtool", scriptRefusal: "editor.map.secondscript", undecoded: "editor.map.secondundecoded",
-		unstated:      "editor.map.secondunstated",
-		newSteps:      map[string]bool{"identity": true, "kind": true, "item": true, "template": true, "spell": true}, // a new player takes the roster's defaults
+		unstated: "editor.map.secondunstated",
+		// A new player takes the roster's defaults; a type-9 record takes the
+		// steps its field table names.
+		newSteps: map[string]bool{"identity": true, "kind": true, "item": true, "template": true, "spell": true, "link": true, "power": true, "range": true},
+		// A type-3 byte blocks a walker inside the band; what a value shows
+		// is unread (R2-ENGINE-1667).
+		sceneryLabel: "editor.second.scenery", sceneryDetail: "editor.second.scenery.detail",
+		// The mode-below-4 arm reads no mode bit; the spell picks the
+		// entering unit or the target cell (R2-ENGINE-1698).
+		trapWord:      "editor.cast.secondtrap",
 		structureKind: checkBuildingKind,
 		kindTable:     func(x *MapInspector) bool { return x.table != nil },
 		testMission:   (*MapInspector).testPlayReplaceMission,

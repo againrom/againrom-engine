@@ -30,13 +30,16 @@ func (e *MapEditor) keyTrapArea(string) error {
 func (e *MapEditor) trapAreaDrawn(box image.Rectangle) {
 	e.leave(leavePick)
 	spell, _, _ := e.castValue("spell")
-	power, _, _ := e.castValue("power")
 	template, ok := e.trapAreaTemplate()
 	if !ok {
 		return
 	}
-	ch, err := e.commandAddRecord(InspectionNewRecord{Kind: KindEnchantment, Area: box, Cell: box.Min, HasCell: true,
-		Values: []InspectionFieldValue{{Key: "template", Value: template}, {Key: "spell", Value: spell}, {Key: "power", Value: power}}})
+	values := []InspectionFieldValue{{Key: "template", Value: template}, {Key: "spell", Value: spell}}
+	// A record the spell makes without a power, a teleport, takes none.
+	if power, _, asked := e.castValue("power"); asked {
+		values = append(values, InspectionFieldValue{Key: "power", Value: power})
+	}
+	ch, err := e.commandAddRecord(InspectionNewRecord{Kind: KindEnchantment, Area: box, Cell: box.Min, HasCell: true, Values: values})
 	if err != nil {
 		e.message = e.editorHostText(err.Error())
 		return

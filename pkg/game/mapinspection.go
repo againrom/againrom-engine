@@ -467,11 +467,18 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	}
 	v.SetSackFrames(x.sacks)
 	v.SetSacks(sacks)
+	sceneryLabel, sceneryDetail := "class %d", ""
+	if row := rowFor(model); row.sceneryLabel != "" {
+		sceneryLabel, sceneryDetail = x.inspectionUTF8(x.word(row.sceneryLabel)), x.inspectionUTF8(x.word(row.sceneryDetail))
+	}
 	for i, b := range m.Overlay {
 		if b == 0 {
 			continue
 		}
-		r := ui.InspectionRecord{Kind: ui.KindScenery, Section: 3, Index: i, Cell: image.Pt(i%m.Width, i/m.Width), Spatial: true, Size: image.Pt(1, 1), Label: fmt.Sprintf("class %d", b), Details: []string{fmt.Sprintf("Overlay byte: %d", b)}}
+		r := ui.InspectionRecord{Kind: ui.KindScenery, Section: 3, Index: i, Cell: image.Pt(i%m.Width, i/m.Width), Spatial: true, Size: image.Pt(1, 1), Label: fmt.Sprintf(sceneryLabel, b), Details: []string{fmt.Sprintf("Overlay byte: %d", b)}}
+		if sceneryDetail != "" {
+			r.Details = append(r.Details, sceneryDetail)
+		}
 		if x.statics != nil && x.statics.Classes[b] != nil {
 			r.Preview = x.statics.Classes[b].Frame
 		}
@@ -491,7 +498,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	for i, e := range m.Enchantments {
 		// These coordinates can name item metadata, not a world placement.
 		// Do not fabricate a spatial marker from an undecided interpretation.
-		add(x.inspectionEnchantment(i, e, m, spellSetSizes[i], cellMoveOf(model)))
+		add(x.inspectionEnchantment(i, e, m, spellSetSizes[i], castViewOf(model)))
 	}
 	for i, g := range m.Groups {
 		name := x.inspectionUTF8(alm.PlayerNameText.Decode([]byte(g.Name)))

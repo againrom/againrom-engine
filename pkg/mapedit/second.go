@@ -73,8 +73,8 @@ func init() {
 		own[k] = s
 	}
 	// The type-1 word's bit 0x2000 and the height plane are read by the game;
-	// the object brush only clears, since no reader shows a type-3 byte; the
-	// type-4 bridge is unread.
+	// the object brush only clears, since what a type-3 value shows is unread
+	// (R2-ENGINE-1667); the type-4 bridge is unread.
 	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second, planes: map[Plane]PlaneRule{
 		PlaneTile:       {},
 		PlaneHeight:     {Band: secondBand},
@@ -106,26 +106,58 @@ var secondUnitFields = []Field{
 	{Key: "field20", Label: "editor.second.field.20", Offset: alm.SecondUnitField20, Width: 4, Min: 0, Max: math.MaxUint32},
 }
 
+// secondSpellMax is the highest spell a shipped type-9 record names
+// (R2-ENGINE-1009).
+const secondSpellMax = 29
+
 // secondEnchantmentFields are the settable fields of a second-game type-9
-// record. Only a cell record of the profile's cell move, or of no event yet,
-// is decoded for editing (R2-ASSET-387): its event, which takes the move
-// alone, its cell and its target. Power and source keep their bytes; the
-// move reads neither (R2-ENGINE-1779). Every other record sets none.
+// record. A cell record is the cell event the stage hands the writer: event
+// byte, power byte, source from entry 0, target from entry 1 (R2-ENGINE-1698).
+// The profile's cell move takes its event alone and keeps power and source,
+// which it reads neither of (R2-ENGINE-1779); another event is a trap that
+// casts that spell (R2-ENGINE-673); a record of no event yet lists both. A
+// mode-4 record is a structure's caster (R2-ENGINE-1009, R2-ENGINE-1560).
+// Every other record, and every byte no field names, keeps its bytes.
 func secondEnchantmentFields(e *Editor, rec []byte) []Field {
-	move := scriptprofile.VocabularyOf(e.Profile().Ops).CellMove
-	if move == 0 || move > math.MaxUint8 || !spellRecordKnown(rec) || notCellSpell(rec) || binary.LittleEndian.Uint16(rec[12:]) >= 4 {
+	move := int64(scriptprofile.VocabularyOf(e.Profile().Ops).CellMove)
+	if !spellRecordKnown(rec) || notCellSpell(rec) {
 		return nil
 	}
-	if event := uint32(rec[18]); event != 0 && event != move {
+	switch mode := binary.LittleEndian.Uint16(rec[12:]); {
+	case mode == 4:
+		return slices.Clone(secondCasterFields)
+	case mode > 4 || move == 0 || move > math.MaxUint8:
 		return nil
 	}
-	return []Field{
-		{Key: "spell", Label: "editor.cast.event", Offset: 18, Width: 1, Min: int64(move), Max: int64(move)},
+	cell := []Field{
 		{Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
 		{Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
 		{Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
 		{Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255},
 	}
+	spell := Field{Key: "spell", Label: "editor.cast.spell", Offset: 18, Width: 1, Min: 1, Max: secondSpellMax}
+	switch int64(rec[18]) {
+	case move:
+		spell.Label, spell.Min, spell.Max = "editor.cast.event", move, move
+		return append([]Field{spell}, cell...)
+	case 0:
+	default:
+		spell.Check = CheckCellSpell
+	}
+	return append([]Field{spell, {Key: "power", Label: "editor.cast.castpower", Offset: 20, Width: 1, Min: 0, Max: math.MaxUint8},
+		cell[0], cell[1],
+		{Key: "sourcex", Label: "editor.cast.sourcex", Offset: 26, Width: 2, Min: 0, Max: 255},
+		{Key: "sourcey", Label: "editor.cast.sourcey", Offset: 28, Width: 2, Min: 0, Max: 255}}, cell[2:]...)
+}
+
+// secondCasterFields are a structure caster's spell byte, power byte and the
+// radius of its unit scan, the low byte of +0x00 (R2-ENGINE-1009,
+// R2-ENGINE-1560). Its count and entries are read by neither the stage nor
+// the caster (R2-ENGINE-1669) and keep their bytes.
+var secondCasterFields = []Field{
+	{Key: "spell", Label: "editor.cast.spell", Offset: 18, Width: 1, Min: 1, Max: secondSpellMax},
+	{Key: "power", Label: "editor.cast.castpower", Offset: 20, Width: 1, Min: 0, Max: math.MaxUint8},
+	{Key: "range", Label: "editor.cast.range", Offset: 0, Width: 1, Min: 0, Max: math.MaxUint8},
 }
 
 // secondStructureFieldsBase and secondStructureExtFields are the settable

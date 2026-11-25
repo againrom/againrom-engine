@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"image"
+	"slices"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -71,7 +72,7 @@ func secondCellEvents(t *testing.T, b []byte) map[image.Point][6]byte {
 }
 
 // On a second-game map the editor adds, changes and removes a type-9
-// teleport: the palette offers the cell record and the one event 23, a new
+// teleport: the palette offers the cell record and event 23, a new
 // teleport saves as the original's six-byte cell event with its source at
 // its cell (R2-ASSET-387) and power 0, which the move does not read
 // (R2-ENGINE-1779); a loaded teleport keeps its power, and a record of
@@ -94,12 +95,12 @@ func TestSecondMapTeleportRecordAddedChangedAndRemoved(t *testing.T) {
 			constructors = append(constructors, c.Value)
 		}
 	}
-	if len(constructors) != 1 || constructors[0] != cell {
-		t.Fatalf("the palette offers constructors %v, want the cell record %d alone", constructors, cell)
+	if !slices.Contains(constructors, cell) {
+		t.Fatalf("the palette offers constructors %v, want the cell record %d", constructors, cell)
 	}
 	spell := host.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindEnchantment, Values: []ui.InspectionFieldValue{{Key: "template", Value: cell}}}, "spell")
-	if spell.Absent || len(spell.Choices) != 1 || spell.Choices[0].Value != secondCellMove || spell.Choices[0].Label != "Teleport" {
-		t.Fatalf("the spell step offers %+v, want the teleport event alone", spell)
+	if spell.Absent || !slices.ContainsFunc(spell.Choices, func(c ui.InspectionChoice) bool { return c.Value == secondCellMove && c.Label == "Teleport" }) {
+		t.Fatalf("the spell step offers %+v, want the teleport event among the spells", spell)
 	}
 
 	add := ui.InspectionNewRecord{Kind: ui.KindEnchantment, Cell: image.Pt(12, 20), HasCell: true, Values: []ui.InspectionFieldValue{

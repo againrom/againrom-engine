@@ -85,8 +85,8 @@ const (
 )
 
 // addStep is one step: the host's key for its value, its label's word and
-// the kind of its value. An optional step is left out when the host marks it
-// Absent or a choice step is offered fewer than two choices.
+// the kind of its value. A step is left out when the host marks it Absent; an
+// optional choice step goes when offered under two choices.
 type addStep struct {
 	Key      string
 	Word     string
@@ -322,7 +322,7 @@ func parseCell(s string) (image.Point, bool) {
 func (e *MapEditor) addOffer(host InspectionNewRecords, r *addRun, i int) (InspectionNewStep, bool) {
 	st := r.steps[i]
 	offer := host.NewRecordStep(e.addRecord(r, i), st.Key)
-	return offer, st.Optional && (offer.Absent || st.Control != addNumber && len(offer.Choices) < 2)
+	return offer, offer.Absent || st.Optional && st.Control != addNumber && len(offer.Choices) < 2
 }
 
 // addDefault is the text a step starts at: the offer's value, its text for a

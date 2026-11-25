@@ -21,6 +21,17 @@ func cellMoveOf(m *mapedit.Editor) uint32 {
 	return scriptprofile.VocabularyOf(m.Profile().Ops).CellMove
 }
 
+// castView is what a type-9 record's view reads from its map's format: the
+// cell move (cellMoveOf) and the row's trap word.
+type castView struct {
+	move uint32
+	trap string
+}
+
+func castViewOf(m *mapedit.Editor) castView {
+	return castView{move: cellMoveOf(m), trap: rowFor(m).trapWord}
+}
+
 var castWords = map[string]struct{ Word string }{
 	"spell": {Word: "editor.cast.spell"}, "power": {Word: "editor.cast.power"}, "link": {Word: "editor.cast.link"},
 	"triggerx": {Word: "editor.cast.x"}, "triggery": {Word: "editor.cast.y"}, "castkind": {Word: "editor.cast.kind"},
@@ -80,7 +91,7 @@ func (s *mapInspectionEdits) cellSpellPalette(view *alm.Map) ui.InspectionNewSte
 		}
 		t := cellSpellTemplates[template]
 		out.Choices = append(out.Choices, ui.InspectionChoice{Value: v,
-			Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view, 0, cellMoveOf(s.model)).Label)})
+			Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view, 0, castViewOf(s.model)).Label)})
 		out.Templates[v] = ui.InspectionSpellTemplate{
 			Constructor: int64(mapedit.SpellConstructor(t.kind)), Target: t.target,
 		}
@@ -88,11 +99,11 @@ func (s *mapInspectionEdits) cellSpellPalette(view *alm.Map) ui.InspectionNewSte
 	return out
 }
 
-// inspectionEnchantment is the view of type-9 record i of m. move is the
-// game's cell event that moves a unit to the record's target
+// inspectionEnchantment is the view of type-9 record i of m. cast.move is
+// the game's cell event that moves a unit to the record's target
 // (scriptprofile.Vocabulary.CellMove), 0 for none: a cell record of that
 // event reads as a teleport from its cell to its target.
-func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Map, setSize int, move uint32) ui.InspectionRecord {
+func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Map, setSize int, cast castView) ui.InspectionRecord {
 	r := ui.InspectionRecord{Kind: ui.KindEnchantment, Section: 9, Index: i, Label: fmt.Sprintf("item recipe %d / tag %d", i+1, e.Tag),
 		Details: []string{fmt.Sprintf("X/Y raw: %d / %d", e.X, e.Y), fmt.Sprintf("A/B/C: %d / %d / %d", e.A, e.B, e.C), fmt.Sprintf("Spell raw: %d", e.SpellRaw), fmt.Sprintf("Elements: %v", e.Elements)}}
 	if e.X == 0 && e.Y == 0 {
@@ -121,7 +132,11 @@ func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Ma
 			to = "unit"
 		}
 		r.Label = fmt.Sprintf(word("trap"), word(from), word(to), spell, uint16(e.SpellRaw>>16))
-		if move != 0 && uint32(uint8(e.SpellRaw)) == move {
+		if cast.trap != "" {
+			source, target := e.Elements[0], e.Elements[1]
+			r.Label = fmt.Sprintf(x.inspectionUTF8(x.word(cast.trap)), spell, uint8(e.SpellRaw>>16), uint8(source.Kind), uint8(source.Low), uint8(target.Kind), uint8(target.Low))
+		}
+		if move := cast.move; move != 0 && uint32(uint8(e.SpellRaw)) == move {
 			target := e.Elements[1]
 			r.Label = fmt.Sprintf(x.inspectionUTF8(x.word("editor.cast.teleport")), e.X, e.Y, uint8(target.Kind), uint8(target.Low))
 		}

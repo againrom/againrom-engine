@@ -339,7 +339,12 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		}
 		return s.cellSpellPalette(view)
 	case "castkind", "range", "power":
-		for _, f := range s.model.SpellTemplateFields(int(recordValue(r, "template"))) {
+		// The steps are those of the record the chosen spell makes.
+		var sets []mapedit.FieldSet
+		if spell := recordValues(r, "spell"); len(spell) > 0 {
+			sets = append(sets, mapedit.FieldSet{Key: "spell", Value: spell[0]})
+		}
+		for _, f := range s.model.SpellTemplateFields(int(recordValue(r, "template")), sets...) {
 			if f.Key != key {
 				continue
 			}

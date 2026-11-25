@@ -140,19 +140,31 @@ func keyCatalogChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionC
 	return s.inspector.recordCatalog(a.key)
 }
 
-// castSpellChoices are the spells a type-9 record takes: the catalog, or
-// the one event the format's field table holds a cell record at, which is
-// named a teleport when it is the game's cell move.
+// castSpellChoices are the spells a type-9 record takes: the one event its
+// field table holds it at, or the catalog. The game's cell move is named a
+// teleport, and joins a catalog without it when the field takes it.
 func castSpellChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
-	for _, f := range s.model.SpellTemplateFields(mapedit.SpellConstructor(0)) {
-		if f.Key != "spell" || f.Min != f.Max {
+	fields := s.model.SpellTemplateFields(mapedit.SpellConstructor(0))
+	if a.index >= 0 {
+		fields, _ = s.model.Fields(mapedit.KindEnchantment, a.index)
+	}
+	move := int64(cellMoveOf(s.model))
+	teleport := ui.InspectionChoice{Value: move, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.second.action.25.teleport"))}
+	for _, f := range fields {
+		if f.Key != "spell" {
 			continue
 		}
-		label := fmt.Sprintf("%d", f.Min)
-		if f.Min == int64(cellMoveOf(s.model)) {
-			label = s.inspector.inspectionUTF8(s.inspector.word("editor.second.action.25.teleport"))
+		if f.Min == f.Max {
+			if f.Min != move {
+				teleport.Value, teleport.Label = f.Min, fmt.Sprintf("%d", f.Min)
+			}
+			return []ui.InspectionChoice{teleport}
 		}
-		return []ui.InspectionChoice{{Value: f.Min, Label: label}}
+		out := keyCatalogChoices(s, a)
+		if move != 0 && move >= f.Min && move <= f.Max && !slices.ContainsFunc(out, func(c ui.InspectionChoice) bool { return c.Value == move }) {
+			out = append(out, teleport)
+		}
+		return out
 	}
 	return keyCatalogChoices(s, a)
 }

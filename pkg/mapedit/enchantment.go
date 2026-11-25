@@ -169,8 +169,9 @@ func (e *Editor) spellTemplate(template int) ([]byte, bool, error) {
 	return rec, true, nil
 }
 
-// SpellTemplateFields describes the fields of a spell constructor or copy.
-func (e *Editor) SpellTemplateFields(template int) []Field {
+// SpellTemplateFields describes the fields of a spell constructor or copy
+// once the values sets names are written, as a new record's steps take them.
+func (e *Editor) SpellTemplateFields(template int, sets ...FieldSet) []Field {
 	rec, fresh, err := e.spellTemplate(template)
 	if err != nil || !fresh && notCellSpell(rec) {
 		return nil
@@ -179,7 +180,13 @@ func (e *Editor) SpellTemplateFields(template int) []Field {
 		// Give the constructor a cell for the field table's spell check.
 		rec[4] = 1
 	}
-	return e.rowOf(KindEnchantment).fields(e, rec)
+	fields := e.rowOf(KindEnchantment).fields
+	for _, set := range sets {
+		if f, ok := fieldByKey(fields(e, rec), set.Key); ok && set.Value >= f.Min && set.Value <= f.Max && f.Element == 0 {
+			rec = f.write(rec, set.Value)
+		}
+	}
+	return fields(e, rec)
 }
 
 // AddSpellFrom adds a cell spell at x, y bound to link: a copy of record

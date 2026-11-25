@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor the unit window's spellcaster caption now looks and reacts like a button, spells that are off in the unit's spell book are drawn dimmed, and a spell given to a unit no longer shows as a label beside it on the map.
 - [BASE] In the map editor the unit window's spellcaster button no longer has the yellow caption showing under its label.
 - [ROM2] In the map editor's trigger window, a second-game node now shows its ten text fields beside its label, each marked as read by nothing the game was found to do, and both the label and the texts are edited and saved into their own bytes, also on a node whose operation is not decoded; pages, messages, dialogues and variable names of a second-game map are still not offered.
+- [ROM2] In the map editor, a second-game map's traps now show and change their spell, power and cells, and a building's spell caster its spell, power and radius; the palette adds both.
 
 ### For players
 

@@ -31,6 +31,7 @@ const (
 	CheckUnitLook
 	CheckUnitNPC
 	CheckUnitFacing // a choice: 0 the constructor's draw, 1..8 a direction clockwise from north
+	CheckCellSpell  // a trap's spell: the profile's cell move, a teleport's event, is refused
 )
 
 // Field is one settable field of a record, at a record-relative

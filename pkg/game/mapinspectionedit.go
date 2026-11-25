@@ -853,6 +853,10 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 		err = checkScriptReference(f.Check, view, value)
 	case mapedit.CheckScriptPlayer:
 		err = rosterSlotError(view, uint32(value))
+	case mapedit.CheckCellSpell:
+		if value == int64(cellMoveOf(m)) {
+			err = wordErr("editor.err.trapmove", value)
+		}
 	}
 	if err != nil {
 		return false, err
