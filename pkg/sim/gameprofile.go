@@ -40,9 +40,6 @@ type gameProfile struct {
 	holdsScriptState bool
 	// dropsEmptyScript: a World started with an empty script holds none.
 	dropsEmptyScript bool
-	// scriptProfile holds the dialect's register count and tick register
-	// (R2-SESSION-019, R2-ENGINE-1451); zero takes the first game's profile.
-	scriptProfile scriptprofile.Profile
 	// scriptSeed is the non-zero register written at session start
 	// (R2-SESSION-265); zero value writes none.
 	scriptSeed scriptRegisterSeed
@@ -256,16 +253,12 @@ func (d ScriptDialect) Profile() scriptprofile.Profile {
 	if int(d) < len(dialectProfiles) {
 		return dialectProfiles[d]
 	}
-	return scriptprofile.First
+	return dialectProfiles[ScriptROM1]
 }
 
-// scriptLimits returns the script profile of g, defaulting a zero profile
-// to the first game's.
+// scriptLimits returns the script profile of g: the dialect table's row.
 func (g gameProfile) scriptLimits() scriptprofile.Profile {
-	if g.scriptProfile.Registers == 0 {
-		return scriptprofile.First
-	}
-	return g.scriptProfile
+	return g.dialect.Profile()
 }
 
 // diaryCap is the largest kill count the profile's Diary stores.
@@ -289,7 +282,6 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		return gameProfile{
 			dialect:          ScriptROM1,
 			dropsEmptyScript: true,
-			scriptProfile:    scriptprofile.First,
 			scoreEffectSpell: 20,
 			skillAward:       firstGameSkillAward,
 			computerSupport:  supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, pick: supportPicksDrawn, hold: supportHeldInCombat, shield: shieldNone},
@@ -308,7 +300,6 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		scriptRows:                 secondGameRows,
 		dialect:                    ScriptROM2,
 		holdsScriptState:           true,
-		scriptProfile:              scriptprofile.For(scriptprofile.OpsSecond, false),
 		scriptSeed:                 scriptRegisterSeed{register: 901, value: 1},
 		structureOwners:            true,
 		scriptCount:                scriptCountListed,

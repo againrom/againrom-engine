@@ -108,10 +108,11 @@ func (e *Editor) newTrigger(t alm.ScriptTrigger, like []byte) ([]byte, error) {
 	if e.Extended() {
 		return alm.EncodeScriptRecordTrigger(e.Count(KindTrigger), t)
 	}
-	if like == nil {
-		return NewScriptTrigger(t)
+	var kept func(f Field, v uint32) bool
+	if like != nil {
+		kept = heldIn(like)
 	}
-	return newScriptTrigger(t, heldIn(like))
+	return newScriptTrigger(e.Profile(), t, kept)
 }
 
 // setRecordTrigger writes t over record trigger i, whose bytes are rec,

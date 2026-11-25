@@ -40,12 +40,6 @@ const (
 	instantLose = 5
 )
 
-// script is the record limits both games share: the binder numbers
-// conditions into the register file and reads one latch byte per trigger
-// (MISSION-SLOT-008); an id above the cap is a suspicious reference
-// (TRIG-BIND-010). The registers differ by game and come from Editor.Profile.
-var script = scriptprofile.First
-
 // Arm is one row of the arm table: what the arm's records say. Target is the
 // parameter type code of the check's one parameter (ALM-TRIG-046).
 type Arm struct {

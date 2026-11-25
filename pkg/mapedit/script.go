@@ -35,9 +35,9 @@ func scriptSection(name string, array int) *section {
 		fields:   func(*Editor, []byte) []Field { return nil },
 	}
 	if array < 2 {
-		sec.fields = func(_ *Editor, rec []byte) []Field { return nodeFields(rec) }
+		sec.fields = func(e *Editor, rec []byte) []Field { return nodeFields(e.Profile(), rec) }
 	} else {
-		sec.fields = func(_ *Editor, rec []byte) []Field { return triggerFields() }
+		sec.fields = func(e *Editor, rec []byte) []Field { return triggerFields(e.Profile()) }
 	}
 	return sec
 }
@@ -71,10 +71,10 @@ func scriptLayout(a int) func(*Editor, span) (arrayLayout, error) {
 
 // nodeFields offers identity, parameter kinds and typed values. Unedited
 // bytes, including unknown parameter values and slot names, stay carried.
-func nodeFields(rec []byte) []Field {
+func nodeFields(p scriptprofile.Profile, rec []byte) []Field {
 	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: alm.ScriptLabelLen, Text: &alm.ScriptLabelText},
 		{Key: "opcode", Label: "Operation", Offset: alm.ScriptNodeOpcode, Width: 4, Min: 1, Max: math.MaxUint32},
-		{Key: "id", Label: "Node ID", Offset: alm.ScriptNodeID, Width: 4, Min: 1, Max: int64(script.MaxID)}}
+		{Key: "id", Label: "Node ID", Offset: alm.ScriptNodeID, Width: 4, Min: 1, Max: int64(p.MaxID)}}
 	for i := 0; i < alm.ScriptParams; i++ {
 		t := binary.LittleEndian.Uint32(rec[alm.ScriptNodeTypes+4*i:])
 		out = append(out, Field{Key: fmt.Sprintf("type%d", i), Label: fmt.Sprintf("Par%d kind", i), Offset: alm.ScriptNodeTypes + 4*i, Width: 4, Min: 0, Max: 9})
@@ -107,13 +107,13 @@ func nodeFields(rec []byte) []Field {
 
 // triggerFields is the trigger record's field table: the name, each slot of
 // the record and the fire-once flag. SetTriggerSlots writes through it.
-func triggerFields() []Field {
+func triggerFields(p scriptprofile.Profile) []Field {
 	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: alm.ScriptLabelLen, Text: &alm.ScriptLabelText}}
-	maxID := int64(script.MaxID)
+	maxID := int64(p.MaxID)
 	for i := 0; i < alm.ScriptPairs; i++ {
 		out = append(out, Field{Key: scriptprofile.LeftKey(i), Label: fmt.Sprintf("Pair%d left condition ID (0 empty)", i+1), Offset: alm.ScriptTriggerPairs + 8*i, Width: 4, Max: maxID},
 			Field{Key: scriptprofile.RightKey(i), Label: fmt.Sprintf("Pair%d right condition ID", i+1), Offset: alm.ScriptTriggerPairs + 8*i + 4, Width: 4, Max: maxID},
-			Field{Key: scriptprofile.CmpKey(i), Label: fmt.Sprintf("Pair%d comparison", i+1), Offset: alm.ScriptTriggerCompare + 4*i, Width: 4, Max: int64(script.MaxCompare)})
+			Field{Key: scriptprofile.CmpKey(i), Label: fmt.Sprintf("Pair%d comparison", i+1), Offset: alm.ScriptTriggerCompare + 4*i, Width: 4, Max: int64(p.MaxCompare)})
 	}
 	for i := 0; i < alm.ScriptActionRefs; i++ {
 		out = append(out, Field{Key: scriptprofile.ActionKey(i), Label: fmt.Sprintf("Action%d ID (0 empty)", i+1), Offset: alm.ScriptTriggerActions + 4*i, Width: 4, Max: maxID})
@@ -286,21 +286,21 @@ const pairSides = 3
 // the ones t does not spell empty. A value the record cannot hold is a *ScriptLimitError; kept
 // reports the slot words to leave unchecked, the ones the record already
 // holds.
-func triggerWords(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]Field, []uint32, error) {
-	if t.Pairs() > script.Pairs {
-		return nil, nil, &ScriptLimitError{Limit: LimitPairs, Max: int64(script.Pairs), Got: int64(t.Pairs())}
+func triggerWords(p scriptprofile.Profile, t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]Field, []uint32, error) {
+	if t.Pairs() > p.Pairs {
+		return nil, nil, &ScriptLimitError{Limit: LimitPairs, Max: int64(p.Pairs), Got: int64(t.Pairs())}
 	}
-	if len(t.Acts) > script.Actions {
-		return nil, nil, &ScriptLimitError{Limit: LimitActions, Max: int64(script.Actions), Got: int64(len(t.Acts))}
+	if len(t.Acts) > p.Actions {
+		return nil, nil, &ScriptLimitError{Limit: LimitActions, Max: int64(p.Actions), Got: int64(len(t.Acts))}
 	}
 	if g := slices.Max(append([]uint32{0}, t.Group...)); g > 0 {
 		return nil, nil, &ScriptLimitError{Limit: LimitGroups, Max: 1, Got: int64(g) + 1}
 	}
-	fields := triggerFields()
+	fields := triggerFields(p)
 	slots := fields[1 : len(fields)-1]
 	words := make([]uint32, 0, len(slots))
-	for p := 0; p < alm.ScriptPairs; p++ {
-		left, right, cmp := t.Pair(p)
+	for pair := 0; pair < alm.ScriptPairs; pair++ {
+		left, right, cmp := t.Pair(pair)
 		words = append(words, left, right, cmp)
 	}
 	for a := 0; a < alm.ScriptActionRefs; a++ {
@@ -310,9 +310,9 @@ func triggerWords(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]Fie
 		if kept != nil && kept(slots[i], v) {
 			continue
 		}
-		limit, most := LimitID, script.MaxID
+		limit, most := LimitID, p.MaxID
 		if i < pairSides*alm.ScriptPairs && i%pairSides == pairSides-1 {
-			limit, most = LimitCompare, script.MaxCompare
+			limit, most = LimitCompare, p.MaxCompare
 		}
 		if v > most {
 			return nil, nil, &ScriptLimitError{Limit: limit, Max: int64(most), Got: int64(v)}
@@ -327,12 +327,12 @@ func triggerWords(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]Fie
 // pairs or actions than it has slots, a code above the alphabet, an id above
 // the cap) is a *ScriptLimitError and builds nothing.
 func NewScriptTrigger(t alm.ScriptTrigger) ([]byte, error) {
-	return newScriptTrigger(t, nil)
+	return newScriptTrigger(scriptprofile.First, t, nil)
 }
 
-// newScriptTrigger is NewScriptTrigger leaving unchecked the slot words kept
-// reports, as triggerWords does.
-func newScriptTrigger(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]byte, error) {
+// newScriptTrigger is NewScriptTrigger under the limits p and leaving unchecked
+// the slot words kept reports, as triggerWords does.
+func newScriptTrigger(p scriptprofile.Profile, t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([]byte, error) {
 	name, err := alm.ScriptLabelText.Encode(t.Name)
 	if err != nil {
 		return nil, err
@@ -340,7 +340,7 @@ func newScriptTrigger(t alm.ScriptTrigger, kept func(f Field, v uint32) bool) ([
 	if len(name) >= alm.ScriptLabelLen {
 		return nil, fmt.Errorf("mapedit: a trigger name is under %d bytes", alm.ScriptLabelLen)
 	}
-	slots, words, err := triggerWords(t, kept)
+	slots, words, err := triggerWords(p, t, kept)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +374,7 @@ func (e *Editor) SetTriggerSlots(i int, t alm.ScriptTrigger) error {
 		return e.setRecordTrigger(i, rec, t)
 	}
 	held := heldIn(rec)
-	slots, words, err := triggerWords(t, held)
+	slots, words, err := triggerWords(e.Profile(), t, held)
 	if err != nil {
 		return err
 	}

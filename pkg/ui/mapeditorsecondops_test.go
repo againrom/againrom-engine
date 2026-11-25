@@ -35,7 +35,7 @@ func TestSecondGameOperationNames(t *testing.T) {
 	// and the first game's group command 3 in the command panel's.
 	types, values := [10]uint32{scriptConst}, [10]uint32{3}
 	second := e.nodeParams(false, 6, types, values)
-	e.doc.Script = &InspectionScriptModel{}
+	e.doc.Script = &InspectionScriptModel{Limits: scriptprofile.First}
 	first := e.nodeParams(false, 6, types, values)
 	if len(second) != 1 || !strings.HasSuffix(second[0], e.word("editor.second.command.3")) || len(first) != 1 || strings.HasSuffix(first[0], " 3") || first[0] == second[0] {
 		t.Errorf("action 6 slot 0: second %q, first %q", second, first)
