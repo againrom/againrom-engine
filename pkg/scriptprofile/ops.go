@@ -33,6 +33,17 @@ type Slot struct {
 	Role string
 }
 
+// Shape is the map area a condition draws beyond its named cells.
+type Shape uint8
+
+const (
+	ShapeNone Shape = iota
+	ShapeBox
+	ShapeSquare
+	ShapeUnitSquare
+	ShapeDistance
+)
+
 // Op is one operation row. Name is the decoder's text ("" where no claim
 // names it), Word the editor's word key ("" where the editor shows the
 // fallback of the game's Vocabulary). Decoded is that a claim reads what the
@@ -50,6 +61,7 @@ type Op struct {
 	Offered   bool
 	Again     bool
 	Register  bool
+	Shape     Shape
 	Signature []Slot
 	// CopyRefused is the word of the refusal of a trigger copy holding a
 	// node of the operation, which takes the node's id; "" where it copies.
@@ -402,9 +414,9 @@ func worded(variants []Variant, format string) []Variant {
 var firstChecks = []Op{
 	{Condition: true, ID: 1, Name: "Group count", Word: "editor.check.op1", Decoded: true, Offered: true, Signature: sig(group), // TRIG-COUNT-015
 		Presets: []WizardPreset{{Order: 6, Word: "editor.wizard.c.groupcount", ChooseCmp: true, Compared: "count"}}},
-	{Condition: true, ID: 2, Name: "Unit in box", Word: "editor.check.op2", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("corner"), cell("corner2")), // TRIG-CHECKGEOM-130
+	{Condition: true, ID: 2, Name: "Unit in box", Word: "editor.check.op2", Decoded: true, Offered: true, Shape: ShapeBox, Signature: sig(unit("unit"), cell("corner"), cell("corner2")), // TRIG-CHECKGEOM-130
 		Presets: []WizardPreset{{Order: 1, Word: "editor.wizard.c.heroarea", Right: 1, Also: [][2]int64{{1, 0}}}}},
-	{Condition: true, ID: 3, Name: "Unit in distance square", Word: "editor.check.op3", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("cell"), number("radius")), // TRIG-DIST-014
+	{Condition: true, ID: 3, Name: "Unit in distance square", Word: "editor.check.op3", Decoded: true, Offered: true, Shape: ShapeSquare, Signature: sig(unit("unit"), cell("cell"), number("radius")), // TRIG-DIST-014
 		Presets: []WizardPreset{{Order: 3, Word: "editor.wizard.c.unitnear", Right: 1, Fields: map[string]string{"radius": "radius"}}}},
 	{Condition: true, ID: 4, Name: "Unit field (selector 6)", Word: "editor.check.op4", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("selector")), // TRIG-CHECK-051
 		Presets: []WizardPreset{{Order: 12, Word: "editor.wizard.c.health", Fixed: []uint32{6}, Cmp: 2, ChooseCmp: true, Compared: "health"}}},
@@ -413,9 +425,9 @@ var firstChecks = []Op{
 			{Order: 5, Word: "editor.wizard.c.unitdead", Also: [][2]int64{{1, 1}}},
 			{Order: 10, Word: "editor.wizard.c.unitalive", Cmp: 1, Also: [][2]int64{{0, 1}}},
 		}},
-	{Condition: true, ID: 6, Name: "Distance between units", Word: "editor.check.op6", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2")), // TRIG-DIST-014
+	{Condition: true, ID: 6, Name: "Distance between units", Word: "editor.check.op6", Decoded: true, Offered: true, Shape: ShapeUnitSquare, Signature: sig(unit("unit"), unit("unit2")), // TRIG-DIST-014
 		Presets: []WizardPreset{{Order: 4, Word: "editor.wizard.c.unitnearunit", Hint: "editor.wizard.c.unitnearunit.hint", Cmp: 5, ChooseCmp: true, Compared: "radius", Right: 3}}},
-	{Condition: true, ID: 7, Name: "Point to unit distance", Word: "editor.check.op7", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("cell")), // TRIG-DIST-014
+	{Condition: true, ID: 7, Name: "Point to unit distance", Word: "editor.check.op7", Decoded: true, Offered: true, Shape: ShapeDistance, Signature: sig(unit("unit"), cell("cell")), // TRIG-DIST-014
 		Presets: []WizardPreset{{Order: 11, Word: "editor.wizard.c.unitcell", Cmp: 5, ChooseCmp: true, Compared: "radius", Right: 3}}},
 	{Condition: true, ID: 8, Name: "Player population", Word: "editor.check.op8", Decoded: true, Offered: true, Signature: sig(player("player")), // TRIG-LISTREAD-131
 		Presets: []WizardPreset{{Order: 7, Word: "editor.wizard.c.playercount", ChooseCmp: true, Compared: "count"}}},
@@ -434,9 +446,9 @@ var firstChecks = []Op{
 			{Order: 16, Word: "editor.wizard.c.sackgone", RightType: slotConst, Also: [][2]int64{{1, 1}}},
 			{Order: 17, Word: "editor.wizard.c.sacklies", Right: 1, RightType: slotConst, Also: [][2]int64{{1, 0}}},
 		}},
-	{Condition: true, ID: 15, Name: "Nearest player unit distance", Word: "editor.check.op15", Decoded: true, Offered: true, Signature: sig(player("player"), cell("cell")), // TRIG-NEAREST-029
+	{Condition: true, ID: 15, Name: "Nearest player unit distance", Word: "editor.check.op15", Decoded: true, Offered: true, Shape: ShapeDistance, Signature: sig(player("player"), cell("cell")), // TRIG-NEAREST-029
 		Presets: []WizardPreset{{Order: 2, Word: "editor.wizard.c.playernear", Cmp: 5, ChooseCmp: true, Compared: "radius", Right: 3}}},
-	{Condition: true, ID: 16, Name: "Item to point distance", Word: "editor.check.op16", Decoded: true, Offered: true, Signature: sig(unit("unit"), item, cell("cell")), // TRIG-CHECK-052
+	{Condition: true, ID: 16, Name: "Item to point distance", Word: "editor.check.op16", Decoded: true, Offered: true, Shape: ShapeDistance, Signature: sig(unit("unit"), item, cell("cell")), // TRIG-CHECK-052
 		Presets: []WizardPreset{{Order: 20, Word: "editor.wizard.c.itemnear", Hint: "editor.wizard.c.itemnear.hint", Cmp: 5, ChooseCmp: true, Compared: "radius", Right: 3}}},
 	{Condition: true, ID: 17, Name: "Item presence", Word: "editor.check.op17", Decoded: true, Offered: true, Signature: sig(unit("unit"), item), // TRIG-ITEMTEST-040
 		Presets: []WizardPreset{

@@ -97,8 +97,6 @@ type editRow struct {
 	passValues bool
 	// passBrush are the passability brush's rows; nil: block and unblock.
 	passBrush []ui.PassBrushRow
-	// areaOps are the checks whose node draws a shape on the map.
-	areaOps mapload.AreaOps
 	// rawHeights: the height numbers show the stored height.
 	rawHeights bool
 }
@@ -121,7 +119,6 @@ var editRows = map[alm.Format]*editRow{
 		testMission:   func(x *MapInspector, _ string) (mod.Mission, error) { return x.testPlayGuestMission() },
 		unitOverrides: true, spellSets: true, playerRecords: true, structureOwner: true, storedKeys: true, playableRing: true, workspace: true,
 		groundArms: func(x *MapInspector, m *alm.Map) []mapload.GroundArm { return mapload.GroundArms(m, x.table) },
-		areaOps:    mapload.FirstAreaOps,
 	},
 	alm.SecondFormat: {
 		moves: placedKinds,
@@ -178,7 +175,6 @@ var editRows = map[alm.Format]*editRow{
 		armRows:    mapload.MarkArmRows(), passNoteWord: "editor.view.secondpass", passClosedWord: "editor.pass.marked",
 		passValues: true,
 		passBrush:  []ui.PassBrushRow{{Value: 1, Word: "editor.brush.secondclose"}, {Value: 0, Word: "editor.brush.secondopen"}},
-		areaOps:    mapload.SecondAreaOps,
 		rawHeights: true,
 	},
 }

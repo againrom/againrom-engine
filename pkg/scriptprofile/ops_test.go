@@ -54,3 +54,27 @@ func TestOpRowsCarryTheOldWordKeysAndRegisterSlots(t *testing.T) {
 		}
 	}
 }
+
+func TestOpRowsHoldConditionShapes(t *testing.T) {
+	wantFirst := map[uint32]Shape{
+		2:  ShapeBox,
+		3:  ShapeSquare,
+		6:  ShapeUnitSquare,
+		7:  ShapeDistance,
+		15: ShapeDistance,
+		16: ShapeDistance,
+	}
+	for _, ops := range []Ops{OpsFirst, OpsSecond} {
+		for _, condition := range []bool{true, false} {
+			for _, row := range OpRows(ops, condition) {
+				var want Shape
+				if ops == OpsFirst && condition {
+					want = wantFirst[row.ID]
+				}
+				if row.Shape != want {
+					t.Errorf("ops %d condition %v id %d: shape %d, want %d", ops, condition, row.ID, row.Shape, want)
+				}
+			}
+		}
+	}
+}

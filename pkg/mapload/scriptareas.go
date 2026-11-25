@@ -2,9 +2,9 @@ package mapload
 
 import (
 	"image"
-	"slices"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/scriptprofile"
 )
 
 // A trigger's places on the map: the cells, boxes and distance squares its
@@ -67,26 +67,9 @@ const (
 	WideRadius    = "its radius is missing or outside 0..255"
 )
 
-// AreaOps are the condition opcodes of a game whose nodes draw a shape: a box
-// between two corners, a square around a cell, a square around a unit and the
-// distances to one cell. An opcode of 0 names none; every other node draws a
-// cell for each cell its slots name.
-type AreaOps struct {
-	Box, Square, UnitSquare uint32
-	Distance                []uint32
-}
-
-// FirstAreaOps are the first game's shapes (TRIG-CHECKGEOM-130, TRIG-DIST-014);
-// SecondAreaOps is empty: no claim states a second-game check's metric.
-var FirstAreaOps, SecondAreaOps = AreaOps{Box: 2, Square: 3, UnitSquare: 6, Distance: []uint32{7, 15, 16}}, AreaOps{}
-
-func (a AreaOps) is(condition bool, shape, opcode uint32) bool {
-	return condition && shape != 0 && opcode == shape
-}
-
 // ScriptAreas are the areas of every trigger of sc on m, and one note per
 // node a trigger names.
-func ScriptAreas(m *alm.Map, sc alm.Script, ops AreaOps) ([]ScriptArea, []ScriptPlaceNote) {
+func ScriptAreas(m *alm.Map, sc alm.Script, ops scriptprofile.Ops) ([]ScriptArea, []ScriptPlaceNote) {
 	p := placer{m: m, sc: sc, ops: ops, units: map[uint32][]image.Point{}}
 	for _, u := range m.Units {
 		p.units[uint32(u.UnitID)] = append(p.units[uint32(u.UnitID)], image.Pt(int(u.X>>8), int(u.Y>>8)))
@@ -120,7 +103,7 @@ func ScriptAreas(m *alm.Map, sc alm.Script, ops AreaOps) ([]ScriptArea, []Script
 
 type placer struct {
 	m     *alm.Map
-	ops   AreaOps
+	ops   scriptprofile.Ops
 	sc    alm.Script
 	units map[uint32][]image.Point
 	areas []ScriptArea
@@ -170,8 +153,9 @@ func (p *placer) node(t int, condition bool, id uint32, c comparison) {
 	cells, at := scriptCells(n), scriptCellSlots(n)
 	cellSlots := func(k int) [4]int { return [4]int{at[k], at[k] + 1, -1, -1} }
 	reason := NoPlace
+	op, _ := scriptprofile.OpRow(p.ops, condition, n.Opcode)
 	switch {
-	case p.ops.is(condition, p.ops.Box, n.Opcode) && len(cells) == 2:
+	case op.Shape == scriptprofile.ShapeBox && len(cells) == 2:
 		a, b := cells[0], cells[1]
 		if a.X > b.X || a.Y > b.Y {
 			reason = ReversedBox
@@ -182,7 +166,7 @@ func (p *placer) node(t int, condition bool, id uint32, c comparison) {
 			break
 		}
 		add(AreaBox, image.Rectangle{Min: a, Max: b.Add(image.Pt(1, 1))}, a, 0, [4]int{at[0], at[0] + 1, at[1], at[1] + 1}, noRadius)
-	case p.ops.is(condition, p.ops.Square, n.Opcode) && len(cells) == 1:
+	case op.Shape == scriptprofile.ShapeSquare && len(cells) == 1:
 		r, ok := scriptPlain(n, 0)
 		slot := scriptPlainSlot(n, 0)
 		if !ok || r > 255 {
@@ -194,9 +178,9 @@ func (p *placer) node(t int, condition bool, id uint32, c comparison) {
 			break
 		}
 		add(AreaSquare, square(cells[0], int(r)), cells[0], int(r), cellSlots(0), radiusSource{node: i, slot: slot})
-	case p.ops.is(condition, p.ops.UnitSquare, n.Opcode):
+	case op.Shape == scriptprofile.ShapeUnitSquare:
 		reason = p.unitSquare(n, c, add)
-	case condition && slices.Contains(p.ops.Distance, n.Opcode) && len(cells) == 1:
+	case op.Shape == scriptprofile.ShapeDistance && len(cells) == 1:
 		if !p.inside(cells[0]) {
 			reason = OutsideMap
 			break

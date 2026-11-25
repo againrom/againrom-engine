@@ -39,7 +39,7 @@ type inspectionScript struct {
 // inspectScript adds the script's records and model to d. Records and lines
 // carry the font's bytes through text; the model's names stay UTF-8, the text
 // the name fields edit.
-func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limits scriptprofile.Profile, areaOps mapload.AreaOps, text func(string) string) {
+func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limits scriptprofile.Profile, text func(string) string) {
 	s := inspectionScript{doc: d, m: m, profile: limits, text: text, conditions: make(map[uint32][]alm.ScriptNode), actions: make(map[uint32][]alm.ScriptNode), units: make(map[uint32][]ui.InspectionTarget), groups: make(map[uint32][]ui.InspectionTarget), structures: make(map[uint32][]ui.InspectionTarget)}
 	for _, n := range script.Conditions {
 		s.conditions[n.ID] = append(s.conditions[n.ID], n)
@@ -155,7 +155,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limi
 		}
 		d.Records = append(d.Records, r)
 	}
-	areas, _ := mapload.ScriptAreas(m, script, areaOps)
+	areas, _ := mapload.ScriptAreas(m, script, limits.Ops)
 	for _, a := range areas {
 		node := model.Actions
 		if a.Condition {
@@ -304,7 +304,8 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 	// distinct authored cells even when this node's center is byte-sized. Keep
 	// their raw point, but withhold a semantic map region instead of inventing
 	// an unmasked square or emulating the runtime's coordinate aliases.
-	if vocabulary.Region == scriptprofile.Noted && kind == ui.KindCondition && n.Opcode == 3 && n.Type[0] == 4 && n.Type[1] == 5 && n.Type[2] == 6 && n.Type[3] == 1 {
+	row, _ := scriptprofile.OpRow(s.profile.Ops, kind == ui.KindCondition, n.Opcode)
+	if vocabulary.Region == scriptprofile.Noted && row.Shape == scriptprofile.ShapeSquare && n.Type[0] == 4 && n.Type[1] == 5 && n.Type[2] == 6 && n.Type[3] == 1 {
 		switch {
 		case n.Value[1] > 255 || n.Value[2] > 255 || s.m.Width > 256 || s.m.Height > 256:
 			s.issue(r, "Distance region withheld: byte-masked coordinates; authored point only")
@@ -315,7 +316,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 			s.link(r, fmt.Sprintf("Distance square: %d,%d radius %d", x, y, radius), role, []ui.InspectionTarget{{Cell: image.Pt(x-radius, y-radius), Size: image.Pt(2*radius+1, 2*radius+1)}})
 		}
 	}
-	if vocabulary.Edges == scriptprofile.Noted && kind == ui.KindCondition && n.Opcode == 2 {
+	if vocabulary.Edges == scriptprofile.Noted && row.Shape == scriptprofile.ShapeBox {
 		s.line(r, "Box endpoints authored; edge rules unknown", "")
 	}
 }
