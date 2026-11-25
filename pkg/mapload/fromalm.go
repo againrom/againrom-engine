@@ -319,6 +319,7 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 		if err != nil {
 			return nil, nil, fmt.Errorf("mapload: placement %d: %w", i, err)
 		}
+		b.giveMapSpells(m, u.UnitID, t)
 		if tmpl, ok := rosterTemplate(u, t, sim.EntityID(i)); ok {
 			if roster == nil {
 				roster = make(map[sim.EntityID]PartyMember)

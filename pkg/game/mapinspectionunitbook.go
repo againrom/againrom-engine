@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -46,13 +47,14 @@ func (s *mapInspectionEdits) unitBookFields(index int) []ui.InspectionField {
 	rows := spellBookOrder(t, ground)
 	cells, tips := x.bookCells(mapload.SpellGameOf(t), rows, ground, modSpellIcons(t))
 	given := view.UnitSpellRecords(view.Units[index].UnitID)
+	kindSpells := s.kindSpells(view, index, sheets)
 	for i, id := range rows {
 		if id == 0 {
 			continue
 		}
 		word := "editor.unit.book.off"
 		switch {
-		case slices.Contains(sheets[index].Values.Spells, int32(id)):
+		case slices.Contains(kindSpells, int32(id)):
 			word = "editor.unit.book.kind"
 		case len(given[id]) > 0:
 			word = "editor.unit.book.on"
@@ -64,6 +66,28 @@ func (s *mapInspectionEdits) unitBookFields(index int) []ui.InspectionField {
 	f.Section, f.Meaning = "identity", x.word("editor.unit.book.note")
 	f.Book = &ui.InspectionBook{Art: x.spellsLook().art, Cells: cells, Tips: tips, Toggle: unitBookPrefix}
 	return []ui.InspectionField{f}
+}
+
+// kindSpells are the spells placement index's kind gives it: the sheet's
+// spells when the map's unit spell records give the unit none, else the
+// spells of the same map with those records switched to a mode no arm reads
+// (neither the cell, building nor unit arm), which keeps every record index.
+func (s *mapInspectionEdits) kindSpells(view *alm.Map, index int, sheets []unitSheet) []int32 {
+	given := view.UnitSpellRecords(view.Units[index].UnitID)
+	if len(given) == 0 {
+		return sheets[index].Values.Spells
+	}
+	bare := *view
+	bare.Enchantments = slices.Clone(view.Enchantments)
+	for _, at := range given {
+		for _, i := range at {
+			bare.Enchantments[i].A = bare.Enchantments[i].A&^8 | 16
+		}
+	}
+	if kind, err := unitSheets(&bare, s.inspector.table); err == nil && index < len(kind) {
+		return kind[index].Values.Spells
+	}
+	return sheets[index].Values.Spells
 }
 
 // unitBookSpell is the spell number key turns on or off in the unit book;
@@ -100,7 +124,7 @@ func (s *mapInspectionEdits) setUnitBook(m *mapedit.Editor, index int, id uint16
 	u := view.Units[index]
 	given := view.UnitSpellRecords(u.UnitID)[id]
 	sheets := s.unitViewSheets()
-	kind := index < len(sheets) && slices.Contains(sheets[index].Values.Spells, int32(id))
+	kind := index < len(sheets) && slices.Contains(s.kindSpells(view, index, sheets), int32(id))
 	switch {
 	case value != 0 && (kind || len(given) > 0):
 		return false, nil

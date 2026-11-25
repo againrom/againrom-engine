@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"againrom/pkg/data"
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mod"
 	"againrom/pkg/rules"
 	"againrom/pkg/sim"
@@ -51,6 +52,48 @@ func unitSpellbook(params []int32, t *Table, typeID int32) (uint32, sim.Spellboo
 		}
 	}
 	return known, book, slots
+}
+
+// insertBookSpell is the one route that gives a spawning actor's book a spell:
+// the installed spell row becomes the book's instance and the known mask gains
+// the id. An id the game's book cannot hold is dropped.
+func insertBookSpell(book *sim.Spellbook, known *uint32, id int32, t *Table) {
+	rules, count := SpellRules(t), sim.BookSpellCount(SpellGameOf(t))
+	if id < 1 || int(id) > count || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
+		return
+	}
+	*book.Slot(uint16(id)) = bookSpell(rules[id-1])
+	*known |= uint32(1) << uint(id)
+}
+
+// giveMapSpells gives a placed unit the spells the map's unit spell records
+// key to its id (ALM-T9ACTOR-176; a record an item links to is excluded by
+// the record selector, ALM-T9CONTROL-175). A book that holds no instances
+// and no membership becomes a present book first; a table-backed book keeps
+// its state and gains the membership bit.
+func (b *spawnBlock) giveMapSpells(m *alm.Map, unitID uint16, t *Table) {
+	given := m.UnitSpellRecords(unitID)
+	if len(given) == 0 {
+		return
+	}
+	ids := make([]int, 0, len(given))
+	for id := range given {
+		ids = append(ids, int(id))
+	}
+	slices.Sort(ids)
+	for _, id := range ids {
+		switch {
+		case b.book.State == sim.BookLegacy && b.knownSpells != 0:
+			// Table-backed membership: the bit is the whole entry.
+			if id >= 1 && id <= sim.BookSpellCount(SpellGameOf(t)) {
+				b.knownSpells |= uint32(1) << uint(id)
+			}
+			continue
+		case !b.book.HasInstances():
+			b.book = sim.Spellbook{State: sim.BookPresent}
+		}
+		insertBookSpell(&b.book, &b.knownSpells, int32(id), t)
+	}
 }
 
 // CreatureBookRow is one class's fixed book: a spawn of TypeID, and of Face
@@ -135,14 +178,8 @@ func (b *CreatureBooks) rowFor(typeID, face int32) (CreatureBookRow, bool) {
 // spell row, as a class cell spell is; a mask may name a spell the book
 // cannot hold, and that bit is dropped.
 func (b *CreatureBooks) add(typeID, face int32, params []int32, t *Table, known *uint32, book *sim.Spellbook, skill *[data.SkillSlots]int32) {
-	rules, count := SpellRules(t), sim.BookSpellCount(SpellGameOf(t))
-	insert := func(id int32) {
-		if id < 1 || int(id) > count || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
-			return
-		}
-		*book.Slot(uint16(id)) = bookSpell(rules[id-1])
-		*known |= uint32(1) << uint(id)
-	}
+	count := sim.BookSpellCount(SpellGameOf(t))
+	insert := func(id int32) { insertBookSpell(book, known, id, t) }
 	if b.PowerCell > 0 && b.PowerCell < len(params) {
 		for i := 1; i < len(skill); i++ {
 			skill[i] = params[b.PowerCell]

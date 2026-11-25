@@ -632,7 +632,7 @@
 "editor.unit.override.mana" = "Mana"
 "editor.unit.override.manamax" = "Maximum mana"
 "editor.unit.book" = "Spell book"
-"editor.unit.book.note" = "A press on a spell turns it on or off. The map gives the unit each spell turned on as a unit spell record, which the original reads; a spell the unit's kind knows stays on. This build's game does not yet give the unit the map's spells."
+"editor.unit.book.note" = "A press on a spell turns it on or off. The map gives the unit each spell turned on as a unit spell record, which the original reads; a spell the unit's kind knows stays on."
 "editor.unit.book.kind" = "%s: the unit's kind knows it"
 "editor.unit.book.on" = "%s: the map gives it; a press takes it away"
 "editor.unit.book.off" = "%s: not known; a press adds it"

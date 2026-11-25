@@ -22,6 +22,10 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor the unit window's spellcaster caption now looks and reacts like a button, spells that are off in the unit's spell book are drawn dimmed, and a spell given to a unit no longer shows as a label beside it on the map.
 - [BASE] In the map editor the unit window's spellcaster button no longer has the yellow caption showing under its label.
 
+### For players
+
+- [ROM1] A unit placed on a map now knows the spells the map's unit spell records give it, so a spell given to a unit in the map editor's spell book is in its spell bar in the game; before, it knew only the spells of its kind.
+
 ## 0.160.0
 
 ### For players
