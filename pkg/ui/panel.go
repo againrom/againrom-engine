@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"image/draw"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 
@@ -717,6 +718,9 @@ type PanelLayout struct {
 	CompactCard                   bool
 	RightInset                    int
 	PreserveCreatureSkillsHeading bool
+	// BareLabels are the fields whose caption keeps its room on the card and is
+	// not drawn, because something else draws over it.
+	BareLabels []PanelField
 
 	// Flow stacks the rows from Pad, one line height plus Gap apart; otherwise
 	// each row is PLACED at its own At.
@@ -2036,7 +2040,7 @@ func composeItems(l PanelLayout, f *text.Font, items []panelItem) *image.RGBA {
 		if l.CompactCard && (ln.field == PanelFieldSkillsHeading || ln.field == PanelFieldResistHeading) {
 			labelColor = characterCardHeading
 		}
-		if ln.label != "" {
+		if ln.label != "" && !slices.Contains(l.BareLabels, ln.field) {
 			put(ln.label, ln.at.X+ln.leftIndent, ln.at.Y, labelColor)
 		}
 		valueColor := l.ValueColor
@@ -2049,7 +2053,7 @@ func composeItems(l PanelLayout, f *text.Font, items []panelItem) *image.RGBA {
 		}
 
 		if ln.right {
-			if ln.rightLabel != "" {
+			if ln.rightLabel != "" && !slices.Contains(l.BareLabels, ln.rightField) {
 				put(ln.rightLabel, ln.at.X+ln.rightX, ln.at.Y, labelColor)
 			}
 			put(ln.rightValue, ln.at.X+ln.rightX+ln.rightValueX, ln.at.Y, l.ValueColor)

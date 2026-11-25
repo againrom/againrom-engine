@@ -55,6 +55,9 @@ type popupRow struct {
 	Edit    *editorTextView
 	FitEdit bool
 	Kind    popupRowKind
+	// Over names the card caption a placed link stands over; the card leaves
+	// that caption undrawn.
+	Over []PanelField
 	// Fold marks a heading that opens and closes the rows under it, as a
 	// tree row's Fold does; FoldNone is a plain heading.
 	Fold         RowFold
@@ -2244,11 +2247,18 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 		if font == nil {
 			font = body
 		}
+		cardLayout := CompactPanelLayout(nil)
+		for _, row := range s.Body.Rows {
+			if row.Kind == popupLink && row.placed() {
+				// A placed link draws its own button: the caption under it stays undrawn.
+				cardLayout.BareLabels = append(cardLayout.BareLabels, row.Over...)
+			}
+		}
 		if s.Card.Scale > 1 {
 			// A scaled card's glyphs scale with it: the text overlay draws
 			// each at the card's scale, at the device's resolution.
 			start := markCapture()
-			if pic := RenderCharacterPanel(CompactPanelLayout(nil), font, *s.Card.Subject); pic != nil {
+			if pic := RenderCharacterPanel(cardLayout, font, *s.Card.Subject); pic != nil {
 				c, to := l.Card, dst
 				if bandLines(s) > 0 || cardHeld(s) {
 					// A scrolling band, or a row holding the card, shows
@@ -2260,7 +2270,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 			}
 		} else {
 			start := markCapture()
-			if pic := RenderCharacterPanel(CompactPanelLayout(nil), font, *s.Card.Subject); pic != nil {
+			if pic := RenderCharacterPanel(cardLayout, font, *s.Card.Subject); pic != nil {
 				at := l.Card.Min
 				draw.Draw(dst, pic.Bounds().Add(at), pic, pic.Bounds().Min, draw.Over)
 				shiftCapture(start, at)

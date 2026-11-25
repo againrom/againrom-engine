@@ -354,7 +354,7 @@ func (e *MapEditor) cardRows(s *popupSpec, links *[]int, field func(i int, label
 		}
 		w, _ := font.Measure(label)
 		o.rowField[len(s.Rows)] = book
-		s.Rows, *links = append(s.Rows, popupRow{Kind: popupLink, Label: label, Tip: e.editorHostText(o.fields[book].Label),
+		s.Rows, *links = append(s.Rows, popupRow{Kind: popupLink, Over: []PanelField{f}, Label: label, Tip: e.editorHostText(o.fields[book].Label),
 			Place: image.Rectangle{Min: image.Pt(x, y).Mul(cardScale), Max: image.Pt(x+w, y+lineH).Mul(cardScale)}}), append(*links, 0)
 	}
 	for _, r := range CharacterPanelReport(layout, font, *s.Card) {

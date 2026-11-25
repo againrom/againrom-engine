@@ -4,6 +4,8 @@ import (
 	"image"
 	"image/color"
 	"testing"
+
+	"againrom/pkg/render/text"
 )
 
 // A link placed on the card draws as a push button that reports the
@@ -37,6 +39,42 @@ func TestPlacedLinkRowDrawsAsAHoverButton(t *testing.T) {
 	}
 	if found, hot := hover(rect.Min.Add(image.Pt(2, 2)), true); !found || !hot {
 		t.Fatalf("pointer over: button %v, hover %v", found, hot)
+	}
+}
+
+// A placed link draws only its button: the card's own caption under it is not
+// drawn, while a placed link that stands over nothing leaves the caption.
+func TestPlacedLinkRowLeavesNoCaptionUnderTheButton(t *testing.T) {
+	f := panelFont()
+	subject := cardColumnsSubjects()["fighter"]
+	subject.DetailLevel, subject.DetailSet = 7, true
+	subject.OriginalPanel = OriginalPanelActor{Known: true, XPValue: 9}
+	var at image.Rectangle
+	for _, ln := range CharacterPanelReport(CompactPanelLayout(nil), f, subject) {
+		if ln.Right && ln.RightField == PanelFieldSpellcaster {
+			at = image.Rect(ln.At.X+ln.RightX, ln.At.Y, ln.At.X+ln.RightX+8, ln.At.Y+8)
+		}
+		if ln.Field == PanelFieldSpellcaster {
+			at = image.Rect(ln.At.X+ln.Indent, ln.At.Y, ln.At.X+ln.Indent+8, ln.At.Y+8)
+		}
+	}
+	if at.Empty() {
+		t.Fatal("the card states no SPELLCASTER caption")
+	}
+	glyphs := func(over []PanelField) int {
+		s := placedCardSpec()
+		s.Card = &subject
+		s.Rows = append(s.Rows, popupRow{Kind: popupLink, Label: "SPELLCASTER", Over: over, Place: image.Rectangle{Min: at.Min.Mul(2), Max: at.Max.Mul(2)}})
+		l := layoutPopup(s, f, f)
+		text.ResetCapture()
+		text.SetCapture(false)
+		defer text.StopCapture()
+		drawPopup(image.NewRGBA(s.Bounds), f, f, nil, s, l, editorPopupInk, image.Point{}, false)
+		return len(text.Captured())
+	}
+	bare, kept := glyphs([]PanelField{PanelFieldSpellcaster}), glyphs(nil)
+	if bare >= kept {
+		t.Fatalf("with the link over the caption %d glyphs drew, without %d: the caption still draws", bare, kept)
 	}
 }
 
