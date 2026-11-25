@@ -103,6 +103,13 @@
 "characters.new" = "Новый персонаж"
 "characters.left" = "Не прочитаны и пропущены файлы персонажей: %d"
 
+# Multiplayer map choice page: title, buttons, level column and empty label.
+"mapchoice.title" = "Выбор карты"
+"mapchoice.ok" = "ОК"
+"mapchoice.cancel" = "Отмена"
+"mapchoice.level" = "Уровень %d"
+"mapchoice.empty" = "Нет карт"
+
 # Load page: the window listing a refusal over the mods.
 "load.mods.title" = "Сохранение сделано с другими модами"
 "load.mods.ok" = "OK"

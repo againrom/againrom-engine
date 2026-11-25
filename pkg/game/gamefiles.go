@@ -96,6 +96,9 @@ type gameFiles struct {
 	// game's page has it (MENU-ROUTE-163); the second game's page controls are
 	// Unknown (R2-ENGINE-1844).
 	characterDelete bool
+	// multiplayerMaps states the multiplayer map choice filter and level
+	// column rule (SESS-100, R2-ASSET-403, R2-ENGINE-1842).
+	multiplayerMaps MultiplayerMapRule
 	// characters is the game's row of the character store.
 	characters characterStoreRow
 	// orderThresholds keeps each actor's Withdraw and Wimpy in its SAV Order
@@ -234,6 +237,7 @@ var firstGameFiles = gameFiles{
 	missionScreen:     ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true},
 	boundedSaveView:   true,
 	characterDelete:   true,
+	multiplayerMaps:   MultiplayerMapRule{MinWord70: 2},
 	characters:        firstCharacterFiles,
 	orderThresholds:   true,
 	heroSavedType:     true,
@@ -375,6 +379,7 @@ var secondGameFiles = gameFiles{
 	autoCastCaptions: []int{170, 171, 172, 173},
 	savePages:        secondSavePages,
 	ownSaves:         true,
+	multiplayerMaps:  MultiplayerMapRule{ShowLevel: true},
 	// The starting rows' server ids give key 21 (R2-ENGINE-072).
 	humanSpeakers: true,
 	heroSpeaker:   21,
@@ -474,6 +479,9 @@ func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 
 // filesOf are the file readers of game g.
 func filesOf(g base.Game) *gameFiles { return campaignOf(g).files() }
+
+// MultiplayerMapRuleOf returns game g's multiplayer map choice rule.
+func MultiplayerMapRuleOf(g base.Game) MultiplayerMapRule { return filesOf(g).multiplayerMaps }
 
 // tableEdition is mapload.TableEdition(t), as a value.
 func tableEdition(t *mapload.Table) base.Edition { return *mapload.TableEdition(t) }

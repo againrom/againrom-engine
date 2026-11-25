@@ -979,12 +979,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	// bytes and not runes. Selector 0 when the font itself would not load
 	// leaves the description ASCII-only, matching every other word this
 	// front end resolves under a font it could not read.
-	rows := make([]ui.PickerRow, 0, len(f.Maps))
-	for _, e := range f.Maps {
-		rows = append(rows, ui.PickerRow{Text: e.Text(), Choosable: e.Choosable(),
-			Width: e.Width, Height: e.Height, Description: EncodeInstallText(e.Description, selector),
-			Word70: e.Word70, Word74: e.Word74})
-	}
+	rows := MapPickerRows(f.Maps, selector, "")
 	a := ui.NewApp(title, f.Assets, rows, f.loadMap)
 	a.SetCheatCommands(f.chatCommand, f.debugLetter)
 	a.SetCheatPrivilege(f.cheatsUnlocked)
@@ -1021,6 +1016,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	a.SetGameMenuArt(f.gameMenuArt())
 	f.wireMediaMenu(a)
 	f.wireLoadWindow(a)
+	a.SetMapChoiceWords(f.mapChoiceWords())
 	// Interface events have no map Viewer, but resolve through the same
 	// install-backed bank and concrete device as unit and spell sounds.
 	a.SetAudio(f.SoundPlayer, f.SoundBank)

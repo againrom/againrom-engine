@@ -11,6 +11,7 @@ import (
 	"againrom/pkg/campaignset"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/namefold"
+	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
 )
 
@@ -390,4 +391,83 @@ func (m *archiveMaps) Read(name string) ([]byte, error) {
 		return nil, fmt.Errorf("no container filesystem")
 	}
 	return m.containers.ReadFile(scenarioPrefix + name)
+}
+
+// MultiplayerMapRule is one game's rule for the multiplayer map choice list:
+// MinWord70 is the minimum type-0 +0x70 word kept (SESS-100) and ShowLevel
+// appends the level from +0x88 (Word74, R2-ENGINE-1842) to each row.
+type MultiplayerMapRule struct {
+	MinWord70 uint32
+	ShowLevel bool
+}
+
+// MultiplayerMaps filters list to loose maps admitted by rule, omitting
+// entries that failed to decode and returning how many failed.
+func MultiplayerMaps(list []MapEntry, rule MultiplayerMapRule) (kept []MapEntry, failed int) {
+	for _, e := range list {
+		if e.FromArchive || e.Mission > 0 {
+			continue
+		}
+		if e.Err != nil {
+			failed++
+			continue
+		}
+		if e.Word70 < rule.MinWord70 {
+			continue
+		}
+		kept = append(kept, e)
+	}
+	return kept, failed
+}
+
+// MultiplayerMapsFromDir lists the multiplayer maps directly inside root
+// through DirMaps and BuildMapList, leaving out maps that fail to decode and
+// returning how many failed. Nothing is written.
+func MultiplayerMapsFromDir(root string, rule MultiplayerMapRule) (kept []MapEntry, failed int, err error) {
+	loose, err := vfs.Open(nil, []string{root})
+	if err != nil {
+		return nil, 0, err
+	}
+	dir, err := DirMaps(root, loose)
+	if err != nil {
+		return nil, 0, err
+	}
+	kept, failed = MultiplayerMaps(BuildMapList(dir, nil), rule)
+	return kept, failed, nil
+}
+
+// MapPickerRows builds ui.PickerRow values from entries. When levelFmt is
+// non-empty, each row appends the formatted Word74 level (R2-ENGINE-1842).
+func MapPickerRows(entries []MapEntry, selector int, levelFmt string) []ui.PickerRow {
+	rows := make([]ui.PickerRow, 0, len(entries))
+	for _, e := range entries {
+		text := e.Text()
+		if levelFmt != "" {
+			text += "  " + fmt.Sprintf(levelFmt, e.Word74)
+		}
+		rows = append(rows, ui.PickerRow{
+			Text:        text,
+			Choosable:   e.Choosable(),
+			Width:       e.Width,
+			Height:      e.Height,
+			Description: EncodeInstallText(e.Description, selector),
+			Word70:      e.Word70,
+			Word74:      e.Word74,
+		})
+	}
+	return rows
+}
+
+// MultiplayerMapItems pairs each entry with its row from MapPickerRows.
+func MultiplayerMapItems(entries []MapEntry, selector int, rule MultiplayerMapRule, levelFmt string) []ui.MapChoiceItem {
+	fmtStr := ""
+	if rule.ShowLevel {
+		fmtStr = levelFmt
+	}
+	rows := MapPickerRows(entries, selector, fmtStr)
+	items := make([]ui.MapChoiceItem, len(entries))
+	for i, e := range entries {
+		items[i] = ui.MapChoiceItem{Source: e.Source, Row: rows[i]}
+	}
+	return items
 }

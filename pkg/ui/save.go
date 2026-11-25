@@ -665,29 +665,21 @@ func (f *flow) openCharacters() { f.openListPage(ScreenMenu, true) }
 // openListPage opens the list page in its load role, or in its character role
 // when characters is set.
 func (f *flow) openListPage(back Screen, characters bool) {
-	f.loadUI.resetPointer()
-	f.loadUI.confirm = false
-	f.loadUI.mismatch, f.loadUI.mismatchTown = nil, false
-	f.loadUI.remove = nil
-	f.loadUI.characters = characters
-	f.saves = nil
+	var saves []SaveEntry
 	message := ""
 	if characters && f.pages.characterFiles.List != nil {
-		f.saves, message = f.pages.characterFiles.List()
+		saves, message = f.pages.characterFiles.List()
 	} else if f.saveList != nil && !characters {
-		f.saves = f.saveList()
+		saves = f.saveList()
 	}
-	rows := make([]PickerRow, len(f.saves))
-	for i, e := range f.saves {
+	rows := make([]PickerRow, len(saves))
+	for i, e := range saves {
 		rows[i] = PickerRow{Text: e.Label, Choosable: true}
 	}
 	if characters {
 		rows = append(rows, PickerRow{Text: f.characterPage().New, Choosable: true})
 	}
-	f.loadList = NewPicker(rows).SetWindow(loadVisibleRows)
-	f.loadBack = back
-	f.setScreen(ScreenLoad)
-	f.menuPlacement().underlay.raise(f)
+	f.openListRows(back, saves, rows, func() { f.loadUI.characters = characters })
 	if characters {
 		f.msg = message
 	} else if f.saveList == nil {
@@ -699,13 +691,42 @@ func (f *flow) openListPage(back Screen, characters bool) {
 	}
 }
 
-// closeLoad returns to the screen that opened the load window. A GameMenu
-// return is more than a screen assignment: the load window deliberately
-// lowered the viewer's popup flag, and the root's availability may have
-// changed while the list was visible. Restore both before ScreenGameMenu can
-// be driven again so its first visible frame holds, rather than repays, the
-// elapsed map and ambient-animation span.
-func (f *flow) closeLoad() {
+// openListRows shows the list page over saves and their rows; role sets the
+// page's role once the previous page's state is cleared.
+func (f *flow) openListRows(back Screen, saves []SaveEntry, rows []PickerRow, role func()) {
+	f.loadUI.resetPointer()
+	f.loadUI.confirm = false
+	f.loadUI.mismatch, f.loadUI.mismatchTown = nil, false
+	f.loadUI.remove = nil
+	f.loadUI.characters, f.loadUI.maps = false, nil
+	role()
+	f.saves = saves
+	f.loadList = NewPicker(rows).SetWindow(loadVisibleRows)
+	f.loadBack = back
+	f.setScreen(ScreenLoad)
+	f.menuPlacement().underlay.raise(f)
+}
+
+// closeLoad returns to the screen that opened the load window.
+func (f *flow) closeLoad() { f.leaveLoad(MapChoiceResult{}) }
+
+// leaveLoad closes the page and, in the map role, answers the caller with r
+// once the screen behind is back.
+func (f *flow) leaveLoad(r MapChoiceResult) {
+	done := f.loadUI.takeMapChoice()
+	f.leaveLoadScreen()
+	if done != nil {
+		done(r)
+	}
+}
+
+// leaveLoadScreen returns to the screen that opened the load window. A
+// GameMenu return is more than a screen assignment: the load window
+// deliberately lowered the viewer's popup flag, and the root's availability
+// may have changed while the list was visible. Restore both before
+// ScreenGameMenu can be driven again so its first visible frame holds, rather
+// than repays, the elapsed map and ambient-animation span.
+func (f *flow) leaveLoadScreen() {
 	f.loadUI.resetPointer()
 	f.loadUI.characters = false
 	back := f.loadBack
@@ -736,6 +757,10 @@ func (f *flow) chooseLoad() {
 	// Ok on the character list does nothing: no character is played and no
 	// creation runs from the New row yet (DIV-2369).
 	if f.screen != ScreenLoad || f.loadList == nil || f.loadUI.characters {
+		return
+	}
+	if f.loadUI.maps != nil {
+		f.chooseMap()
 		return
 	}
 	i, ok := f.loadList.Choose()

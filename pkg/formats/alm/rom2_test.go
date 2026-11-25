@@ -159,3 +159,18 @@ func TestFirstGameReaderRefusesSecondGameMap(t *testing.T) {
 	openReject(t, rom2File(1300, 5, nil))
 	openReject(t, rom2File(1300, 7, nil))
 }
+
+func TestSecondGameOpenInfoReadsLevelWord88(t *testing.T) {
+	raw := rom2File(1600, 5, func(p map[uint32][]byte) {
+		copy(p[0][0x80:], le32(0xdead))
+		copy(p[0][0x84:], le32(4))
+		copy(p[0][alm.SecondMetaLevel:], le32(7))
+	})
+	info, err := alm.OpenInfo(raw, alm.FormatOf(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Word70 != 4 || info.Word74 != 7 {
+		t.Fatalf("Word70=%d Word74=%d, want 4, 7", info.Word70, info.Word74)
+	}
+}

@@ -43,6 +43,8 @@ type loadWindow struct {
 	question dialogRun
 	// characters: the load screen shows the list page's character role.
 	characters bool
+	// maps: the load screen shows the list page's map role.
+	maps *mapChoiceRun
 }
 
 func (w *loadWindow) resetPointer() {

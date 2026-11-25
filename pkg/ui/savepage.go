@@ -140,6 +140,8 @@ type pageSeams struct {
 	characters *CharacterPage
 	// characterFiles is the character role's store.
 	characterFiles CharacterFiles
+	// mapWords is the map role's words.
+	mapWords MapChoiceWords
 }
 
 // CharacterPage is the list page's character role, the page the menu's
@@ -244,8 +246,11 @@ func firstLoadPage(w LoadWindowWords) SavePage {
 	return p
 }
 
-// loadPage is the page LOAD shows, or its character role.
+// loadPage is the page LOAD shows, or its character or map role.
 func (f *flow) loadPage() SavePage {
+	if f.loadUI.maps != nil {
+		return mapRole(f.mapChoiceWords())
+	}
 	var p SavePage
 	if f.pages.loadSet != nil {
 		p = *f.pages.loadSet
