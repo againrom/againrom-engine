@@ -177,6 +177,9 @@ type InspectionScriptNode struct {
 	Types, Values     [10]uint32
 	AddressesVariable bool
 	VariableRegister  uint32
+	// Texts are the text fields the node's format states beside its name,
+	// each in UTF-8; nil: none.
+	Texts []InspectionField
 }
 
 // InspectionTrigger is one trigger: its condition pairs, comparisons,

@@ -43,6 +43,7 @@ var almReferences = nameTable{
 	"field.go/" + fileScope:                 {"alm.FacingDirections", "alm.SightCells", "alm.TextField"},
 	"player.go/" + fileScope:                {"alm.PlayerNameText"},
 	"script.go/nodeFields":                  {"alm.ScriptLabelText"},
+	"script.go/nodeTextFields":              {"alm.ScriptNodeText"},
 	"script.go/triggerFields":               {"alm.ScriptLabelText"},
 	// The type-7 layout reads the format's one walk of the three arrays; the
 	// trigger writer takes the format's trigger value.

@@ -66,7 +66,9 @@ func init() {
 			},
 		},
 	}
-	for k, s := range map[Kind]*section{KindAction: scriptSection("action", 0), KindCondition: scriptSection("condition", 1), KindTrigger: scriptSection("trigger", 2)} {
+	// A node's ten text fields are the loader's (R2-ENGINE-1681).
+	texts := nodeTextFields()
+	for k, s := range map[Kind]*section{KindAction: scriptSection("action", 0, texts), KindCondition: scriptSection("condition", 1, texts), KindTrigger: scriptSection("trigger", 2, nil)} {
 		s.tally = alm.SecondMetaScriptCount
 		own[k] = s
 	}

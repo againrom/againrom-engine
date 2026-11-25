@@ -203,6 +203,23 @@ func TestSetDropCellAddsAnActionWhenTheMapHasNone(t *testing.T) {
 	}
 }
 
+// A first-game node lists its label as its one text field: its ten text
+// fields stay carried, unlisted.
+func TestFirstFormatNodeListsNoTextField(t *testing.T) {
+	e := newEditor(t, scriptFixture())
+	for _, k := range []mapedit.Kind{mapedit.KindAction, mapedit.KindCondition} {
+		fields, err := e.Fields(k, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range fields {
+			if f.Text != nil && f.Key != "name" {
+				t.Fatalf("a first-game node lists text field %q", f.Key)
+			}
+		}
+	}
+}
+
 func TestPlaceAConditionLeavesTheOtherArraysUntouched(t *testing.T) {
 	b := scriptFixture()
 	e := newEditor(t, b)

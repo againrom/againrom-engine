@@ -505,6 +505,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	if scriptErr == nil {
 		limits := model.Profile()
 		inspectScript(d, m, script, limits, x.inspectionUTF8)
+		x.inspectNodeTexts(d.Script, model)
 		d.Script.Labels = liveLabels(script, limits, labels)
 		d.Script.Targets = x.scriptTargets(d, m, script, pages)
 		inspectScriptUses(d)

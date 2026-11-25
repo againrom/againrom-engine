@@ -9,7 +9,10 @@
 // its window share, so a slot's key is spelled once.
 package scriptprofile
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // The original script machine's numbers.
 const (
@@ -226,3 +229,13 @@ func RightKey(p int) string  { return "right" + strconv.Itoa(p) }
 func CmpKey(p int) string    { return "cmp" + strconv.Itoa(p) }
 func GroupKey(p int) string  { return "group" + strconv.Itoa(p) }
 func ActionKey(a int) string { return "action" + strconv.Itoa(a) }
+
+// TextKey names text field i of a node record, counting from 0. NodeTextKey
+// reports a node's own text: its name or one of its text fields.
+func TextKey(i int) string { return "text" + strconv.Itoa(i) }
+
+func NodeTextKey(key string) bool {
+	n, ok := strings.CutPrefix(key, "text")
+	_, err := strconv.Atoi(n)
+	return key == "name" || ok && err == nil
+}

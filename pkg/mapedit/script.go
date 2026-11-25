@@ -26,7 +26,9 @@ const (
 // ScriptParam is one parameter slot of a new node: a type code and a value.
 type ScriptParam struct{ Type, Value uint32 }
 
-func scriptSection(name string, array int) *section {
+// scriptSection is array's section; a node of it lists texts after its
+// identity and parameter fields.
+func scriptSection(name string, array int, texts []Field) *section {
 	size := scriptArraySizes[array]
 	sec := &section{name: name, typeID: alm.TypeScript,
 		layout:   scriptLayout(array),
@@ -35,7 +37,7 @@ func scriptSection(name string, array int) *section {
 		fields:   func(*Editor, []byte) []Field { return nil },
 	}
 	if array < 2 {
-		sec.fields = func(e *Editor, rec []byte) []Field { return nodeFields(e.Profile(), rec) }
+		sec.fields = func(e *Editor, rec []byte) []Field { return append(nodeFields(e.Profile(), rec), texts...) }
 	} else {
 		sec.fields = func(e *Editor, rec []byte) []Field { return triggerFields(e.Profile()) }
 	}
@@ -101,6 +103,17 @@ func nodeFields(p scriptprofile.Profile, rec []byte) []Field {
 		}
 		f.Label = fmt.Sprintf("Par%d %s", i, f.Label)
 		out = append(out, f)
+	}
+	return out
+}
+
+// nodeTextFields are a node's ten 64-byte text fields at +0x9c, each its own
+// text: a write fills that field alone (R2-ENGINE-1681, R2-ASSET-364).
+func nodeTextFields() []Field {
+	out := make([]Field, alm.ScriptParams)
+	for i := range out {
+		out[i] = Field{Key: scriptprofile.TextKey(i), Label: "editor.node.text", Offset: alm.ScriptNodeTexts + alm.ScriptLabelLen*i,
+			Width: alm.ScriptLabelLen, Text: &alm.ScriptNodeText}
 	}
 	return out
 }

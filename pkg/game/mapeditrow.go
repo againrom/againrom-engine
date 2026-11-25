@@ -47,8 +47,8 @@ type editRow struct {
 	// takes its items and a type-9 record its template and spell.
 	manyValues bool
 	// wholeScripts: a script node or trigger takes every field edit; off, an
-	// edit writes the operation and parameter words of a decoded node or
-	// moves a trigger.
+	// edit writes a node's label and texts, the operation and parameter
+	// words of a decoded node, or moves a trigger.
 	wholeScripts bool
 	// scriptRefusal, undecoded and unstated are the words of that narrower
 	// write; unstated refuses an operation whose slots no claim states.

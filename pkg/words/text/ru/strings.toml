@@ -1444,6 +1444,7 @@
 "editor.node.action" = "Действие %d"
 "editor.node.message" = "Сообщение %d"
 "editor.node.label" = "Метка"
+"editor.node.text" = "Текст %d (чтение игрой не найдено)"
 "editor.node.operation" = "Операция"
 "editor.node.parameters" = "Параметры"
 "editor.node.cell" = "введите клетку как x,y."

@@ -469,15 +469,16 @@ func (e *MapEditor) nodeRule() nodeRuleBody {
 	return nodeRuleBodies[rule]
 }
 
-// secondNodeFields keeps the label, the operation and the parameter fields
-// of a decoded operation editable. The trigger row is shown only, and so is
-// every field of an operation no claim decodes.
+// secondNodeFields keeps the label and text fields of every node, and the
+// operation and parameter fields of a decoded operation, editable. The
+// trigger row is shown only, and so is every other field of an operation no
+// claim decodes.
 func (e *MapEditor) secondNodeFields(v scriptView, fields []InspectionField) []InspectionField {
 	c := e.doc.Script.Catalog
 	decoded := c.named(v.condition, v.node.Opcode)
 	for i := range fields {
 		f := &fields[i]
-		f.ReadOnly = f.ReadOnly || !decoded || f.Key != "name" && f.Key != "opcode" && !strings.HasPrefix(f.Key, "value") && !strings.HasPrefix(f.Key, "cell")
+		f.ReadOnly = f.ReadOnly || !scriptprofile.NodeTextKey(f.Key) && (!decoded || f.Key != "opcode" && !strings.HasPrefix(f.Key, "value") && !strings.HasPrefix(f.Key, "cell"))
 		if f.Key == "opcode" {
 			// A node changes only to an operation whose slots a claim states.
 			f.Choices = slices.DeleteFunc(slices.Clone(f.Choices), func(o InspectionChoice) bool {
@@ -561,7 +562,8 @@ func slotValue(t, v uint32) int64 {
 }
 
 // nodeFields are a node's fields for its slot types: its label, its
-// operation, and one field per parameter, a cell as one "x,y" field.
+// operation, one field per parameter, a cell as one "x,y" field, and the
+// text fields its record states.
 func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command uint32) []InspectionField {
 	n := v.node
 	out := []InspectionField{{Key: "name", Label: e.word("editor.node.label"), Text: true, TextValue: n.Label}}
@@ -622,6 +624,7 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 		}
 		out = append(out, f)
 	}
+	out = append(out, n.Texts...)
 	if e.listedCondition(v) {
 		out = append(out, InspectionField{Key: nodeTriggerKey, Label: e.word("editor.area.trigger"), Value: -1, Choices: e.triggerChoices()})
 	}
@@ -721,7 +724,7 @@ func (e *MapEditor) retypeNode() {
 			_, c := form.Follows[s]
 			set = d || c
 		}
-		if t, kept := text[f.Key]; kept && !set && (f.Key == "name" || f.Key == "opcode" || f.Key == nodeTriggerKey || keySlotTypeKept(f.Key, old, o.types) || f.Key == "value0" && command != 0) {
+		if t, kept := text[f.Key]; kept && !set && (scriptprofile.NodeTextKey(f.Key) || f.Key == "opcode" || f.Key == nodeTriggerKey || keySlotTypeKept(f.Key, old, o.types) || f.Key == "value0" && command != 0) {
 			b = t
 		}
 		o.buf = append(o.buf, b)
@@ -842,8 +845,11 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 	}
 	for i, f := range o.fields {
 		row := popupRow{Kind: popupEdit, Label: f.Label, Value: o.buf[i]}
-		if f.Key == "name" {
+		if scriptprofile.NodeTextKey(f.Key) {
 			row.Value = e.editorHostText(o.buf[i])
+			if f.Key != "name" {
+				row.Label = e.editorHostText(f.Label)
+			}
 		}
 		var acts []string
 		switch {
@@ -1286,7 +1292,7 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 			continue
 		}
 		switch {
-		case f.Text && f.Key == "name":
+		case f.Text && scriptprofile.NodeTextKey(f.Key):
 			out = append(out, InspectionFieldValue{Key: f.Key, Text: true, TextValue: o.buf[i]})
 		case strings.HasPrefix(f.Key, "cell"):
 			s, _ := strconv.Atoi(strings.TrimPrefix(f.Key, "cell"))

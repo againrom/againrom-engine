@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -186,5 +187,19 @@ func TestEditorPageFilenameContinuesInBody(t *testing.T) {
 	}
 	if err := e.Key("undo"); err != nil || !bytes.Equal(before, s.model.Bytes()) || len(pages) != len(s.workspace.Pages) {
 		t.Fatal("page write undo", err)
+	}
+}
+
+// The ten text fields of a script node take the rule the label has: at most
+// 64 encoded bytes, and only what Windows-1251 holds.
+func TestEditorInputRulesCoverNodeTextFields(t *testing.T) {
+	_, s := messagePopupFixture(t, 77)
+	for _, kind := range []ui.RecordKind{ui.KindAction, ui.KindCondition} {
+		for i := 0; i < alm.ScriptParams; i++ {
+			limit, size := s.InputRule("", kind, fmt.Sprintf("text%d", i))
+			if limit != alm.ScriptLabelLen || size == nil || size('Ж') != 1 || size('中') != 0 || size('a') != 1 {
+				t.Fatalf("%s text%d: limit %d", kind, i, limit)
+			}
+		}
 	}
 }

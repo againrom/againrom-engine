@@ -129,6 +129,7 @@ const (
 	ScriptNodeID         = 0x44
 	ScriptNodeValues     = 0x4c
 	ScriptNodeTypes      = 0x74
+	ScriptNodeTexts      = 0x9c
 	ScriptParams         = 10
 	ScriptTriggerPairs   = 0x80
 	ScriptTriggerActions = 0x98

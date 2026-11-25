@@ -106,6 +106,10 @@ var (
 	// ScriptLabelText is a node's label (+0x000) and a trigger's name (+0x00).
 	// The game reads neither as text (ALM-NODEREAD-232, ALM-TRIGREAD-233).
 	ScriptLabelText = TextField{Name: "script label", Width: ScriptLabelLen}
+	// ScriptNodeText is one of a node's ten text fields (+0x9c, 64 bytes
+	// each). The second game's loader places them; no reader of them is
+	// found (R2-ENGINE-1681).
+	ScriptNodeText = TextField{Name: "script text", Width: ScriptLabelLen}
 	// mapNameASCII is the format's type-0 name rule, EncodeName's codec.
 	mapNameASCII = TextField{Name: "name", Width: MetaNameLen, Terminated: true, ascii: true}
 )

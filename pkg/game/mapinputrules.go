@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mod"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/ui"
 )
 
@@ -42,6 +43,9 @@ func (s *mapInspectionEdits) InputRule(scope string, kind ui.RecordKind, key str
 		case kind.Scripted():
 			return mapInputRule(alm.ScriptLabelText)
 		}
+	}
+	if kind.Scripted() && scriptprofile.NodeTextKey(key) {
+		return mapInputRule(alm.ScriptNodeText)
 	}
 	if scope != "pages" || key != "body" {
 		return 0, nil

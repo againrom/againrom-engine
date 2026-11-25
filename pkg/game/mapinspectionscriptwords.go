@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -13,11 +14,40 @@ import (
 	"againrom/pkg/ui"
 )
 
+// inspectNodeTexts gives each node of the script model the text fields its
+// record's field table states beside its name, in UTF-8, numbered from 1.
+func (x *MapInspector) inspectNodeTexts(sc *ui.InspectionScriptModel, model *mapedit.Editor) {
+	for _, family := range []struct {
+		k     mapedit.Kind
+		nodes []ui.InspectionScriptNode
+	}{{mapedit.KindAction, sc.Actions}, {mapedit.KindCondition, sc.Conditions}} {
+		k, nodes := family.k, family.nodes
+		for i := range nodes {
+			fields, err := model.Fields(k, i)
+			if err != nil {
+				continue
+			}
+			rec, err := model.Record(k, i)
+			if err != nil {
+				continue
+			}
+			for _, f := range fields {
+				if f.Text == nil || f.Key == "name" || f.Offset+f.Width > len(rec) {
+					continue
+				}
+				v := f.Text.Decode(rec[f.Offset : f.Offset+f.Width])
+				label := fmt.Sprintf(x.word(f.Label), len(nodes[i].Texts)+1)
+				nodes[i].Texts = append(nodes[i].Texts, ui.InspectionField{Key: f.Key, Label: label, Text: true, TextValue: v})
+			}
+		}
+	}
+}
+
 // setScriptWords is the node edit of a format whose row does not take whole
-// script edits: it writes the label, the operation and the parameter words
-// of a decoded node. A trigger takes the
-// whole edit through the row's field kinds; any other script edit is refused
-// with one line. The caller has worded the error.
+// script edits: it writes the label and texts of a node and the operation
+// and parameter words of a decoded one. A trigger takes the whole edit
+// through the row's field kinds; any other script edit is refused with one
+// line. The caller has worded the error.
 func (s *mapInspectionEdits) setScriptWords(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (*ui.InspectionDocument, error) {
 	row := s.row()
 	k, err := editKind(kind)
@@ -31,8 +61,8 @@ func (s *mapInspectionEdits) setScriptWords(kind ui.RecordKind, index int, value
 }
 
 // setParameterWords writes the label, the operation and the parameter words
-// of one decoded node. A new operation is a decoded row the game's table
-// offers, and the slot types are its signature where a claim states one,
+// of one decoded node, and the label and text fields of any node. A new
+// operation is a decoded row the game's table offers, and the slot types are its signature where a claim states one,
 // else the stored ones; a slot the new types leave empty holds zero. The
 // node is rewritten by the one node writer, then its values are set as
 // their types hold them. A register address is held to the map's script
@@ -53,18 +83,24 @@ func (s *mapInspectionEdits) setParameterWords(k mapedit.Kind, index int, values
 	}
 	profile := s.model.Profile()
 	n, condition := nodes[index], k == mapedit.KindCondition
-	if !mapload.ScriptOperationDecoded(profile.Ops, condition, n.Opcode) {
+	// A node's name and text fields are its record's own, whatever its
+	// operation (R2-ENGINE-1681); its words need a decoded operation.
+	texts := !slices.ContainsFunc(values, func(v ui.InspectionFieldValue) bool { return !v.Text || !scriptprofile.NodeTextKey(v.Key) })
+	if !texts && !mapload.ScriptOperationDecoded(profile.Ops, condition, n.Opcode) {
 		return nil, fmt.Errorf(s.inspector.word(row.undecoded), n.Opcode)
 	}
 	refusal := errors.New(s.inspector.word(row.scriptRefusal))
 	opcode, types, vals := n.Opcode, n.Type, n.Value
 	var sets []mapedit.FieldSet
-	var names []string
+	var named []ui.InspectionFieldValue
 	var set [len(n.Type)]bool
 	for _, v := range values {
 		switch {
-		case v.Key == "name" && v.Text:
-			names = append(names, v.TextValue)
+		case v.Text && scriptprofile.NodeTextKey(v.Key):
+			if _, err := s.model.TextFieldValue(k, index, v.Key); err != nil {
+				return nil, refusal
+			}
+			named = append(named, v)
 			continue
 		case v.Text || v.New:
 			return nil, refusal
@@ -133,8 +169,8 @@ func (s *mapInspectionEdits) setParameterWords(k mapedit.Kind, index int, values
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		mark := m.Mark()
-		for _, name := range names {
-			if _, err := setTextFieldOn(m, k, index, "name", name); err != nil {
+		for _, v := range named {
+			if _, err := setTextFieldOn(m, k, index, v.Key, v.TextValue); err != nil {
 				return false, err
 			}
 		}

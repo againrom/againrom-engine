@@ -1512,6 +1512,7 @@
 "editor.node.action" = "Action %d"
 "editor.node.message" = "Message %d"
 "editor.node.label" = "Label"
+"editor.node.text" = "Text %d (no game reader found)"
 "editor.node.operation" = "Operation"
 "editor.node.parameters" = "Parameters"
 "editor.node.cell" = "enter the cell as x,y."

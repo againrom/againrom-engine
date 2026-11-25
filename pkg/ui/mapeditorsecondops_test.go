@@ -46,8 +46,8 @@ func TestSecondGameOperationNames(t *testing.T) {
 }
 
 // On a second-game map the label, the operation and the parameter fields of
-// a decoded operation are editable, a type-9 slot among them; every field of
-// an operation no claim decodes is shown.
+// a decoded operation are editable, a type-9 slot among them; of an
+// operation no claim decodes only the label is (R2-ENGINE-1681).
 func TestSecondGameNodeFieldsEditOnlyDecodedParameters(t *testing.T) {
 	e := newMapEditorFixture(t)
 	e.doc.Script = &InspectionScriptModel{Limits: scriptprofile.Second, Catalog: InspectionScriptCatalog{
@@ -60,7 +60,7 @@ func TestSecondGameNodeFieldsEditOnlyDecodedParameters(t *testing.T) {
 		opcode uint32
 		types  [10]uint32
 		want   []bool
-	}{{3, [10]uint32{1, 5, 6}, []bool{false, false, false, false}}, {7, [10]uint32{1, 5, 6}, []bool{true, true, true, true}},
+	}{{3, [10]uint32{1, 5, 6}, []bool{false, false, false, false}}, {7, [10]uint32{1, 5, 6}, []bool{false, true, true, true}},
 		// A type-9 slot names a type-4 object of the map: it edits.
 		{3, [10]uint32{9, 5, 6}, []bool{false, false, false, false}}} {
 		v := scriptView{node: &InspectionScriptNode{Opcode: c.opcode, Types: c.types}}
