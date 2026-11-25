@@ -141,7 +141,24 @@ type Vocabulary struct {
 	// CellMove is the cell event that moves a unit reaching the cell's
 	// centre to the event's target cell, 0 where no event does.
 	CellMove uint32
+	// Unknown, Region and Edges are the inspection's notes (InspectRule).
+	// Unknown: an operation with no word is an issue.
+	Unknown InspectRule
+	// Region: a distance condition's signature bounds a Chebyshev square.
+	Region InspectRule
+	// Edges: a box condition's edge rules are noted as unknown.
+	Edges InspectRule
 }
+
+// InspectRule is whether the inspection makes one of its notes.
+type InspectRule uint8
+
+const (
+	// NoNote makes no note.
+	NoNote InspectRule = iota
+	// Noted makes the note.
+	Noted
+)
 
 // CellMoveEvent is the second game's cell event 23, a move to the target
 // cell, whether action 25 or a type-9 record writes it (R2-ENGINE-1776,
@@ -188,7 +205,8 @@ func (v Vocabulary) Undecoded(condition bool) string {
 }
 
 var vocabularies = [...]Vocabulary{
-	OpsFirst: {CheckWord: "editor.check.unnamed", ActionWord: "editor.action.unnamed", Kinds: FirstKinds},
+	OpsFirst: {CheckWord: "editor.check.unnamed", ActionWord: "editor.action.unnamed", Kinds: FirstKinds,
+		Unknown: Noted, Region: Noted, Edges: Noted},
 	// A type-9 value is a type-4 id of the map (R2-ENGINE-1725). The loader
 	// tests no node or trigger word and the compiler reads a node's word
 	// +0x48 nowhere found, so a new node holds zero there and in its texts

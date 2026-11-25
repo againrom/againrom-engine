@@ -2625,9 +2625,6 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	// rather than left nil for the reason the grid is: "a world holds no route"
 	// and "routes[i] belongs to entities[i]" are then one representation instead
 	// of two kept in agreement, and no reader has a length to check first.
-	if s.Empty() && s.Dialect() == ScriptROM1 {
-		s = nil
-	}
 	w := &World{
 		rng: rng{state: seed}, bounds: b, mode: mode, grid: g, cost: cost, height: height,
 		relations: rel.materialised(),
@@ -2655,6 +2652,9 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	// silently take every group in every world out of formation.
 	w.resetFormations()
 	w.initializeROM2Script()
+	if w.script.Empty() && w.game.dropsEmptyScript {
+		w.script = nil
+	}
 	w.classThresholds()
 	w.constructCarriers(false)
 	w.fitScriptState()

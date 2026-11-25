@@ -263,7 +263,8 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 	if len(s.nodeMap(kind)[n.ID]) > 1 {
 		s.issue(r, fmt.Sprintf("Ambiguous %s ID %d", kind, n.ID))
 	}
-	if op == "Unknown operation" && s.profile.Ops == scriptprofile.OpsFirst {
+	vocabulary := scriptprofile.VocabularyOf(s.profile.Ops)
+	if op == "Unknown operation" && vocabulary.Unknown == scriptprofile.Noted {
 		s.issue(r, fmt.Sprintf("Unknown %s opcode %d (%#x)", kind, n.Opcode, n.Opcode))
 	}
 	for i, tag := range n.Type {
@@ -303,7 +304,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 	// distinct authored cells even when this node's center is byte-sized. Keep
 	// their raw point, but withhold a semantic map region instead of inventing
 	// an unmasked square or emulating the runtime's coordinate aliases.
-	if s.profile.Ops == scriptprofile.OpsFirst && kind == ui.KindCondition && n.Opcode == 3 && n.Type[0] == 4 && n.Type[1] == 5 && n.Type[2] == 6 && n.Type[3] == 1 {
+	if vocabulary.Region == scriptprofile.Noted && kind == ui.KindCondition && n.Opcode == 3 && n.Type[0] == 4 && n.Type[1] == 5 && n.Type[2] == 6 && n.Type[3] == 1 {
 		switch {
 		case n.Value[1] > 255 || n.Value[2] > 255 || s.m.Width > 256 || s.m.Height > 256:
 			s.issue(r, "Distance region withheld: byte-masked coordinates; authored point only")
@@ -314,7 +315,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n al
 			s.link(r, fmt.Sprintf("Distance square: %d,%d radius %d", x, y, radius), role, []ui.InspectionTarget{{Cell: image.Pt(x-radius, y-radius), Size: image.Pt(2*radius+1, 2*radius+1)}})
 		}
 	}
-	if s.profile.Ops == scriptprofile.OpsFirst && kind == ui.KindCondition && n.Opcode == 2 {
+	if vocabulary.Edges == scriptprofile.Noted && kind == ui.KindCondition && n.Opcode == 2 {
 		s.line(r, "Box endpoints authored; edge rules unknown", "")
 	}
 }

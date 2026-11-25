@@ -36,6 +36,10 @@ type gameProfile struct {
 	scriptRows scriptOpRows
 	// dialect is the script dialect this profile serves.
 	dialect ScriptDialect
+	// holdsScriptState: the World holds the second game's script state.
+	holdsScriptState bool
+	// dropsEmptyScript: a World started with an empty script holds none.
+	dropsEmptyScript bool
 	// scriptProfile holds the dialect's register count and tick register
 	// (R2-SESSION-019, R2-ENGINE-1451); zero takes the first game's profile.
 	scriptProfile scriptprofile.Profile
@@ -284,6 +288,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 	if d != ScriptROM2 {
 		return gameProfile{
 			dialect:          ScriptROM1,
+			dropsEmptyScript: true,
 			scriptProfile:    scriptprofile.First,
 			scoreEffectSpell: 20,
 			skillAward:       firstGameSkillAward,
@@ -302,6 +307,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		buildingCasters:            buildingCastersBuilt,
 		scriptRows:                 secondGameRows,
 		dialect:                    ScriptROM2,
+		holdsScriptState:           true,
 		scriptProfile:              scriptprofile.For(scriptprofile.OpsSecond, false),
 		scriptSeed:                 scriptRegisterSeed{register: 901, value: 1},
 		structureOwners:            true,
