@@ -277,6 +277,16 @@ func CountGlobalNodes(sc alm.Script) int {
 	return n
 }
 
+// UnitLeftCellLimit checks whether the conditions need the extended machine for a unit's starting cell.
+func UnitLeftCellLimit(nodes []alm.ScriptNode) *ScriptLimitError {
+	for _, c := range nodes {
+		if c.Opcode == scriptprofile.UnitLeftCellOp {
+			return &ScriptLimitError{Limit: LimitUnitLeftCell, Got: 1}
+		}
+	}
+	return nil
+}
+
 // CountTeleportNodes is how many of the action nodes are the first game's
 // teleport action, which only an extended script runs (DIV-5200).
 func CountTeleportNodes(nodes []alm.ScriptNode) int {
@@ -360,6 +370,9 @@ func (e *Editor) FoldScript() error {
 		if sc, err := m.Script(); err == nil {
 			if n := CountInteractive(sc.Actions); n > 0 {
 				return &ScriptLimitError{Limit: LimitDialogue, Got: int64(n)}
+			}
+			if limit := UnitLeftCellLimit(sc.Conditions); limit != nil {
+				return limit
 			}
 			if n := CountGlobalNodes(sc); n > 0 {
 				return &ScriptLimitError{Limit: LimitGlobal, Got: int64(n)}

@@ -36,7 +36,7 @@ func TestSlotsOfEveryOperationAreUnchanged(t *testing.T) {
 	}
 	got := fmt.Sprintf("%x", sha256.Sum256([]byte(dump)))
 	t.Logf("%d slot lists, sha256 %s", n, got)
-	const want, wantCount = "4369dcbd69cc7df511531444c27e02aed4ac3296b995ac611b0e1cc2b424c645", 4715
+	const want, wantCount = "455711bb246ca5817241c9b3e5f92a353519245087c4f91cee26e21b2654eeda", 4756
 	if got != want || n != wantCount {
 		t.Fatalf("slot lists %d sha256 %s, want %d %s", n, got, wantCount, want)
 	}

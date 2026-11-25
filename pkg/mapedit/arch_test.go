@@ -93,6 +93,7 @@ var almReferences = nameTable{
 	"scriptform.go/(*Editor).ExtendScript":       {"alm.FrameScriptRecord", "alm.ScriptRecord"},
 	"scriptform.go/(*Editor).FoldScript":         {"alm.DecodeScriptRecord", "alm.ScriptRecordTypeID"},
 	"scriptform.go/CountInteractive":             {"alm.ScriptNode"},
+	"scriptform.go/UnitLeftCellLimit":            {"alm.ScriptNode"},
 	"scriptform.go/CountGlobalNodes":             {"alm.Script"},
 	"scriptform.go/CountTeleportNodes":           {"alm.ScriptNode"},
 	"meta.go/(*Editor).SetDescription":           {"alm.EncodeDescription"},

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM1] A map can trigger an event when a chosen unit leaves its starting cell.
+
 ### For map makers and modders
 
 - [ROM1] In the map editor a first-game trap of the Teleport spell now reads as a teleport from its cell to its target cell, and its cell, target and power are set and saved as before.

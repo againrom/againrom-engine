@@ -383,14 +383,15 @@ func sig(parts ...[]Slot) []Slot {
 
 // The Againrom operations' opcodes and the build-time constant operation.
 const (
-	constantOp   = 0x10002
-	formOp       = 0x10003
-	healthBelow  = 0x4101
-	undying      = 0x4100
-	readGlobal   = 0x4102
-	setGlobal    = 0x4103
-	addGlobal    = 0x4104
-	teleportCell = 0x4106
+	constantOp     = 0x10002
+	formOp         = 0x10003
+	healthBelow    = 0x4101
+	undying        = 0x4100
+	readGlobal     = 0x4102
+	setGlobal      = 0x4103
+	addGlobal      = 0x4104
+	UnitLeftCellOp = 0x4105
+	teleportCell   = 0x4106
 )
 
 // The global and teleport operations, as the wizard lists them.
@@ -490,6 +491,8 @@ var firstChecks = []Op{
 	{Condition: true, ID: constantOp, Name: "Constant / variable preset", Word: "editor.check.op65538", Decoded: true, Offered: true, Signature: sig(number("value")), // TRIG-COND-003
 		Presets: []WizardPreset{{Order: 9, Word: "editor.wizard.c.always", Right: 1, Fixed: []uint32{1}, Holds: true}}},
 	{Condition: true, ID: healthBelow, Name: "Health below (Againrom)", Word: "editor.check.op16641", Decoded: true, Offered: true, Again: true, Signature: sig(unit("unit"), number("health"))}, // DIV-4009
+	{Condition: true, ID: UnitLeftCellOp, Name: "Unit left its cell", Word: "editor.check.op16645", Decoded: true, Again: true, Signature: sig(unit("unit"), cell("cell")),
+		Presets: []WizardPreset{{Order: 25, Word: "editor.wizard.c.leftcell", Fields: map[string]string{"unit": "placement"}, Right: 1}}},
 	{Condition: true, ID: readGlobal, Name: "Read global (Againrom)", Word: "editor.check.op16642", Decoded: true, Again: true, Signature: sig(number("global")), // DIV-5108
 		Presets: []WizardPreset{{Order: 24, Word: "editor.wizard.c.global", Fields: map[string]string{"global": "global"}, ChooseCmp: true, Compared: "count"}}},
 }

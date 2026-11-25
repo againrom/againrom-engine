@@ -22,7 +22,7 @@ func TestPlayersWindowAndWizardNameARelationByTheSameWord(t *testing.T) {
 			players.places[popObject].at = image.Pt(0, 0)
 			wizard, _ := wizardChoiceEditor(t)
 			wizard.SetWords(book)
-			choices := wizard.wizardTargets(wpRelation)
+			choices := wizard.wizardTargets(wizParam{kind: wpRelation})
 			if len(choices) != 3 {
 				t.Fatalf("the wizard lists %d relation choices, want 3: %+v", len(choices), choices)
 			}

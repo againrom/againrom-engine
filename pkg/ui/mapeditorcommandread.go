@@ -413,10 +413,10 @@ func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 		return nil, fmt.Errorf("no map is open")
 	}
 	verbose := a.Verbose || !ownResult("trigger_items")
-	choices := func(kind wizParamKind) []InspectionChoice {
+	choices := func(p wizParam) []InspectionChoice {
 		out := []InspectionChoice{}
-		for _, c := range e.plainChoices(e.wizardTargets(kind)) {
-			if verbose || kind != wpUnit || c.Value < 10001 {
+		for _, c := range e.plainChoices(e.wizardTargets(p)) {
+			if verbose || p.kind != wpUnit || c.Value < 10001 {
 				out = append(out, c)
 			}
 		}
@@ -430,14 +430,14 @@ func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 			for k, p := range it.params {
 				param := map[string]any{"kind": wizParamNames[p.kind], "label": e.mcpDisplay(e.word(p.labelWord)), "default": defaults[k+1]}
 				switch {
-				case (p.kind == wpUnit || p.kind == wpGroup) && verbose:
-					param["choices"] = choices(p.kind)
+				case p.placedCell || (p.kind == wpUnit || p.kind == wpGroup) && verbose:
+					param["choices"] = choices(p)
 				case p.kind == wpUnit:
 					param["choices"] = "units"
 				case p.kind == wpGroup:
 					param["choices"] = "groups"
 				}
-				if p.kind == wpUnit {
+				if p.kind == wpUnit && !p.placedCell {
 					param["hero_band"] = "10001..11000"
 				}
 				params = append(params, param)
@@ -457,7 +457,7 @@ func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 	}
 	out := map[string]any{"conditions": list(true), "actions": list(false)}
 	if !verbose {
-		out["units"], out["groups"] = choices(wpUnit), choices(wpGroup)
+		out["units"], out["groups"] = choices(pUnit), choices(pGroup)
 	}
 	return out, nil
 }

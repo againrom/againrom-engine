@@ -134,6 +134,11 @@ func wizardRoom(t ui.WizardTrigger, limits scriptprofile.Profile, extended bool)
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitTeleport, Got: int64(teleports)}
 		return lifted(limit, "editor.script.limit.teleport", teleports)
 	default:
+		if !extended {
+			if refusal := mapedit.UnitLeftCellLimit(plan.Conditions); refusal != nil {
+				return refusal
+			}
+		}
 		return nil
 	}
 	if extended {

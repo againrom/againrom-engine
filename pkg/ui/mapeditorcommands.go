@@ -1368,7 +1368,7 @@ func (e *MapEditor) commandWizardRow(condition bool, a triggerRowArgs) (wizRow, 
 			continue
 		}
 		v, err := strconv.ParseInt(strings.TrimSpace(vals[k+1]), 10, 64)
-		if err != nil || !e.wizardTargetAllowed(p.kind, v) {
+		if err != nil || !e.wizardTargetAllowed(p, v) {
 			return wizRow{}, fmt.Errorf("item %q parameter %d names %s %s, which the map does not hold; trigger_items lists the choices", a.Item, k, wizParamNames[p.kind], vals[k+1])
 		}
 	}

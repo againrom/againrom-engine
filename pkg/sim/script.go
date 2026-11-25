@@ -669,6 +669,10 @@ func (s *Script) Recompile(checks []ScriptCheck, instants []ScriptInstant, trigg
 	return newScriptOn(s.Dialect(), m, checks, instants, triggers)
 }
 
+func (m scriptMachine) supportsCheck(op int32) bool {
+	return scriptCheckSupported(op) || m.extended && op == scriptprofile.UnitLeftCellOp
+}
+
 // Extended reports whether s runs on the extended machine.
 func (s *Script) Extended() bool { return s != nil && s.machine.extended }
 
@@ -756,7 +760,7 @@ func newScriptOn(dialect ScriptDialect, m scriptMachine, checks []ScriptCheck, i
 	var gaps []ScriptGap
 	rows := profile.scriptRows
 	for i := range cp {
-		if cp[i].Late || scriptCheckSupported(cp[i].Op) || rows.check[cp[i].Op] != nil {
+		if cp[i].Late || m.supportsCheck(cp[i].Op) || rows.check[cp[i].Op] != nil {
 			continue
 		}
 		gaps = append(gaps, ScriptGap{Kind: ScriptGapCheck, Op: cp[i].Op, Index: int32(i)})
@@ -1433,7 +1437,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	// two are the same nothing — scriptEntity only looks an id up — and the early
 	// return is what lets the silence be recorded as unsupported rather than as
 	// an unresolved reference it never got as far as testing.
-	if !scriptCheckSupported(c.Op) {
+	if !w.script.machine.supportsCheck(c.Op) {
 		dispatched, silence = false, ScriptSilenceUnsupported
 		tr.silence(i, c, ScriptSilenceUnsupported)
 		return
@@ -1449,6 +1453,13 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	}
 
 	switch c.Op {
+	case scriptprofile.UnitLeftCellOp:
+		v := int32(0)
+		if e.X != c.Args[0] || e.Y != c.Args[1] {
+			v = 1
+		}
+		write(v)
+
 	case ScriptCheckHealthBelow:
 		write(healthBelow(e, c.Args[0]))
 

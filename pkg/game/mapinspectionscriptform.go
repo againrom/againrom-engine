@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -103,6 +104,8 @@ func limitWords(l *mapedit.ScriptLimitError, word func(string) string) string {
 		return fmt.Sprintf(word("editor.script.limit.variables"), l.Max-1, l.Got)
 	case mapedit.LimitDialogue:
 		return fmt.Sprintf(word("editor.script.limit.dialogue"), l.Got)
+	case mapedit.LimitUnitLeftCell:
+		return word("editor.script.limit.leftcell")
 	case mapedit.LimitGlobal:
 		return fmt.Sprintf(word("editor.script.limit.global"), l.Got)
 	case mapedit.LimitTeleport:
@@ -474,7 +477,19 @@ func packTrigger(t alm.ScriptTrigger, extended bool) alm.ScriptTrigger {
 // refused, unless the original records hold its script again and its texts
 // are not inside, when the save asks to fold it first.
 func (s *mapInspectionEdits) scriptSaveForm(path string) error {
-	if !s.model.Extended() || namefold.HostEqual(filepath.Ext(path), extendedMapExt) {
+	if !s.model.Extended() {
+		if !s.Offers(reflect.TypeFor[ui.InspectionScriptForm]()) {
+			return nil
+		}
+		_, sc, err := wizardScript(s.model)
+		if err == nil {
+			if limit := mapedit.UnitLeftCellLimit(sc.Conditions); limit != nil {
+				return formNeeded(s.model, limit, s.inspector.word)
+			}
+		}
+		return nil
+	}
+	if namefold.HostEqual(filepath.Ext(path), extendedMapExt) {
 		return nil
 	}
 	t := words.For(s.inspector.pageLanguage())
@@ -483,6 +498,10 @@ func (s *mapInspectionEdits) scriptSaveForm(path string) error {
 	}
 	trial := s.model.Clone()
 	if err := foldScript(trial); err != nil {
+		var limit *mapedit.ScriptLimitError
+		if errors.As(err, &limit) {
+			err = errors.New(limitWords(limit, t.Text))
+		}
 		return fmt.Errorf(t.Text("editor.scriptform.almx"), err)
 	}
 	return &ui.ScriptFormNeeded{Fold: true, Why: t.Text("editor.scriptform.fits")}

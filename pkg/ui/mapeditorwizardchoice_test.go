@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image"
 	"slices"
 	"strings"
 	"testing"
@@ -35,8 +36,10 @@ func wizardChoiceEditor(t *testing.T) (*MapEditor, *wizardWrites) {
 		d := &InspectionDocument{Viewer: v, Source: "wizard", Width: 64, Height: 64, SourceBytes: []byte("map"), Edits: host}
 		d.Records = []InspectionRecord{{Kind: "Trigger", Index: 0, Section: 7},
 			{Kind: "Condition", Index: 0, Section: 7}, {Kind: "Condition", Index: 1, Section: 7}, {Kind: "Condition", Index: 2, Section: 7},
-			{Kind: "Action", Index: 0, Section: 7}, {Kind: "Action", Index: 1, Section: 7}}
+			{Kind: "Action", Index: 0, Section: 7}, {Kind: "Action", Index: 1, Section: 7},
+			{Kind: "Unit", Index: 0, Section: 3, Cell: image.Pt(5, 6)}}
 		d.Script = &InspectionScriptModel{
+			Targets: map[uint32][]InspectionScriptTarget{scriptUnit: {{Value: 7, Record: 6, Name: "Scout", Choice: "Scout"}}},
 			Triggers: []InspectionTrigger{{Record: 0, Name: "Start", Once: 1,
 				Left: []uint32{1, 3, 0}, Right: []uint32{2, 2, 0}, Cmp: make([]uint32, 3), Acts: []uint32{11, 12, 0, 0}}},
 			Conditions: []InspectionScriptNode{

@@ -33,7 +33,7 @@ func TestWizardReadsOperationWordAndSlots(t *testing.T) {
 func TestWizardPresetsJoinOperationRows(t *testing.T) {
 	for k, condition := range []bool{false, true} {
 		items := wizardTables[scriptprofile.OpsFirst][k]
-		if want := [2]int{35, 24}[k]; len(items) != want {
+		if want := [2]int{35, 25}[k]; len(items) != want {
 			t.Fatalf("condition %t: got %d items, want %d", condition, len(items), want)
 		}
 		for _, op := range scriptprofile.OpRows(scriptprofile.OpsFirst, condition) {
@@ -47,6 +47,16 @@ func TestWizardPresetsJoinOperationRows(t *testing.T) {
 					t.Errorf("condition %t: missing %q (opcode %d) at index %d", condition, word, op.ID, i)
 				}
 			}
+		}
+	}
+}
+
+func TestUnitLeftCellIsOfferedOnlyForFirstGameMaps(t *testing.T) {
+	for _, ops := range []scriptprofile.Ops{scriptprofile.OpsFirst, scriptprofile.OpsSecond} {
+		items := wizardTables[ops][1]
+		offered := slices.ContainsFunc(items, func(it wizItem) bool { return it.opcode == 0x4105 })
+		if offered != (ops == scriptprofile.OpsFirst) {
+			t.Errorf("operation vocabulary %v offers departure: %t", ops, offered)
 		}
 	}
 }

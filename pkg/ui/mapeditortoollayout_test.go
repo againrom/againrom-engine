@@ -261,7 +261,7 @@ func TestMapEditorHeroLabelsNameTheRole(t *testing.T) {
 		if got := e.targetText(scriptUnit, 10003); got != c.without {
 			t.Errorf("%q: the trigger names hero 3 %q, want %q", c.lang, got, c.without)
 		}
-		choices := e.wizardChoices(wpUnit, 10040)
+		choices := e.wizardChoices(pUnit, 10040)
 		if !slices.Contains(choices, InspectionChoice{10002, c.with}) || !slices.Contains(choices, InspectionChoice{10003, c.without}) ||
 			choices[len(choices)-1] != (InspectionChoice{10040, c.far}) {
 			t.Errorf("%q: the wizard's unit choices are %v", c.lang, choices)

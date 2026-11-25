@@ -342,7 +342,7 @@ func (e *MapEditor) paramPicked(target paramTarget, v pickedValue) {
 		o.buf[f] = strconv.FormatInt(v.number, 10)
 	case targetUnit, targetStructure, targetGroup:
 		o.buf[f] = strconv.FormatInt(v.number, 10)
-		o.fields[f].Choices = e.paramChoices(target, v.number)
+		o.fields[f].Choices = e.paramChoices(f, target, v.number)
 	case targetBox:
 		r := v.area.Rect.Intersect(image.Rect(0, 0, e.doc.Width, e.doc.Height))
 		o.buf[f] = fmt.Sprintf("%d,%d,%d,%d", r.Min.X, r.Min.Y, r.Max.X-1, r.Max.Y-1)
@@ -356,12 +356,11 @@ func (e *MapEditor) paramPicked(target paramTarget, v pickedValue) {
 
 // paramChoices are the choices of a unit, structure or group field after the
 // pick gave it value.
-func (e *MapEditor) paramChoices(target paramTarget, value int64) []InspectionChoice {
+func (e *MapEditor) paramChoices(field int, target paramTarget, value int64) []InspectionChoice {
 	if e.obj.wiz != nil && target != targetStructure {
-		if target == targetGroup {
-			return e.wizardChoices(wpGroup, value)
-		}
-		return e.wizardChoices(wpUnit, value)
+		r, k := e.wizardRowOf(field)
+		row := e.obj.wiz.rows[r]
+		return e.wizardChoices(e.wizItems(row.condition)[row.item].params[k], value)
 	}
 	kind := scriptUnit
 	switch target {
