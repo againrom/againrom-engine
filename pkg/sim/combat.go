@@ -1029,6 +1029,12 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	// its actual id when that rider applies.
 	w.resolveDamageAttribution(ai, ti, int8(a.XPSlot))
 	if !w.entities[ti].OrdinaryTargetable() {
+		// A rider row that fires without a living hit (Fire Ball) answers
+		// the blow whatever it left the target at; no other row does, and
+		// the blow pays no experience.
+		if w.game.blow.riderPastCutoff {
+			w.weaponRiderApply(ai, ti, false, obs)
+		}
 		return
 	}
 
@@ -1058,6 +1064,10 @@ type blowRule struct {
 	// signedProtection: the magic part reads every sheet's protection word
 	// signed and unbounded (R2-ENGINE-1830).
 	signedProtection bool
+	// riderPastCutoff: a weapon rider row that applies without a living hit
+	// still fires when the blow left the target at -10 or below (the owner's
+	// exemption from the ordinary cutoff).
+	riderPastCutoff bool
 }
 
 // zeroSpreadRule selects the draw a physical part makes at spread 0.
@@ -1079,7 +1089,7 @@ var zeroSpreadRules = [...]zeroSpreadRow{
 }
 
 var secondGameBlow = blowRule{draw: blowDrawsEffectsFirst, zeroSpread: zeroSpreadSkips,
-	absorbsPositiveOnly: true, signedProtection: true}
+	absorbsPositiveOnly: true, signedProtection: true, riderPastCutoff: true}
 
 // blowValue is the physical pair's value and makes its draws, in the order
 // the rule holds. Bless that takes effect gives base plus spread, Curse the
