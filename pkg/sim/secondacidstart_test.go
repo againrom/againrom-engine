@@ -33,14 +33,41 @@ func TestSecondAcidStreamFirstStageWaitsForTheNextAreaPass(t *testing.T) {
 	}
 }
 
-// The first game's Acid Stream paints stage zero at insertion.
-func TestFirstAcidStreamPaintsStageZeroAtInsertion(t *testing.T) {
-	w, err := NewSpelledWorld(7, Bounds{Width: 40, Height: 40}, ModeCanonical, nil,
-		[]Entity{blizzardCaster(20, 12)}, nil, []SpellRule{acidStreamStartRow()})
-	if err != nil {
-		t.Fatal(err)
+// MAGIC-463: stage k on the (1 + 3k)th area update.
+func TestFirstStagedAreaFirstStageWaitsForTheNextAreaPass(t *testing.T) {
+	sacrifice := acidStreamStartRow()
+	sacrifice.ID = 4
+	for _, row := range []SpellRule{acidStreamStartRow(), sacrifice} {
+		w, err := NewSpelledWorld(7, Bounds{Width: 40, Height: 40}, ModeCanonical, nil,
+			[]Entity{blizzardCaster(20, 12)}, nil, []SpellRule{row})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !w.landArea(w.spells[0], 50, 1, true, 20, 12, 20, 20, nil) {
+			t.Fatalf("spell %d: no area", row.ID)
+		}
+		if len(w.effects[0].Cells) != 0 {
+			t.Fatalf("spell %d: insertion painted a stage", row.ID)
+		}
+		w.decayCellEffects(nil)
+		if len(w.effects) != 1 || len(w.effects[0].Cells) == 0 {
+			t.Fatalf("spell %d: first area update painted no stage", row.ID)
+		}
+		first := w.effects[0].Cells
+		w.decayCellEffects(nil)
+		w.decayCellEffects(nil)
+		if len(w.effects) != 1 || len(w.effects[0].Cells) != len(first) {
+			t.Fatalf("spell %d: stage changed before update 4", row.ID)
+		}
+		w.decayCellEffects(nil)
+		live := ringStageCount(w.spellArm(row.ID)) > 2
+		if live != (len(w.effects) == 1) || live && w.effects[0].Phase != 4 {
+			t.Fatalf("spell %d: update 4: %+v", row.ID, w.effects)
+		}
 	}
-	if !w.landArea(w.spells[0], 50, 1, true, 20, 12, 20, 20, nil) || len(w.effects[0].Cells) == 0 {
-		t.Fatal("no stage at insertion")
+	meteor := acidStreamStartRow()
+	meteor.ID = 21
+	if got := areaLife(meteor, 50); got != ringLife(21)+1 {
+		t.Fatalf("Meteor Storm lives %d updates, want %d", got, ringLife(21)+1)
 	}
 }

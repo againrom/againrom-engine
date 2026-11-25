@@ -126,15 +126,14 @@ func TestSecondGameFleeAndBackOffCastTeleportWhenBookedAndPaid(t *testing.T) {
 	}
 }
 
-// A second-game computer Human takes the class of its book, not its mana: a
-// mana pool without a book backs off at nothing.
+// A second-game Human takes the class of its book, not its mana: a mana pool
+// without a book is no mage.
 func TestSecondGameClassReadsTheBookNotTheManaPool(t *testing.T) {
 	booked := Entity{ID: 1, Owner: 3, X: 2, Y: 2, HP: 100, MaxHP: 100, MaxMana: 50, Mana: 50, Reach: 1, Humanoid: true, KnownSpells: 1 << 24}
 	manaOnly := Entity{ID: 2, Owner: 3, X: 4, Y: 2, HP: 100, MaxHP: 100, MaxMana: 50, Mana: 50, Reach: 1, Humanoid: true}
 	w := secondWorld(t, 1, Bounds{Width: 16, Height: 16}, nil, booked, manaOnly)
-	es := w.Entities()
-	if es[0].Withdraw != 100 || es[0].Wimpy != 25 || es[1].Withdraw != 0 || es[1].Wimpy != 0 {
-		t.Fatalf("thresholds (book %d/%d, mana only %d/%d), want (100/25, 0/0)", es[0].Withdraw, es[0].Wimpy, es[1].Withdraw, es[1].Wimpy)
+	if a, b := w.withdrawalClass(0), w.withdrawalClass(1); a != withdrawalMage || b != withdrawalMelee {
+		t.Fatalf("classes (book %d, mana only %d), want (%d, %d)", a, b, withdrawalMage, withdrawalMelee)
 	}
 }
 

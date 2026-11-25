@@ -37,7 +37,9 @@ func TestAreaSaveCurrentPayloadAndIndependentOwners(t *testing.T) {
 func TestAreaSaveRingCutsContinueWithoutReplay(t *testing.T) {
 	for _, spell := range []uint16{4, 9, 21} {
 		stages := map[uint16]int{4: 2, 9: 6, 21: 32}[spell]
-		for age := 0; age < 3*(stages-1); age++ {
+		d := int(ringStageDelay(spell))
+		last := 3*(stages-1) + d
+		for age := 0; age < last; age++ {
 			t.Run(fmt.Sprintf("%d/%d", spell, age), func(t *testing.T) {
 				rule := SpellRule{ID: spell, Area: true, Distribution: 5, Damaging: true, School: 1, DamageMin: 4, DamageMax: 8}
 				makeWorld := func() *World {
@@ -48,25 +50,25 @@ func TestAreaSaveRingCutsContinueWithoutReplay(t *testing.T) {
 					return w
 				}
 				w := makeWorld()
-				w.effects = []cellEffect{{Key: 20 | 20<<8, Spell: spell, Remaining: uint16(3*(stages-1) + 1 - age), Mode: areaModeRing, Phase: uint8(age), Direction: 3}}
+				w.effects = []cellEffect{{Key: 20 | 20<<8, Spell: spell, Remaining: uint16(last + 1 - age), Mode: areaModeRing, Phase: uint8(age), Direction: 3}}
 				rows, err := w.NativeAreaSaveStates()
 				if err != nil || len(rows) != 1 {
 					t.Fatal(rows, err)
 				}
 				r := rows[0]
-				if r.Stage != uint8(age/3+1) || r.Remaining != uint16(2-age%3) || r.Direction != 3 {
+				if r.Stage != uint8((age+3-d)/3) || r.Remaining != uint16(2-(age+3-d)%3) || r.Direction != 3 {
 					t.Fatal("next stage/countdown", r)
 				}
 				cold := makeWorld()
 				cold.savedSpellEffects = []SavedSpellEffect{{Class: "AreaEffect", AE48: [4]byte{1, 0, 96, r.Stage}, AE4C: r.Remaining, AE44: &r.Payload}}
 				cold.savedWorldEffects = &SavedWorldEffects{Areas: []SavedAreaDriver{{ID: 1, Root: 0, Identity: 17, Key: r.Key, Layer: 255, Mode: areaModeRing, Spell: spell}}}
-				for tick := age + 1; tick <= 3*(stages-1); tick++ {
+				for tick := age + 1; tick <= last; tick++ {
 					w.decayCellEffects(nil)
 					cold.stepSavedWorldEffects(nil)
 					if (len(w.effects) == 0) != (len(cold.savedSpellEffects) == 0) {
 						t.Fatal("retirement cut", tick)
 					}
-					if len(w.effects) > 0 && cold.savedSpellEffects[0].AE48[3] != w.effects[0].Phase/3+1 {
+					if len(w.effects) > 0 && int(cold.savedSpellEffects[0].AE48[3]) != (int(w.effects[0].Phase)+3-d)/3 {
 						t.Fatal("stage repeated or skipped", tick)
 					}
 				}

@@ -17,61 +17,22 @@ func thresholdActors() []Entity {
 	return []Entity{mage, archer, fighter, flyer, hero, beast, manaFighter}
 }
 
-// A second-game computer Human backs off at Withdraw and flees at Wimpy as
-// its class gives them: a spellbook gives HPmax and HPmax/4, a range above
-// 1 on a unit whose movement type is not 3 gives HPmax/2 and 0, any other
-// Human 0 and 0 (R2-ENGINE-506). A player's Human without a spellbook or
-// range takes 0 and 0 too, and a creature keeps its row's values. The first
-// game keeps every value the actor was built with.
-func TestSecondComputerHumansTakeTheClassThresholds(t *testing.T) {
-	want := map[EntityID][2]int32{1: {100, 25}, 2: {40, 0}, 3: {0, 0}, 4: {0, 0}, 5: {0, 0}, 6: {7, 3}, 7: {0, 0}}
-	w := secondWorld(t, 1, Bounds{Width: 16, Height: 16}, nil, thresholdActors()...)
-	for _, e := range w.Entities() {
-		if got := [2]int32{e.Withdraw, e.Wimpy}; got != want[e.ID] {
-			t.Errorf("second game: actor %d holds Withdraw/Wimpy %v, want %v", e.ID, got, want[e.ID])
-		}
-	}
-	first, err := NewSpelledWorld(1, Bounds{Width: 16, Height: 16}, ModeCanonical, nil, thresholdActors(), nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+// R2-ENGINE-1795: no mission start rewrites a built threshold.
+func TestMissionStartKeepsEveryBuiltThreshold(t *testing.T) {
 	built := map[EntityID][2]int32{}
 	for _, e := range thresholdActors() {
 		built[e.ID] = [2]int32{e.Withdraw, e.Wimpy}
 	}
-	for _, e := range first.Entities() {
-		if got := [2]int32{e.Withdraw, e.Wimpy}; got != built[e.ID] {
-			t.Errorf("first game: actor %d holds Withdraw/Wimpy %v, want its built %v", e.ID, got, built[e.ID])
-		}
-	}
-}
-
-// A second-game player's Human takes the class thresholds at mission start
-// as a computer Human does: the setter is the template loader's last call and
-// tests only the Human kind (R2-ENGINE-1606, Medium that a Human reaches it).
-// A player's mage holds HPmax and HPmax/4, a player's archer HPmax/2 and 0.
-// The first game keeps the values the actors were built with.
-func TestSecondPlayerHumansTakeTheClassThresholds(t *testing.T) {
-	actors := func() []Entity {
-		return []Entity{
-			{ID: 1, Owner: SelfSlot, X: 2, Y: 2, HP: 90, MaxHP: 90, MaxMana: 30, Mana: 30, Reach: 1, Withdraw: 9, Wimpy: 2, Humanoid: true, KnownSpells: 1 << 24},
-			{ID: 2, Owner: SelfSlot, X: 4, Y: 2, HP: 70, MaxHP: 70, Reach: 6, Withdraw: 9, Wimpy: 2, Humanoid: true},
-		}
-	}
-	second := map[EntityID][2]int32{1: {90, 22}, 2: {35, 0}}
-	w := secondWorld(t, 1, Bounds{Width: 16, Height: 16}, nil, actors()...)
-	for _, e := range w.Entities() {
-		if got := [2]int32{e.Withdraw, e.Wimpy}; got != second[e.ID] {
-			t.Errorf("second game: player's actor %d holds Withdraw/Wimpy %v, want %v", e.ID, got, second[e.ID])
-		}
-	}
-	first, err := NewSpelledWorld(1, Bounds{Width: 16, Height: 16}, ModeCanonical, nil, actors(), nil, nil)
+	second := secondWorld(t, 1, Bounds{Width: 16, Height: 16}, nil, thresholdActors()...)
+	first, err := NewSpelledWorld(1, Bounds{Width: 16, Height: 16}, ModeCanonical, nil, thresholdActors(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, e := range first.Entities() {
-		if got := [2]int32{e.Withdraw, e.Wimpy}; got != [2]int32{9, 2} {
-			t.Errorf("first game: player's actor %d holds Withdraw/Wimpy %v, want its built [9 2]", e.ID, got)
+	for game, w := range map[string]*World{"first": first, "second": second} {
+		for _, e := range w.Entities() {
+			if got := [2]int32{e.Withdraw, e.Wimpy}; got != built[e.ID] {
+				t.Errorf("%s game: actor %d holds Withdraw/Wimpy %v, want its built %v", game, e.ID, got, built[e.ID])
+			}
 		}
 	}
 }

@@ -290,7 +290,7 @@ func TestCurrentDeliverySacrificeConstructsAtImpactAndKeepsLaterStages(t *testin
 			if !reflect.DeepEqual(want, got) {
 				t.Fatalf("sacrifice stage %d differs: %v / %v", step, want, got)
 			}
-			if step == 1 && hasCaster {
+			if step == 2 && hasCaster {
 				if w.entities[1].HP != 900 || w.entities[0].HP != 1 || w.entities[0].Mana != 0 {
 					t.Fatal("impact did not construct and spend once")
 				}

@@ -174,7 +174,8 @@ func (w *World) stepWorldSpellEffects(obs *castObs) {
 				deadDeliveries[r.Index] = true
 				for i := before; i < len(w.effects); i++ {
 					added := WorldEffectRef{EffectNativeArea, uint32(i)}
-					// Landing ran the first paint or ring stage zero.
+					// Landing ran the first paint; a staged area's stage zero
+					// waits for the next pass (MAGIC-463).
 					seen[added] = true
 					appendRef(added)
 				}

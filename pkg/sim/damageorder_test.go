@@ -66,6 +66,7 @@ func TestDamageMessagesKeepSacrificeExpenditureBeforeAreaHit(t *testing.T) {
 	if !w.landArea(rule, 0, 1, true, 1, 1, 16, 16, nil) {
 		t.Fatal("sacrifice refused")
 	}
+	w.decayCellEffects(nil)
 	want := []DamageEvent{{Target: 1, BeforeHP: 100, AfterHP: 1}, {Target: 2, BeforeHP: 100, AfterHP: 0}}
 	if !slices.Equal(w.damageObservation.events, want) {
 		t.Fatalf("sacrifice=%+v want %+v", w.damageObservation.events, want)
@@ -132,7 +133,7 @@ func TestDamageMessagesKeepRepeatedAreaReferences(t *testing.T) {
 	big := Entity{ID: 1, X: 9, Y: 9, HP: 100, MaxHP: 100, TokenSize: 2}
 	w := structureAreaWorld(t, nil, big)
 	w.spells = []SpellRule{{ID: 9, Area: true, Damaging: true, DamageMin: 10, DamageMax: 10}}
-	w.effects = []cellEffect{{Key: 0x0a0a, Spell: 9, Mode: areaModeRing, Remaining: 20, Phase: 2}}
+	w.effects = []cellEffect{{Key: 0x0a0a, Spell: 9, Mode: areaModeRing, Remaining: 20, Phase: 3}}
 	want := []DamageEvent{{Target: 1, BeforeHP: 100, AfterHP: 90}, {Target: 1, BeforeHP: 90, AfterHP: 80}}
 	if got := StepReported(w, nil).Damages; !slices.Equal(got, want) {
 		t.Fatalf("messages=%+v want %+v", got, want)

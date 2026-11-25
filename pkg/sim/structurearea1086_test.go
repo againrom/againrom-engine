@@ -215,6 +215,8 @@ func TestMultiCellRingNativeContinuationBeforePendingAndAfter(t *testing.T) {
 	if !w.landArea(rule, 0, 0, false, 0, 0, 10, 10, nil) {
 		t.Fatal("ring refused")
 	}
+	check("pending first stage")
+	Step(w, nil)
 	if hp := w.structures[0].Field42; hp < 1952 || hp > 1960 {
 		t.Fatalf("first shell HP=%d want eight calls (1952..1960)", hp)
 	}

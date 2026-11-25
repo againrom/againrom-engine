@@ -39,6 +39,7 @@ func TestAcidStreamConeOriginatesAtTheAimedCell(t *testing.T) {
 			}
 			aimX, aimY := 20+tc.dx, 20+tc.dy
 			spRunCast(w, Command{Kind: KindCastAt, Entity: 1, X: aimX, Y: aimY, Spell: 9})
+			w.decayCellEffects(nil)
 
 			got := w.CellEffects()
 			if len(got) != 1 {

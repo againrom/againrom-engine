@@ -1064,8 +1064,8 @@ func TestAWallAcrossAStoredRouteKeepsItAndLoads(t *testing.T) {
 // with the id switch this replaces; an edited row did not, which left
 // `SpellRule.Distribution` parsed, serialized and read by nothing.
 //
-// The staged life is the same claim's cadence — stage ticks 0, 3, 6, ... with
-// the terminal stage removing the record — so `areaLife` no longer carries an
+// The staged life is the same claim's cadence — stage ticks 1, 4, 7, ... after
+// the insertion (MAGIC-463) with the terminal stage removing the record — so `areaLife` no longer carries an
 // invented `(Radius + 2) * 2` behind a hard-coded id 21.
 func TestTheAreaModeComesFromTheRowsOwnColumns(t *testing.T) {
 	for _, tc := range []struct {
@@ -1076,17 +1076,17 @@ func TestTheAreaModeComesFromTheRowsOwnColumns(t *testing.T) {
 	}{
 		{"Fire Ball's own columns", SpellRule{ID: 2, Area: true, Distribution: 3, Radius: 1}, areaModeBlast, 1},
 		{"Fire Ball given a duration column", SpellRule{ID: 2, Area: true, Distribution: 3, Radius: 1, AreaDuration: 1}, areaModeCloud, 17},
-		{"Fire Sacrifice's own columns", SpellRule{ID: 4, Area: true, Distribution: 5, Radius: 2}, areaModeRing, 4},
+		{"Fire Sacrifice's own columns", SpellRule{ID: 4, Area: true, Distribution: 5, Radius: 2}, areaModeRing, 5},
 		{"Fire Sacrifice without the staged column", SpellRule{ID: 4, Area: true, Distribution: 3, Radius: 2}, areaModeBlast, 1},
-		{"Acid Stream", SpellRule{ID: 9, Area: true, Distribution: 5, Radius: 3}, areaModeRing, 16},
+		{"Acid Stream", SpellRule{ID: 9, Area: true, Distribution: 5, Radius: 3}, areaModeRing, 17},
 		{"Meteor Storm, whose duration column the staged arm overwrites",
-			SpellRule{ID: 21, Area: true, Distribution: 5, Radius: 4, AreaDuration: 10}, areaModeRing, 94},
+			SpellRule{ID: 21, Area: true, Distribution: 5, Radius: 4, AreaDuration: 10}, areaModeRing, 95},
 		{"Wall of Fire", SpellRule{ID: 3, Area: true, Distribution: 4, Radius: 2, AreaDuration: 15}, areaModeCloud, 241},
 	} {
 		if got := areaModeFor(tc.rule); got != tc.mode {
 			t.Errorf("%s: mode = %d, want %d", tc.name, got, tc.mode)
 		}
-		if got := areaLife(testRowOf(false), tc.rule, 0); got != tc.life {
+		if got := areaLife(tc.rule, 0); got != tc.life {
 			t.Errorf("%s: life = %d, want %d", tc.name, got, tc.life)
 		}
 	}

@@ -2655,7 +2655,6 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	if w.script.Empty() && w.game.dropsEmptyScript {
 		w.script = nil
 	}
-	w.classThresholds()
 	w.constructCarriers(false)
 	w.fitScriptState()
 	w.seedScriptRegisters()

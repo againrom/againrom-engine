@@ -15,6 +15,8 @@ type areaArm struct {
 	// stages and stage: the staged program's count and offsets (MAGIC-RING-048).
 	stages int
 	stage  func(w *World, e cellEffect, stage int) [][2]int32
+	// firstStageDelay: area updates before stage zero (MAGIC-463, R2-ENGINE-1789).
+	firstStageDelay uint8
 	// draws: the program samples its cells from the world's stream, so the
 	// painted cells cannot be produced again and a SAVE carries them.
 	draws bool
@@ -48,16 +50,16 @@ var areaArms = [...]areaArm{
 	{arm: 2, layer: noAreaLayer, clears: []uint16{7, 8}, footprint: true, onMiss: true, scorches: true},
 	{arm: 3, layer: 0, clears: []uint16{3, 7, 8}, uncapped: true, scorches: true, ambient: true,
 		overlay: areaOverlay{drawn: true, slot: 0}},
-	{arm: 4, layer: noAreaLayer, stages: 2, stage: fireSacrificeStage, sacrifice: true},
+	{arm: 4, layer: noAreaLayer, stages: 2, stage: fireSacrificeStage, firstStageDelay: 1, sacrifice: true},
 	{arm: 7, layer: 1, clears: []uint16{7, 3}, overlay: areaOverlay{drawn: true, slot: 2, secondPass: true}},
 	{arm: 8, layer: 2, clears: []uint16{8}, yieldsTo: 3, poison: true,
 		overlay: areaOverlay{drawn: true, slot: 3, secondPass: true}},
-	{arm: 9, layer: noAreaLayer, stages: 6, stage: acidStreamStage},
+	{arm: 9, layer: noAreaLayer, stages: 6, stage: acidStreamStage, firstStageDelay: 1},
 	{arm: 12, layer: 4, clears: []uint16{12, 17}, unattributed: true, heldToNextPulse: true},
 	{arm: 17, layer: 5, clears: []uint16{12, 17}, blow: true, heldToNextPulse: true},
 	{arm: 19, layer: 3, blocks: true, clears: []uint16{19}, inert: true, unattributed: true,
 		overlay: areaOverlay{drawn: true, slot: 1}},
-	{arm: 21, layer: noAreaLayer, stages: 32, stage: meteorStormStage, draws: true},
+	{arm: 21, layer: noAreaLayer, stages: 32, stage: meteorStormStage, firstStageDelay: 1, draws: true},
 }
 
 // areaLayerSpells is the arm of each cell record layer slot.
@@ -161,6 +163,11 @@ func ringStageDraws(arm uint16) bool {
 func ringStageCount(arm uint16) int {
 	a, _ := areaArmOf(arm)
 	return a.stages
+}
+
+func ringStageDelay(arm uint16) uint8 {
+	a, _ := areaArmOf(arm)
+	return a.firstStageDelay
 }
 
 // Fire Sacrifice: two fixed shells; orientation is ignored.

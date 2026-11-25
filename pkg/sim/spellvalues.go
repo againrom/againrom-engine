@@ -48,7 +48,7 @@ func spellDurationOf(s *spellRow, r Rules, rule SpellRule, power int32, p durati
 	case durationRecord:
 		return spellRecordDurationUnder(s, r, rule, power)
 	case durationArea:
-		return areaLife(s, rule, uint16(power))
+		return areaLife(rule, uint16(power))
 	}
 	return spellPointDurationUnder(s, r, rule, power)
 }
@@ -262,13 +262,13 @@ func spellRecordDurationUnder(s *spellRow, r Rules, rule SpellRule, power int32)
 //
 // A STAGED ROW'S DURATION COLUMN IS NOT READ, because the builder zeroes
 // `+0x4c` on the same arm that selects staged mode. Its life is its own
-// cadence: stage ticks 0, 3, 6, ... and the terminal stage removes the record
-// on the tick it runs (`MAGIC-RING-048`), so the whole life is
-// `(stages - 1) * 3 + 1`. The book popup states the record word instead
+// cadence: stage ticks d, d + 3, d + 6, ... for the arm's first-stage delay d
+// (MAGIC-463) and the terminal stage removes the record on the tick it runs
+// (`MAGIC-RING-048`), so the whole life is `(stages - 1) * 3 + 1 + d`. The book popup states the record word instead
 // (spellRecordDuration).
-func areaLife(s *spellRow, rule SpellRule, power uint16) uint16 {
+func areaLife(rule SpellRule, power uint16) uint16 {
 	if areaModeFor(rule) == areaModeRing {
-		return ringLife(rule.arm()) + uint16(s.second(rule).firstStageDelay)
+		return ringLife(rule.arm()) + uint16(ringStageDelay(rule.arm()))
 	}
 	v := (int64(rule.AreaDuration) << 4)
 	if v > 0 {

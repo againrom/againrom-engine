@@ -87,8 +87,7 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 			Caster: p.Caster, HasCaster: p.HasCaster, Power: p.Power, Phase: p.CloudPhase, Cells: slices.Clone(d.Cells),
 			Current: &CurrentAreaPayload{Radius: v.AE48[1], Stopped: v.SE40 != 0, Payload: *v.AE44}}
 		if d.Mode == areaModeRing {
-			rule, _ := n.findSpell(uint32(e.Spell))
-			delay := n.spellRow().second(rule).firstStageDelay
+			delay := ringStageDelay(n.spellArm(e.Spell))
 			phase := int(v.AE48[3])*3 + 2 - int(v.AE4C) - 3 + int(delay)
 			if v.AE4C > 2 || phase < 0 || phase > 255 {
 				return fmt.Errorf("sim: invalid native ring phase")
@@ -100,8 +99,10 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 					return fmt.Errorf("sim: invalid native ring cells")
 				}
 				e.Cells = slices.Clone(p.RingCells)
-			} else {
+			} else if int(e.Phase) >= int(delay) {
 				e.Cells = canonicalCells(n.ringStageCells(e, (int(e.Phase)-int(delay))/3))
+			} else {
+				e.Cells = nil
 			}
 		}
 		// Absence belongs to the native constructor only while all ordinary

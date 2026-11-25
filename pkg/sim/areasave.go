@@ -34,7 +34,7 @@ func (w *World) NativeAreaSaveStates() ([]AreaSaveState, error) {
 			if ringStageDraws(w.spellArm(e.Spell)) {
 				row.Policy.RingCells = slices.Clone(e.Cells)
 			}
-			phase := uint16(e.Phase) + 3 - uint16(w.spellRow().second(rule).firstStageDelay)
+			phase := uint16(e.Phase) + 3 - uint16(ringStageDelay(w.spellArm(e.Spell)))
 			row.Stage = uint8(phase / 3)
 			row.Remaining = 2 - phase%3
 		}

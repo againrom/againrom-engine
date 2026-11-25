@@ -28,6 +28,9 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] Fire Sacrifice, Acid Stream and Meteor Storm now strike their first cells one tick after the cast, as in the original; before, the first cells were hit on the cast's own tick.
+- [ROM2] A mage's automatic Heal set to allies now also heals the player's own units, and one set to neutral units alone does not, as in the original.
+- [ROM2] Hired and placed humans no longer start a mission ready to back off or flee by their class; they fight on until a Retreat setting tells them otherwise, as in the original.
 - [ROM1] A unit placed on a map now knows the spells the map's unit spell records give it, so a spell given to a unit in the map editor's spell book is in its spell bar in the game; before, it knew only the spells of its kind.
 
 ## 0.160.0

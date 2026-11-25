@@ -42,7 +42,9 @@ const (
 	withdrawalMage
 )
 
-// withdrawalClass is the threshold class of R2-ENGINE-506.
+// withdrawalClass is the threshold class of R2-ENGINE-506. Only a player's
+// Retreat setting writes it (byClassRetreatMode): a hired or placed Human
+// keeps the zero thresholds it is built with (R2-ENGINE-1795).
 func (w *World) withdrawalClass(i int) int {
 	e := &w.entities[i]
 	switch {
@@ -54,30 +56,6 @@ func (w *World) withdrawalClass(i int) int {
 		return withdrawalRanged
 	default:
 		return withdrawalMelee
-	}
-}
-
-// classThresholds sets every Human's thresholds at mission start, a player's
-// Human included: the setter is the template loader's last call and tests
-// only the Human kind (R2-ENGINE-1606). A player's Retreat setting rewrites
-// them later (byClassRetreatMode).
-func (w *World) classThresholds() {
-	if !w.game.classThresholds {
-		return
-	}
-	for i := range w.entities {
-		e := &w.entities[i]
-		if !e.Humanoid {
-			continue
-		}
-		switch w.withdrawalClass(i) {
-		case withdrawalMage:
-			e.Withdraw, e.Wimpy = e.MaxHP, e.MaxHP/4
-		case withdrawalRanged:
-			e.Withdraw, e.Wimpy = e.MaxHP/2, 0
-		default:
-			e.Withdraw, e.Wimpy = 0, 0
-		}
 	}
 }
 

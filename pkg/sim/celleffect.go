@@ -186,7 +186,7 @@ func (w *World) tickCellEffect(index int, obs *castObs) bool {
 			}
 		case areaModeRing:
 			e.Phase++
-			phase := int(e.Phase) - int(w.spellRow().second(rule).firstStageDelay)
+			phase := int(e.Phase) - int(ringStageDelay(w.spellArm(e.Spell)))
 			if phase >= 0 && phase%3 == 0 {
 				stage := phase / 3
 				cells := w.ringStageCells(e, stage)
@@ -371,11 +371,11 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 		return true
 	}
 	if mode == areaModeRing {
-		// R2-ENGINE-812: an ordinary actor inserts after the area pass.
-		// The row's delay keeps stage zero for the next area update.
+		// An actor inserts after the area pass (MAGIC-463, R2-ENGINE-812).
+		// The arm's delay keeps stage zero for the next area update.
 		e.Remaining = spellDurationOf(w.spellRow(), w.rules, rule, int32(power), durationArea)
 		e.Phase = 0
-		if w.spellRow().second(rule).firstStageDelay == 0 {
+		if ringStageDelay(rule.arm()) == 0 {
 			cells := w.ringStageCells(e, 0)
 			e.Cells = canonicalCells(cells)
 			obs.recordPaint(w, e, cells)

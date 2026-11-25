@@ -188,7 +188,6 @@ type secondArmRow struct {
 	drawnDuration, blankCurse, keepsLarger, powerDuration bool
 	// skipsFirstHealth: the first attach changes no health (R2-ENGINE-986).
 	skipsFirstHealth bool
-	firstStageDelay  uint8
 	raise            *corpseRaiseProfile
 }
 
@@ -210,7 +209,7 @@ var spellArms = [...]spellArm{
 	{arm: 7, magnitude: slowMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, caption: captionRow{kind: SpellCaptionSpeed},
 		second: renews},
 	{arm: 8, poisonScaled: true, formulaMagnitude: true, creatureAim: creatureAimVictimCell, second: secondArmRow{keepsLarger: true, skipsFirstHealth: true}},
-	{arm: 9, creatureAim: creatureAimStepCell, second: secondArmRow{keepsLarger: true, firstStageDelay: 1}},
+	{arm: 9, creatureAim: creatureAimStepCell, second: renews},
 	{arm: 10, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 3, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
 	{arm: 11, applies: true, drain: true, creatureAim: creatureAimVictim, second: renews},
@@ -231,7 +230,7 @@ var spellArms = [...]spellArm{
 	{arm: 19, creatureAim: creatureAimVictimCell, second: renews},
 	{arm: 20, applies: true, atActor: true, stoneCurse: true, attachAward: true, lastingDuration: true, durationLaw: lawSegmented,
 		second: secondArmRow{drawnDuration: true, blankCurse: true, keepsLarger: true}, creatureAim: creatureAimVictim},
-	{arm: 21, creatureAim: creatureAimVictimCell, second: secondArmRow{keepsLarger: true, firstStageDelay: 1}},
+	{arm: 21, creatureAim: creatureAimVictimCell, second: renews},
 	{arm: 22, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 1, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
 	{arm: 23, applies: true, atActor: true, sparesMages: true, own: ownEffect{EffectBless, true}, opposite: 27, formulaMagnitude: true, lastingDuration: true,

@@ -131,15 +131,14 @@ type gameProfile struct {
 	// withdrawList: the withdrawal square lists each hostile once by
 	// its anchor cell (AI-697).
 	withdrawList withdrawListRule
-	// classThresholds: every Human's Withdraw and Wimpy come from its class
-	// at mission start (classThresholds).
-	classThresholds bool
 	// retreatMode: the rule that turns a retreat setting into thresholds
 	// (retreatModeRules).
 	retreatMode retreatModeRule
 	// refusedFlee: the answer to a withdrawal move whose far search found no
 	// route (refusedFleeAnswers).
 	refusedFlee refusedFleeRule
+	// supportAffinity: the support target setting's rule (supportAffinities).
+	supportAffinity supportAffinityRule
 	// slope: the rounding of the ground rate's slope term (slopeRules).
 	slope slopeRule
 	// fleeSightExtra: the Wimpy test's hostile square is this many rings wider
@@ -345,9 +344,9 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		fleeOrigin:                 fleeFromCentre,
 		castDropsLoadedStep:        true,
 		withdrawList:               withdrawListAnchor,
-		classThresholds:            true,
 		retreatMode:                retreatModeByClass,
 		refusedFlee:                refusedFleeStops,
+		supportAffinity:            supportAffinityRelation,
 		slope:                      slopeShiftsMagnitude,
 		fleeSightExtra:             5,
 		fleeBlockRadius:            5,

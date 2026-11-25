@@ -374,6 +374,32 @@ func (w *World) autoCastNeutral(ci, ti int) bool {
 	return c.Owner != t.Owner && !w.relations.Locked(c.Owner, t.Owner) && !w.hostileTo(&c, &t)
 }
 
+type supportAffinityRule uint8
+
+const (
+	supportAffinityOwner supportAffinityRule = iota
+	supportAffinityRelation
+)
+
+// supportAffinities: the second game reads the relation byte, whose map
+// diagonal 0x12 holds the ally bit (R2-ENGINE-1793).
+var supportAffinities = [...]func(w *World, c, t *Entity, s AutoCastSetting) bool{
+	supportAffinityOwner: func(w *World, c, t *Entity, s AutoCastSetting) bool {
+		switch {
+		case t.Owner == c.Owner:
+			return s&AutoCastOwn != 0
+		case w.relations.Locked(c.Owner, t.Owner):
+			return s&AutoCastAllies != 0
+		}
+		return s&AutoCastNeutral != 0
+	},
+	supportAffinityRelation: func(w *World, c, t *Entity, s AutoCastSetting) bool {
+		rel := w.relations.Byte(c.Owner, t.Owner)
+		return rel&(relationHostile|relationLocked) == 0 && s&AutoCastNeutral != 0 ||
+			rel&relationLocked != 0 && s&AutoCastAllies != 0 || t.Owner == c.Owner && s&AutoCastOwn != 0
+	},
+}
+
 // autoCastCandidates lists living or raisable, non-hostile actors the
 // automatic choice sees (autoChoiceSees) and the target bits admit, in entity order. The caster is always admitted
 // (R2-ENGINE-360). Range is the cast's own admission. healsHostile keeps hostiles
@@ -398,15 +424,7 @@ func (w *World) autoCastCandidates(ci int, s AutoCastSetting, healsHostile bool)
 				if !healsHostile {
 					continue
 				}
-			case t.Owner == caster.Owner:
-				if s&AutoCastOwn == 0 {
-					continue
-				}
-			case w.relations.Locked(caster.Owner, t.Owner):
-				if s&AutoCastAllies == 0 {
-					continue
-				}
-			case s&AutoCastNeutral == 0:
+			case !supportAffinities[w.game.supportAffinity](w, &caster, &t, s):
 				continue
 			}
 			if w.computerHealRefuses(caster, t) || !w.autoChoiceSees(ci, i, &sight) {
