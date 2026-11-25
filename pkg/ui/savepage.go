@@ -136,6 +136,48 @@ type pageSeams struct {
 	hasSave bool
 	// loadable answers whether the load list has a row without building it.
 	loadable func() bool
+	// characters is the character role's data; nil keeps the defaults.
+	characters *CharacterPage
+}
+
+// CharacterPage is the list page's character role, the page the menu's
+// Multiplayer button opens (MENU-168, R2-ENGINE-1844). It keeps the game's
+// load page window, list and Cancel, with its own title and Ok caption;
+// Delete shows only where the game's original page has it. Its list is empty:
+// no character file is read (DIV-2369).
+type CharacterPage struct {
+	Title, OK string
+	Delete    bool
+}
+
+func defaultCharacterPage() CharacterPage {
+	return CharacterPage{Title: "Characters", OK: "Accept", Delete: true}
+}
+
+// SetCharacterPage installs a game's character role data.
+func (a *App) SetCharacterPage(p CharacterPage) { a.flow.pages.characters = &p }
+
+// CharacterList reports whether the list page shows its character role.
+func (a *App) CharacterList() bool { return a.flow.screen == ScreenLoad && a.flow.loadUI.characters }
+
+// characterRole is load page p as the character list: the load page's boxed
+// title holds c's title and its other captions go.
+func (p SavePage) characterRole(c CharacterPage) SavePage {
+	var texts []PageText
+	for _, t := range p.Texts {
+		if t.Box != (image.Rectangle{}) {
+			t.Text = c.Title
+			texts = append(texts, t)
+			break
+		}
+	}
+	p.Texts = texts
+	p.Buttons[loadOKButton].Caption = c.OK
+	if !c.Delete {
+		p.Buttons[loadDeleteButton] = PageButton{}
+	}
+	p.OKNeedsSave = false
+	return p
 }
 
 // SavePages supplies the load page and an optional save page description.
@@ -180,12 +222,22 @@ func firstLoadPage(w LoadWindowWords) SavePage {
 	return p
 }
 
-// loadPage is the page LOAD shows.
+// loadPage is the page LOAD shows, or its character role.
 func (f *flow) loadPage() SavePage {
+	var p SavePage
 	if f.pages.loadSet != nil {
-		return *f.pages.loadSet
+		p = *f.pages.loadSet
+	} else {
+		p = firstLoadPage(f.loadUI.words)
 	}
-	return firstLoadPage(f.loadUI.words)
+	if !f.loadUI.characters {
+		return p
+	}
+	c := defaultCharacterPage()
+	if f.pages.characters != nil {
+		c = *f.pages.characters
+	}
+	return p.characterRole(c)
 }
 
 // hidden reports whether a save page leaves name out of its list.

@@ -92,6 +92,10 @@ type gameFiles struct {
 	savePages       func(*FrontEnd) *ui.SavePages
 	ownSaves        bool
 	boundedSaveView bool
+	// characterDelete shows Delete on the character list page: the first
+	// game's page has it (MENU-ROUTE-163); the second game's page controls are
+	// Unknown (R2-ENGINE-1844).
+	characterDelete bool
 	// orderThresholds keeps each actor's Withdraw and Wimpy in its SAV Order
 	// or command block, written on SAVE and read on LOAD (AI-WITHDRAW-027,
 	// R2-ENGINE-1005).
@@ -227,6 +231,7 @@ var firstGameFiles = gameFiles{
 	purseMoneyWord:    true,
 	missionScreen:     ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true},
 	boundedSaveView:   true,
+	characterDelete:   true,
 	orderThresholds:   true,
 	heroSavedType:     true,
 	missionBookClosed: true,

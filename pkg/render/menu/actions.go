@@ -12,7 +12,14 @@ const (
 	ActionCutscenes
 	ActionCredits
 	ActionExit
+	// ActionMultiplayer opens the character list page (MENU-168,
+	// R2-ENGINE-1844).
+	ActionMultiplayer
 )
+
+// MultiplayerButton is the first game's Multiplayer button: button 2 posts
+// the message that shows the character page (MENU-168, MENU-ROUTE-163).
+const MultiplayerButton = 2
 
 // Button is one main-menu button's binding: its action and the scenario word
 // that names it, or none.
@@ -41,11 +48,12 @@ type Actions struct {
 	CreditsCatchUp   bool
 }
 
-// FirstActions binds the first game's six decoded buttons; buttons 2 and 6
-// carry no action.
+// FirstActions binds the first game's seven decoded buttons; button 6, the
+// Server, carries no action (DIV-2369).
 var FirstActions = func() Actions {
 	var t Actions
 	t.Buttons[NewGameButton-1] = Button{ActionNewGame, "new game"}
+	t.Buttons[MultiplayerButton-1] = Button{ActionMultiplayer, "multi player"}
 	t.Buttons[LoadGameButton-1] = Button{ActionLoad, "load game"}
 	t.Buttons[HallOfFameButton-1] = Button{ActionHallOfFame, "hall of fame"}
 	t.Buttons[CutscenesButton-1] = Button{ActionCutscenes, "cutscenes"}
@@ -56,15 +64,15 @@ var FirstActions = func() Actions {
 
 // SecondActions is the second game's table in mask order (R2-ENGINE-436,
 // R2-ENGINE-437): button i+1 answers mask value 0x80+0x10*i. Button 2 (0x426,
-// unnamed, read as multiplayer) and button 6 (0x487, the web server list)
-// belong to multiplayer and carry no action (DIV-2369). Load is locked while
+// read as multiplayer) opens the character list (R2-ENGINE-1844); button 6
+// (0x487, the web server list) carries no action (DIV-2369). Load is locked while
 // no game*.sav exists. Escape changes nothing on the menu or on the Hall of
 // Fame, and a return to the menu shows no caption until the pointer moves
 // (R2-ENGINE-565).
 var SecondActions = Actions{
 	Buttons: [ButtonCount]Button{
 		{ActionNewGame, "new game"},
-		{ActionNone, "multi player"},
+		{ActionMultiplayer, "multi player"},
 		{ActionCutscenes, "cutscenes"},
 		{ActionCredits, "credits"},
 		{ActionLoad, "load game"},

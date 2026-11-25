@@ -35,7 +35,8 @@ const editorPrefix = "editor."
 var recaptioned = map[string]bool{"keys.action.spell": true}
 
 // laterIDs are ids authored after the dump, like the editor words.
-var laterIDs = map[string]bool{"keys.action.bind-item": true, "keys.action.bind-spell": true}
+var laterIDs = map[string]bool{"keys.action.bind-item": true, "keys.action.bind-spell": true,
+	"characters.title": true, "characters.ok": true}
 
 func TestTablesEqualTheReplacedWords(t *testing.T) {
 	f, err := os.Open(filepath.Join("testdata", "replaced.tsv"))

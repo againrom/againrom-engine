@@ -96,6 +96,11 @@
 "load.delete.yes" = "Да"
 "load.delete.no" = "Нет"
 
+# Character list page the main menu's Multiplayer button opens: its title and
+# its Ok button.
+"characters.title" = "Персонажи"
+"characters.ok" = "Принять"
+
 # Load page: the window listing a refusal over the mods.
 "load.mods.title" = "Сохранение сделано с другими модами"
 "load.mods.ok" = "OK"

@@ -27,6 +27,21 @@ func (f *FrontEnd) wireLoadWindow(a *ui.App) {
 		if pages := filesOf(f.Archives.Game()).savePages; pages != nil {
 			a.SetSavePages(*pages(f))
 		}
+		a.SetCharacterPage(f.characterPage())
+	}
+}
+
+// characterPage is the character list page's data: the engine's title and
+// Ok caption, as the original's texts are not read, and the game's Delete.
+func (f *FrontEnd) characterPage() ui.CharacterPage {
+	selector := 0
+	if f.Font.Value() != nil {
+		selector = f.Font.Value().Selector
+	}
+	return ui.CharacterPage{
+		Title:  encodeEngineWord(f.Words.Engine.Text("characters.title"), selector),
+		OK:     encodeEngineWord(f.Words.Engine.Text("characters.ok"), selector),
+		Delete: filesOf(f.Archives.Game()).characterDelete,
 	}
 }
 

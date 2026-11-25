@@ -100,10 +100,10 @@ func TestSecondMenuLocksLoadWithoutSave(t *testing.T) {
 	}
 }
 
-func TestSecondMenuMultiplayerButtonsDoNothingAndCutscenesOpen(t *testing.T) {
+func TestSecondMenuServerButtonDoesNothingAndCutscenesOpen(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	assets := secondAppAssets(t)
-	for _, b := range []int{2, 6} {
+	for _, b := range []int{6} {
 		if got := assets.Binding(b); got.Action != menu.ActionNone || got.Name == "" {
 			t.Fatalf("button %d binding %+v, want a named button with no action", b, got)
 		}

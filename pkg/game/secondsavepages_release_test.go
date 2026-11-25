@@ -103,7 +103,7 @@ func TestReleaseSecondGameMenuButtonsReachTheirScreens(t *testing.T) {
 		name   string
 		want   ui.Screen
 	}{
-		{menu.ActionNone, "multi player", ui.ScreenMenu},
+		{menu.ActionMultiplayer, "multi player", ui.ScreenLoad},
 		{menu.ActionNone, "server", ui.ScreenMenu},
 		{menu.ActionCredits, "credits", ui.ScreenCredits},
 		{menu.ActionHallOfFame, "hall of fame", ui.ScreenEnding},

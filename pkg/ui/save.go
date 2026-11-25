@@ -656,13 +656,22 @@ func (f *flow) takeMenuExit() bool {
 // open is a state this story does not produce — the only writer is the mini-menu
 // behind it — and a list rebuilt every frame would move the selection under the
 // player's hand.
-func (f *flow) openLoad(back Screen) {
+func (f *flow) openLoad(back Screen) { f.openListPage(back, false) }
+
+// openCharacters shows the list page's character role over the menu, with an
+// empty list: no character file is read (DIV-2369).
+func (f *flow) openCharacters() { f.openListPage(ScreenMenu, true) }
+
+// openListPage opens the list page in its load role, or in its character role
+// when characters is set.
+func (f *flow) openListPage(back Screen, characters bool) {
 	f.loadUI.resetPointer()
 	f.loadUI.confirm = false
 	f.loadUI.mismatch, f.loadUI.mismatchTown = nil, false
 	f.loadUI.remove = nil
+	f.loadUI.characters = characters
 	f.saves = nil
-	if f.saveList != nil {
+	if f.saveList != nil && !characters {
 		f.saves = f.saveList()
 	}
 	rows := make([]PickerRow, len(f.saves))
@@ -673,7 +682,9 @@ func (f *flow) openLoad(back Screen) {
 	f.loadBack = back
 	f.setScreen(ScreenLoad)
 	f.menuPlacement().underlay.raise(f)
-	if f.saveList == nil {
+	if characters {
+		f.msg = ""
+	} else if f.saveList == nil {
 		f.msg = "this build has nowhere to load from"
 	} else if len(f.saves) == 0 {
 		f.msg = "no saved games"
@@ -690,6 +701,7 @@ func (f *flow) openLoad(back Screen) {
 // elapsed map and ambient-animation span.
 func (f *flow) closeLoad() {
 	f.loadUI.resetPointer()
+	f.loadUI.characters = false
 	back := f.loadBack
 	if back == ScreenGameMenu && f.pages.menu.WindowsCloseMenu {
 		f.closeGameMenu()
@@ -715,7 +727,9 @@ func (f *flow) closeLoad() {
 // and a mark here would outlive nothing: the list is rebuilt every time the
 // window opens.
 func (f *flow) chooseLoad() {
-	if f.screen != ScreenLoad || f.loadList == nil {
+	// Ok on the character list does nothing: the list holds no entry and no
+	// character creation runs from it (DIV-2369).
+	if f.screen != ScreenLoad || f.loadList == nil || f.loadUI.characters {
 		return
 	}
 	i, ok := f.loadList.Choose()

@@ -53,6 +53,9 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 	layout := v.page.layout()
 	for i, b := range v.page.Buttons {
 		r := layout.rect(i)
+		if r.Empty() {
+			continue
+		}
 		inside := pageHover && pointer.In(r)
 		drawPushButton(pix, font, pushButton{Rect: r, Label: b.Caption, Hover: inside, Inside: inside,
 			Pressed: v.ui.press.Pressed(i), Disabled: a.flow.pageButtonDisabled(v, i)})

@@ -2339,6 +2339,8 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 			a.openCutsceneLibrary()
 		case menu.ActionCredits:
 			a.openCredits(ScreenMenu)
+		case menu.ActionMultiplayer:
+			a.flow.openCharacters()
 		case menu.ActionExit:
 			return true
 		}

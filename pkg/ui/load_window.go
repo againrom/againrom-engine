@@ -41,6 +41,8 @@ type loadWindow struct {
 	// question is the delete question of a page that asks in a window; it
 	// owns the page's input while the deletion awaits its answer.
 	question dialogRun
+	// characters: the load screen shows the list page's character role.
+	characters bool
 }
 
 func (w *loadWindow) resetPointer() {
