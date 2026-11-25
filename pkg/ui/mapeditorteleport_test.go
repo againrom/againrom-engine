@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"image"
 	"slices"
 	"strconv"
@@ -46,10 +45,7 @@ func TestSecondGameActionTwentyFiveEventTwentyThreeReadsAsTeleport(t *testing.T)
 		t.Errorf("title %q, want %q", got, want)
 	}
 	params := e.nodeParams(false, 25, mission53Teleport.Types, mission53Teleport.Values)
-	want := []string{e.word("editor.role.event") + " 23", e.word("editor.role.unreadpower") + " 255",
-		e.word("editor.role.entry") + " 15,121",
-		e.word("editor.role.source") + " " + fmt.Sprintf(e.word("editor.node.follows"), "15,121", e.word("editor.role.entry")),
-		e.word("editor.role.exit") + " 13,22"}
+	want := []string{e.word("editor.role.entry") + " 15,121", e.word("editor.role.exit") + " 13,22"}
 	if !slices.Equal(params, want) {
 		t.Errorf("parameters %q, want %q", params, want)
 	}
@@ -144,5 +140,56 @@ func TestSecondGameTeleportFromPlainActionTwentyFiveWritesDefaults(t *testing.T)
 		if values[key] != want {
 			t.Fatalf("Apply sends %+v, want %s = %d", got, key, want)
 		}
+	}
+}
+
+// The action line of a teleport names the operation, the entry cell and the
+// exit cell; a power or source off its default shows again.
+func TestSecondGameTeleportActionLineHidesDefaults(t *testing.T) {
+	e := teleportEditor(t, mission53Teleport)
+	got := e.nodeParams(false, 25, mission53Teleport.Types, mission53Teleport.Values)
+	want := []string{e.word("editor.role.entry") + " 15,121", e.word("editor.role.exit") + " 13,22"}
+	if !slices.Equal(got, want) {
+		t.Errorf("line %q, want %q", got, want)
+	}
+	off := mission53Teleport.Values
+	off[1], off[4] = 100, 1
+	got = e.nodeParams(false, 25, mission53Teleport.Types, off)
+	if len(got) != 4 || got[0] != e.word("editor.role.unreadpower")+" 100" || got[2] != e.word("editor.role.source")+" 1,121" {
+		t.Errorf("off-default line %q", got)
+	}
+}
+
+// The wizard offers the teleport as a ready row under the cells heading, reads
+// a teleport node into it, and writes the node's bytes back as the form does.
+func TestSecondGameWizardOffersTeleportRow(t *testing.T) {
+	e := teleportEditor(t, mission53Teleport)
+	items := e.wizItems(false)
+	i := slices.IndexFunc(items, func(it wizItem) bool { return it.labelWord == "editor.second.action.25.teleport" })
+	if i < 0 || items[i].subject != subjectCells || len(items[i].params) != 2 {
+		t.Fatalf("no teleport row under the cells heading: %d", i)
+	}
+	it := items[i]
+	out := make([]string, len(it.params)+1)
+	if !e.readParams(it, mission53Teleport, false, out[1:]) || out[1] != "15,121" || out[2] != "13,22" {
+		t.Fatalf("read %q", out)
+	}
+	// The node read into the row writes back the same bytes (a cell inside
+	// the fixture's map).
+	inside := mission53Teleport
+	inside.Values[3], inside.Values[5] = 21, 21
+	if !e.readParams(it, inside, false, out[1:]) {
+		t.Fatal("the teleport node is not read")
+	}
+	row := wizRow{item: i, vals: []string{strconv.Itoa(i), out[1], out[2]}}
+	n, _, _, err := e.wizardNode(row)
+	want := inside.Values
+	if err != nil || n.Opcode != 25 || n.Types != inside.Types || n.Values != want {
+		t.Fatalf("wrote %+v, %v", n, err)
+	}
+	off := mission53Teleport
+	off.Values[1] = 7
+	if e.readParams(it, off, false, out[1:]) {
+		t.Fatal("a teleport with another power is read as the ready row")
 	}
 }

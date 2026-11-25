@@ -217,6 +217,17 @@ func followed(f scriptprofile.Form, s int, types, values [10]uint32) (int, bool)
 	return from, types[s] == types[from] && types[s+1] == types[from+1] && values[s] == values[from] && values[s+1] == values[from+1]
 }
 
+// formSlotHidden reports a slot of a form node the action line leaves out:
+// the value that chose the form, a slot holding its default, and a cell that
+// copies the cell it follows. A value off those still shows.
+func (e *MapEditor) formSlotHidden(f scriptprofile.Form, s int, types, values [10]uint32) bool {
+	if d, ok := f.Defaults[s]; ok && values[s] == d || s == 0 {
+		return true
+	}
+	_, same := followed(f, s, types, values)
+	return same
+}
+
 // cmpWord is a comparison code in words (TRIG-CMP-006); a code above 5 never
 // holds.
 func (e *MapEditor) cmpWord(code int64) string {
@@ -351,14 +362,17 @@ func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]
 		if t == scriptNone {
 			continue
 		}
+		if formOK && e.formSlotHidden(form, s, types, values) {
+			if t == scriptX && s+1 < len(types) && types[s+1] == scriptY {
+				s++
+			}
+			continue
+		}
 		label := e.slotLabel(condition, opcode, command, s, t)
 		value := e.targetText(t, v)
 		switch {
 		case t == scriptX && s+1 < len(types) && types[s+1] == scriptY:
 			value = fmt.Sprintf("%d,%d", v, values[s+1])
-			if from, same := followed(form, s, types, values); formOK && same {
-				value = fmt.Sprintf(e.word("editor.node.follows"), value, e.slotLabel(condition, opcode, command, from, types[from]))
-			}
 			s++
 		case e.groupCommandNode(condition, opcode) && s == 0 && t == scriptConst:
 			value = e.commandName(v)

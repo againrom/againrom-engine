@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"fmt"
 	"image"
+	"maps"
 	"math"
 	"slices"
 	"strconv"
@@ -56,6 +57,12 @@ type wizParam struct {
 	slot      uint32
 }
 
+// wizPin is one node slot an item holds at a fixed value.
+type wizPin struct {
+	at        int
+	typ, hold uint32
+}
+
 // wizItem is one entry of the ready list. A condition is its check compared
 // with a constant: by cmp with right, or, with chooseCmp, by the comparison
 // the row chooses, cmp its first; rightParam names the parameter that holds
@@ -69,20 +76,25 @@ type wizParam struct {
 // variant is the nearest earlier item with its opcode under another command:
 // the list shows the two as one entry; the row's command chooses.
 type wizItem struct {
-	order         int
-	labelWord     string
-	subject       int
-	variant       bool
-	opcode        uint32
-	params        []wizParam
-	cmp           int
-	chooseCmp     bool
-	right         int64
-	rightParam    int
-	rightType     uint32
-	also          [][2]int64
-	holds         bool
-	fixed         [][2]uint32
+	order      int
+	labelWord  string
+	subject    int
+	variant    bool
+	opcode     uint32
+	params     []wizParam
+	cmp        int
+	chooseCmp  bool
+	right      int64
+	rightParam int
+	rightType  uint32
+	also       [][2]int64
+	holds      bool
+	fixed      [][2]uint32
+	// pins are node slots a form of the operation states itself: the slot,
+	// its type and the value it holds. follows maps a cell's X slot to the
+	// X slot of the cell it copies. Neither is a parameter.
+	pins          []wizPin
+	follows       map[int]int
 	onePerTrigger bool
 	hintWord      string
 	// interactive marks the dialog item that starts a dialogue file: it and
@@ -188,6 +200,9 @@ func opItems(rows []scriptprofile.Op) []wizItem {
 			commands := op.Commands
 			if len(commands) == 0 {
 				commands = []uint32{0}
+				if preset.Command != 0 {
+					commands = []uint32{preset.Command}
+				}
 			}
 			var layouts [][10]scriptprofile.Slot
 			for _, c := range commands {
@@ -198,8 +213,10 @@ func opItems(rows []scriptprofile.Op) []wizItem {
 				if !ok || slices.Contains(layouts, slots) {
 					continue
 				}
-				params := slotParams(slots, int64(c), preset)
+				pins, follows := formPins(op, c, slots)
+				params := slotParams(slots, int64(c), preset, pins, follows)
 				it := wizItem{
+					pins: pins, follows: follows,
 					order: preset.Order, opcode: op.ID, labelWord: op.Word, hintWord: preset.Hint,
 					params: params, subject: paramSubject(params), fixed: fixed,
 					variant: preset.Variant || len(layouts) > 0, interactive: preset.DialogSource == "file",
@@ -228,9 +245,32 @@ func opItems(rows []scriptprofile.Op) []wizItem {
 	return out
 }
 
+// formPins are the slots the form of op whose first parameter is c states
+// itself: that parameter, each slot at its default, and the cells that copy
+// another cell; none for an operation without that form.
+func formPins(op scriptprofile.Op, c uint32, slots [10]scriptprofile.Slot) ([]wizPin, map[int]int) {
+	f, ok := op.FormOf(c)
+	if !ok || len(op.Commands) > 0 {
+		return nil, nil
+	}
+	pins := []wizPin{{0, slots[0].Type, f.Value}}
+	for _, s := range slices.Sorted(maps.Keys(f.Defaults)) {
+		pins = append(pins, wizPin{s, slots[s].Type, f.Defaults[s]})
+	}
+	return pins, f.Follows
+}
+
+// pinned reports node slot s held at a value or copied from another cell.
+func pinned(s int, pins []wizPin, follows map[int]int) bool {
+	_, copied := follows[s]
+	_, copiedY := follows[s-1]
+	return copied || copiedY || slices.ContainsFunc(pins, func(p wizPin) bool { return p.at == s })
+}
+
 // slotParams keeps each field tied to its node slot even when the wizard
-// presents the group first or repeats the fields for a second node.
-func slotParams(slots [10]scriptprofile.Slot, c int64, preset scriptprofile.WizardPreset) []wizParam {
+// presents the group first or repeats the fields for a second node. A slot
+// the item pins or copies is no field.
+func slotParams(slots [10]scriptprofile.Slot, c int64, preset scriptprofile.WizardPreset, pins []wizPin, follows map[int]int) []wizParam {
 	var out []wizParam
 	if preset.DialogSource != "" {
 		source := wizParam{kind: wpSource, labelWord: "editor.wizard.p.source"}
@@ -241,7 +281,7 @@ func slotParams(slots [10]scriptprofile.Slot, c int64, preset scriptprofile.Wiza
 	}
 	for s := 0; s < len(slots); s++ {
 		slot := slots[s]
-		if slot.Type == scriptNone {
+		if slot.Type == scriptNone || pinned(s, pins, follows) {
 			continue
 		}
 		p := slotParam(slot, c)
@@ -452,6 +492,12 @@ func (it wizItem) itemSlots(right bool) (types [10]uint32, at []int, fixed int) 
 		for k, f := range it.fixed {
 			types[fixed+k] = f[0]
 		}
+		for _, p := range it.pins {
+			types[p.at] = p.typ
+		}
+		for s := range it.follows {
+			types[s], types[s+1] = scriptX, scriptY
+		}
 	}
 	return types, at, fixed
 }
@@ -588,6 +634,18 @@ func (e *MapEditor) readParams(it wizItem, n InspectionScriptNode, right bool, o
 	for k, f := range it.fixed {
 		if !right && n.Values[fixed+k] != f[1] {
 			return false
+		}
+	}
+	if !right {
+		for _, p := range it.pins {
+			if n.Values[p.at] != p.hold {
+				return false
+			}
+		}
+		for s, from := range it.follows {
+			if n.Values[s] != n.Values[from] || n.Values[s+1] != n.Values[from+1] {
+				return false
+			}
 		}
 	}
 	return true
@@ -1520,6 +1578,13 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 	}
 	for k, f := range it.fixed {
 		n.Types[fixed+k], n.Values[fixed+k] = f[0], f[1]
+	}
+	for _, p := range it.pins {
+		n.Types[p.at], n.Values[p.at] = p.typ, p.hold
+	}
+	for s, from := range it.follows {
+		n.Types[s], n.Types[s+1] = scriptX, scriptY
+		n.Values[s], n.Values[s+1] = n.Values[from], n.Values[from+1]
 	}
 	if !row.condition {
 		return n, rn, 0, nil

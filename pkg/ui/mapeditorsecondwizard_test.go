@@ -67,12 +67,12 @@ func TestSecondGameTriggerWizardOffersTheOperationRows(t *testing.T) {
 			t.Errorf("no ready row for check %d", id)
 		}
 	}
-	for _, id := range []uint32{6, 21, 24} {
+	for _, id := range []uint32{6, 21, 24, 25} {
 		if _, ok := actions[id]; !ok {
 			t.Errorf("no ready row for action %d", id)
 		}
 	}
-	for _, id := range []uint32{25, 0x10002} {
+	for _, id := range []uint32{0x10002} {
 		if _, ok := actions[id]; ok {
 			t.Errorf("action %d has a ready row", id)
 		}

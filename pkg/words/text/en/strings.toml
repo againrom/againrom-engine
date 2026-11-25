@@ -1623,7 +1623,6 @@
 "editor.role.entry" = "Entry cell"
 "editor.role.source" = "Source cell"
 "editor.role.exit" = "Exit cell"
-"editor.node.follows" = "%s, as %s"
 "editor.node.followslabel" = "%s (as %s)"
 "editor.cast.teleport" = "Teleport: %d,%d to %d,%d"
 "editor.second.action.28" = "Move unit's bag into the second unit's bag"

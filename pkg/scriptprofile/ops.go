@@ -602,6 +602,7 @@ var secondActions = []Op{
 	// equal to the cell (R2-ASSET-386, R2-ASSET-387). What another event does
 	// is unread.
 	{Ops: OpsSecond, ID: 25, Name: "Cell descriptor of eight bytes", Word: "editor.second.action.25", Decoded: true, Offered: true, EffectUnread: true, Signature: sig(number(""), number(""), cell("cell"), cell("cell2"), cell("")),
+		Presets: []WizardPreset{{Order: 35, Word: "editor.second.action.25.teleport", Command: CellMoveEvent}},
 		Forms: []Form{{Value: CellMoveEvent, Name: "Teleport", Word: "editor.second.action.25.teleport",
 			Signature: sig(number("event"), number("unreadpower"), cell("entry"), cell("source"), cell("exit")),
 			Defaults:  map[int]uint32{1: 255}, Follows: map[int]int{4: 2}}}},

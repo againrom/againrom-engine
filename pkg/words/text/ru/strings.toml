@@ -1555,7 +1555,6 @@
 "editor.role.entry" = "Клетка входа"
 "editor.role.source" = "Клетка источника"
 "editor.role.exit" = "Клетка выхода"
-"editor.node.follows" = "%s, как %s"
 "editor.node.followslabel" = "%s (как %s)"
 "editor.cast.teleport" = "Телепорт: %d,%d -> %d,%d"
 "editor.second.action.28" = "Переложить сумку отряда в сумку второго отряда"
