@@ -177,6 +177,8 @@ var castRequestCases = []castRequestCase{
 		}},
 	{name: "manual-replaces-unpaid-wind-up", caster: 1, ticks: 60, world: crManualWorld, start: crCast,
 		then: crAt(2, CastAt(1, 26, CellPoint{X: 6, Y: 3}))},
+	// The second-game record keeps the damage kind a point tail leaves as the
+	// kill credit spell, not the spell id (R2-ENGINE-1826), so spell 3 differs.
 	{name: "manual-behind-paid-wind-up", caster: 1, ticks: 80, world: replacementManaWorld, start: crCast,
 		then: crAt(1, Cast(1, 2, 3))},
 	{name: "manual-repeat", caster: 1, ticks: 60, world: replacementManaWorld, start: crCast,
