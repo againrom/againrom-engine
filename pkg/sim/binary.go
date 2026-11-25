@@ -1649,7 +1649,7 @@ func (w *World) tailCapacity(body int) int {
 // rows as the outer sections, the mod globals, then the walk counters
 // outermost. Hash digests these bytes.
 func (w *World) encodeInto(b []byte) []byte {
-	return w.appendWalkRefresh(w.appendScriptGlobals(w.appendStructureOwners(w.appendWideRegisters(w.appendAreaHitCounts(w.appendBeyondBooks(w.appendActorKinds(w.appendDeadRanks(w.appendPurses(w.appendVictimKinds(w.appendBuildingCasters(w.appendDeathItems(w.appendExtendedScript(w.appendRewardMarks(w.appendSummonKeys(w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b))))))))))))))))))))
+	return w.appendOutposts(w.appendWalkRefresh(w.appendScriptGlobals(w.appendStructureOwners(w.appendWideRegisters(w.appendAreaHitCounts(w.appendBeyondBooks(w.appendActorKinds(w.appendDeadRanks(w.appendPurses(w.appendVictimKinds(w.appendBuildingCasters(w.appendDeathItems(w.appendExtendedScript(w.appendRewardMarks(w.appendSummonKeys(w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b)))))))))))))))))))))
 }
 
 func (w *World) appendRewardMarks(b []byte) []byte {

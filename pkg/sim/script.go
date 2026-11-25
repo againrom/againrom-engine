@@ -492,6 +492,9 @@ type ScriptInstant struct {
 	HasItem      bool
 	Structure    StructureID
 	HasStructure bool
+	// LateGroup marks a second-game action whose group parameter is a late
+	// reference; it reads as group 0 and takes no argument slot.
+	LateGroup bool `json:",omitempty"`
 }
 
 // ScriptPair is one of a trigger's three condition pairs: two REGISTER

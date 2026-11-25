@@ -1223,5 +1223,7 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 		out.SetRandom(random.Original, base.RandomState())
 	}
 	out.ConstructMissionMovers(st.IDs)
+	// The type-10 pass reads the Groups and Players restored above.
+	out.DeclareOutposts(Outposts(m, t))
 	return out, st, nil
 }

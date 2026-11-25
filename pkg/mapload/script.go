@@ -459,6 +459,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 			Player: refd.player, HasPlayer: refd.hasPlayer,
 			Item: refd.item, HasItem: refd.hasItem,
 			Structure: refd.structure, HasStructure: refd.hasStructure,
+			LateGroup: refd.lateGroup,
 		})
 	}
 
@@ -716,6 +717,7 @@ type bound struct {
 	// slot a late reference took is spent like a carried one.
 	late      int
 	groupSeen bool
+	lateGroup bool
 }
 
 // lateReference reports a second-game value the compiler leaves for the
@@ -768,7 +770,7 @@ func bindParams(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool,
 			case typePlayer:
 				b.seenPlayer++
 			default:
-				b.groupSeen = true
+				b.groupSeen, b.lateGroup = true, true
 			}
 		case t == typeUnit:
 			id, ok := unitBodies[p.Units](v, refs)

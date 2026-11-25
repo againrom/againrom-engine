@@ -115,6 +115,16 @@ func originalFileSources() []originalFileSource {
 				applyOriginalBuildingCasters(ms, src.virtualCasters)
 			},
 		},
+		{
+			// A SAV holds no Outpost field (R2-SESSION-502); a load builds
+			// each Outpost the map gave in its loaded state.
+			name: "Outposts",
+			adoptMission: func(_ *originalSource, ms *Mission) {
+				if ms != nil && ms.World != nil {
+					ms.World.AdoptLoadedOutposts()
+				}
+			},
+		},
 	}
 }
 

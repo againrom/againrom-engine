@@ -109,6 +109,10 @@ type Profile struct {
 	// StraightCone is the build's straight Acid Stream x offsets per pulse; a
 	// nil row is the symmetric wedge.
 	StraightCone [5][]int32
+
+	// OutpostSpread: the type-10 pass keeps the members' spread as an
+	// Outpost's radius (R2-ENGINE-511).
+	OutpostSpread bool
 }
 
 // GameOf is the profile's game.
@@ -186,6 +190,8 @@ var Profiles = []Profile{
 		Language: "russian",
 		Builds:   []Build{{Size: 6416437, SHA256: "d51b031c9fbc09d2b15bca837c615619d7987fa09f6daa3c2ef248b86cb4c3e2"}},
 		Limits:   rom2Limits,
+		// R2-ENGINE-511: the Russian group function stores the spread.
+		OutpostSpread: true,
 	},
 }
 

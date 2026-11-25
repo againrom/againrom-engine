@@ -1986,6 +1986,7 @@ func (w *World) runNativeTickPhase(tr *ScriptTrace, obs *castObs, withdrawals *w
 		w.buildingCasterPass()
 	case worldPassPhase:
 		w.summonCapPass()
+		w.outpostPass()
 	case scriptReportPhase:
 		if tr != nil {
 			tr.Report = true

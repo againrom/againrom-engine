@@ -25,6 +25,8 @@ type actorCreationProfile struct {
 	// reuse is the taken unit's id, which the creature keeps; 0 mints the
 	// next id.
 	reuse EntityID
+	// ungrouped: no new Group; the caller puts the actor in its Group.
+	ungrouped bool
 }
 
 // createActor is the one runtime builder of an actor and its group: the cheat
@@ -123,7 +125,7 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 		w.keepCandidateDraws(&n, keepDraws)
 		return 0, fmt.Errorf("sim: created source actor cannot derive owned state")
 	}
-	if !p.inherited {
+	if !p.inherited && !p.ungrouped {
 		container, owner := w.cheatSummonOwner(template.Owner, anchorX, anchorY)
 		if !n.newSavedCommandGroup([]int{i}, orderNone, cell{x: px, y: py}, true, container, false) {
 			w.keepCandidateDraws(&n, keepDraws)

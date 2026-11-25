@@ -1665,6 +1665,7 @@
 "editor.second.action.28" = "Move unit's bag into the second unit's bag"
 "editor.second.action.29" = "Set time left of a spell's area effects at cell"
 "editor.second.action.30" = "Set duration of a spell's effects on unit"
+"editor.second.action.31" = "Set group's Outpost return countdown"
 "editor.second.action.32" = "Take each group member off the map"
 "editor.second.action.33" = "Put each group member back on the map"
 "editor.second.action.34" = "Set unit health (6), defence (15) or absorption (16)"

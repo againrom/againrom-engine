@@ -28,6 +28,7 @@ const (
 	ScriptInstantClearGroupActivity int32 = 39
 	ScriptInstantMoveItem           int32 = 11
 	ScriptInstantRelocateUnit       int32 = 27
+	ScriptInstantOutpostCountdown   int32 = 31
 )
 
 type rom2ScriptState struct {
@@ -159,6 +160,15 @@ func secondGameScriptRows() scriptOpRows {
 					}
 					w.runInstant(ScriptInstant{Op: ScriptInstantTakeItem, Unit: w.entities[i].ID, HasUnit: true, Item: in.Item, HasItem: true})
 				}
+			},
+			// R2-ENGINE-1701: p0 the group number, from a group slot when
+			// the node names one, p1 the countdown.
+			ScriptInstantOutpostCountdown: func(w *World, in ScriptInstant, _ *castObs) {
+				group, at := uint32(in.Args[0]), 1
+				if in.HasGroup || in.LateGroup {
+					group, at = in.Group, 0
+				}
+				w.setOutpostCountdown(group, in.Args[at])
 			},
 			ScriptInstantClearGroupActivity: func(w *World, in ScriptInstant, _ *castObs) {
 				if in.HasGroup {

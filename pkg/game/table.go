@@ -64,6 +64,7 @@ func LoadDefinitionsOf(fsys *vfs.FS, p base.Profile) (*Definitions, error) {
 	d, err := loadDefinitionsFor(fsys, p.GameOf())
 	if err == nil {
 		d.Table.StraightCone = sim.StraightCone(p.StraightCone)
+		d.Table.OutpostSpread = p.OutpostSpread
 	}
 	return d, err
 }

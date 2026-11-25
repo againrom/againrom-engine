@@ -124,7 +124,7 @@ func TestTownSourceTableChoosesOneRowPerFile(t *testing.T) {
 			t.Errorf("row %q holds a test without its reader", row.name)
 		}
 	}
-	if len(rows) != 7 {
-		t.Errorf("%d rows, want the three town sources, the state store, the document, capture and casters", len(rows))
+	if len(rows) != 8 {
+		t.Errorf("%d rows, want the three town sources, the state store, the document, capture, casters and Outposts", len(rows))
 	}
 }

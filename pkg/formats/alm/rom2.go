@@ -196,6 +196,31 @@ func (m *Map) StructureActions() (out []StructureAction, ok bool) {
 	return out, true
 }
 
+// OutpostEntry is one type-10 record: the group number it names, the reload
+// percent, its flag bits and an action index (R2-ENGINE-510).
+type OutpostEntry struct {
+	Group   uint32
+	Percent int32
+	Flags   uint32
+	Action  int32
+}
+
+// OutpostEntries decodes the type-10 records in file order. ok is false when
+// the map carries no type-10 record.
+func (m *Map) OutpostEntries() (out []OutpostEntry, ok bool) {
+	p := m.Extension[0]
+	if len(p) == 0 || len(p)%rom2Type10Size != 0 {
+		return nil, false
+	}
+	le := binary.LittleEndian
+	for at := 0; at < len(p); at += rom2Type10Size {
+		rec := p[at:]
+		out = append(out, OutpostEntry{Group: le.Uint32(rec), Percent: int32(le.Uint32(rec[4:])),
+			Flags: le.Uint32(rec[8:]), Action: int32(le.Uint32(rec[12:]))})
+	}
+	return out, true
+}
+
 // MusicArea is one type-12 record: centre and radius in tiles and four
 // themes, each an index into the mission list or -1 for none (R2-ASSET-084).
 type MusicArea struct {

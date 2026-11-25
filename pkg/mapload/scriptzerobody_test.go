@@ -43,3 +43,25 @@ func TestSecondGameAliveCheckMarksABodyPlacedAtZeroHealth(t *testing.T) {
 		}
 	}
 }
+
+// A second-game action 31 whose group parameter is a late reference keeps p1
+// as the countdown and names group 0; every other action's group slot stays
+// as it was.
+func TestSecondGameLateGroupActionKeepsItsCountdownArgument(t *testing.T) {
+	src := alm.Script{Actions: []alm.ScriptNode{
+		node("late group", 31, 1, par(2, 8500), par(1, 7)),
+		node("plain group", 31, 2, par(2, 7), par(1, 9)),
+		node("late group other", 24, 3, par(2, 8500)),
+	}}
+	s, _, err := mapload.CompileROM2ScriptFrom(src, mapload.ScriptRefs{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := s.Instants()
+	if !in[0].LateGroup || in[0].HasGroup || in[0].Args[0] != 7 {
+		t.Fatalf("late group action = %+v", in[0])
+	}
+	if in[1].LateGroup || !in[1].HasGroup || in[1].Group != 7 || in[1].Args[0] != 9 {
+		t.Fatalf("plain group action = %+v", in[1])
+	}
+}

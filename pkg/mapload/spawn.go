@@ -129,6 +129,8 @@ type Table struct {
 
 	// StraightCone is the build's straight Acid Stream rows.
 	StraightCone sim.StraightCone
+	// OutpostSpread: the build keeps a type-10 group's spread as its radius.
+	OutpostSpread bool
 
 	// DocumentCellPlanes marks a World whose cell planes a loaded document
 	// supplies: Planes names no installed base, so the World is built without

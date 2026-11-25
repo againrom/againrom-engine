@@ -316,13 +316,10 @@ func TestSecondGameAction1IncrementsRegister902AndGapsRemain(t *testing.T) {
 		t.Fatalf("ROM1 action 1 gaps=%+v", rom1.Unsupported())
 	}
 
-	// Action 31 remains an unsupported gap in ROM2 (DIV-5103).
+	// Actions 11, 27 and 31 have second-game rows.
 	debt := secondGameScript(t, nil, []ScriptInstant{{Op: 11}, {Op: 27}, {Op: 31}}, nil)
-	wantGaps := []ScriptGap{
-		{Kind: ScriptGapInstant, Op: 31, Index: 2},
-	}
-	if !slices.Equal(debt.Unsupported(), wantGaps) {
-		t.Fatalf("ROM2 open-debt action gaps=%+v, want %+v", debt.Unsupported(), wantGaps)
+	if gaps := debt.Unsupported(); len(gaps) != 0 {
+		t.Fatalf("ROM2 action gaps=%+v, want none", gaps)
 	}
 }
 

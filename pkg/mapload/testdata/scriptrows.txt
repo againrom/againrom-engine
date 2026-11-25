@@ -111,6 +111,7 @@
 1 false 0x1c|Move unit's bag into the second unit's bag|DO-|4:unit,4:unit2
 1 false 0x1d|Set time left of a spell's area effects at cell|DO-|5:cell,6:,1:spell,1:time
 1 false 0x1e|Set duration of a spell's effects on unit|DO-|4:unit,1:spell,1:time
+1 false 0x1f|Set group's Outpost return countdown|DO-|2:group,1:countdown
 1 false 0x20|Take each group member off the map|DO-|2:group
 1 false 0x21|Put each group member back on the map|DO-|2:group
 1 false 0x22|Set unit health, defence or absorption|DO-|4:unit,1:,1:value

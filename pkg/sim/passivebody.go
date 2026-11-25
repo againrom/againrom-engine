@@ -124,6 +124,23 @@ func (w *World) retainPassiveBody(i int) {
 	if !w.passiveBodyOwner(e.ID) {
 		return
 	}
+	b := w.passiveHoldings(i)
+	if b.empty() {
+		return
+	}
+	if e.MapUnitID == 0 && e.SourceBinding.Class == 0 {
+		body := passiveEntity(e)
+		b.Body = &body
+	}
+	rows := slices.DeleteFunc(slices.Clone(w.passiveBodies), func(r PassiveBody) bool { return r.ID == e.ID })
+	w.passiveBodies = append(rows, b)
+	w.sortPassiveBodies()
+}
+
+// passiveHoldings is entity i's worn and carried items in passive item form:
+// the copy a retained body and an Outpost's template both keep.
+func (w *World) passiveHoldings(i int) PassiveBody {
+	e := w.entities[i]
 	b := PassiveBody{ID: e.ID}
 	for slot, item := range w.equipment[i] {
 		if !item.Empty() {
@@ -140,16 +157,7 @@ func (w *World) retainPassiveBody(i int) {
 		// does not write. DIV-3953.
 		b.Worn[slotWeapon] = ItemInstance{}
 	}
-	if b.empty() {
-		return
-	}
-	if e.MapUnitID == 0 && e.SourceBinding.Class == 0 {
-		body := passiveEntity(e)
-		b.Body = &body
-	}
-	rows := slices.DeleteFunc(slices.Clone(w.passiveBodies), func(r PassiveBody) bool { return r.ID == e.ID })
-	w.passiveBodies = append(rows, b)
-	w.sortPassiveBodies()
+	return b
 }
 
 // heldWeaponOnly is an original dead Unit whose one worn item is its held

@@ -24,7 +24,7 @@ func TestScriptOpRowsAreTheSecondGameOps(t *testing.T) {
 		ScriptInstantCounter, ScriptInstantMessage, ScriptInstantSetScenario,
 		ScriptInstantObjective, ScriptInstantDiagnostic, ScriptInstantTakeItemFromMap,
 		ScriptInstantClearGroupActivity, ScriptInstantLose, ScriptInstantMoveItem,
-		ScriptInstantRelocateUnit,
+		ScriptInstantRelocateUnit, ScriptInstantOutpostCountdown,
 	}
 	for _, op := range instantOps {
 		if rows.instant[op] == nil {

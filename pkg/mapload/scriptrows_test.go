@@ -102,7 +102,7 @@ func TestScriptOperationsAreOfferedInTheOldOrder(t *testing.T) {
 		{scriptprofile.OpsFirst, true, []uint32{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 0x10002, 0x4101}},
 		{scriptprofile.OpsFirst, false, []uint32{2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 30, 32, 33, 34, 0x10002, 0x10003, 0x4100}},
 		{scriptprofile.OpsSecond, true, []uint32{1, 2, 4, 5, 6, 7, 8, 9, 10, 14, 15, 16, 17, 18, 19, 21, 23, 24, 25, 26, 27, 0x10002}},
-		{scriptprofile.OpsSecond, false, []uint32{2, 3, 4, 5, 6, 8, 10, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 32, 33, 34, 35, 36, 38, 39, 0x10002}},
+		{scriptprofile.OpsSecond, false, []uint32{2, 3, 4, 5, 6, 8, 10, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 39, 0x10002}},
 	} {
 		if got := ids(c.ops, c.condition); !reflect.DeepEqual(got, c.want) {
 			t.Errorf("ops %d condition %v: offered %v, want %v", c.ops, c.condition, got, c.want)
