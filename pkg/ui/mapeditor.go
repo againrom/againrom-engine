@@ -88,6 +88,14 @@ type InspectionDocument struct {
 	// PassArms names the bits of Passability, in the order the status line
 	// lists them; the host reads them from its one arm table.
 	PassArms []PassArmRow
+	// PassNote is the word the status line gives when the passability view is
+	// switched on: what its fill claims and does not; "".
+	PassNote string
+	// PassClosed is the hover's word for a cell with arms, one %s for them;
+	// "" is the closed-cell word.
+	PassClosed string
+	// RawHeights shows a stored height as it is, not from the first game's zero.
+	RawHeights bool
 	// Refused is, in a placement's preview, each record the placement
 	// refuses, with its footprint where it would have stood.
 	Refused []SelectionRefusal

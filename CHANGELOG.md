@@ -24,6 +24,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor the unit window's spellcaster button no longer has the yellow caption showing under its label.
 - [ROM2] In the map editor's trigger window, a second-game node now shows its ten text fields beside its label, each marked as read by nothing the game was found to do, and both the label and the texts are edited and saved into their own bytes, also on a node whose operation is not decoded; pages, messages, dialogues and variable names of a second-game map are still not offered.
 - [ROM2] In the map editor, a second-game map's traps now show and change their spell, power and cells, and a building's spell caster its spell, power and radius; the palette adds both.
+- [ROM2] In the map editor a second-game map now draws only what is read of it: the passability view stays off and says why, the border view marks the edge ring, trigger areas are drawn as the cells a node names, height numbers show the stored height, and a new map on a second-game install says it is a first-game map; search and the player legend work on a second-game map as before.
 
 ### For players
 

@@ -64,9 +64,12 @@ func passArms(arms []mapload.GroundArm) []ui.PassArm {
 }
 
 // passArmRows is the window's form of mapload's arm table.
-func passArmRows() []ui.PassArmRow {
-	out := make([]ui.PassArmRow, len(mapload.GroundArmRows))
-	for i, r := range mapload.GroundArmRows {
+func passArmRows(rows []mapload.GroundArmRow) []ui.PassArmRow {
+	if rows == nil {
+		rows = mapload.GroundArmRows[:]
+	}
+	out := make([]ui.PassArmRow, len(rows))
+	for i, r := range rows {
 		out[i] = ui.PassArmRow{Arm: ui.PassArm(r.Arm), Word: r.Word, Border: r.Arm == mapload.GroundBorder}
 	}
 	return out

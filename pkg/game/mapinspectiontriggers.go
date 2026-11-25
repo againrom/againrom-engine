@@ -39,7 +39,7 @@ type inspectionScript struct {
 // inspectScript adds the script's records and model to d. Records and lines
 // carry the font's bytes through text; the model's names stay UTF-8, the text
 // the name fields edit.
-func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limits scriptprofile.Profile, text func(string) string) {
+func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limits scriptprofile.Profile, areaOps mapload.AreaOps, text func(string) string) {
 	s := inspectionScript{doc: d, m: m, profile: limits, text: text, conditions: make(map[uint32][]alm.ScriptNode), actions: make(map[uint32][]alm.ScriptNode), units: make(map[uint32][]ui.InspectionTarget), groups: make(map[uint32][]ui.InspectionTarget), structures: make(map[uint32][]ui.InspectionTarget)}
 	for _, n := range script.Conditions {
 		s.conditions[n.ID] = append(s.conditions[n.ID], n)
@@ -155,7 +155,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, limi
 		}
 		d.Records = append(d.Records, r)
 	}
-	areas, _ := mapload.ScriptAreas(m, script)
+	areas, _ := mapload.ScriptAreas(m, script, areaOps)
 	for _, a := range areas {
 		node := model.Actions
 		if a.Condition {

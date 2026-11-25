@@ -125,6 +125,12 @@ func (e *MapEditor) BorderCell(cell image.Point) bool {
 	return e.borderShown() && !e.passabilityShown() && e.inBorder(cell)
 }
 
+// FilledCell reports whether the passability fill closes cell, for a headless
+// driver.
+func (e *MapEditor) FilledCell(cell image.Point) bool {
+	return e.passabilityShown() && e.passArmAt(cell) != 0
+}
+
 // overlayQuads is the cell fills the map carries: the passability view's, or
 // else the border view's.
 func (e *MapEditor) overlayQuads() []passQuad {
@@ -152,14 +158,18 @@ func (e *MapEditor) hoverPassability() (string, bool) {
 	if arms == 0 {
 		return e.word("editor.pass.open"), true
 	}
-	return fmt.Sprintf(e.word("editor.pass.closed"), strings.Join(e.passArmWords(arms), ", ")), true
+	word := "editor.pass.closed"
+	if e.doc.PassClosed != "" {
+		word = e.doc.PassClosed
+	}
+	return fmt.Sprintf(e.word(word), strings.Join(e.passArmWords(arms), ", ")), true
 }
 
 // hoverHeight is the status line's height of the hovered cell while the
 // height brush owns the canvas.
 func (e *MapEditor) hoverHeight() (string, bool) {
 	if g := e.brush.set; g != nil && e.brush.down {
-		return fmt.Sprintf(e.word("editor.height.target"), g.base-HeightLabelZero, g.target-HeightLabelZero), true
+		return fmt.Sprintf(e.word("editor.height.target"), g.base-e.heightZero(), g.target-e.heightZero()), true
 	}
 	if !e.hoverOK || !e.brushActive() || e.brush.mode != brushHeight {
 		return "", false
@@ -169,12 +179,12 @@ func (e *MapEditor) hoverHeight() (string, bool) {
 		return "", false
 	}
 	if e.brush.sampled && e.brush.down {
-		return fmt.Sprintf(e.word("editor.height.target"), h-HeightLabelZero, e.brush.sample-HeightLabelZero), true
+		return fmt.Sprintf(e.word("editor.height.target"), h-e.heightZero(), e.brush.sample-e.heightZero()), true
 	}
 	if target, ok := e.levelTarget(); ok {
-		return fmt.Sprintf(e.word("editor.height.target"), h-HeightLabelZero, target-HeightLabelZero), true
+		return fmt.Sprintf(e.word("editor.height.target"), h-e.heightZero(), target-e.heightZero()), true
 	}
-	return fmt.Sprintf(e.word("editor.height.cell"), h-HeightLabelZero), true
+	return fmt.Sprintf(e.word("editor.height.cell"), h-e.heightZero()), true
 }
 
 // cellHeightAt is the stored height of map cell c, if the map holds one.

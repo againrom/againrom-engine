@@ -29,7 +29,7 @@ func pair(left, right, cmp uint32) alm.ScriptTrigger {
 
 func onlyArea(t *testing.T, sc alm.Script) (ScriptArea, ScriptPlaceNote) {
 	t.Helper()
-	areas, notes := ScriptAreas(areaMap(), sc)
+	areas, notes := ScriptAreas(areaMap(), sc, FirstAreaOps)
 	if len(areas) != 1 || len(notes) < 1 {
 		t.Fatalf("areas %+v notes %+v, want one area", areas, notes)
 	}
@@ -54,7 +54,7 @@ func TestScriptAreaOfACellIsThatCell(t *testing.T) {
 	// An action's cells: instant 21 casts from one cell at another.
 	sc = alm.Script{Actions: []alm.ScriptNode{areaNode(21, 4, [2]uint32{ScriptX, 1}, [2]uint32{ScriptY, 2}, [2]uint32{ScriptX, 39}, [2]uint32{ScriptY, 29}, [2]uint32{ScriptInt, 3})},
 		Triggers: []alm.ScriptTrigger{{Acts: []uint32{4, 0, 0, 0}}}}
-	areas, _ := ScriptAreas(areaMap(), sc)
+	areas, _ := ScriptAreas(areaMap(), sc, FirstAreaOps)
 	if len(areas) != 2 || areas[0].Rect != image.Rect(1, 2, 2, 3) || areas[1].Rect != image.Rect(39, 29, 40, 30) || areas[0].Condition {
 		t.Fatalf("cast cells: %+v", areas)
 	}
@@ -71,7 +71,7 @@ func TestScriptAreaOfABoxIsInclusiveAndARevertedBoxIsNone(t *testing.T) {
 	if a.Shape != AreaBox || a.Rect != image.Rect(3, 4, 9, 7) {
 		t.Fatalf("box: %+v", a)
 	}
-	areas, notes := ScriptAreas(areaMap(), box(8, 4, 3, 6))
+	areas, notes := ScriptAreas(areaMap(), box(8, 4, 3, 6), FirstAreaOps)
 	if len(areas) != 0 || notes[0].Reason != ReversedBox {
 		t.Fatalf("reversed box: %+v %+v", areas, notes)
 	}
@@ -125,7 +125,7 @@ func TestScriptAreaAroundAUnitNeedsItsOnePlacement(t *testing.T) {
 		t.Fatalf("around unit 7: %+v", a)
 	}
 	for _, u := range []uint32{8, 10001, 99} {
-		areas, notes := ScriptAreas(areaMap(), check6(u))
+		areas, notes := ScriptAreas(areaMap(), check6(u), FirstAreaOps)
 		if len(areas) != 0 || notes[0].Reason != UnitNotPlaced {
 			t.Fatalf("unit %d: %+v %+v", u, areas, notes)
 		}
@@ -138,7 +138,7 @@ func TestScriptAreaNotesWhatIsNotDrawn(t *testing.T) {
 		Actions:    []alm.ScriptNode{areaNode(4, 1), areaNode(27, 2, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptX, 50}, [2]uint32{ScriptY, 3})},
 		Triggers:   []alm.ScriptTrigger{{Left: []uint32{1, 0, 0}, Right: []uint32{2, 0, 0}, Acts: []uint32{1, 2, 9, 0}}},
 	}
-	areas, notes := ScriptAreas(areaMap(), sc)
+	areas, notes := ScriptAreas(areaMap(), sc, FirstAreaOps)
 	reasons := map[string]int{}
 	for _, n := range notes {
 		reasons[n.Reason]++
@@ -201,7 +201,7 @@ func TestScriptAreaNamesTheSlotsItComesFrom(t *testing.T) {
 			{Left: []uint32{5, 0, 0}, Right: []uint32{4, 0, 0}, Cmp: []uint32{2, 0, 0}},
 			pair(6, 5, 5),
 		}}
-	areas, _ := ScriptAreas(areaMap(), sc)
+	areas, _ := ScriptAreas(areaMap(), sc, FirstAreaOps)
 	type want struct {
 		slots                  [4]int
 		radiusNode, slot, bias int
@@ -256,5 +256,23 @@ func TestScriptAreaRadiusBiasOfEachComparison(t *testing.T) {
 				t.Errorf("code %d constant on the left %v: radius %d bias %d slot %d, want bias %d", code, constLeft, a.Radius, a.RadiusBias, a.RadiusSlot, want)
 			}
 		}
+	}
+}
+
+// A game with no shape named draws each cell a node's slots name and no box,
+// square or distance: a second-game check's metric is stated by no claim.
+func TestScriptAreasOfAGameWithNoShapesDrawNamedCells(t *testing.T) {
+	sc := alm.Script{Conditions: []alm.ScriptNode{
+		areaNode(2, 1, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptX, 3}, [2]uint32{ScriptY, 4}, [2]uint32{ScriptX, 8}, [2]uint32{ScriptY, 6}),
+		areaNode(ScriptConstant, 2, [2]uint32{ScriptInt, 1}),
+	}, Triggers: []alm.ScriptTrigger{pair(1, 2, 0)}}
+	first, _ := ScriptAreas(areaMap(), sc, FirstAreaOps)
+	if len(first) != 1 || first[0].Shape != AreaBox {
+		t.Fatalf("first game: %+v", first)
+	}
+	second, _ := ScriptAreas(areaMap(), sc, SecondAreaOps)
+	if len(second) != 2 || second[0].Shape != AreaCell || second[1].Shape != AreaCell ||
+		second[0].Rect != image.Rect(3, 4, 4, 5) || second[1].Rect != image.Rect(8, 6, 9, 7) {
+		t.Fatalf("no shapes: %+v", second)
 	}
 }

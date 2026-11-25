@@ -260,7 +260,7 @@ func (e *MapEditor) readHeights(raw json.RawMessage) (any, error) {
 		}
 		rows = append(rows, row)
 	}
-	return map[string]any{"range": []int{a.X0, a.Y0, a.X1, a.Y1}, "rows": rows, "min": low, "max": high, "label_zero": HeightLabelZero}, nil
+	return map[string]any{"range": []int{a.X0, a.Y0, a.X1, a.Y1}, "rows": rows, "min": low, "max": high, "label_zero": e.heightZero()}, nil
 }
 
 func (e *MapEditor) readRecords(raw json.RawMessage) (any, error) {

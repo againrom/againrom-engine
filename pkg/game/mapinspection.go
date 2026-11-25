@@ -308,7 +308,8 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	for _, c := range mapload.DropCells(m) {
 		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
 	}
-	d.Passability, d.PassArms = passArms(mapload.GroundArms(m, x.table)), passArmRows()
+	d.Passability, d.PassArms = passArms(rowFor(model).groundArms(x, m)), passArmRows(rowFor(model).armRows)
+	d.PassNote, d.PassClosed, d.RawHeights = rowFor(model).passNoteWord, rowFor(model).passClosedWord, rowFor(model).rawHeights
 	d.Playable = mapload.Playable(m)
 	feet := x.feet(m)
 	add := func(r ui.InspectionRecord) {
@@ -511,7 +512,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	script, scriptErr := m.Script()
 	if scriptErr == nil {
 		limits := model.Profile()
-		inspectScript(d, m, script, limits, x.inspectionUTF8)
+		inspectScript(d, m, script, limits, rowFor(model).areaOps, x.inspectionUTF8)
 		x.inspectNodeTexts(d.Script, model)
 		d.Script.Labels = liveLabels(script, limits, labels)
 		d.Script.Targets = x.scriptTargets(d, m, script, pages)

@@ -5,7 +5,9 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
@@ -76,5 +78,33 @@ func TestHostOffersEverySeamOnTheFirstRow(t *testing.T) {
 	}
 	if _, ok := ui.Seam[ui.InspectionChecker](s); !ok {
 		t.Fatal("the checker seam is not read from the first game's host")
+	}
+}
+
+// The second game's row derives the ring and the marked cells as arms, notes the
+// passability view's limit, shows heights as stored and draws no distance shape; the
+// first game's row derives the ground arms of its tiles. Only the second
+// game's files state a new map's format.
+func TestSecondRowDerivesTheRingAndTheMarksAndNotesThePassabilityView(t *testing.T) {
+	m := &alm.Map{Width: 20, Height: 20, Tiles: make([]uint16, 400), Overlay: make([]uint8, 400)}
+	arms := editRows[alm.SecondFormat].groundArms(nil, m)
+	for i, a := range arms {
+		want := mapload.GroundArm(0)
+		if mapload.InBorderRing(m, i%20, i/20) {
+			want = mapload.GroundBorder
+		}
+		if a != want {
+			t.Fatalf("cell %d: arm %v, want %v", i, a, want)
+		}
+	}
+	second, first := editRows[alm.SecondFormat], editRows[alm.FirstFormat]
+	if second.passNoteWord == "" || first.passNoteWord != "" || !second.rawHeights || first.rawHeights {
+		t.Errorf("rows: second %q raw %v, first %q raw %v", second.passNoteWord, second.rawHeights, first.passNoteWord, first.rawHeights)
+	}
+	if second.areaOps.Box != 0 || len(second.areaOps.Distance) != 0 || first.areaOps.Box == 0 {
+		t.Errorf("area ops: second %+v, first %+v", second.areaOps, first.areaOps)
+	}
+	if filesOf(base.GameROM2).newMapNote == "" || filesOf(base.GameROM1).newMapNote != "" {
+		t.Errorf("new map notes: second %q, first %q", filesOf(base.GameROM2).newMapNote, filesOf(base.GameROM1).newMapNote)
 	}
 }

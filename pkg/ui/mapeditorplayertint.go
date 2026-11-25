@@ -99,3 +99,17 @@ func (e *MapEditor) drawPlayerLegend(pic *image.RGBA) {
 		e.drawWindow(pic, s)
 	}
 }
+
+// LegendLines are the player legend's rows as text, none while it is off, for
+// a headless driver.
+func (e *MapEditor) LegendLines() []string {
+	s, ok := e.legendSpec()
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, r := range s.Rows {
+		out = append(out, r.Label)
+	}
+	return out
+}

@@ -65,3 +65,57 @@ func GroundArms(m *alm.Map, t *Table) []GroundArm {
 	}
 	return out
 }
+
+// GroundType3 is a nonzero type-3 byte, which the second game's terrain build
+// marks with the value 5.
+const GroundType3 GroundArm = GroundStructure << 1
+
+// MarkRow is one cell word the second game's terrain build marks in its
+// plane, with the value it stores and the word the editor names it by.
+type MarkRow struct {
+	Arm   GroundArm
+	Word  string
+	Value uint8
+	On    func(tile uint16, overlay uint8) bool
+}
+
+// MarkRows are the cells the second game's terrain build marks, in the order
+// it stores them. The tile-class mark (class 8) is not here: the class table
+// is not engine data.
+var MarkRows = [...]MarkRow{
+	{Arm: GroundFlag, Word: "editor.mark.flag", Value: 1, On: func(t uint16, _ uint8) bool { return alm.Impassable(t) }},
+	{Arm: GroundWater, Word: "editor.mark.water", Value: 1, On: func(t uint16, _ uint8) bool { return alm.TileIndex(t)&0x300 == 0x200 }},
+	{Arm: GroundType3, Word: "editor.mark.type3", Value: 5, On: func(_ uint16, o uint8) bool { return o != 0 }},
+}
+
+// MarkArmRows is the arm table of a map whose cells carry marks: the ring and
+// each mark.
+func MarkArmRows() []GroundArmRow {
+	out := []GroundArmRow{GroundArmRows[0]}
+	for _, r := range MarkRows {
+		out = append(out, GroundArmRow{Arm: r.Arm, Word: r.Word})
+	}
+	return out
+}
+
+// MarkedArms is, per cell and row-major, the border ring and each mark the
+// second game's terrain build stores for the cell. What a mark does to
+// movement is not established.
+func MarkedArms(m *alm.Map) []GroundArm {
+	w, h, ok := extent(m)
+	if !ok {
+		return nil
+	}
+	out := make([]GroundArm, w*h)
+	for i := range out {
+		if InBorderRing(m, i%w, i/w) {
+			out[i] = GroundBorder
+		}
+		for _, r := range MarkRows {
+			if r.On(planeAt(m.Tiles, i), planeAt(m.Overlay, i)) {
+				out[i] |= r.Arm
+			}
+		}
+	}
+	return out
+}

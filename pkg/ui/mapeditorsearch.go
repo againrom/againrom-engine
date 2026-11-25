@@ -228,3 +228,13 @@ func (e *MapEditor) searchPressOff(target editorPopupID) {
 		e.menu = ""
 	}
 }
+
+// SearchLines are the bar search's hit rows as text, as TreeLines writes the
+// tree's, for a headless driver.
+func (e *MapEditor) SearchLines() []string {
+	var out []string
+	for _, it := range e.searchItems() {
+		out = append(out, it.label)
+	}
+	return out
+}

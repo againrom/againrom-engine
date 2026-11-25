@@ -41,7 +41,7 @@ func (e *MapEditor) heightLabelRows() []mapLabel {
 					out = append(out, mapLabel{
 						source: labelHeight, index: r*g.Width + c,
 						anchor: image.Pt(int(float64(x)+ox), int(float64(y)+oy)), offset: image.Pt(1, 1),
-						text:    strconv.Itoa(int(g.Altitudes[r*g.Width+c]) - HeightLabelZero),
+						text:    strconv.Itoa(int(g.Altitudes[r*g.Width+c]) - e.heightZero()),
 						padding: image.Pt(3, 1), ink: editorPaper, popup: labelPopupOmit, edge: labelInside,
 						collides: labelTrigger | labelGroup | labelHeight,
 					})
@@ -54,7 +54,7 @@ func (e *MapEditor) heightLabelRows() []mapLabel {
 		out = append(out, mapLabel{
 			source: labelHeightGesture,
 			anchor: image.Pt(int(float64(g.pointer.X)+ox), int(float64(g.pointer.Y)+oy)), offset: image.Pt(14, 14),
-			text: strconv.Itoa(g.target - HeightLabelZero), padding: image.Pt(3, 1), ink: editorPaper, edge: labelUnbounded,
+			text: strconv.Itoa(g.target - e.heightZero()), padding: image.Pt(3, 1), ink: editorPaper, edge: labelUnbounded,
 		})
 	}
 	return out
@@ -72,6 +72,9 @@ func (e *MapEditor) HeightLabels() (rects []image.Rectangle, texts []string) {
 // keyPassView turns the passability view on or off.
 func (e *MapEditor) keyPassView(string) error {
 	e.view.passability = !e.view.passability
+	if e.view.passability && e.doc != nil && e.doc.PassNote != "" {
+		e.noteSelection(e.word(e.doc.PassNote), nil)
+	}
 	return nil
 }
 
@@ -85,4 +88,13 @@ func (e *MapEditor) keyHeightLabels(string) error {
 	}
 	e.noteSelection(note, nil)
 	return nil
+}
+
+// heightZero is the stored height the open map's height numbers show as 0: the
+// first game's new-map height, or 0 where the host shows stored heights raw.
+func (e *MapEditor) heightZero() int {
+	if e.doc != nil && e.doc.RawHeights {
+		return 0
+	}
+	return HeightLabelZero
 }

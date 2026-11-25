@@ -137,7 +137,7 @@ func areaCompiled(t *testing.T, m *alm.Map, sc alm.Script, reg, slot int, want i
 // mapload's own reading of a decoded map.
 func areaFind(t *testing.T, m *alm.Map, sc alm.Script, n, node int, shape mapload.ScriptAreaShape) mapload.ScriptArea {
 	t.Helper()
-	areas, _ := mapload.ScriptAreas(m, sc)
+	areas, _ := mapload.ScriptAreas(m, sc, mapload.FirstAreaOps)
 	for _, a := range areas {
 		if a.Trigger == n && a.Condition && a.Node == node && a.Shape == shape {
 			return a
@@ -199,7 +199,7 @@ func TestReleaseMapEditorAreaDragsSaveAndReopen(t *testing.T) {
 	if len(sc.Triggers) != triggers+1 {
 		t.Fatalf("%s: %d triggers after the drawn box, want %d", box.key, len(sc.Triggers), triggers+1)
 	}
-	areas, _ := mapload.ScriptAreas(m, sc)
+	areas, _ := mapload.ScriptAreas(m, sc, mapload.FirstAreaOps)
 	drawn := -1
 	for _, d := range areas {
 		if d.Trigger == triggers && d.Shape == mapload.AreaBox && d.Rect == image.Rect(c, c, c+4, c+3) {

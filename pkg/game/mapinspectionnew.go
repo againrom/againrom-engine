@@ -97,7 +97,13 @@ func (x *MapInspector) openNew(source string) (*ui.InspectionDocument, error) {
 		return nil, err
 	}
 	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes(), modDir: x.modFolder()}
-	return s.project(model)
+	d, err := s.project(model)
+	if err == nil && d.OpenNote == "" {
+		if word := filesOf(x.installGame()).newMapNote; word != "" {
+			d.OpenNote = x.word(word)
+		}
+	}
+	return d, err
 }
 
 // WriteNewMap writes the blank map of source to the new file path, through the

@@ -85,6 +85,17 @@ type editRow struct {
 	storedKeys     bool // each record has a key the model keeps
 	playableRing   bool // a new record is refused in the border ring
 	workspace      bool // the map has pages, labels and a save gate beside it
+	// groundArms are the cells' closing arms the passability and border views read.
+	groundArms func(*MapInspector, *alm.Map) []mapload.GroundArm
+	// armRows name the bits groundArms sets; nil: the table of every ground arm.
+	armRows []mapload.GroundArmRow
+	// passNoteWord is the word given when the passability view is switched on,
+	// and passClosedWord the hover's word for a cell with arms; "": the plain ones.
+	passNoteWord, passClosedWord string
+	// areaOps are the checks whose node draws a shape on the map.
+	areaOps mapload.AreaOps
+	// rawHeights: the height numbers show the stored height.
+	rawHeights bool
 }
 
 // editRows is the one table of rows, keyed by the map's format.
@@ -104,6 +115,8 @@ var editRows = map[alm.Format]*editRow{
 		guestTest:     true,
 		testMission:   func(x *MapInspector, _ string) (mod.Mission, error) { return x.testPlayGuestMission() },
 		unitOverrides: true, spellSets: true, playerRecords: true, structureOwner: true, storedKeys: true, playableRing: true, workspace: true,
+		groundArms: func(x *MapInspector, m *alm.Map) []mapload.GroundArm { return mapload.GroundArms(m, x.table) },
+		areaOps:    mapload.FirstAreaOps,
 	},
 	alm.SecondFormat: {
 		moves: placedKinds,
@@ -151,6 +164,13 @@ var editRows = map[alm.Format]*editRow{
 		// The unit record holds no mana word, and what the mode-8 record
 		// gives a unit is unread (R2-ENGINE-1292, R2-SESSION-162).
 		unitBookWord: "editor.map.secondbook",
+		// The arms are the ring (R2-ENGINE-1341) and the cells the terrain
+		// build marks (R2-ENGINE-1340); what a mark does to movement is not
+		// established, and the tile-class mark is not engine data.
+		groundArms: func(_ *MapInspector, m *alm.Map) []mapload.GroundArm { return mapload.MarkedArms(m) },
+		armRows:    mapload.MarkArmRows(), passNoteWord: "editor.view.secondpass", passClosedWord: "editor.pass.marked",
+		areaOps:    mapload.SecondAreaOps,
+		rawHeights: true,
 	},
 }
 

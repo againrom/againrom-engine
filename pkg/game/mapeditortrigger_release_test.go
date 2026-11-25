@@ -95,7 +95,7 @@ func TestReleaseMapEditorTriggerAreaCensus(t *testing.T) {
 		if err != nil || len(sc.Triggers) == 0 {
 			continue
 		}
-		areas, notes := mapload.ScriptAreas(m, sc)
+		areas, notes := mapload.ScriptAreas(m, sc, mapload.FirstAreaOps)
 		drawing := map[int]bool{}
 		for _, a := range areas {
 			drawing[a.Trigger] = true

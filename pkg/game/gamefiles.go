@@ -25,6 +25,8 @@ type gameFiles struct {
 	cursorHotspots [28]image.Point
 	table          databin.Layout
 	openMap        func([]byte) (*alm.Map, error)
+	// newMapNote is the word a new map opens with where the game has a layout of an empty map to state; "" none.
+	newMapNote string
 	// catalogPalettes: the editor's unit and structure palettes list every
 	// data.bin row by its name, and a placement names its row or says it has none.
 	catalogPalettes bool
@@ -329,6 +331,7 @@ var secondGameFiles = gameFiles{
 	dialogueDefault:     dialogueDefaultText,
 	table:               databin.ROM2Layout,
 	openMap:             alm.OpenROM2,
+	newMapNote:          "editor.new.second",
 	compileScript:       mapload.CompileROM2Script,
 	scriptDialect:       sim.ScriptROM2,
 	menuLayout:          menu.SecondLayout,
