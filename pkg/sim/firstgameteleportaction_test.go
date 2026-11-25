@@ -181,7 +181,7 @@ func TestFirstGameTeleportActionRepeatsAndRoundTripsSave(t *testing.T) {
 		t.Fatal("second unit never teleported after reload")
 	}
 	e2, _ := loaded.Entity(2)
-	if e2.X != 30 || e2.Y != 40 {
-		t.Fatalf("second unit at (%d,%d), want (30,40)", e2.X, e2.Y)
+	if e2.X != 30 || e2.Y != 39 {
+		t.Fatalf("second unit at (%d,%d), want the free cell (30,39)", e2.X, e2.Y)
 	}
 }

@@ -134,32 +134,3 @@ func TestFirstGameInstantTwentyFiveTeleportKeepsItsBytes(t *testing.T) {
 		t.Fatalf("tails %v, want one at (10,12) with %v", got, want)
 	}
 }
-
-// A unit under a Move order is moved and stands for the reset; the next group
-// pass then re-issues the order's walk to its old destination, because the
-// reset stores no order destination and the order 4 arm re-issues the walk
-// (AI-535, AI-649; the composition is Medium).
-func TestFirstGameTeleportTrapMoveOrderResumesAfterTheMove(t *testing.T) {
-	hero := engFighterOne(1, SelfSlot, 8, 10)
-	hero.Speed = 16
-	w := firstTeleportWorld(t, hero)
-	cmds := []Command{MoveTo(1, CellPoint{X: 12, Y: 10})}
-	moved := 0
-	for tick := 1; tick <= 2000; tick++ {
-		Step(w, cmds)
-		cmds = nil
-		e, _ := w.Entity(1)
-		if moved == 0 && e.X == 30 && e.Y == 40 {
-			moved = tick
-		}
-		if moved != 0 && tick == moved+60 && (e.X >= 30 || e.Y >= 40) {
-			t.Fatalf("60 ticks after the move the unit is at (%d,%d), want it walking back", e.X, e.Y)
-		}
-	}
-	if moved == 0 {
-		t.Fatal("the unit was never moved")
-	}
-	if e, _ := w.Entity(1); e.X != 12 || e.Y != 10 {
-		t.Fatalf("the unit ended at (%d,%d), want its order's destination (12,10)", e.X, e.Y)
-	}
-}

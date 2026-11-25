@@ -189,6 +189,9 @@ func (w *World) finishCellMove(i int, x, y int32, obs *castObs) bool {
 	}
 	if w.game.cellMoveStands {
 		w.standScriptedUnit(i, actorStateAcquire)
+		// The reset clears the order: with no destination the group pass
+		// acquires where the unit stands instead of walking it back.
+		clear(w.ensureSavedOrder(i).Raw[10:12])
 	}
 	return true
 }

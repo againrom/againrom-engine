@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM1] A map can trigger an event when a chosen unit leaves its starting cell.
+- [ROM1] A unit moved by a teleport stays where it lands instead of walking back.
 
 ### For map makers and modders
 
