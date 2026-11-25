@@ -188,6 +188,8 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 						switch {
 						case key.Name == "word" || key.Name == "CopyRefused" || strings.HasSuffix(key.Name, "Word"):
 							args = append(args, n.Value)
+						case key.Name == "Hint" || key.Name == "newMapNote" || key.Name == "sceneryLabel" || key.Name == "sceneryDetail":
+							args = append(args, n.Value)
 						case key.Name == "Label" || key.Name == "save" || key.Name == "refusal" || key.Name == "Refusal" || key.Name == "scriptRefusal" || key.Name == "undecoded" || key.Name == "unstated":
 							args = append(args, n.Value)
 						case key.Name == "itemSuits":
@@ -240,6 +242,9 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 							}
 						}
 					}
+					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "worded" && len(n.Args) == 2 {
+						args = append(args, n.Args[1])
+					}
 					if fn, ok := n.Fun.(*ast.Ident); ok && fn.Name == "wordRef" && len(n.Args) == 1 {
 						args = append(args, n.Args[0])
 					}
@@ -253,6 +258,9 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 					if len(n.Lhs) == len(n.Rhs) {
 						for i, l := range n.Lhs {
 							if name, ok := l.(*ast.Ident); ok && (name.Name == "key" || name.Name == "word") {
+								args = append(args, n.Rhs[i])
+							}
+							if sel, ok := l.(*ast.SelectorExpr); ok && sel.Sel.Name == "Label" {
 								args = append(args, n.Rhs[i])
 							}
 						}

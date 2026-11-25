@@ -216,7 +216,7 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 			return []commandCall{{"add_record", map[string]any{"kind": "Trigger", "values": map[string]any{"once": 1}}},
 				{"write_trigger", map[string]any{"index": index, "name": "Treasure",
 					"conditions": []any{map[string]any{"item": "c.heroarea", "params": []any{hero, []int{10, 12, 14, 15}}}},
-					"actions":    []any{map[string]any{"item": "a.gold"}, map[string]any{"item": "a.win"}}}}}
+					"actions":    []any{map[string]any{"item": "editor.action.op23"}, map[string]any{"item": "a.win"}}}}}
 		}},
 		{"copy_trigger", func(t *testing.T) *ui.MapEditor { e, _ := openGoalMap(t, goalMap(t, true)); return e }, func(t *testing.T, e *ui.MapEditor) {
 			copyPress(t, e, 1)
