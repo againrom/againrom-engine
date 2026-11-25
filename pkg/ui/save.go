@@ -656,67 +656,39 @@ func (f *flow) takeMenuExit() bool {
 // open is a state this story does not produce — the only writer is the mini-menu
 // behind it — and a list rebuilt every frame would move the selection under the
 // player's hand.
-func (f *flow) openLoad(back Screen) { f.openListPage(back, false) }
+func (f *flow) openLoad(back Screen) { f.openListPage(back, loadListRole()) }
 
-// openCharacters shows the list page's character role over the menu: the
-// store's character rows, then the New row.
-func (f *flow) openCharacters() { f.openListPage(ScreenMenu, true) }
+// openCharacters shows the list page's character role over the menu.
+func (f *flow) openCharacters() { f.openListPage(ScreenMenu, characterListRole()) }
 
-// openListPage opens the list page in its load role, or in its character role
-// when characters is set.
-func (f *flow) openListPage(back Screen, characters bool) {
-	var saves []SaveEntry
-	message := ""
-	if characters && f.pages.characterFiles.List != nil {
-		saves, message = f.pages.characterFiles.List()
-	} else if f.saveList != nil && !characters {
-		saves = f.saveList()
-	}
-	rows := make([]PickerRow, len(saves))
-	for i, e := range saves {
-		rows[i] = PickerRow{Text: e.Label, Choosable: true}
-	}
-	if characters {
-		rows = append(rows, PickerRow{Text: f.characterPage().New, Choosable: true})
-	}
-	f.openListRows(back, saves, rows, func() { f.loadUI.characters = characters })
-	if characters {
-		f.msg = message
-	} else if f.saveList == nil {
-		f.msg = "this build has nowhere to load from"
-	} else if len(f.saves) == 0 {
-		f.msg = "no saved games"
-	} else {
-		f.msg = ""
-	}
-}
-
-// openListRows shows the list page over saves and their rows; role sets the
-// page's role once the previous page's state is cleared.
-func (f *flow) openListRows(back Screen, saves []SaveEntry, rows []PickerRow, role func()) {
+// openListPage shows the list page in role over back: the role's rows and
+// message line, with the previous page's pointer, question and removal
+// cleared.
+func (f *flow) openListPage(back Screen, role *listRole) {
+	saves, rows, message := role.list(f)
 	f.loadUI.resetPointer()
 	f.loadUI.confirm = false
 	f.loadUI.mismatch, f.loadUI.mismatchTown = nil, false
 	f.loadUI.remove = nil
-	f.loadUI.characters, f.loadUI.maps = false, nil
-	role()
+	f.loadUI.role = role
 	f.saves = saves
 	f.loadList = NewPicker(rows).SetWindow(loadVisibleRows)
 	f.loadBack = back
 	f.setScreen(ScreenLoad)
 	f.menuPlacement().underlay.raise(f)
+	f.msg = message
 }
 
 // closeLoad returns to the screen that opened the load window.
-func (f *flow) closeLoad() { f.leaveLoad(MapChoiceResult{}) }
+func (f *flow) closeLoad() { f.leaveLoad("", false) }
 
-// leaveLoad closes the page and, in the map role, answers the caller with r
-// once the screen behind is back.
-func (f *flow) leaveLoad(r MapChoiceResult) {
-	done := f.loadUI.takeMapChoice()
+// leaveLoad closes the page and gives the open role's answer the chosen
+// entry and ok once the screen behind is back.
+func (f *flow) leaveLoad(chosen string, ok bool) {
+	answer := f.loadUI.openRole().answer
 	f.leaveLoadScreen()
-	if done != nil {
-		done(r)
+	if answer != nil {
+		answer(chosen, ok)
 	}
 }
 
@@ -728,7 +700,7 @@ func (f *flow) leaveLoad(r MapChoiceResult) {
 // than repays, the elapsed map and ambient-animation span.
 func (f *flow) leaveLoadScreen() {
 	f.loadUI.resetPointer()
-	f.loadUI.characters = false
+	f.loadUI.role = nil
 	back := f.loadBack
 	if back == ScreenGameMenu && f.pages.menu.WindowsCloseMenu {
 		f.closeGameMenu()
@@ -746,23 +718,24 @@ func (f *flow) leaveLoadScreen() {
 	f.msg = ""
 }
 
-// chooseLoad loads the selected save.
+// chooseLoad is Ok on the open list page: the open role's accept.
+func (f *flow) chooseLoad() {
+	if f.screen != ScreenLoad || f.loadList == nil {
+		return
+	}
+	if accept := f.loadUI.openRole().accept; accept != nil {
+		accept(f)
+	}
+}
+
+// loadChosen loads the selected save.
 //
 // A REFUSAL LEAVES THE PLAYER ON THE LIST with the reason on the message line
 // and the row STILL CHOOSABLE — unlike the map list, which marks a row that
 // would not load. A file that failed to read says nothing about the next one,
 // and a mark here would outlive nothing: the list is rebuilt every time the
 // window opens.
-func (f *flow) chooseLoad() {
-	// Ok on the character list does nothing: no character is played and no
-	// creation runs from the New row yet (DIV-2369).
-	if f.screen != ScreenLoad || f.loadList == nil || f.loadUI.characters {
-		return
-	}
-	if f.loadUI.maps != nil {
-		f.chooseMap()
-		return
-	}
+func (f *flow) loadChosen() {
 	i, ok := f.loadList.Choose()
 	if !ok {
 		return

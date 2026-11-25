@@ -24,11 +24,6 @@ type MapChoiceResult struct {
 	OK     bool
 }
 
-// mapChoiceRun is the map role's open state: the caller to answer.
-type mapChoiceRun struct {
-	onDone func(MapChoiceResult)
-}
-
 var (
 	mapChoicePanel    = image.Rect(82, 48, 558, 392)
 	mapChoiceTitleBox = image.Rect(102, 56, 538, 84)
@@ -59,10 +54,10 @@ func (f *flow) mapChoiceWords() MapChoiceWords {
 	return w
 }
 
-// mapRole is the list page as the multiplayer map choice: the engine's own
-// panel with a title, the ruled list and the OK and Cancel buttons; it has no
-// Delete, and Ok is off while no map is listed.
-func mapRole(w MapChoiceWords) SavePage {
+// mapChoicePage is the list page as the multiplayer map choice: the engine's
+// own panel with a title, the ruled list and the OK and Cancel buttons; it
+// has no Delete, and Ok is off while no map is listed.
+func mapChoicePage(w MapChoiceWords) SavePage {
 	p := SavePage{
 		Panel:       mapChoicePanel,
 		Texts:       []PageText{{Text: w.Title, Box: mapChoiceTitleBox, Ink: townShellText}},
@@ -81,29 +76,7 @@ func mapRole(w MapChoiceWords) SavePage {
 // OpenMapChoice shows the multiplayer map choice page over items, returning
 // the player's choice (or cancellation) to onDone and restoring back.
 func (a *App) OpenMapChoice(items []MapChoiceItem, back Screen, onDone func(MapChoiceResult)) {
-	f := a.flow
-	run := &mapChoiceRun{onDone: onDone}
-	entries := make([]SaveEntry, len(items))
-	rows := make([]PickerRow, len(items))
-	for i, item := range items {
-		entries[i] = SaveEntry{Name: item.Source, Label: item.Row.Text}
-		rows[i] = item.Row
-	}
-	f.openListRows(back, entries, rows, func() { f.loadUI.maps = run })
-	f.msg = ""
-	if len(items) == 0 {
-		f.msg = f.mapChoiceWords().Empty
-	}
-}
-
-// takeMapChoice ends the map role and hands back the caller to answer.
-func (w *loadWindow) takeMapChoice() func(MapChoiceResult) {
-	run := w.maps
-	w.maps = nil
-	if run == nil {
-		return nil
-	}
-	return run.onDone
+	a.flow.openListPage(back, mapListRole(items, onDone))
 }
 
 // chooseMap answers the caller with the selected map and leaves the page.
@@ -112,5 +85,5 @@ func (f *flow) chooseMap() {
 	if !ok || i < 0 || i >= len(f.saves) {
 		return
 	}
-	f.leaveLoad(MapChoiceResult{Chosen: f.saves[i].Name, OK: true})
+	f.leaveLoad(f.saves[i].Name, true)
 }

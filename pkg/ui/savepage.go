@@ -136,8 +136,8 @@ type pageSeams struct {
 	hasSave bool
 	// loadable answers whether the load list has a row without building it.
 	loadable func() bool
-	// characters is the character role's data; nil keeps the defaults.
-	characters *CharacterPage
+	// characterSet is the character role's data; nil keeps the defaults.
+	characterSet *CharacterPage
 	// characterFiles is the character role's store.
 	characterFiles CharacterFiles
 	// mapWords is the map role's words.
@@ -168,25 +168,27 @@ type CharacterFiles struct {
 }
 
 // SetCharacterPage installs a game's character role data.
-func (a *App) SetCharacterPage(p CharacterPage) { a.flow.pages.characters = &p }
+func (a *App) SetCharacterPage(p CharacterPage) { a.flow.pages.characterSet = &p }
 
 // SetCharacterFiles installs the character role's store.
 func (a *App) SetCharacterFiles(c CharacterFiles) { a.flow.pages.characterFiles = c }
 
 // characterPage is the installed character role data, or the defaults.
 func (f *flow) characterPage() CharacterPage {
-	if f.pages.characters != nil {
-		return *f.pages.characters
+	if f.pages.characterSet != nil {
+		return *f.pages.characterSet
 	}
 	return defaultCharacterPage()
 }
 
 // CharacterList reports whether the list page shows its character role.
-func (a *App) CharacterList() bool { return a.flow.screen == ScreenLoad && a.flow.loadUI.characters }
+func (a *App) CharacterList() bool {
+	return a.flow.screen == ScreenLoad && a.flow.loadUI.openRole().roleName == characterRoleName
+}
 
-// characterRole is load page p as the character list: the load page's boxed
-// title holds c's title and its other captions go.
-func (p SavePage) characterRole(c CharacterPage) SavePage {
+// asCharacterList is load page p as the character list: the load page's
+// boxed title holds c's title and its other captions go.
+func (p SavePage) asCharacterList(c CharacterPage) SavePage {
 	var texts []PageText
 	for _, t := range p.Texts {
 		if t.Box != (image.Rectangle{}) {
@@ -246,21 +248,16 @@ func firstLoadPage(w LoadWindowWords) SavePage {
 	return p
 }
 
-// loadPage is the page LOAD shows, or its character or map role.
-func (f *flow) loadPage() SavePage {
-	if f.loadUI.maps != nil {
-		return mapRole(f.mapChoiceWords())
-	}
-	var p SavePage
+// loadPage is the page the load screen shows: the open role's page.
+func (f *flow) loadPage() SavePage { return f.loadUI.openRole().page(f) }
+
+// installedLoadPage is the game's Load page, or the first game's LOAD
+// window.
+func (f *flow) installedLoadPage() SavePage {
 	if f.pages.loadSet != nil {
-		p = *f.pages.loadSet
-	} else {
-		p = firstLoadPage(f.loadUI.words)
+		return *f.pages.loadSet
 	}
-	if !f.loadUI.characters {
-		return p
-	}
-	return p.characterRole(f.characterPage())
+	return firstLoadPage(f.loadUI.words)
 }
 
 // hidden reports whether a save page leaves name out of its list.

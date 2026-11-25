@@ -41,10 +41,8 @@ type loadWindow struct {
 	// question is the delete question of a page that asks in a window; it
 	// owns the page's input while the deletion awaits its answer.
 	question dialogRun
-	// characters: the load screen shows the list page's character role.
-	characters bool
-	// maps: the load screen shows the list page's map role.
-	maps *mapChoiceRun
+	// role is the list page's open role; nil is the Load page (openRole).
+	role *listRole
 }
 
 func (w *loadWindow) resetPointer() {
@@ -145,17 +143,13 @@ func (f *flow) pagePrepareDelete(v pageView, e SaveEntry) (func() error, error) 
 	return prepare(e.Name)
 }
 
-// deleteSeams are the open role's delete seams: the character store's where
-// the character page shows Delete, none where it does not, else the saves'.
+// deleteSeams are the open role's delete seams; a role without them deletes
+// no row.
 func (f *flow) deleteSeams(v pageView) (func(string) bool, func(string) (func() error, error)) {
-	if !v.ui.characters {
-		return v.ui.canDelete, v.ui.prepareDelete
+	if deletes := v.ui.openRole().deletes; deletes != nil {
+		return deletes(f)
 	}
-	if !f.characterPage().Delete {
-		return nil, nil
-	}
-	c := f.pages.characterFiles
-	return c.CanDelete, c.PrepareDelete
+	return nil, nil
 }
 
 // acceptPage is Ok: load or save the selection, or delete it once confirmed.
@@ -185,7 +179,7 @@ func (a *App) acceptPage(v pageView) {
 		return
 	}
 	back := f.loadBack
-	f.openListPage(back, v.ui.characters)
+	f.openListPage(back, v.ui.openRole())
 	if f.loadList != nil {
 		f.loadList.Move(i)
 	}

@@ -1,10 +1,11 @@
 package game
 
 import (
+	"cmp"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"sync"
 	"time"
 
@@ -98,7 +99,7 @@ func originalSaveLabelOf(raw []byte, selector int) string {
 	return label
 }
 
-// saveScan is the one scanner of a save directory. Filters: the .sav
+// saveScan is a save directory's row of listProfileFiles. Filters: the save
 // extension and non-directories always; Bounded applies the save reader's size
 // limit and bounded read (the install reader has neither); Regular admits
 // regular files only; OfGame keeps the saves whose document belongs to Game;
@@ -135,54 +136,55 @@ func (s scannedSave) rowLabel(selector int) string {
 // descending. A missing or unreadable directory yields nothing; a file that
 // will not read or open is skipped.
 func scanSaves(s saveScan) []scannedSave {
-	if s.Dir == "" {
-		return nil
-	}
-	ents, err := os.ReadDir(s.Dir)
-	if err != nil {
-		return nil
-	}
-	var out []scannedSave
-	for _, e := range ents {
-		if e.IsDir() || !savename.Is(e.Name()) {
-			continue
-		}
-		fi, err := e.Info()
-		if err != nil {
-			// The install reader lists a file whose stat fails, read
-			// uncached and without a modification time.
-			if s.Bounded {
-				continue
-			}
-			b, readErr := os.ReadFile(filepath.Join(s.Dir, e.Name()))
-			if readErr != nil {
-				continue
-			}
-			if f := factsOfBytes(b, 0, time.Time{}); f.opens && s.ownsEnvelope(f) {
-				out = append(out, scannedSave{Name: e.Name(), Label: f.label})
-			}
-			continue
-		}
-		if s.Bounded && (fi.Size() < 0 || fi.Size() > maxSaveBytes) {
-			continue
-		}
-		if s.Regular && !fi.Mode().IsRegular() {
-			continue
-		}
-		f, ok := readSaveFacts(s.Dir, e.Name(), fi, s.Bounded, s.Game, s.OfGame)
-		if !ok || !f.opens || (s.OfGame && !f.ofGame) || !s.ownsEnvelope(&f) {
-			continue
-		}
-		out = append(out, scannedSave{Name: e.Name(), Label: f.label, Mod: fi.ModTime()})
-		if s.First {
-			return out
-		}
-	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].Mod.Equal(out[j].Mod) {
-			return out[i].Name > out[j].Name
-		}
-		return out[i].Mod.After(out[j].Mod)
-	})
+	out, _, _ := listProfileFiles(profileListing[scannedSave]{dir: s.Dir, exts: savename.Extensions(), regular: s.Regular,
+		first: s.First, read: s.read, order: newestSaveFirst})
 	return out
 }
+
+// newestSaveFirst orders saves by modification time, newest first, then by
+// file name descending.
+func newestSaveFirst(a, b scannedSave) int {
+	if c := b.Mod.Compare(a.Mod); c != 0 {
+		return c
+	}
+	return cmp.Compare(b.Name, a.Name)
+}
+
+// read is the scan's row of the file e in dir: a file that will not read or
+// open is an error; one the scan's game or envelope filter refuses is passed
+// over.
+func (s saveScan) read(dir string, e os.DirEntry) (scannedSave, bool, error) {
+	fi, err := e.Info()
+	if err != nil {
+		// The install reader lists a file whose stat fails, read uncached
+		// and without a modification time.
+		if s.Bounded {
+			return scannedSave{}, false, err
+		}
+		b, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		if err != nil {
+			return scannedSave{}, false, err
+		}
+		f := factsOfBytes(b, 0, time.Time{})
+		if !f.opens {
+			return scannedSave{}, false, errSaveWillNotOpen
+		}
+		return scannedSave{Name: e.Name(), Label: f.label}, s.ownsEnvelope(f), nil
+	}
+	if s.Bounded && (fi.Size() < 0 || fi.Size() > maxSaveBytes) {
+		return scannedSave{}, false, errSaveTooLarge
+	}
+	f, ok := readSaveFacts(dir, e.Name(), fi, s.Bounded, s.Game, s.OfGame)
+	if !ok || !f.opens {
+		return scannedSave{}, false, errSaveWillNotOpen
+	}
+	if (s.OfGame && !f.ofGame) || !s.ownsEnvelope(&f) {
+		return scannedSave{}, false, nil
+	}
+	return scannedSave{Name: e.Name(), Label: f.label, Mod: fi.ModTime()}, true, nil
+}
+
+var (
+	errSaveWillNotOpen = errors.New("save will not read or open")
+	errSaveTooLarge    = errors.New("save exceeds the size bound")
+)

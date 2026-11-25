@@ -45,7 +45,7 @@ func TestCharacterPageIsTheGamesData(t *testing.T) {
 				t.Errorf("%s: Ok disabled on the character list", name)
 			}
 			clickPageButton(t, a, loadCancelButton, now)
-			if a.Screen() != ScreenMenu || a.CharacterList() || a.flow.loadUI.characters {
+			if a.Screen() != ScreenMenu || a.CharacterList() || a.flow.loadUI.role != nil {
 				t.Fatalf("%s: Cancel left %v", name, a.Screen())
 			}
 		}

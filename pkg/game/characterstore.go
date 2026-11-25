@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"time"
 
 	"againrom/pkg/formats/a2c"
@@ -89,31 +88,11 @@ func (s CharacterStore) path(row characterStoreRow) string {
 // it left out; the original's filter value is Unknown (DIV-5192). An absent
 // folder lists nothing. It writes nothing.
 func listCharacters(dir string, row characterStoreRow) ([]characterFile, int, error) {
-	if dir == "" {
-		return nil, 0, nil
-	}
-	entries, err := os.ReadDir(dir)
-	if os.IsNotExist(err) {
-		return nil, 0, nil
-	}
-	if err != nil {
-		return nil, 0, err
-	}
-	var out []characterFile
-	left := 0
-	for _, e := range entries {
-		if !e.Type().IsRegular() || !namefold.HostEqual(filepath.Ext(e.Name()), row.ext) {
-			continue
-		}
-		file, err := readCharacter(filepath.Join(dir, e.Name()), row)
-		if err != nil {
-			left++
-			continue
-		}
-		out = append(out, file)
-	}
-	slices.SortFunc(out, row.order)
-	return out, left, nil
+	return listProfileFiles(profileListing[characterFile]{dir: dir, exts: []string{row.ext}, regular: true, order: row.order,
+		read: func(dir string, e os.DirEntry) (characterFile, bool, error) {
+			file, err := readCharacter(filepath.Join(dir, e.Name()), row)
+			return file, err == nil, err
+		}})
 }
 
 func readCharacter(path string, row characterStoreRow) (characterFile, error) {
