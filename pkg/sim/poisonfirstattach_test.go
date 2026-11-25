@@ -5,9 +5,12 @@ import "testing"
 // poisonTrace attaches one Poison Cloud record to a unit and returns the
 // target's health and the record's remainder after the attach and after each
 // of n ticks.
-func poisonTrace(t *testing.T, rule SpellRule, repeat bool, n int) (hp []int32, remaining []uint16) {
+func poisonTrace(t *testing.T, second bool, rule SpellRule, repeat bool, n int) (hp []int32, remaining []uint16) {
 	t.Helper()
 	w := spWorld(t, 1, []SpellRule{rule}, spEnt(1, 0, 0), spEnt(2, 1, 0))
+	if second {
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
+	}
 	if !w.attachEffect(2, 1, rule, EffectHealth, -2, 128, EffectContinuous) {
 		t.Fatal("first Poison Cloud did not attach")
 	}
@@ -51,7 +54,7 @@ func TestPoisonCloudFirstAttachHealthChange(t *testing.T) {
 		if c.second {
 			rule = secondRow(SpellRule{ID: 6, School: 2, Area: true, Distribution: 3, SpellDuration: 5, EffectKind: EffectHealth, EffectMode: EffectContinuous, EffectMagnitude: -2, EffectDuration: 8})
 		}
-		hp, rem := poisonTrace(t, rule, c.repeat, ticks)
+		hp, rem := poisonTrace(t, c.second, rule, c.repeat, ticks)
 		if hp[0] != c.atCast {
 			t.Errorf("%s: health at attach %d, want %d", c.name, hp[0], c.atCast)
 		}

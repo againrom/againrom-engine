@@ -25,12 +25,12 @@ var flightWitnessDigests = map[string]string{
 	"first/client-chain":      "0c9de92bd9ba1ec4",
 	"first/teleport-moved":    "2bb7fd4ab8154a58",
 	"second/shot":             "0ed4d23516f3fc88",
-	"second/book":             "97c01787b3b28b4b",
-	"second/staff":            "c8f5762cd07cf6a0",
+	"second/book":             "057a646c4ad2d4e3",
+	"second/staff":            "f46cba9979f11f53",
 	"second/staged":           "fbc9b304ad5f2e16",
-	"second/fire-ball":        "a503f238abd1ef5f",
-	"second/client-lightning": "9db6b1989aae5cbc",
-	"second/client-chain":     "99d907c1c5652c92",
+	"second/fire-ball":        "70ec798168071cf2",
+	"second/client-lightning": "34d1053bb5d7e59a",
+	"second/client-chain":     "0f278b7db209a004",
 	"second/teleport-moved":   "817ac0e05d0c4373",
 }
 

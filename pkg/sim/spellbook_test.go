@@ -71,7 +71,7 @@ func TestSourceBookInstancesDrivePopupAdmissionAndRelease(t *testing.T) {
 	b.Y = 3
 	victim := spEnt(3, 5, 2)
 	w := spWorld(t, 1101, []SpellRule{rule}, a, b, victim)
-	if got := SpellCharacteristicsFor(Rules{}, a, rule); got.Range != 3 || got.ManaCost != 7 {
+	if got := SpellCharacteristicsFor(testFirstGame, Rules{}, a, rule); got.Range != 3 || got.ManaCost != 7 {
 		t.Fatalf("instance popup %+v", got)
 	}
 	if reason := w.BookSpellRefusal(2, 3, 1); reason != "target out of range" {

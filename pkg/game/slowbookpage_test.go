@@ -21,7 +21,7 @@ func TestSecondGameBookPageListsNoSlow(t *testing.T) {
 	}
 	e.KnownSpells = known
 	rows := rules.SpellBookRows(rules.SpellGameSecond)
-	book, fixed := selectedSpellbook(sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, nil, rows)
+	book, fixed := selectedSpellbook(testFirstGame, sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, nil, rows)
 	if !fixed || len(book) != len(rows) {
 		t.Fatalf("fixed %v, %d cells; want %d", fixed, len(book), len(rows))
 	}
@@ -64,7 +64,7 @@ func TestReleaseSecondOriginalBookPageListsNoSlow(t *testing.T) {
 		if e.Owner != 1 || e.KnownSpells&(1<<29) == 0 || !e.Book.HasInstances() {
 			continue
 		}
-		book, _ := selectedSpellbook(mw.world.Rules(), []sim.Entity{e}, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, mw.spells().BookRows)
+		book, _ := selectedSpellbook(testFirstGame, mw.world.Rules(), []sim.Entity{e}, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, mw.spells().BookRows)
 		for _, c := range book {
 			if c.ID == 29 {
 				t.Fatalf("the page lists Slow: %+v", c)

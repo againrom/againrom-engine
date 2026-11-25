@@ -3,6 +3,7 @@ package game
 import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -163,18 +164,18 @@ func missionCharacters(m *alm.Map, t *mapload.Table, ms *Mission) map[sim.Entity
 // Weapon's last castSpell Effect, drawn when the base and spread are not both
 // zero. A mage without such a Weapon has no damage row. The row reads neither
 // the Weapon's built Spell nor the wearer's state.
-func mageCardDamage(weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule) (base, spread int64, ok bool) {
-	return castCardDamage(weapon, rules, spells, false)
+func mageCardDamage(game rules.SpellGame, weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule) (base, spread int64, ok bool) {
+	return castCardDamage(game, weapon, rules, spells, false)
 }
 
 // generatorCardDamage is the generator preview's damage row: the character
 // generation fill takes the first castSpell Effect of the template weapon, not
 // the last (HERO-172).
-func generatorCardDamage(weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule) (base, spread int64, ok bool) {
-	return castCardDamage(weapon, rules, spells, true)
+func generatorCardDamage(game rules.SpellGame, weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule) (base, spread int64, ok bool) {
+	return castCardDamage(game, weapon, rules, spells, true)
 }
 
-func castCardDamage(weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule, first bool) (base, spread int64, ok bool) {
+func castCardDamage(game rules.SpellGame, weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule, first bool) (base, spread int64, ok bool) {
 	var cast sim.ItemEffect
 	for _, effect := range weapon.Effects {
 		if effect.Kind == 41 {
@@ -192,7 +193,7 @@ func castCardDamage(weapon sim.ItemInstance, rules sim.Rules, spells []sim.Spell
 		if rule.ID != id {
 			continue
 		}
-		c := sim.SpellCharacteristicsAtPower(rules, rule, power)
+		c := sim.SpellCharacteristicsAtPower(game, rules, rule, power)
 		if c.DamageMax == 0 {
 			return 0, 0, false
 		}

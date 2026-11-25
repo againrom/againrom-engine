@@ -95,7 +95,7 @@ func stampWorld(t *testing.T, second, scroll bool) (*World, []Command) {
 // speedFlight. Lightning keeps its fixed 10 in both.
 func TestFlightWaitByGame(t *testing.T) {
 	arrow := SpellRule{ID: 1, Delivery: 2, EffectSpeed: 200}
-	lightning := SpellRule{ID: 10, Arm: 13, Second: true, Delivery: 2, EffectSpeed: 60}
+	lightning := SpellRule{ID: 10, Arm: 13, Delivery: 2, EffectSpeed: 60}
 	for _, tc := range []struct {
 		name          string
 		script        *Script

@@ -48,9 +48,6 @@ func TestReleaseCastDamageFollowsTheSpellRecord(t *testing.T) {
 		t.Fatalf("installed row census has %d rows, want 28", len(installed))
 	}
 	for _, rule := range installed {
-		if rule.Second {
-			t.Fatal("first-game row census contains a second-game rule")
-		}
 		for power := int32(0); power <= 255; power++ {
 			b, s := sim.SpellColumnDamage(rule.DamageMin, rule.DamageMax, power)
 			wb, ws := castDamageRecord(rule.DamageMin, rule.DamageMax, power)
@@ -167,7 +164,7 @@ func TestReleaseCastDamageFollowsTheSpellRecord(t *testing.T) {
 	for _, id := range []uint16{1, 13} {
 		rule := byID[id]
 		w := world(1, rule, [5]int32{})
-		c := sim.SpellCharacteristicsFor(w.Rules(), entityByID(t, w, 1), rule)
+		c := sim.SpellCharacteristicsFor(testFirstGame, w.Rules(), entityByID(t, w, 1), rule)
 		if c.Power != 0 {
 			t.Fatalf("spell %d: the weak caster's power is %d, want 0", id, c.Power)
 		}

@@ -197,7 +197,7 @@ func TestModDamageDomainWidensOnlyTheFirstGame(t *testing.T) {
 		t.Fatalf("first-game global damage %+v", r)
 	}
 	for _, r := range mapload.SpellRules(second) {
-		if r.DamageMin > 255 || r.DamageMax > 255 || !r.Second {
+		if r.DamageMin > 255 || r.DamageMax > 255 {
 			t.Fatalf("second-game multiplier left its old byte domain: %+v", r)
 		}
 	}

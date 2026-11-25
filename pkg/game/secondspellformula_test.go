@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/rules"
@@ -25,7 +26,8 @@ func secondSpellFront() *FrontEnd {
 		rows = append(rows, dbEntry{name: strings.ReplaceAll(s.Name, "_", " "), params: p})
 	}
 	f := &FrontEnd{}
-	f.Table = &mapload.Table{Spells: rows, SpellArms: mapload.SecondGameSpellArms}
+	edition := base.GameROM2.Edition()
+	f.Table = &mapload.Table{Spells: rows, SpellArms: mapload.SecondGameSpellArms, Edition: &edition}
 	return f
 }
 
@@ -50,8 +52,12 @@ func secondCast(t *testing.T, f *FrontEnd, mind int32, victim sim.EntityID, id u
 	caster := sim.Entity{ID: 1, X: 2, Y: 2, HP: 100, MaxHP: 100, DyingTime: 200, Mind: mind, MaxMana: 50, Mana: 50,
 		KnownSpells: 1<<5 | 1<<12, ScanRange: 12}
 	target := sim.Entity{ID: 2, X: 5, Y: 2, HP: 100, MaxHP: 100, DyingTime: 200}
+	script, err := sim.NewROM2Script(missionChecks(), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	w, err := sim.NewSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, nil,
-		[]sim.Entity{caster, target}, nil, mapload.SpellRules(f.Table))
+		[]sim.Entity{caster, target}, script, mapload.SpellRules(f.Table))
 	if err != nil {
 		t.Fatal(err)
 	}

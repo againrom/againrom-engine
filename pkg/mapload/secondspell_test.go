@@ -25,8 +25,8 @@ func TestSecondGameRulesClassifyTheDamagePairByArm(t *testing.T) {
 	want := map[int][2]bool{5: {true, false}, 6: {true, false}, 11: {true, false}, 24: {false, true}, 26: {false, false}}
 	for id, w := range want {
 		r := second[id-1]
-		if r.Damaging != w[0] || r.Restorative != w[1] || !r.Second {
-			t.Errorf("second-game row %d: damaging=%v restorative=%v second=%v, want %v", id, r.Damaging, r.Restorative, r.Second, w)
+		if r.Damaging != w[0] || r.Restorative != w[1] {
+			t.Errorf("second-game row %d: damaging=%v restorative=%v, want %v", id, r.Damaging, r.Restorative, w)
 		}
 	}
 	if second[4].Arm != sim.ArmNone || second[23].ArmID() != 6 {

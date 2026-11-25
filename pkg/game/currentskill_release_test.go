@@ -35,7 +35,7 @@ func currentSkillRangeCheck(t *testing.T, f *FrontEnd, live, ordinary int32, bon
 	if !ok || rule.MaxRange != 10 || rule.School != 1 || e.Skill[1] != 100+int32(bonus) {
 		t.Fatal("installed Fire Ball/skill fixture", rule, e.Skill)
 	}
-	if got := sim.SpellCharacteristicsFor(f.live.world.Rules(), e, rule).Range; got != int64(live) {
+	if got := sim.SpellCharacteristicsFor(testFirstGame, f.live.world.Rules(), e, rule).Range; got != int64(live) {
 		t.Fatalf("live Fire Ball reach %d, want %d", got, live)
 	}
 	before := f.live.world.Hash()

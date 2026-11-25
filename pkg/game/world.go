@@ -1406,14 +1406,14 @@ func partyPanelSubject(p mapload.PartyMember, t *mapload.Table, installed ...ui.
 		if p.Mage {
 			s.Combat.WeaponSpellKnown = true
 			worn := mapload.MemberItemEquipment(p, t)
-			base, spread, ok := mageCardDamage(worn[0], mapload.TableRules(t), mapload.SpellRules(t))
+			base, spread, ok := mageCardDamage(mapload.SpellGameOf(t), worn[0], mapload.TableRules(t), mapload.SpellRules(t))
 			s.Combat.WeaponSpellDamageKnown = ok
 			s.Combat.SpellDamageBase, s.Combat.SpellDamageSpread = base, spread
 		}
 		return s
 	}
 	spellID, _ := mapload.SpellIDByToken(t, d.Combat.SpellName)
-	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(t), sim.Entity{MaxMana: mana, WeaponSpell: spellID,
+	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.SpellGameOf(t), mapload.TableRules(t), sim.Entity{MaxMana: mana, WeaponSpell: spellID,
 		WeaponSpellLevel: d.Combat.SpellPower}, mapload.SpellRules(t))
 	if ok {
 		s.Combat.WeaponSpellKnown = true
@@ -5257,7 +5257,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			char.ExperienceWithheld = !sim.InPersistBand(e.TypeID)
 		}
 
-		spell, weaponSpellKnown := sim.WeaponSpellCharacteristicsFor(mw.world.Rules(), e, spells)
+		spell, weaponSpellKnown := sim.WeaponSpellCharacteristicsFor(mw.world.SpellGame(), mw.world.Rules(), e, spells)
 		spellBase, spellSpread := int64(0), int64(0)
 		spellDamageKnown := weaponSpellKnown && spell.HasDamage
 		if spellDamageKnown {
@@ -5267,7 +5267,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			weaponSpellKnown, spellDamageKnown, spellBase, spellSpread = char.Known && char.Mage, false, 0, 0
 			if weaponSpellKnown {
 				worn, _ := mw.world.EquippedItems(e.ID)
-				spellBase, spellSpread, spellDamageKnown = mageCardDamage(worn[0], mw.world.Rules(), spells)
+				spellBase, spellSpread, spellDamageKnown = mageCardDamage(mw.world.SpellGame(), worn[0], mw.world.Rules(), spells)
 			}
 		}
 		playerCharacter := mw.isGuarded(e.ID)

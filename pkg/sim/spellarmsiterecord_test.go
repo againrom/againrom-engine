@@ -32,11 +32,14 @@ var spellArmSiteRecord = map[string]armAnswers{
 // the row lays none.
 func siteBursts(id uint16, second bool) int {
 	rule := blastRule(0)
-	rule.ID, rule.Arm, rule.Second = id, 2, second
+	rule.ID, rule.Arm = id, 2
 	w, err := NewStockedSpelledWorld(7, Bounds{Width: 32, Height: 32}, ModeCanonical,
 		Terrain{}, []Entity{effectMage(1, 2, 2, 1<<2)}, nil, Relations{}, nil, nil, []SpellRule{rule})
 	if err != nil {
 		return 0
+	}
+	if second {
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	}
 	w.SetBurstPhases(11)
 	w.landAreaFacing(rule, 0, 1, true, 2, 2, 16, 16, 0, false, nil)
@@ -46,7 +49,7 @@ func siteBursts(id uint16, second bool) int {
 // siteSpeedFlight reports a delivery of a row with id id, effect speed 3,
 // that waits the Euclidean rather than the Chebyshev distance.
 func siteSpeedFlight(id uint16, second bool) bool {
-	d := spellDelivery{Rule: SpellRule{ID: id, Arm: 2, EffectSpeed: 3, Second: second}, X: 10, Y: 10}
+	d := spellDelivery{Rule: SpellRule{ID: id, Arm: 2, EffectSpeed: 3}, X: 10, Y: 10}
 	return (&World{}).spellDeliveryRemaining(d) != spellDeliveryTicks(d.Rule, 0, 0, 10, 10)
 }
 
@@ -63,7 +66,7 @@ func siteHealWorld(t *testing.T, second bool) *World {
 	var spells []SpellRule
 	for id := uint16(1); id <= 31; id++ {
 		heal := hlHeal()
-		heal.ID, heal.Defensive, heal.Second = id, true, second
+		heal.ID, heal.Defensive = id, true
 		spells = append(spells, heal)
 	}
 	w, err := NewStockedSpelledWorld(7, engBounds, ModeCanonical, Terrain{},

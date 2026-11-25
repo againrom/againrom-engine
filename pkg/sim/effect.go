@@ -392,7 +392,7 @@ func (w *World) effectDelta(target EntityID, kind EffectKind) int32 {
 // same-id and Bless/Curse annihilation rules.
 func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind EffectKind, magnitude int32, duration uint16, mode EffectMode) bool {
 	ti := indexOfEntity(w.entities, target)
-	if ti < 0 || duration == 0 || kind == EffectNone && !secondBlankCurse(rule) {
+	if ti < 0 || duration == 0 || kind == EffectNone && !secondBlankCurse(w.spellRow(), rule) {
 		return false
 	}
 	magnitude = w.landingMagnitude(ti, rule, kind, magnitude)
@@ -421,7 +421,7 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 			// eighth tick rather than reversed: a continuous heal that clamped at full
 			// health once would otherwise be re-applied as zero for the rest of its
 			// life.
-			if poison && rule.secondArm().skipsFirstHealth {
+			if poison && w.spellRow().second(rule).skipsFirstHealth {
 				return true
 			}
 			w.applyAttachedAt(i, ti, poison)
@@ -455,7 +455,7 @@ func (w *World) attachEffectTransaction(ti int, caster EntityID, rule SpellRule,
 		}
 	}
 	i, exists := effectIndex(w.attached, target, rule.ID)
-	if exists && keepsLargerOnRepeat(rule) && mode&(EffectDuration|EffectContinuous) != 0 {
+	if exists && keepsLargerOnRepeat(w.spellRow(), rule) && mode&(EffectDuration|EffectContinuous) != 0 {
 		// The standing record is kept: its delta comes off, it takes the
 		// larger signed magnitude and the larger duration, and the kept
 		// magnitude goes on again, except for Poison Cloud (R2-ENGINE-986).

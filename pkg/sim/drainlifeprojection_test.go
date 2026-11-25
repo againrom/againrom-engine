@@ -21,7 +21,7 @@ func TestDrainLifeWeaponProjectionKeepsTransferFlagsAndState(t *testing.T) {
 	}{{30, 6, 10}, {0, 3, 5}} {
 		entity := caster
 		entity.WeaponSpellLevel = tc.power
-		got, ok := WeaponSpellCharacteristicsFor(Rules{}, entity, []SpellRule{rule})
+		got, ok := WeaponSpellCharacteristicsFor(testFirstGame, Rules{}, entity, []SpellRule{rule})
 		want := WeaponSpellCharacteristics{SpellID: 11, Arm: 11, DamageMin: tc.min, DamageMax: tc.max, MaxRange: 7, HasDamage: true}
 		if !ok || got != want {
 			t.Errorf("synthetic Drain power %d = %+v/%v, want %+v", tc.power, got, ok, want)
@@ -35,14 +35,14 @@ func TestDrainLifeWeaponProjectionKeepsTransferFlagsAndState(t *testing.T) {
 		t.Fatal("projection changed World bytes/hash or gameplay flags")
 	}
 	for _, control := range []Entity{{ID: 3, WeaponSpell: 11}, {ID: 4, MaxMana: 1, WeaponSpell: 65535}} {
-		if _, ok := WeaponSpellCharacteristicsFor(Rules{}, control, []SpellRule{rule}); ok {
+		if _, ok := WeaponSpellCharacteristicsFor(testFirstGame, Rules{}, control, []SpellRule{rule}); ok {
 			t.Fatal("non-mage or unknown row obtained a projection")
 		}
 	}
 	heal := rule
 	heal.ID, heal.Restorative = 6, true
 	caster.WeaponSpell = 6
-	if _, ok := WeaponSpellCharacteristicsFor(Rules{}, caster, []SpellRule{heal}); ok {
+	if _, ok := WeaponSpellCharacteristicsFor(testFirstGame, Rules{}, caster, []SpellRule{heal}); ok {
 		t.Fatal("Heal obtained a damaging weapon projection")
 	}
 }

@@ -15,13 +15,13 @@ func TestPlayerBookWalkGivesTeleportTheCurrentPowerRange(t *testing.T) {
 		return e
 	}
 	w := spWorld(t, 91, []SpellRule{rule}, stale(1, SelfSlot, 4), stale(2, 2, 12))
-	if got := SpellCharacteristicsFor(Rules{}, w.entities[0], w.spells[0]).Range; got != 1 {
+	if got := SpellCharacteristicsFor(testFirstGame, Rules{}, w.entities[0], w.spells[0]).Range; got != 1 {
 		t.Fatalf("stored Teleport range %d, want 1", got)
 	}
 	if walked := w.RefreshPlayerBooks(SelfSlot); walked != 1 {
 		t.Fatalf("walked %d books, want 1", walked)
 	}
-	if got := SpellCharacteristicsFor(Rules{}, w.entities[0], w.spells[0]).Range; got != 3 {
+	if got := SpellCharacteristicsFor(testFirstGame, Rules{}, w.entities[0], w.spells[0]).Range; got != 3 {
 		t.Fatalf("Teleport range after the walk %d, want 1 + 6/3 = 3", got)
 	}
 	if got := w.entities[1].Book.Slots[25].Range; got != 1 {

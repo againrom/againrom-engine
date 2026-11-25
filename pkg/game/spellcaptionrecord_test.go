@@ -73,7 +73,7 @@ func spellCaptionProbeIDs() []uint16 {
 func TestSpellCaptionsKeepTheirRecord(t *testing.T) {
 	for _, id := range spellCaptionProbeIDs() {
 		for _, second := range []bool{false, true} {
-			rule := sim.SpellRule{ID: id, Arm: id, Second: second}
+			rule := sim.SpellRule{ID: id, Arm: id}
 			if second {
 				rule.Arm = sim.SecondGameSpellArm(id)
 			}

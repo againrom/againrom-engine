@@ -667,7 +667,7 @@ func TestSecondBookPageLeavesSlowOut(t *testing.T) {
 	}
 	e := sim.Entity{KnownSpells: 1<<24 | 1<<29}
 	rows := data.SpellPresentationOf(rules.SpellGameSecond).BookRows
-	book, fixed := selectedSpellbook(sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, nil, rows)
+	book, fixed := selectedSpellbook(testFirstGame, sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, nil, rows)
 	if !fixed || len(book) != 24 {
 		t.Fatalf("%d cells fixed %t, want the 24 of the table", len(book), fixed)
 	}

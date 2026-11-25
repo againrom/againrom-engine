@@ -19,35 +19,19 @@ func spellPowerUnder(r Rules, rule SpellRule, level, mind int32) int32 {
 	return spellPower(level, mind)
 }
 
-func spellDamageUnder(r Rules, rule SpellRule, power int32) (base, spread int64) {
-	f, ok := r.SpellFormulaAt(rules.FormulaDamage, rule.ID, power)
-	if !ok {
-		if !rule.Second {
-			return SpellColumnDamage(rule.DamageMin, rule.DamageMax, power)
-		}
-		return spellDamage(rule.DamageMin, rule.DamageMax, power)
-	}
-	base = int64(rule.DamageMin) * int64(f) / 30
-	return base, int64(rule.DamageMax)*int64(f)/30 - base
-}
-
 // SpellDamagePair is the damage interval a cast at power rolls in: the base
 // and the base plus the spread, a negative spread read as zero as the
 // damage and heal resolvers read it.
-func SpellDamagePair(r Rules, rule SpellRule, power int32) (minimum, maximum int64) {
-	base, spread := spellDamageUnder(r, rule, power)
+func SpellDamagePair(game rules.SpellGame, r Rules, rule SpellRule, power int32) (minimum, maximum int64) {
+	base, spread := spellRowOf(game).damageUnder(r, rule, power)
 	return base, base + max(spread, 0)
 }
 
-func (rule SpellRule) wholeDamageColumns() bool {
-	return !rule.Second && (rule.DamageMin > 255 || rule.DamageMax > 255)
-}
-
-func spellDamageExceedsPayload(r Rules, rule SpellRule, power int32) bool {
-	if !rule.Damaging || !rule.wholeDamageColumns() {
+func spellDamageExceedsPayload(s *spellRow, r Rules, rule SpellRule, power int32) bool {
+	if !rule.Damaging || !s.wholeDamageColumns(rule) {
 		return false
 	}
-	base, spread := spellDamageUnder(r, rule, power)
+	base, spread := s.damageUnder(r, rule, power)
 	return base > 255 || spread > 255
 }
 

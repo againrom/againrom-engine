@@ -18,7 +18,7 @@ type SpellDeliverySaveState struct {
 func (w *World) preparedSpellPayload(rule SpellRule, power int32, target int) SavedEffect {
 	p := SavedEffect{Class: "Effect", E0C: uint8(rule.ID)}
 	if rule.Damaging {
-		base, spread := spellDamageUnder(w.rules, rule, power)
+		base, spread := w.spellRow().damageUnder(w.rules, rule, power)
 		p.Class = "Effect_DirectDamage"
 		p.DirectDamage[19], p.DirectDamage[20], p.DirectDamage[21] = clampByte(base), clampByte(spread), rule.School
 	} else {
@@ -37,7 +37,7 @@ func (w *World) NativeSpellDeliverySaveStates() []SpellDeliverySaveState {
 	for _, d := range w.deliveries {
 		a := AreaSaveState{Key: cellKey(d.X, d.Y), Spell: d.Rule.ID, Radius: d.Rule.Radius, Mode: areaModeFor(d.Rule), Direction: w.areaHeading(d.FromX, d.FromY, d.X, d.Y, d.Facing, d.FixedFacing)}
 		if a.Mode == areaModeCloud {
-			a.Remaining = spellDurationOf(w.rules, d.Rule, d.Power, durationArea) - 1
+			a.Remaining = spellDurationOf(w.spellRow(), w.rules, d.Rule, d.Power, durationArea) - 1
 		}
 		a.Payload = w.preparedSpellPayload(d.Rule, d.Power, indexOfEntity(w.entities, d.Target))
 		if d.Payload != nil {

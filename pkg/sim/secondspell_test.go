@@ -20,7 +20,7 @@ func TestSecondGameArmsFollowThePublishedTable(t *testing.T) {
 		}
 	}
 	first := SpellRule{ID: 24}
-	if first.ArmID() != 24 || first.Second {
+	if first.ArmID() != 24 {
 		t.Errorf("a first-game row runs arm %d, want its own id", first.ArmID())
 	}
 }
@@ -29,7 +29,7 @@ func TestSecondHealDrawsOneToSpread(t *testing.T) {
 	heal := secondRow(SpellRule{ID: 24, School: 5, DamageMin: 8, DamageMax: 16, TargetsUnit: true, Restorative: true})
 	target := spEnt(2, 1, 0)
 	target.HP = 10
-	w := spWorld(t, 7, []SpellRule{heal}, spEnt(1, 0, 0), target)
+	w := spSecondWorld(t, 7, []SpellRule{heal}, spEnt(1, 0, 0), target)
 	base, spread := spellDamage(heal.DamageMin, heal.DamageMax, 0)
 	probe := w.rng
 	want := int32(10 + base + 1 + int64(probe.uniform(int32(spread-1))))
@@ -39,7 +39,7 @@ func TestSecondHealDrawsOneToSpread(t *testing.T) {
 	}
 
 	none := secondRow(SpellRule{ID: 24, School: 5, DamageMin: 8, DamageMax: 8, TargetsUnit: true, Restorative: true})
-	w = spWorld(t, 7, []SpellRule{none}, spEnt(1, 0, 0), target)
+	w = spSecondWorld(t, 7, []SpellRule{none}, spEnt(1, 0, 0), target)
 	w.applySpellHealing(1, none, 0)
 	if got := w.entities[1].HP; got != 10+8+1 {
 		t.Fatalf("second-game Heal with spread 0 left health %d, want 19 (a spread of 0 still draws 1)", got)
@@ -60,7 +60,7 @@ func TestSecondDrainLifeIsCutByAstralResistance(t *testing.T) {
 	caster, victim := spEnt(1, 0, 0), spEnt(2, 1, 0)
 	caster.HP = 50
 	victim.Protection[4] = 50
-	w := spWorld(t, 9, []SpellRule{drain}, caster, victim)
+	w := spSecondWorld(t, 9, []SpellRule{drain}, caster, victim)
 	base, spread := spellDamage(drain.DamageMin, drain.DamageMax, 0)
 	probe := w.rng
 	amount := secondDrainAmount(base, 50, probe.uniform(secondDrawSpan(spread)))
@@ -79,15 +79,19 @@ func TestSecondDrainLifeIsCutByAstralResistance(t *testing.T) {
 // killer (R2-ENGINE-1767); the first game's arm writes none.
 func TestSecondDrainLifeWritesTheKiller(t *testing.T) {
 	for _, tc := range []struct {
-		name string
-		rule SpellRule
-		want bool
+		name   string
+		rule   SpellRule
+		second bool
+		want   bool
 	}{
-		{"second game", secondRow(SpellRule{ID: 26, School: 5, DamageMin: 40, DamageMax: 60, TargetsUnit: true}), true},
-		{"first game", SpellRule{ID: 11, School: 5, DamageMin: 40, DamageMax: 60, TargetsUnit: true}, false},
+		{"second game", secondRow(SpellRule{ID: 26, School: 5, DamageMin: 40, DamageMax: 60, TargetsUnit: true}), true, true},
+		{"first game", SpellRule{ID: 11, School: 5, DamageMin: 40, DamageMax: 60, TargetsUnit: true}, false, false},
 	} {
 		caster, victim := spEnt(1, 0, 0), spEnt(2, 1, 0)
 		w := spWorld(t, 9, []SpellRule{tc.rule}, caster, victim)
+		if tc.second {
+			w = spSecondWorld(t, 9, []SpellRule{tc.rule}, caster, victim)
+		}
 		if !w.ordinaryEffectPayload(0, 1, tc.rule, 0, blowDirect) {
 			t.Fatalf("%s: Drain Life did not land", tc.name)
 		}
@@ -105,7 +109,7 @@ func TestSecondDrainLifeWritesTheKiller(t *testing.T) {
 func TestSecondPoisonCloudAndInvisibilityTakeTheirOwnFormulas(t *testing.T) {
 	poison := secondRow(SpellRule{ID: 6, School: 2, Area: true, Distribution: 3, SpellDuration: 5,
 		EffectKind: EffectHealth, EffectMode: EffectContinuous, EffectMagnitude: -2, EffectDuration: 8})
-	w := spWorld(t, 1, []SpellRule{poison}, spEnt(1, 0, 0))
+	w := spSecondWorld(t, 1, []SpellRule{poison}, spEnt(1, 0, 0))
 	_, mag, duration, _ := w.pointEffect(0, poison, 90)
 	if mag != -6 {
 		t.Errorf("second-game Poison Cloud magnitude at P 90 = %d, want -6 (-2 * (90/45 + 1))", mag)
@@ -114,8 +118,8 @@ func TestSecondPoisonCloudAndInvisibilityTakeTheirOwnFormulas(t *testing.T) {
 		t.Errorf("second-game Poison Cloud duration at P 90 = %d, want the Effects counter 8 (R2-ENGINE-1575)", duration)
 	}
 	first := poison
-	first.ID, first.Arm, first.Second = 8, 0, false
-	if _, mag, duration, _ := w.pointEffect(0, first, 90); mag != -8 || duration != 8 {
+	first.ID, first.Arm = 8, 0
+	if _, mag, duration, _ := spWorld(t, 1, []SpellRule{first}, spEnt(1, 0, 0)).pointEffect(0, first, 90); mag != -8 || duration != 8 {
 		t.Errorf("first-game Poison Cloud at P 90 = %d for %d ticks, want -8 for 8", mag, duration)
 	}
 
@@ -129,7 +133,7 @@ func TestSecondPoisonCloudRepeatKeepsTheLargerRemainderAndMagnitude(t *testing.T
 	poison := secondRow(SpellRule{ID: 6, School: 2, Area: true, Distribution: 3, SpellDuration: 5,
 		EffectKind: EffectHealth, EffectMode: EffectContinuous, EffectMagnitude: -2, EffectDuration: 8})
 	caster, target := spEnt(1, 0, 0), spEnt(2, 1, 0)
-	w := spWorld(t, 1, []SpellRule{poison}, caster, target)
+	w := spSecondWorld(t, 1, []SpellRule{poison}, caster, target)
 	if !w.ordinaryAreaEffect(0, 1, poison, 90) {
 		t.Fatal("first Poison Cloud did not land")
 	}
@@ -154,7 +158,7 @@ func TestPoisonCloudRepeatControls(t *testing.T) {
 
 	protection := secondRow(SpellRule{ID: 4, School: 1, MaxRange: 8, TargetsUnit: true, Defensive: true,
 		EffectKind: EffectProtectionFire, EffectMode: EffectDuration, EffectMagnitude: 10, SpellDuration: 5})
-	w = spWorld(t, 1, []SpellRule{protection}, spEnt(1, 0, 0), spEnt(2, 1, 0))
+	w = spSecondWorld(t, 1, []SpellRule{protection}, spEnt(1, 0, 0), spEnt(2, 1, 0))
 	w.attachEffect(2, 1, protection, EffectProtectionFire, 10, 500, EffectDuration)
 	w.attachEffect(2, 1, protection, EffectProtectionFire, 10, 100, EffectDuration)
 	if got := w.ActiveEffects(); len(got) != 1 || got[0].Remaining != 500 {
@@ -164,7 +168,7 @@ func TestPoisonCloudRepeatControls(t *testing.T) {
 
 func TestSecondStoneCurseWithNoEffectKindAttachesABlankHold(t *testing.T) {
 	curse := secondRow(SpellRule{ID: 18, School: 4, TargetsUnit: true, SpellDuration: 10})
-	w := spWorld(t, 3, []SpellRule{curse}, spEnt(1, 0, 0), spEnt(2, 1, 0))
+	w := spSecondWorld(t, 3, []SpellRule{curse}, spEnt(1, 0, 0), spEnt(2, 1, 0))
 	if r := w.pointEffectRefusal(0, 1, curse, 50); r != "" {
 		t.Fatalf("second-game Stone Curse refused: %s", r)
 	}
@@ -176,8 +180,8 @@ func TestSecondStoneCurseWithNoEffectKindAttachesABlankHold(t *testing.T) {
 		t.Errorf("second-game Stone Curse attached %+v, want one blank hold", w.ActiveEffects())
 	}
 	first := curse
-	first.ID, first.Arm, first.Second = 20, 0, false
-	if r := w.pointEffectRefusal(0, 1, first, 50); r == "" {
+	first.ID, first.Arm = 20, 0
+	if r := spWorld(t, 3, []SpellRule{first}, spEnt(1, 0, 0), spEnt(2, 1, 0)).pointEffectRefusal(0, 1, first, 50); r == "" {
 		t.Error("a first-game Stone Curse row with no effect kind was admitted")
 	}
 }
@@ -212,7 +216,7 @@ func TestSecondBlessLeavesItsTargetFreeToMove(t *testing.T) {
 	bless := secondRow(SpellRule{ID: 20, TargetsUnit: true, SpellDuration: 10})
 	actor := effectMage(1, 2, 2, 1<<20)
 	actor.Speed = 4
-	w := spWorld(t, 1, []SpellRule{bless}, actor)
+	w := spSecondWorld(t, 1, []SpellRule{bless}, actor)
 	if !w.ordinaryEffectPayload(0, 0, bless, 30, blowDirect) {
 		t.Fatal("Bless did not attach")
 	}
@@ -222,7 +226,7 @@ func TestSecondBlessLeavesItsTargetFreeToMove(t *testing.T) {
 		t.Fatalf("Bless froze the actor: stoneCursed=%v target=%v at %d,%d", w.stoneCursed(0), got.HasTarget, got.X, got.Y)
 	}
 	curse := secondRow(SpellRule{ID: 18, TargetsUnit: true, SpellDuration: 10, EffectKind: EffectAbsorption, EffectMode: EffectDuration, EffectMagnitude: 5})
-	w = spWorld(t, 1, []SpellRule{curse}, effectMage(1, 2, 2, 1<<18))
+	w = spSecondWorld(t, 1, []SpellRule{curse}, effectMage(1, 2, 2, 1<<18))
 	if !w.ordinaryEffectPayload(0, 0, curse, 30, blowDirect) || !w.stoneCursed(0) {
 		t.Fatal("a second-game Stone Curse with an effect kind does not hold its target")
 	}
@@ -232,7 +236,7 @@ func TestSecondInvisibilityHidesItsTargetUntilItAttacks(t *testing.T) {
 	invisible := secondRow(SpellRule{ID: 12, TargetsUnit: true, SpellDuration: 10})
 	caster, enemy := effectMage(1, 2, 2, 1<<12), spEnt(2, 6, 2)
 	enemy.Owner, enemy.ScanRange = 2, 12
-	w := spWorld(t, 1, []SpellRule{invisible}, caster, enemy)
+	w := spSecondWorld(t, 1, []SpellRule{invisible}, caster, enemy)
 	if !w.ordinaryEffectPayload(0, 0, invisible, 30, blowDirect) {
 		t.Fatal("Invisibility did not attach")
 	}
@@ -247,7 +251,7 @@ func TestSecondInvisibilityHidesItsTargetUntilItAttacks(t *testing.T) {
 func TestSecondBlessAndCurseAnnihilate(t *testing.T) {
 	bless := secondRow(SpellRule{ID: 20, TargetsUnit: true, SpellDuration: 10})
 	curse := secondRow(SpellRule{ID: 28, TargetsUnit: true, SpellDuration: 10})
-	w := spWorld(t, 1, []SpellRule{bless, curse}, spEnt(1, 2, 2))
+	w := spSecondWorld(t, 1, []SpellRule{bless, curse}, spEnt(1, 2, 2))
 	if !w.ordinaryEffectPayload(0, 0, bless, 30, blowDirect) || !w.ordinaryEffectPayload(0, 0, curse, 30, blowDirect) {
 		t.Fatal("an effect did not attach")
 	}
@@ -266,7 +270,7 @@ func TestSecondBlessAndCurseControlPhysicalDamage(t *testing.T) {
 			rule := secondRow(SpellRule{ID: tc.id, SpellDuration: 10})
 			a, v := spEnt(1, 2, 2), spEnt(2, 3, 2)
 			a.DamageBase, a.DamageSpread, a.AlwaysHits, a.Reach = 10, 20, true, 1
-			w := spWorld(t, 1, []SpellRule{rule}, a, v)
+			w := spSecondWorld(t, 1, []SpellRule{rule}, a, v)
 			if !w.ordinaryEffectPayload(0, 0, rule, 100, blowDirect) {
 				t.Fatal("effect did not attach")
 			}
@@ -283,7 +287,7 @@ func TestSecondShieldDoesNotActAsCurse(t *testing.T) {
 	shield := secondRow(SpellRule{ID: 27, SpellDuration: 20, EffectKind: EffectAbsorption, EffectMode: EffectDuration})
 	a, v := spEnt(1, 2, 2), spEnt(2, 3, 2)
 	a.DamageBase, a.DamageSpread, a.AlwaysHits, a.Reach = 10, 20, true, 1
-	w := spWorld(t, 1, []SpellRule{shield}, a, v)
+	w := spSecondWorld(t, 1, []SpellRule{shield}, a, v)
 	if !w.ordinaryEffectPayload(0, 0, shield, 100, blowDirect) {
 		t.Fatal("Shield did not attach")
 	}
@@ -310,8 +314,8 @@ func TestSecondShieldDoesNotActAsCurse(t *testing.T) {
 
 func TestSecondInvisibilityRecordDurationIsItsAppliedDuration(t *testing.T) {
 	rule := secondRow(SpellRule{ID: 12, TargetsUnit: true, SpellDuration: 10})
-	record := SpellCharacteristicsFor(Rules{}, Entity{Mind: 100}, rule)
-	w := spWorld(t, 1, []SpellRule{rule}, spEnt(1, 2, 2))
+	record := SpellCharacteristicsFor(testSecondGame, Rules{}, Entity{Mind: 100}, rule)
+	w := spSecondWorld(t, 1, []SpellRule{rule}, spEnt(1, 2, 2))
 	_, _, applied, _ := w.pointEffect(0, rule, 70)
 	if record.Duration != applied || applied != 70<<4 {
 		t.Fatalf("Invisibility at P70: record %d, applied %d, want %d", record.Duration, applied, 70<<4)
@@ -338,7 +342,7 @@ func TestSecondArmsSurviveAColdBinaryLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i, r := range cold.Spells() {
-		if r.Arm != rows[i].Arm || !r.Second {
+		if r.Arm != rows[i].Arm {
 			t.Fatalf("row %d lost its arm: %+v", r.ID, r)
 		}
 	}
@@ -353,7 +357,7 @@ func TestFirstGameEffectLookupsKeepTheirIDs(t *testing.T) {
 			t.Errorf("first-game armSpellID(%d) = %d", arm, got)
 		}
 	}
-	second := spWorld(t, 1, []SpellRule{secondRow(SpellRule{ID: 12}), secondRow(SpellRule{ID: 21})}, spEnt(1, 2, 2))
+	second := spSecondWorld(t, 1, []SpellRule{secondRow(SpellRule{ID: 12}), secondRow(SpellRule{ID: 21})}, spEnt(1, 2, 2))
 	if got := second.armSpellID(15); got != 12 {
 		t.Errorf("second-game armSpellID(15) = %d, want row 12", got)
 	}

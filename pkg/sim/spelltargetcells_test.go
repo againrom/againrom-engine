@@ -168,7 +168,7 @@ func TestBlizzardStruckCellWalksGroundAirThenStructure(t *testing.T) {
 	ground, air := spEnt(2, 20, 20), spEnt(3, 20, 20)
 	ground.TokenSize, air.Domain = 3, DomainAir
 	building := Structure{ID: 1, Col: 20, Row: 20, Width: 1, Height: 1, MaxHealth: 100, Field42: 100, Attach: 1}
-	w := blizzardWorld(t, 7, false, blizzardRow(10, 30), []Structure{building}, caster, ground, air)
+	w := blizzardWorld(t, true, 7, false, blizzardRow(10, 30), []Structure{building}, caster, ground, air)
 	r := w.rng
 	groundLoss := int32(10 + r.uniform(20))
 	airLoss := int32(10 + r.uniform(20))

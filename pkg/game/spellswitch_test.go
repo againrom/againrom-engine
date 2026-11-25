@@ -50,14 +50,14 @@ func TestSpellSwitchBookRowsOnBothGames(t *testing.T) {
 		if rows := spellBookOrder(tab, ground); !slices.Equal(rows, ground) {
 			t.Fatalf("%s: without a mod the book leaves the game's own rows", spells)
 		}
-		plain, fixed := selectedSpellbook(sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, nil, ground)
+		plain, fixed := selectedSpellbook(testFirstGame, sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, nil, ground)
 		markMovedSpells(plain, ground, ground, nil)
 		if !fixed || len(plain) != 24 || slices.ContainsFunc(plain, func(s ui.SpellEntry) bool { return s.Moved }) {
 			t.Fatalf("%s: plain book %v", spells, bookIDs(plain))
 		}
 		tab.Mods.Spells = spellSwitchData(t)
 		rows := spellBookOrder(tab, ground)
-		book, fixed := selectedSpellbook(sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, nil, rows)
+		book, fixed := selectedSpellbook(testFirstGame, sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, nil, rows)
 		markMovedSpells(book, rows, ground, nil)
 		want := []uint32{3, 0, 1}
 		for _, id := range ground[3:23] {

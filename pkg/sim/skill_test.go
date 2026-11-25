@@ -412,12 +412,12 @@ func TestAC7ACastRaisesTheSpellsOwnSchool(t *testing.T) {
 	victim := spEnt(2, 3, 0)
 	victim.Owner = 3
 	w := spWorld(t, 42, []SpellRule{spell}, caster, victim)
-	before := SpellCharacteristicsFor(Rules{}, caster, spell)
+	before := SpellCharacteristicsFor(testFirstGame, Rules{}, caster, spell)
 
 	spRunCast(w, spCast(1, 2, 1))
 
 	got := spAt(t, w, 1)
-	after := SpellCharacteristicsFor(Rules{}, got, spell)
+	after := SpellCharacteristicsFor(testFirstGame, Rules{}, got, spell)
 	if got.Skill[2] != 11 {
 		t.Errorf("school 2's level is %d, want 11", got.Skill[2])
 	}
@@ -443,14 +443,14 @@ func TestSpellCharacteristicsAreAProjectionOfTheCurrentActor(t *testing.T) {
 	a.Skill[2], a.SkillXP[2] = 4, 90
 	b := a
 	b.Mind, b.Skill[2], b.SkillXP[2] = 60, 12, 240
-	pa, pb := SpellCharacteristicsFor(Rules{}, a, rule), SpellCharacteristicsFor(Rules{}, b, rule)
+	pa, pb := SpellCharacteristicsFor(testFirstGame, Rules{}, a, rule), SpellCharacteristicsFor(testFirstGame, Rules{}, b, rule)
 	if pa.SkillLevel != 4 || pa.SkillXP != 90 || pb.SkillLevel != 12 || pb.SkillXP != 240 {
 		t.Fatalf("hero switch leaked projection state: A %+v B %+v", pa, pb)
 	}
 	if pb.Power <= pa.Power || pb.Range < pa.Range {
 		t.Errorf("Mind/skill change did not move canonical characteristics: A %+v B %+v", pa, pb)
 	}
-	if again := SpellCharacteristicsFor(Rules{}, a, rule); again != pa {
+	if again := SpellCharacteristicsFor(testFirstGame, Rules{}, a, rule); again != pa {
 		t.Errorf("switching back to A returned %+v, want current A %+v", again, pa)
 	}
 }

@@ -35,11 +35,11 @@ func TestRayLimitIsTheOneRule(t *testing.T) {
 		t.Errorf("a cap of 100 gave %d", got)
 	}
 	for _, power := range []int32{0, 60, 100} {
-		got, ok := weaponSpellCharacteristics(Rules{}, SpellRule{ID: 14, Damaging: true, TargetsUnit: true, Rays: 50}, power)
+		got, ok := weaponSpellCharacteristics(testFirstGame, Rules{}, SpellRule{ID: 14, Damaging: true, TargetsUnit: true, Rays: 50}, power)
 		if !ok || got.RayCount != 50 {
 			t.Errorf("tooltip at power %d: %+v %v, want 50 rays", power, got, ok)
 		}
-		plain, _ := weaponSpellCharacteristics(Rules{}, SpellRule{ID: 14, Damaging: true, TargetsUnit: true}, power)
+		plain, _ := weaponSpellCharacteristics(testFirstGame, Rules{}, SpellRule{ID: 14, Damaging: true, TargetsUnit: true}, power)
 		if int(plain.RayCount) != (SpellRule{}).RayLimit(power) {
 			t.Errorf("unmodded tooltip at power %d: %d", power, plain.RayCount)
 		}

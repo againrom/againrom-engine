@@ -88,7 +88,7 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 			Current: &CurrentAreaPayload{Radius: v.AE48[1], Stopped: v.SE40 != 0, Payload: *v.AE44}}
 		if d.Mode == areaModeRing {
 			rule, _ := n.findSpell(uint32(e.Spell))
-			delay := rule.secondArm().firstStageDelay
+			delay := n.spellRow().second(rule).firstStageDelay
 			phase := int(v.AE48[3])*3 + 2 - int(v.AE4C) - 3 + int(delay)
 			if v.AE4C > 2 || phase < 0 || phase > 255 {
 				return fmt.Errorf("sim: invalid native ring phase")
@@ -117,7 +117,7 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 					e.DamageMin = int32(e.Current.Payload.DirectDamage[19])
 					e.DamageMax = e.DamageMin + int32(e.Current.Payload.DirectDamage[20])
 				}
-				if !spellDamageExceedsPayload(n.rules, rule, int32(e.Power)) && !e.Current.Stopped && e.Current.Radius == rule.Radius && e.Current.Payload == areaSavePayload(&n, e, rule) {
+				if !spellDamageExceedsPayload(n.spellRow(), n.rules, rule, int32(e.Power)) && !e.Current.Stopped && e.Current.Radius == rule.Radius && e.Current.Payload == areaSavePayload(&n, e, rule) {
 					e.Current = nil
 				}
 			}

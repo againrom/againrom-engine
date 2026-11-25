@@ -91,7 +91,7 @@ func TestReleaseKargallasDragonHasTheFixedDragonBook(t *testing.T) {
 			f.live.view.SetFogReveal(true)
 			spellbookShow(t, a, f.live, id)
 		}
-		entries, fixed := selectedSpellbook(f.live.world.Rules(), []sim.Entity{e}, f.live.world.Spells(), f.live.spellNames, f.live.view.Words(), nil, originalBookIDs)
+		entries, fixed := selectedSpellbook(testFirstGame, f.live.world.Rules(), []sim.Entity{e}, f.live.world.Spells(), f.live.spellNames, f.live.view.Words(), nil, originalBookIDs)
 		if !fixed || len(entries) != 24 {
 			t.Fatalf("book catalog=%d fixed=%v", len(entries), fixed)
 		}

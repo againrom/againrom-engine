@@ -86,6 +86,8 @@ func TestEffectAttachmentRecordsForBothBackings(t *testing.T) {
 				w := spWorld(t, 1, rules, spEnt(1, 2, 2), target)
 				w.BindSourceDerive(func(s SourceActor, _ int32, _ Rules) (SourceActor, error) { return s, nil })
 				for i, s := range tc.steps {
+					// A row with no arm is a first-game row; the others are the second game's.
+					setTestGame(w, s.rule.Arm != 0)
 					if !w.attachEffect(2, s.caster, s.rule, s.kind, s.magnitude, s.duration, s.mode) {
 						t.Fatalf("step %d refused", i)
 					}

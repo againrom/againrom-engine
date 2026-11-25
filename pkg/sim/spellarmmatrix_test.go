@@ -85,7 +85,7 @@ var spellArmRecord = map[string]armAnswers{
 }
 
 func probeRule(arm uint16, second bool) SpellRule {
-	return SpellRule{ID: arm, Arm: arm, Second: second}
+	return SpellRule{ID: arm, Arm: arm}
 }
 
 func boolAnswer(b bool) int {
@@ -109,8 +109,8 @@ func consumerAnswers(arm uint16, second bool) map[string]int {
 		"manualOnly":       boolAnswer(!autoCastable(rule)),
 		"formulaMagnitude": boolAnswer(MagnitudeArm(arm)),
 		"lastingDuration":  boolAnswer(DurationArm(arm)),
-		"blankCurse":       boolAnswer(secondBlankCurse(rule)),
-		"keepsLarger":      boolAnswer(keepsLargerOnRepeat(rule)),
+		"blankCurse":       boolAnswer(secondBlankCurse(testRowOf(second), rule)),
+		"keepsLarger":      boolAnswer(keepsLargerOnRepeat(testRowOf(second), rule)),
 	}
 	ranged := rule
 	ranged.MaxRange = 5
@@ -133,7 +133,7 @@ func consumerAnswers(arm uint16, second bool) map[string]int {
 	case got == segmentedTicks(30, 4, durationSlow) && got != lastingTicks(30, 4, durationSlow):
 		out["durationLaw"] = recordLawSegmented
 	}
-	if second && spellLastingTicksUnder(Rules{}, lasting, 30) == 30<<4 {
+	if second && spellLastingTicksUnder(testRowOf(true), Rules{}, lasting, 30) == 30<<4 {
 		out["powerDuration"] = 1
 	}
 	if spellDeliveryTicks(rule, 0, 0, 0, 0) == 10 {

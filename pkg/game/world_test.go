@@ -4012,8 +4012,8 @@ func TestGeneratorCardTakesTheFirstCastSpellAndTheMissionCardTheLast(t *testing.
 	staff := sim.ItemInstance{Code: 0x0101, Kind: 2, Effects: []sim.ItemEffect{
 		{Kind: 41, Operand: 1 | 10<<16}, {Kind: 41, Operand: 2 | 10<<16}}}
 	rules, spells := sim.Rules{}, []sim.SpellRule{fire, big}
-	fb, fs, fok := generatorCardDamage(staff, rules, spells)
-	lb, ls, lok := mageCardDamage(staff, rules, spells)
+	fb, fs, fok := generatorCardDamage(testFirstGame, staff, rules, spells)
+	lb, ls, lok := mageCardDamage(testFirstGame, staff, rules, spells)
 	if !fok || !lok || fb == lb || fs == ls {
 		t.Fatalf("first %d+%d (%v), last %d+%d (%v): the two must read different Effects", fb, fs, fok, lb, ls, lok)
 	}

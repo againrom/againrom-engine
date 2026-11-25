@@ -84,7 +84,7 @@ func (secondCampaignRules) exportable(s Snapshot) error {
 		return secondRefusals.refuse(refusedLost)
 	case s.noticeOpen || w.Outcome() == sim.OutcomeWon && !s.victoryContinued:
 		return secondRefusals.refuse(refusedNotice)
-	case !secondSaveMission(int(s.Mission)) || s.second.Current != (currentSecondLocation{1, int(s.Mission)}) || s.Residue.FogVisible == nil || w.Script().Dialect() != sim.ScriptROM2:
+	case !secondSaveMission(int(s.Mission)) || s.second.Current != (currentSecondLocation{1, int(s.Mission)}) || s.Residue.FogVisible == nil || !w.Script().Dialect().HoldsScriptState():
 		return secondRefusals.refuse(refusedHere)
 	}
 	return s.second.validate()
@@ -144,7 +144,7 @@ func (secondCampaignRules) validateAuthored(doc *sav.DocumentData, a *currentAct
 				return fmt.Errorf("ROM2 town lacks complete current city party")
 			}
 		}
-	} else if !secondSaveMission(int(doc.Head.Mission)) || doc.World == nil || a.Session.Second == nil || a.Session.Second.Current != (currentSecondLocation{1, int(doc.Head.Mission)}) || a.Session.Second.validate() != nil || a.Program == nil || a.Program.Dialect != sim.ScriptROM2 || a.Policy == nil || a.Policy.ROM2 == nil || a.Fog == nil {
+	} else if !secondSaveMission(int(doc.Head.Mission)) || doc.World == nil || a.Session.Second == nil || a.Session.Second.Current != (currentSecondLocation{1, int(doc.Head.Mission)}) || a.Session.Second.validate() != nil || a.Program == nil || !a.Program.Dialect.HoldsScriptState() || a.Policy == nil || a.Policy.ROM2 == nil || a.Fog == nil {
 		return fmt.Errorf("ROM2 save lacks its current mission continuation")
 	}
 	return nil

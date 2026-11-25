@@ -27,7 +27,7 @@ func bookScrollItem(spell uint16) sim.ItemInstance {
 
 func bookScrollBook(t *testing.T, selected []sim.Entity, scrolls ...sim.BookScroll) []ui.SpellEntry {
 	t.Helper()
-	book, fixed := selectedSpellbook(sim.Rules{}, selected, bookScrollTable(), nil, ui.Words{}, nil, data.SpellPresentationOf(rules.SpellGameSecond).BookRows, scrolls...)
+	book, fixed := selectedSpellbook(testSecondGame, sim.Rules{}, selected, bookScrollTable(), nil, ui.Words{}, nil, data.SpellPresentationOf(rules.SpellGameSecond).BookRows, scrolls...)
 	if !fixed || len(book) != 24 {
 		t.Fatalf("book fixed %v cells %d", fixed, len(book))
 	}
@@ -131,7 +131,7 @@ func TestABookScrollCastSpendsThePackScroll(t *testing.T) {
 	}
 	mw.pushSpellbook()
 	fighter := releaseEntity(t, mw, 7)
-	book, _ := selectedSpellbook(mw.world.Rules(), []sim.Entity{fighter}, mw.world.Spells(), nil, ui.Words{}, nil, nil, mw.bookScrolls([]sim.Entity{fighter})...)
+	book, _ := selectedSpellbook(testFirstGame, mw.world.Rules(), []sim.Entity{fighter}, mw.world.Spells(), nil, ui.Words{}, nil, nil, mw.bookScrolls([]sim.Entity{fighter})...)
 	if len(book) != 1 || book[0].ItemCast == nil {
 		t.Fatalf("book %+v", book)
 	}

@@ -6,10 +6,10 @@ import (
 )
 
 // AssignSecondGameArms marks every row of a second-game table with its arm
-// and its format, Second. It runs where the table is loaded or decoded.
+// It runs where the table is loaded or decoded.
 func AssignSecondGameArms(rules []SpellRule) {
 	for i := range rules {
-		rules[i].Arm, rules[i].Second = SecondGameSpellArm(rules[i].ID), true
+		rules[i].Arm = SecondGameSpellArm(rules[i].ID)
 	}
 }
 
@@ -31,20 +31,20 @@ func secondDrainAmount(base int64, astral, draw int32) int64 {
 // parses to no kind. Its cast attaches a blank timed effect under the row's
 // own id (R2-ENGINE-453): kind none, magnitude 0. The record alone holds its
 // target, by the first game's Stone Curse hold (stoneCursed; R2-ENGINE-454).
-func secondBlankCurse(rule SpellRule) bool {
-	return rule.secondArm().blankCurse && rule.EffectKind == EffectNone
+func secondBlankCurse(s *spellRow, rule SpellRule) bool {
+	return s.second(rule).blankCurse && rule.EffectKind == EffectNone
 }
 
 // blankEffectRow reports whether the table row id attaches a blank effect.
-func (w *World) blankEffectRow(id uint16) bool { return blankEffectRowOf(w.spells, id) }
+func (w *World) blankEffectRow(id uint16) bool { return blankEffectRowOf(w.spellRow(), w.spells, id) }
 
 // BlankEffectRow is blankEffectRow for the SAV importer.
 func (w *World) BlankEffectRow(id uint16) bool { return w.blankEffectRow(id) }
 
-func blankEffectRowOf(spells []SpellRule, id uint16) bool {
+func blankEffectRowOf(s *spellRow, spells []SpellRule, id uint16) bool {
 	for _, r := range spells {
 		if r.ID == id {
-			return secondBlankCurse(r)
+			return secondBlankCurse(s, r)
 		}
 	}
 	return false
@@ -68,8 +68,8 @@ func secondCurseCeiling(power, earth int32, item bool) uint16 {
 // its target and takes the larger signed magnitude and the larger duration:
 // every second-game arm (R2-ENGINE-986). A first-game row replaces the
 // record (MAGIC-ATTACH-016).
-func keepsLargerOnRepeat(rule SpellRule) bool {
-	return rule.secondArm().keepsLarger
+func keepsLargerOnRepeat(s *spellRow, rule SpellRule) bool {
+	return s.second(rule).keepsLarger
 }
 
 // SpellCreature is one actor a spell creates, built by the loader from the

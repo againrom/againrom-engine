@@ -130,7 +130,7 @@ func TestReleaseWornGapStaffTextAndCardFollowTheWeapon(t *testing.T) {
 				cast = effect
 			}
 		}
-		c := sim.SpellCharacteristicsAtPower(f.live.world.Rules(), rule, int32(uint8(cast.Operand>>16)))
+		c := sim.SpellCharacteristicsAtPower(testFirstGame, f.live.world.Rules(), rule, int32(uint8(cast.Operand>>16)))
 		if d.Combat.WeaponSpellDamageKnown != (c.DamageMax != 0) ||
 			c.DamageMax != 0 && (d.Combat.SpellDamageBase != c.DamageMin || d.Combat.SpellDamageSpread != c.DamageMax-c.DamageMin) {
 			t.Fatalf("Ferion's card combat %+v, want the filled Spell's damage %d-%d", d.Combat, c.DamageMin, c.DamageMax)

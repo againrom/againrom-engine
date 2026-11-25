@@ -38,8 +38,8 @@ func RaisedCreatureNames() []string {
 
 func (w *World) corpseRaiseProfile() corpseRaiseProfile {
 	for _, r := range w.spells {
-		if r.runsArm(spiritArm) && r.secondArm().raise != nil {
-			return *r.secondArm().raise
+		if r.runsArm(spiritArm) && w.spellRow().second(r).raise != nil {
+			return *w.spellRow().second(r).raise
 		}
 	}
 	return firstCorpseRaise

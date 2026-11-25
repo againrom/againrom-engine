@@ -758,7 +758,7 @@ func TestReleaseGeneratedMagicStaffKeepsItsSpellAndExactPriceThroughTheWholePath
 	if !castRuleFound {
 		t.Fatalf("generated Staff's spell %d has no rule", spellID)
 	}
-	filled := sim.SpellCharacteristicsAtPower(mapload.TableRules(f.Table), castRule, power)
+	filled := sim.SpellCharacteristicsAtPower(testFirstGame, mapload.TableRules(f.Table), castRule, power)
 	if filled.DamageMax == 0 {
 		t.Fatal("generated Staff's attached cast has no damage interval")
 	}

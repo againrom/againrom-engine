@@ -234,11 +234,11 @@ func (t *shopController) fillTownBook(v *ui.ShopScreenView) {
 		names := spellNamesFrom(t.in.Table, t.in.Words.SpellBookNames)
 		ground := spellBookRows(t.in.Table)
 		rows := spellBookOrder(t.in.Table, ground)
-		v.Spells, v.SpellCatalog = selectedSpellbook(mapload.TableRules(t.in.Table), []sim.Entity{e}, mapload.SpellRules(t.in.Table), names, t.in.Words, t.shopSpellIcon, rows)
+		v.Spells, v.SpellCatalog = selectedSpellbook(mapload.SpellGameOf(t.in.Table), mapload.TableRules(t.in.Table), []sim.Entity{e}, mapload.SpellRules(t.in.Table), names, t.in.Words, t.shopSpellIcon, rows)
 		if v.SpellCatalog {
 			markMovedSpells(v.Spells, rows, ground, modSpellIcons(t.in.Table))
 		} else {
-			v.Spells = spellbookOf(mapload.TableRules(t.in.Table), e, mapload.SpellRules(t.in.Table), names, t.in.Words, t.shopSpellIcon, spellBookRows(t.in.Table))
+			v.Spells = spellbookOf(mapload.SpellGameOf(t.in.Table), mapload.TableRules(t.in.Table), e, mapload.SpellRules(t.in.Table), names, t.in.Words, t.shopSpellIcon, spellBookRows(t.in.Table))
 		}
 	}
 }

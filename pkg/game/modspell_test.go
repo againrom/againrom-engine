@@ -42,7 +42,7 @@ func TestModDamageColumnsStateWholePopupPair(t *testing.T) {
 	}{{0, "Damage: 300-600"}, {100, "Damage: 1300-2600"}, {255, "Damage: 2850-5700"}} {
 		e := sim.Entity{Mind: 30 + tc.power, Book: sim.Spellbook{State: sim.BookPresent}}
 		sim.LearnBookSpell(&e, 1, rules)
-		book := spellbookOf(sim.Rules{}, e, rules, map[uint16]string{1: "Fire Arrow"}, testSpellPopupWords(), nil, originalBookIDs)
+		book := spellbookOf(testFirstGame, sim.Rules{}, e, rules, map[uint16]string{1: "Fire Arrow"}, testSpellPopupWords(), nil, originalBookIDs)
 		if len(book) != 1 || !slices.Contains(book[0].Info, tc.line) {
 			t.Fatalf("power %d popup %v lacks %q", tc.power, book, tc.line)
 		}
@@ -53,7 +53,7 @@ func TestModDamageColumnsStateWholePopupPair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c := sim.SpellCharacteristicsFor(tabled, sim.Entity{}, rules[0]); c.DamageMin != 600 || c.DamageMax != 1200 {
+	if c := sim.SpellCharacteristicsFor(testFirstGame, tabled, sim.Entity{}, rules[0]); c.DamageMin != 600 || c.DamageMax != 1200 {
 		t.Fatalf("wide columns with a factor table: popup %d..%d, want 600..1200", c.DamageMin, c.DamageMax)
 	}
 }
@@ -138,7 +138,7 @@ func TestTheSpellbookAndTooltipShowTheEditedValues(t *testing.T) {
 	lines := func(f *FrontEnd) [][]string {
 		rules := mapload.SpellRules(f.Table)
 		var out [][]string
-		for _, s := range spellbookOf(sim.Rules{}, mage(rules), rules, names, testSpellPopupWords(), nil, originalBookIDs) {
+		for _, s := range spellbookOf(testFirstGame, sim.Rules{}, mage(rules), rules, names, testSpellPopupWords(), nil, originalBookIDs) {
 			out = append(out, s.Info)
 		}
 		return out

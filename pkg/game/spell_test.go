@@ -82,7 +82,7 @@ func TestTheBookOfferedForAUnitIsItsMaskIntersectedWithTheTableInTableOrder(t *t
 		// 266306 is the shipped ManMage_Staff value (spec AC-5a): spells 1,
 		// 6, 12 and 18.
 		e := sim.Entity{KnownSpells: 266306}
-		got := spellbookOf(sim.Rules{}, e, table, names, w, nil, originalBookIDs)
+		got := spellbookOf(testFirstGame, sim.Rules{}, e, table, names, w, nil, originalBookIDs)
 		want := []ui.SpellEntry{
 			{ID: 1, Name: "Fire Arrow", Info: []string{"Fire Arrow", "Mana cost: 0"}},
 			{ID: 12, Name: "Ice Bolt", Info: []string{"Ice Bolt", "Mana cost: 0"}},
@@ -97,7 +97,7 @@ func TestTheBookOfferedForAUnitIsItsMaskIntersectedWithTheTableInTableOrder(t *t
 	t.Run("a mask bit naming a spell the table does not hold does not appear", func(t *testing.T) {
 		// Bit 1 (spell 1, in the table) and bit 2 (spell 2, not in the table).
 		e := sim.Entity{KnownSpells: (1 << 1) | (1 << 2)}
-		got := spellbookOf(sim.Rules{}, e, table, names, w, nil, originalBookIDs)
+		got := spellbookOf(testFirstGame, sim.Rules{}, e, table, names, w, nil, originalBookIDs)
 		want := []ui.SpellEntry{{ID: 1, Name: "Fire Arrow",
 			Info: []string{"Fire Arrow", "Mana cost: 0"}}}
 		if !reflect.DeepEqual(got, want) {
@@ -106,7 +106,7 @@ func TestTheBookOfferedForAUnitIsItsMaskIntersectedWithTheTableInTableOrder(t *t
 	})
 
 	t.Run("an empty mask offers nothing", func(t *testing.T) {
-		got := spellbookOf(sim.Rules{}, sim.Entity{}, table, names, w, nil, originalBookIDs)
+		got := spellbookOf(testFirstGame, sim.Rules{}, sim.Entity{}, table, names, w, nil, originalBookIDs)
 		if len(got) != 0 {
 			t.Errorf("book = %+v, want none", got)
 		}
@@ -157,7 +157,7 @@ func TestTheBookCarriesTheAutocastFlagAndTheSpellsOwnLines(t *testing.T) {
 	// Mind 30 and school skill 0 put the record at power 0 (TEXT-097).
 	e := sim.Entity{KnownSpells: (1 << 1) | (1 << 6), AutoSpell: 6, Mind: 30}
 
-	got := spellbookOf(sim.Rules{}, e, table, names, testSpellPopupWords(), nil, originalBookIDs)
+	got := spellbookOf(testFirstGame, sim.Rules{}, e, table, names, testSpellPopupWords(), nil, originalBookIDs)
 	want := []ui.SpellEntry{
 		{ID: 1, Name: "Fire Arrow",
 			Info: []string{"Fire Arrow", "Mana cost: 3", "Damage: 4-8", "Range: 7"}},
@@ -223,19 +223,19 @@ func TestTheSameOpenSpellbookEntryUsesTheActorsCurrentCharacteristics(t *testing
 	w := testSpellPopupWords()
 	e := sim.Entity{ID: 7, KnownSpells: 1 << 6, Mind: 24}
 	e.Skill[2], e.SkillXP[2] = 4, 90
-	before := spellbookOf(sim.Rules{}, e, []sim.SpellRule{rule}, names, w, nil, originalBookIDs)
+	before := spellbookOf(testFirstGame, sim.Rules{}, e, []sim.SpellRule{rule}, names, w, nil, originalBookIDs)
 
 	// The same entity, book and popup remain selected. This is the canonical
 	// state the next per-frame push observes after training/recomputation.
 	e.Mind, e.Skill[2], e.SkillXP[2] = 60, 12, 240
-	after := spellbookOf(sim.Rules{}, e, []sim.SpellRule{rule}, names, w, nil, originalBookIDs)
+	after := spellbookOf(testFirstGame, sim.Rules{}, e, []sim.SpellRule{rule}, names, w, nil, originalBookIDs)
 	if len(before) != 1 || len(after) != 1 {
 		t.Fatalf("book lengths before=%d after=%d, want one entry", len(before), len(after))
 	}
 	if reflect.DeepEqual(before[0].Info, after[0].Info) {
 		t.Fatalf("the same popup lines remained stale after actor growth: %q", after[0].Info)
 	}
-	wantAfter := spellInfoLines(rule, sim.SpellCharacteristicsFor(sim.Rules{}, e, rule), "Heal", &w, originalBookIDs)
+	wantAfter := spellInfoLines(rule, sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, e, rule), "Heal", &w, originalBookIDs)
 	if !reflect.DeepEqual(after[0].Info, wantAfter) {
 		t.Errorf("refreshed popup lines = %q, canonical current projection = %q", after[0].Info, wantAfter)
 	}
@@ -248,7 +248,7 @@ func TestASpellTheTableCouldNotNameStillStatesItsNumbers(t *testing.T) {
 	rule := sim.SpellRule{ID: 1, ManaCost: 3, School: 1, MaxRange: 7,
 		DamageMin: 4, DamageMax: 8, TargetsUnit: true, Damaging: true}
 	w := testSpellPopupWords()
-	got := spellInfoLines(rule, sim.SpellCharacteristicsFor(sim.Rules{}, sim.Entity{Mind: 30}, rule), "", &w, originalBookIDs)
+	got := spellInfoLines(rule, sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, sim.Entity{Mind: 30}, rule), "", &w, originalBookIDs)
 	want := []string{"spell", "Mana cost: 3", "Damage: 4-8", "Range: 7"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("lines = %q, want %q", got, want)
@@ -365,14 +365,14 @@ func TestSelectedSpellbookFoldsEveryKnowerAndKeepsPrimaryUnavailableEntries(t *t
 		{ID: 89, Name: "Custom", Unavailable: true, Icon: pic, Info: []string{"Custom", "Mana cost: 2", "Range: 3"}},
 		{ID: 1, Name: "Fire Arrow", Icon: pic, Info: []string{"Fire Arrow", "Mana cost: 3", "Damage: 4-8", "Range: 7"}},
 	}
-	got, fixed := selectedSpellbook(sim.Rules{}, selected, table, names, testSpellPopupWords(), icon, originalBookIDs)
+	got, fixed := selectedSpellbook(testFirstGame, sim.Rules{}, selected, table, names, testSpellPopupWords(), icon, originalBookIDs)
 	if fixed || !reflect.DeepEqual(got, want) {
 		t.Fatalf("union book = %+v fixed=%v, want %+v custom", got, fixed, want)
 	}
 	if !reflect.DeepEqual(icons, []uint16{26, 6, 89, 1}) {
 		t.Fatalf("icon lookups = %v, want one per catalog entry", icons)
 	}
-	got, fixed = selectedSpellbook(sim.Rules{}, selected[:1], table, names, testSpellPopupWords(), nil, originalBookIDs)
+	got, fixed = selectedSpellbook(testFirstGame, sim.Rules{}, selected[:1], table, names, testSpellPopupWords(), nil, originalBookIDs)
 	want[0] = ui.SpellEntry{ID: 26, Name: "Teleport", Unavailable: true,
 		Info: []string{"Teleport", "Mana cost: 30", "Range: 9"}}
 	want[1] = ui.SpellEntry{ID: 6, Name: "Heal", Unavailable: true,
@@ -383,7 +383,7 @@ func TestSelectedSpellbookFoldsEveryKnowerAndKeepsPrimaryUnavailableEntries(t *t
 	}
 	selected[0].AutoSpell = 6
 	selected[1].Book.Slots[5] = sim.BookSpell{Range: 11, ManaCost: 5}
-	got, _ = selectedSpellbook(sim.Rules{}, selected, table, names, testSpellPopupWords(), nil, originalBookIDs)
+	got, _ = selectedSpellbook(testFirstGame, sim.Rules{}, selected, table, names, testSpellPopupWords(), nil, originalBookIDs)
 	want[0] = ui.SpellEntry{ID: 26, Name: "Teleport", PointTarget: true,
 		Info: []string{"Teleport", "Mana cost: 90", "Range: 13-90"}}
 	want[1] = ui.SpellEntry{ID: 6, Name: "Heal", Autocast: true, SelfCastable: true,
@@ -522,7 +522,7 @@ func TestThePopupStatesTheRecordAtTheCastPower(t *testing.T) {
 	} {
 		e := sim.Entity{Mind: tc.mnd}
 		e.Skill[1] = tc.skill
-		got := spellInfoLines(rule, sim.SpellCharacteristicsFor(sim.Rules{}, e, rule), "Fire Arrow", &w, originalBookIDs)
+		got := spellInfoLines(rule, sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, e, rule), "Fire Arrow", &w, originalBookIDs)
 		want := []string{"Fire Arrow", "Mana cost: 3", tc.damage, tc.rng}
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("%s: lines = %q, want %q", tc.name, got, want)

@@ -107,11 +107,9 @@ type SpellRule struct {
 
 	// Arm names the singular behaviour the row runs, as the first game's id
 	// of that behaviour. Zero means the row's own ID, which is every first-game
-	// row. ArmNone is a row with no singular behaviour. Second is set on a
-	// second-game row, whose shared arms take that game's formulas where its
-	// claims differ.
-	Arm    uint16 `json:",omitempty"`
-	Second bool   `json:",omitempty"`
+	// row. ArmNone is a row with no singular behaviour. The World's game
+	// chooses how a row runs (spellRows).
+	Arm uint16 `json:",omitempty"`
 }
 
 // ArmNone is the arm of a row that runs no singular behaviour: its damage
@@ -268,50 +266,6 @@ func (w *World) ordinaryAreaEffect(ci, ti int, rule SpellRule, power int32) bool
 	return applied
 }
 
-// drainRule selects the game's Drain Life amount and kill credit.
-type drainRule uint8
-
-const (
-	drainFirst drainRule = iota
-	drainSecond
-)
-
-// drainRuleOf is the rule a spell row's game runs.
-func drainRuleOf(rule SpellRule) drainRule {
-	if rule.Second {
-		return drainSecond
-	}
-	return drainFirst
-}
-
-// drainBody holds how a drainRule rolls the amount and credits the kill.
-type drainBody struct {
-	amount func(w *World, ti int, base, spread int64) int64
-	credit func(w *World, ci, ti int, rule SpellRule)
-}
-
-// drainBodies holds the body each drainRule runs. The second game's arm
-// stores the caster and the spell as the victim's killer on every hit that
-// takes health (R2-ENGINE-1767); the kill route applies its own class, health
-// and owner test.
-var drainBodies = [...]drainBody{
-	drainFirst: {
-		amount: func(w *World, _ int, base, spread int64) int64 {
-			return int64(int16(base + w.firstFromOne(spread)))
-		},
-		credit: func(*World, int, int, SpellRule) {},
-	},
-	drainSecond: {
-		amount: func(w *World, ti int, base, spread int64) int64 {
-			return secondDrainAmount(base, w.entities[ti].Protection[4], w.rng.uniform(secondDrawSpan(spread)))
-		},
-		credit: func(w *World, ci, ti int, rule SpellRule) {
-			w.entities[ti].KillCreditSource, w.entities[ti].HasKillCredit = w.entities[ci].ID, true
-			w.entities[ti].KillCreditSpell = int8(rule.ID)
-		},
-	},
-}
-
 func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, blow blowHookKind) bool {
 	if ti < 0 || ti >= len(w.entities) {
 		return false
@@ -345,8 +299,8 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, b
 		// Drain Life's own arm caps the roll at victim health+10 and sends
 		// that amount to the skill sink before either pool changes. It never
 		// enters the resisted direct-damage resolver (MAGIC-ITEMTRAIN-116).
-		base, spread := spellDamageUnder(w.rules, rule, power)
-		drain := drainBodies[drainRuleOf(rule)]
+		base, spread := w.spellRow().damageUnder(w.rules, rule, power)
+		drain := w.spellRow().drain
 		amount := min(drain.amount(w, ti, base, spread), int64(w.entities[ti].HP)+10)
 		if amount <= 0 {
 			return true
@@ -400,14 +354,14 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32, b
 		return ci >= 0 && w.castSummon(ci)
 	}
 	kind, mag, duration, mode := w.pointEffect(ti, rule, power)
-	if rule.secondArm().drawnDuration {
+	if w.spellRow().second(rule).drawnDuration {
 		// The second game's Stone Curse draws its duration 0..the ceiling
 		// pointEffect states; a draw of 0 attaches nothing (R2-ENGINE-025).
 		if duration = uint16(w.rng.uniform(int32(duration))); duration == 0 {
 			return false
 		}
 	}
-	if kind == EffectNone && !secondBlankCurse(rule) {
+	if kind == EffectNone && !secondBlankCurse(w.spellRow(), rule) {
 		return false
 	}
 	if mode&effectTimedModes == 0 {
@@ -448,12 +402,15 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 				mag = m
 			}
 		}
-		return own.kind, mag, spellDurationOf(w.rules, rule, power, durationEffect), EffectDuration
+		return own.kind, mag, spellDurationOf(w.spellRow(), w.rules, rule, power, durationEffect), EffectDuration
 	}
 	kind, mode := rule.EffectKind, rule.EffectMode
-	mag, duration := rule.EffectMagnitude, spellDurationOf(w.rules, rule, power, durationEffect)
+	mag, duration := rule.EffectMagnitude, spellDurationOf(w.spellRow(), w.rules, rule, power, durationEffect)
 	if arm.magnitude != nil {
-		mag = arm.magnitude(rule, mag, power)
+		mag = arm.magnitude(mag, power)
+	}
+	if arm.poisonScaled {
+		mag = w.spellRow().poison(mag, power)
 	}
 	if arm.stoneCurse {
 		// THE MAGNITUDE IS THE ROW'S OWN COLUMN AND NOT A LITERAL HERE.
@@ -464,7 +421,7 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 		// THE DURATION IS SCALED BY protectionEarth (MAGIC-SING-019 (d)),
 		// floored at one tick: the only place a resistance shortens an
 		// effect instead of reducing damage.
-		if ti >= 0 && ti < len(w.entities) && !rule.secondArm().drawnDuration {
+		if ti >= 0 && ti < len(w.entities) && !w.spellRow().second(rule).drawnDuration {
 			// MAGIC-303: the word times 100 less the signed Earth resistance
 			// in signed 32 bits, divided by 100, kept as a word; zero is one.
 			r := int32(int16(w.entities[ti].Protection[3]))
@@ -533,7 +490,7 @@ func (w *World) pointEffectRefusal(ci, vi int, rule SpellRule, power int32) stri
 		}
 		return ""
 	}
-	if secondBlankCurse(rule) {
+	if secondBlankCurse(w.spellRow(), rule) {
 		return ""
 	}
 	kind, _, duration, mode := w.pointEffect(vi, rule, power)
@@ -786,7 +743,7 @@ type WeaponSpellCharacteristics struct {
 	HasDamage, HasDuration bool
 }
 
-func weaponSpellCharacteristics(r Rules, rule SpellRule, power int32) (WeaponSpellCharacteristics, bool) {
+func weaponSpellCharacteristics(game rules.SpellGame, r Rules, rule SpellRule, power int32) (WeaponSpellCharacteristics, bool) {
 	arm := spellArmOf(rule.arm())
 	if arm.controlSpirit || !spellApplicable(rule) {
 		return WeaponSpellCharacteristics{}, false
@@ -802,11 +759,11 @@ func weaponSpellCharacteristics(r Rules, rule SpellRule, power int32) (WeaponSpe
 
 	out := WeaponSpellCharacteristics{SpellID: rule.ID, Arm: rule.arm(), MaxRange: rule.MaxRange}
 	if rule.Damaging || arm.drain {
-		out.DamageMin, out.DamageMax = SpellDamagePair(r, rule, power)
+		out.DamageMin, out.DamageMax = SpellDamagePair(game, r, rule, power)
 		out.HasDamage = true
 	}
 	if arm.stoneCurse {
-		out.DurationTicks = spellDurationOf(r, rule, power, durationEffect)
+		out.DurationTicks = spellDurationOf(spellRowOf(game), r, rule, power, durationEffect)
 		out.HasDuration = true
 		out.DurationCeilingTicks = secondCurseCeiling(power, 0, true)
 	}
@@ -819,19 +776,19 @@ func weaponSpellCharacteristics(r Rules, rule SpellRule, power int32) (WeaponSpe
 // WeaponSpellCharacteristicsFor resolves e's caster-item arm and projects the
 // exact row at the attachment's unclamped power. A fighter rider is excluded
 // by weaponSpellFor's mage gate; it is not the tooltip route described here.
-func WeaponSpellCharacteristicsFor(r Rules, e Entity, spells []SpellRule) (WeaponSpellCharacteristics, bool) {
+func WeaponSpellCharacteristicsFor(game rules.SpellGame, r Rules, e Entity, spells []SpellRule) (WeaponSpellCharacteristics, bool) {
 	rule, ok := weaponSpellFor(spells, e)
 	if !ok {
 		return WeaponSpellCharacteristics{}, false
 	}
-	return weaponSpellCharacteristics(r, rule, e.WeaponSpellLevel)
+	return weaponSpellCharacteristics(game, r, rule, e.WeaponSpellLevel)
 }
 
 // WeaponSpellDamageFor reports the damage interval a weapon-borne spell would
 // use for e against spells. It is retained for combat and older presentation
 // callers; the richer characteristics projection owns lookup and arithmetic.
-func WeaponSpellDamageFor(r Rules, e Entity, spells []SpellRule) (base, spread int64, ok bool) {
-	characteristics, ok := WeaponSpellCharacteristicsFor(r, e, spells)
+func WeaponSpellDamageFor(game rules.SpellGame, r Rules, e Entity, spells []SpellRule) (base, spread int64, ok bool) {
+	characteristics, ok := WeaponSpellCharacteristicsFor(game, r, e, spells)
 	if !ok || !characteristics.HasDamage {
 		return 0, 0, false
 	}
@@ -850,7 +807,7 @@ func (w *World) WeaponSpellDamage(id EntityID) (base, spread int64, ok bool) {
 	if i < 0 {
 		return 0, 0, false
 	}
-	return WeaponSpellDamageFor(w.rules, w.entities[i], w.spells)
+	return WeaponSpellDamageFor(w.game.spellGame, w.rules, w.entities[i], w.spells)
 }
 
 // knowsSpell reports whether e's book has learned id: bit id of KnownSpells
@@ -970,7 +927,7 @@ type SpellCharacteristics struct {
 	HasMagnitude        bool
 }
 
-func SpellCharacteristicsFor(r Rules, e Entity, rule SpellRule) SpellCharacteristics {
+func SpellCharacteristicsFor(game rules.SpellGame, r Rules, e Entity, rule SpellRule) SpellCharacteristics {
 	if resolved, ok := BookRuleFor(e, rule); ok {
 		rule = resolved
 	}
@@ -979,17 +936,17 @@ func SpellCharacteristicsFor(r Rules, e Entity, rule SpellRule) SpellCharacteris
 		level, xp = e.Skill[rule.School], e.SkillXP[rule.School]
 	}
 	power := spellPowerUnder(r, rule, level, e.Mind)
-	c := SpellCharacteristicsAtPower(r, rule, power)
+	c := SpellCharacteristicsAtPower(game, r, rule, power)
 	c.SkillLevel, c.SkillXP = level, xp
 	return c
 }
 
 // SpellCharacteristicsAtPower projects a spell at an item's fixed cast power.
-func SpellCharacteristicsAtPower(r Rules, rule SpellRule, power int32) SpellCharacteristics {
+func SpellCharacteristicsAtPower(game rules.SpellGame, r Rules, rule SpellRule, power int32) SpellCharacteristics {
 	c := SpellCharacteristics{Power: power,
 		ManaCost: rule.ManaCost, Range: spellRangeOf(r, rule, power, rangeRecord),
-		Duration: spellDurationOf(r, rule, power, durationRecord), Radius: rule.Radius}
-	c.DamageMin, c.DamageMax = SpellDamagePair(r, rule, power)
+		Duration: spellDurationOf(spellRowOf(game), r, rule, power, durationRecord), Radius: rule.Radius}
+	c.DamageMin, c.DamageMax = SpellDamagePair(game, r, rule, power)
 	c.Magnitude, c.HasMagnitude = magnitudeUnder(r, rule, power)
 	return c
 }
@@ -1168,16 +1125,11 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 func (w *World) applySpellDamage(ci, vi int, rule SpellRule, power int32) {
 	target := &w.entities[vi]
 	before := *target
-	base, spread := spellDamageUnder(w.rules, rule, power)
+	base, spread := w.spellRow().damageUnder(w.rules, rule, power)
 	if spread < 0 {
 		spread = 0
 	}
-	var amount int64
-	if !rule.Second {
-		amount = w.directDamage(ci, vi, base, spread, rule.School)
-	} else {
-		amount = w.secondSpellDamage(vi, base, spread, rule.School)
-	}
+	amount := w.spellRow().damage(w, ci, vi, base, spread, rule.School)
 	target.loseHealth(amount)
 	w.reportHealthLoss(before, vi)
 	// A blow that fells its victim leaves the same residue any other one
@@ -1353,16 +1305,11 @@ func (w *World) weaponRiderApply(ai, ti int, positiveLivingHit bool, obs *castOb
 func (w *World) applySpellHealing(vi int, rule SpellRule, power int32) {
 	target := &w.entities[vi]
 	before := target.HP
-	base, spread := spellDamageUnder(w.rules, rule, power)
+	base, spread := w.spellRow().damageUnder(w.rules, rule, power)
 	if spread < 0 {
 		spread = 0
 	}
-	var amount int64
-	if rule.Second {
-		amount = base + 1 + int64(w.rng.uniform(secondDrawSpan(spread)))
-	} else {
-		amount = base + w.firstFromOne(spread)
-	}
+	amount := w.spellRow().heal(w, base, spread)
 	if target.MaxHP <= 0 {
 		return
 	}

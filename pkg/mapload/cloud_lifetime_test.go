@@ -97,7 +97,7 @@ func TestSecondGameSightCountersStoreSixteenTimesTheCount(t *testing.T) {
 			SecondGameSpellArms(rules)
 			r := rules[id-1]
 			want := uint16(16)
-			if !r.Second || r.EffectDuration != want {
+			if r.EffectDuration != want {
 				t.Fatalf("row %d: counter %d, want %d", id, r.EffectDuration, want)
 			}
 			caster := sim.Entity{ID: 1, X: 2, Y: 2, HP: 100, MaxHP: 100, Mana: 100, MaxMana: 100, Mind: 30, KnownSpells: 1 << id, ScanRange: 10, TokenSize: 1}

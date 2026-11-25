@@ -43,14 +43,14 @@ func spellRangeOf(r Rules, rule SpellRule, power int32, p rangeProjection) int64
 }
 
 // spellDurationOf is the one duration function.
-func spellDurationOf(r Rules, rule SpellRule, power int32, p durationProjection) uint16 {
+func spellDurationOf(s *spellRow, r Rules, rule SpellRule, power int32, p durationProjection) uint16 {
 	switch p {
 	case durationRecord:
-		return spellRecordDurationUnder(r, rule, power)
+		return spellRecordDurationUnder(s, r, rule, power)
 	case durationArea:
-		return areaLife(rule, uint16(power))
+		return areaLife(s, rule, uint16(power))
 	}
-	return spellPointDurationUnder(r, rule, power)
+	return spellPointDurationUnder(s, r, rule, power)
 }
 
 // lastingTicks is the duration word of a power-scaled effect: base sixteenths
@@ -197,10 +197,10 @@ func spellRecordRangeUnder(r Rules, rule SpellRule, power int32) int64 {
 	return spellRecordRange(rule, power)
 }
 
-func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
+func spellLastingTicksUnder(s *spellRow, r Rules, rule SpellRule, power int32) uint16 {
 	f, ok := r.SpellFormulaAt(rules.FormulaDuration, rule.ID, power)
-	if !ok || rule.secondArm().drawnDuration {
-		if rule.secondArm().powerDuration {
+	if !ok || s.second(rule).drawnDuration {
+		if s.second(rule).powerDuration {
 			// The second game's Invisibility lasts P << 4 (R2-ENGINE-022), at
 			// application and in the spell record alike.
 			return uint16(min(int64(power)<<4, durationTickCeiling))
@@ -227,13 +227,13 @@ func lastingRule(rule SpellRule) bool {
 // DurationTableRule reports a row whose cast reads the duration_factor
 // table. The second game's Stone Curse draws its duration up to a ceiling
 // of power instead (R2-ENGINE-025), so the table does not reach it.
-func DurationTableRule(rule SpellRule) bool {
-	return lastingRule(rule) && !rule.secondArm().drawnDuration
+func DurationTableRule(game rules.SpellGame, rule SpellRule) bool {
+	return lastingRule(rule) && !spellRowOf(game).second(rule).drawnDuration
 }
 
-func spellPointDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
+func spellPointDurationUnder(s *spellRow, r Rules, rule SpellRule, power int32) uint16 {
 	if lastingRule(rule) {
-		return spellLastingTicksUnder(r, rule, power)
+		return spellLastingTicksUnder(s, r, rule, power)
 	}
 	if rule.Area && areaRow(rule.arm()).heldToNextPulse {
 		return max(rule.EffectDuration, cloudPulseTicks+1)
@@ -241,13 +241,13 @@ func spellPointDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
 	return rule.EffectDuration
 }
 
-func spellRecordDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
+func spellRecordDurationUnder(s *spellRow, r Rules, rule SpellRule, power int32) uint16 {
 	if rule.SpellDuration > 0 {
-		if rule.secondArm().drawnDuration {
+		if s.second(rule).drawnDuration {
 			// The record word is P*15*16*2/100 (R2-ENGINE-022).
 			return uint16(min(int64(max(power, 0))*15*16*2/100, durationTickCeiling))
 		}
-		return spellLastingTicksUnder(r, rule, power)
+		return spellLastingTicksUnder(s, r, rule, power)
 	}
 	return spellRecordDuration(rule, power)
 }
@@ -266,9 +266,9 @@ func spellRecordDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
 // on the tick it runs (`MAGIC-RING-048`), so the whole life is
 // `(stages - 1) * 3 + 1`. The book popup states the record word instead
 // (spellRecordDuration).
-func areaLife(rule SpellRule, power uint16) uint16 {
+func areaLife(s *spellRow, rule SpellRule, power uint16) uint16 {
 	if areaModeFor(rule) == areaModeRing {
-		return ringLife(rule.arm()) + uint16(rule.secondArm().firstStageDelay)
+		return ringLife(rule.arm()) + uint16(s.second(rule).firstStageDelay)
 	}
 	v := (int64(rule.AreaDuration) << 4)
 	if v > 0 {

@@ -5,7 +5,7 @@ import "testing"
 func TestSpellCharacteristicsAtPowerKeepsFixedItemPower(t *testing.T) {
 	rule := SpellRule{ID: 1, School: 1, MaxRange: 7, DamageMin: 4, DamageMax: 8, ManaCost: 19}
 	for _, power := range []int32{0, 6, 60, 100, 255} {
-		got := SpellCharacteristicsAtPower(Rules{}, rule, power)
+		got := SpellCharacteristicsAtPower(testFirstGame, Rules{}, rule, power)
 		if got.Power != power || got.Range != int64(7+power/30) ||
 			got.DamageMin != int64(4*(power+30)/30) || got.DamageMax != int64(8*(power+30)/30) ||
 			got.ManaCost != 19 || got.SkillLevel != 0 || got.SkillXP != 0 {
@@ -27,15 +27,15 @@ func TestSpellPopupFiguresAreTheCastsAtItsPower(t *testing.T) {
 	} {
 		e := Entity{Mind: 30}
 		e.Skill[1] = tc.sum - 30
-		c := SpellCharacteristicsFor(Rules{}, e, rule)
-		lo, hi := SpellDamagePair(Rules{}, rule, tc.cast)
+		c := SpellCharacteristicsFor(testFirstGame, Rules{}, e, rule)
+		lo, hi := SpellDamagePair(testFirstGame, Rules{}, rule, tc.cast)
 		if c.Power != tc.cast || c.DamageMin != lo || c.DamageMax != hi ||
 			c.Range != spellRecordRange(rule, tc.cast) || c.Duration != spellRecordDuration(rule, tc.cast) {
 			t.Errorf("skill+mind %d: %+v, want power %d damage %d-%d", tc.sum, c, tc.cast, lo, hi)
 		}
 	}
-	lo, hi := SpellDamagePair(Rules{}, rule, 0)
-	if flo, fhi := SpellDamagePair(Rules{}, rule, 100); flo == lo || fhi == hi || spellRecordRange(rule, 100) == spellRecordRange(rule, 0) {
+	lo, hi := SpellDamagePair(testFirstGame, Rules{}, rule, 0)
+	if flo, fhi := SpellDamagePair(testFirstGame, Rules{}, rule, 100); flo == lo || fhi == hi || spellRecordRange(rule, 100) == spellRecordRange(rule, 0) {
 		t.Errorf("loss control: level 100 states %d-%d, the cast %d-%d", flo, fhi, lo, hi)
 	}
 }
@@ -67,7 +67,7 @@ func TestSpellRecordValuesAtThePowerOfTheActor(t *testing.T) {
 			{SpellRule{ID: 9, Area: true}, SpellCharacteristics{}},
 		} {
 			e := Entity{Mind: 30 + power}
-			got := SpellCharacteristicsFor(Rules{}, e, tc.rule)
+			got := SpellCharacteristicsFor(testFirstGame, Rules{}, e, tc.rule)
 			if got.Range != tc.want.Range || got.Duration != tc.want.Duration {
 				t.Fatalf("spell %d power %d: range %d duration %d, want %d and %d",
 					tc.rule.ID, power, got.Range, got.Duration, tc.want.Range, tc.want.Duration)

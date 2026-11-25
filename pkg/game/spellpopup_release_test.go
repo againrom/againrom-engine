@@ -144,7 +144,7 @@ func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing
 			t.Fatal("installed rules have no spell 23")
 		}
 		row, _ := bookTable.At(5)
-		expected := spellInfoLines(bless, sim.SpellCharacteristicsFor(sim.Rules{}, entity, bless), strings.SplitN(row, "#", 2)[0], &f.Words, originalBookIDs)
+		expected := spellInfoLines(bless, sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, entity, bless), strings.SplitN(row, "#", 2)[0], &f.Words, originalBookIDs)
 		wantPic, _, ok := ui.ComposeTooltipHint(expected, f.Font.Value(), image.Point{}, image.Rect(0, 0, 1024, 768), f.HoverBall(), f.HoverHelp())
 		if !ok || !bytes.Equal(pic.Pix, wantPic.Pix) || pic.Bounds() != wantPic.Bounds() {
 			t.Fatal("mission hover did not paint cell 5's installed name")

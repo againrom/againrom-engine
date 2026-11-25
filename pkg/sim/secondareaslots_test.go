@@ -12,7 +12,7 @@ func TestSecondBlizzardStrikesTheGroundAirAndStructureSlotsTogether(t *testing.T
 		air := Entity{ID: 3, X: 20, Y: 20, HP: 5000, MaxHP: 5000, TokenSize: 1, Domain: DomainAir}
 		ghost := Entity{ID: 4, X: 19, Y: 19, HP: 5000, MaxHP: 5000, TokenSize: 1, Domain: DomainGhost}
 		hall := Structure{ID: 1, Field42: 4000, MaxHealth: 4000, Col: 19, Row: 19, Width: 2, Height: 2, Attach: 15}
-		w := blizzardWorld(t, seed, false, blizzardRow(10, 30), []Structure{hall}, blizzardCaster(20, 12), ground, air, ghost)
+		w := blizzardWorld(t, true, seed, false, blizzardRow(10, 30), []Structure{hall}, blizzardCaster(20, 12), ground, air, ghost)
 		blizzardLanding(t, w, 20, 20)
 		for update := 2; update <= 94; update++ {
 			before, hp := w.Entities(), w.structures[0].Field42
@@ -76,7 +76,7 @@ func TestWallOfFireBurnsOnlyTheGroundSlotOnItsPulseCount(t *testing.T) {
 			ground := Entity{ID: 2, X: 20, Y: 20, HP: 5000, MaxHP: 5000, TokenSize: 1}
 			air := Entity{ID: 3, X: 20, Y: 20, HP: 5000, MaxHP: 5000, TokenSize: 1, Domain: DomainAir}
 			hall := Structure{ID: 1, Field42: 4000, MaxHealth: 4000, Col: 21, Row: 20, Width: 2, Height: 1, Attach: 15}
-			w := blizzardWorld(t, 5, false, wallOfFireRow(second), []Structure{hall}, ground, air)
+			w := blizzardWorld(t, second, 5, false, wallOfFireRow(second), []Structure{hall}, ground, air)
 			if !w.landArea(w.spells[0], power, 0, false, 20, 12, 20, 20, nil) {
 				t.Fatalf("second %v power %d: the wall did not land", second, power)
 			}
@@ -102,7 +102,7 @@ func TestWallOfFireBurnsOnlyTheGroundSlotOnItsPulseCount(t *testing.T) {
 }
 
 func TestSecondAreaShapesHoldThePublishedCellCounts(t *testing.T) {
-	w := blizzardWorld(t, 1, false, wallOfFireRow(true), nil)
+	w := blizzardWorld(t, true, 1, false, wallOfFireRow(true), nil)
 	if n := len(w.diamondCells(20, 20, 2)); n != 21 {
 		t.Errorf("radius 2 diamond: %d cells, want 21", n)
 	}
@@ -134,7 +134,7 @@ func TestSecondAreaShapesHoldThePublishedCellCounts(t *testing.T) {
 }
 
 func TestAcidStreamStraightPulseTwoFollowsTheBoundRows(t *testing.T) {
-	w := blizzardWorld(t, 1, false, wallOfFireRow(true), nil)
+	w := blizzardWorld(t, true, 1, false, wallOfFireRow(true), nil)
 	strikes := func(w *World) map[[2]int32]int {
 		got := map[[2]int32]int{}
 		for _, c := range acidStreamStage(w, cellEffect{Direction: 0}, 2) {

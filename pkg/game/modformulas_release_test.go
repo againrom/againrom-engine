@@ -36,7 +36,7 @@ func installedFormulaRows(t *testing.T) formulaRows {
 	casterID, _ := formulasMission(t, f)
 	caster, _ := f.live.entity(casterID)
 	rule, _ := f.live.world.Spell(healSpellID)
-	if power := sim.SpellCharacteristicsFor(f.live.world.Rules(), caster, rule).Power; power != 0 {
+	if power := sim.SpellCharacteristicsFor(testFirstGame, f.live.world.Rules(), caster, rule).Power; power != 0 {
 		t.Fatalf("fixture: the unmodded caster has power %d, want 0", power)
 	}
 	r.healLow, r.healHigh = r.heal.DamageMin*30/30, r.heal.DamageMax*30/30
@@ -104,7 +104,7 @@ func formulasMission(t *testing.T, f *FrontEnd) (casterID, allyID sim.EntityID) 
 func popupOf(mw *mapWorld, casterID sim.EntityID) map[uint32][]string {
 	caster, _ := mw.entity(casterID)
 	out := map[uint32][]string{}
-	for _, s := range spellbookOf(mw.world.Rules(), caster, mw.world.Spells(), mw.spellNames, mw.view.Words(), nil, mw.spells().BookRows) {
+	for _, s := range spellbookOf(testFirstGame, mw.world.Rules(), caster, mw.world.Spells(), mw.spellNames, mw.view.Words(), nil, mw.spells().BookRows) {
 		out[s.ID] = s.Info
 	}
 	return out
@@ -169,7 +169,7 @@ func arrowReach(t *testing.T, mw *mapWorld, casterID sim.EntityID) (stated, book
 	t.Helper()
 	caster, _ := mw.entity(casterID)
 	rule, _ := mw.world.Spell(fireArrowID)
-	return int32(sim.SpellCharacteristicsFor(mw.world.Rules(), caster, rule).Range), int32(caster.Book.Slots[fireArrowID-1].Range)
+	return int32(sim.SpellCharacteristicsFor(testFirstGame, mw.world.Rules(), caster, rule).Range), int32(caster.Book.Slots[fireArrowID-1].Range)
 }
 
 func TestReleaseModFormulaTablesReachTheCastTheBookAndTheSave(t *testing.T) {

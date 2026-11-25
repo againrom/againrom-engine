@@ -1555,7 +1555,7 @@ func TestReleaseReniestaTavernJoinAndMapKeepBothCharacters(t *testing.T) {
 	if int(reniestaSpell.ID) < len(f.Words.ItemSpellNames) && f.Words.ItemSpellNames[reniestaSpell.ID] != "" {
 		reniestaSpellName = f.Words.ItemSpellNames[reniestaSpell.ID]
 	}
-	filled := sim.SpellCharacteristicsAtPower(mapload.TableRules(f.Table), reniestaSpell, int32(uint8(reniestaPower)))
+	filled := sim.SpellCharacteristicsAtPower(testFirstGame, mapload.TableRules(f.Table), reniestaSpell, int32(uint8(reniestaPower)))
 	if !reniestaSpellFound || reniestaSpell.ID != uint16(uint8(reniestaCast)) || filled.DamageMax == 0 {
 		t.Fatalf("Reniesta's staff casts %d, live spell %+v found %t, filled %+v", reniestaCast, reniestaSpell, reniestaSpellFound, filled)
 	}

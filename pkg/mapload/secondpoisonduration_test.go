@@ -37,8 +37,8 @@ func TestPoisonCloudEffectLastsItsEffectsCount(t *testing.T) {
 	}{{true, 6}, {false, 8}} {
 		rules := mapload.SpellRules(poisonCloudTable(tc.second))
 		rule := rules[tc.id-1]
-		if rule.EffectDuration != 128 || rule.EffectMode != sim.EffectContinuous || sim.DurationTableRule(rule) {
-			t.Fatalf("second=%v: counter %d mode %d table %v, want 128, continuous, no table", tc.second, rule.EffectDuration, rule.EffectMode, sim.DurationTableRule(rule))
+		if rule.EffectDuration != 128 || rule.EffectMode != sim.EffectContinuous || sim.DurationTableRule(testFirstGame, rule) {
+			t.Fatalf("second=%v: counter %d mode %d table %v, want 128, continuous, no table", tc.second, rule.EffectDuration, rule.EffectMode, sim.DurationTableRule(testSecondGame, rule))
 		}
 		for _, mind := range []int32{10, 90} {
 			if got := poisonCloudLanding(t, rule, mind); got != 128 {

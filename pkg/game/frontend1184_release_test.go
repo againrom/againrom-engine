@@ -304,7 +304,7 @@ func heroSpellRanges(f *FrontEnd, hero sim.Entity) [28]int {
 	var out [28]int
 	for _, rule := range f.live.world.Spells() {
 		if rule.ID >= 1 && rule.ID <= 28 {
-			out[rule.ID-1] = int(sim.SpellCharacteristicsFor(sim.Rules{}, hero, rule).Range)
+			out[rule.ID-1] = int(sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, hero, rule).Range)
 		}
 	}
 	return out

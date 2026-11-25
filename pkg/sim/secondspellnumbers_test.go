@@ -39,18 +39,18 @@ func secondSpellNumbers(t *testing.T, r Rules) string {
 	for id := 1; id <= secondCatalogSpells; id++ {
 		rule := secondCatalogRow(id)
 		name := fmt.Sprintf("spell %d arm %d", id, rule.arm())
-		w := spWorld(t, 1, []SpellRule{rule}, spEnt(1, 2, 2))
+		w := spSecondWorld(t, 1, []SpellRule{rule}, spEnt(1, 2, 2))
 		w.SetRules(r)
 		for _, sum := range []int32{0, 31, 60, 130, 200, 285, 400, 510} {
 			fmt.Fprintf(&b, "%s power %d: %d\n", name, sum, spellPowerUnder(r, rule, sum/2, sum-sum/2))
 		}
 		for _, p := range []int32{0, 1, 2, 29, 30, 45, 99, 100, 101, 170, 200, 255} {
-			lo, hi := SpellDamagePair(r, rule, p)
+			lo, hi := SpellDamagePair(testSecondGame, r, rule, p)
 			kind, mag, duration, mode := w.pointEffect(0, rule, p)
 			fmt.Fprintf(&b, "%s at %d: damage %d-%d range %d/%d duration %d/%d/%d effect %d %d %d %d rays %d\n", name, p, lo, hi,
 				spellRangeOf(r, rule, p, rangeCast), spellRangeOf(r, rule, p, rangeRecord),
-				spellDurationOf(r, rule, p, durationEffect), spellDurationOf(r, rule, p, durationRecord),
-				spellDurationOf(r, rule, p, durationArea), kind, mag, duration, mode, rule.RayLimit(p))
+				spellDurationOf(testRowOf(true), r, rule, p, durationEffect), spellDurationOf(testRowOf(true), r, rule, p, durationRecord),
+				spellDurationOf(testRowOf(true), r, rule, p, durationArea), kind, mag, duration, mode, rule.RayLimit(p))
 		}
 	}
 	return b.String()
@@ -68,7 +68,7 @@ func TestSecondGameRowsReadTheFormulaSetUnderTheirOwnNumbers(t *testing.T) {
 	r := formulaRules(t, set)
 	ice := secondCatalogRow(5)
 	ice.MaxRange = 6
-	if lo, hi := SpellDamagePair(r, ice, 100); lo != int64(ice.DamageMin)*3 || hi != int64(ice.DamageMax)*3 {
+	if lo, hi := SpellDamagePair(testSecondGame, r, ice, 100); lo != int64(ice.DamageMin)*3 || hi != int64(ice.DamageMax)*3 {
 		t.Errorf("Ice Missile damage %d-%d, want three times its pair", lo, hi)
 	}
 	if got := spellRangeOf(r, ice, 100, rangeCast); got != int64(ice.MaxRange)+7 {
@@ -77,7 +77,7 @@ func TestSecondGameRowsReadTheFormulaSetUnderTheirOwnNumbers(t *testing.T) {
 	if got := spellPowerUnder(r, ice, 10, 10); got != 40 {
 		t.Errorf("Ice Missile power %d, want 40", got)
 	}
-	w := spWorld(t, 1, nil, spEnt(1, 2, 2))
+	w := spSecondWorld(t, 1, nil, spEnt(1, 2, 2))
 	w.SetRules(r)
 	poison := secondRow(SpellRule{ID: 6, Area: true, Distribution: 3, SpellDuration: 5, EffectKind: EffectHealth,
 		EffectMode: EffectContinuous, EffectMagnitude: -2, EffectDuration: 128})
@@ -95,14 +95,14 @@ func TestSecondGameRowsReadTheFormulaSetUnderTheirOwnNumbers(t *testing.T) {
 	if _, _, got, _ := w.pointEffect(0, stone, 70); got != secondCurseCeiling(70, 0, false) {
 		t.Errorf("Stone Curse's ceiling %d moved under a duration table", got)
 	}
-	if got := spellDurationOf(r, stone, 70, durationRecord); got != spellDurationOf(Rules{}, stone, 70, durationRecord) {
+	if got := spellDurationOf(testRowOf(true), r, stone, 70, durationRecord); got != spellDurationOf(testRowOf(true), Rules{}, stone, 70, durationRecord) {
 		t.Errorf("Stone Curse's record duration %d moved under a duration table", got)
 	}
 	slow := secondRow(SpellRule{ID: 29, TargetsUnit: true, SpellDuration: 1})
 	if _, mag, _, _ := w.pointEffect(0, slow, 70); mag != -9 {
 		t.Errorf("Slow, the second game's spell 29, has magnitude %d, want the table's -9", mag)
 	}
-	if DurationTableRule(poison) || !DurationTableRule(invisible) || DurationTableRule(stone) || !DurationTableRule(SpellRule{ID: 20}) {
+	if DurationTableRule(testSecondGame, poison) || !DurationTableRule(testSecondGame, invisible) || DurationTableRule(testSecondGame, stone) || !DurationTableRule(testFirstGame, SpellRule{ID: 20}) {
 		t.Error("the rows a duration table reaches")
 	}
 }

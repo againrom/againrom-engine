@@ -7,55 +7,59 @@ import (
 
 // spellArmCapabilities reads each recorded question off a table row; rule is
 // the probed row of that arm in one game.
-var spellArmCapabilities = map[string]func(row spellArm, rule SpellRule) int{
-	"applies":          func(r spellArm, _ SpellRule) int { return boolAnswer(r.applies) },
-	"atActor":          func(r spellArm, _ SpellRule) int { return boolAnswer(r.atActor) },
-	"drain":            func(r spellArm, _ SpellRule) int { return boolAnswer(r.drain) },
-	"heals":            func(r spellArm, _ SpellRule) int { return boolAnswer(r.heals) },
-	"prismatic":        func(r spellArm, _ SpellRule) int { return boolAnswer(r.prismatic) },
-	"teleport":         func(r spellArm, _ SpellRule) int { return boolAnswer(r.teleport) },
-	"pointTarget":      func(r spellArm, _ SpellRule) int { return boolAnswer(r.pointTarget) },
-	"fastRange":        func(r spellArm, _ SpellRule) int { return boolAnswer(r.fastRange) },
-	"manualOnly":       func(r spellArm, _ SpellRule) int { return boolAnswer(r.manualOnly) },
-	"controlSpirit":    func(r spellArm, _ SpellRule) int { return boolAnswer(r.controlSpirit) },
-	"summon":           func(r spellArm, _ SpellRule) int { return boolAnswer(r.summon) },
-	"stoneCurse":       func(r spellArm, _ SpellRule) int { return boolAnswer(r.stoneCurse) },
-	"invisibility":     func(r spellArm, _ SpellRule) int { return boolAnswer(r.invisibility) },
-	"attachAward":      func(r spellArm, _ SpellRule) int { return boolAnswer(r.attachAward) },
-	"selfAimed":        func(r spellArm, _ SpellRule) int { return boolAnswer(r.selfAimed) },
-	"sparesMages":      func(r spellArm, _ SpellRule) int { return boolAnswer(r.sparesMages) },
-	"ownEffect":        func(r spellArm, _ SpellRule) int { return int(r.own.kind) },
-	"ownScaled":        func(r spellArm, _ SpellRule) int { return boolAnswer(r.own.scaled) },
-	"opposite":         func(r spellArm, _ SpellRule) int { return int(r.opposite) },
-	"magnitude":        func(r spellArm, _ SpellRule) int { return boolAnswer(r.magnitude != nil) },
-	"formulaMagnitude": func(r spellArm, _ SpellRule) int { return boolAnswer(r.formulaMagnitude) },
-	"lastingDuration":  func(r spellArm, _ SpellRule) int { return boolAnswer(r.lastingDuration) },
-	"durationLaw": func(r spellArm, _ SpellRule) int {
+var spellArmCapabilities = map[string]func(arm spellArm, rule SpellRule, row *spellRow) int{
+	"applies":       func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.applies) },
+	"atActor":       func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.atActor) },
+	"drain":         func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.drain) },
+	"heals":         func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.heals) },
+	"prismatic":     func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.prismatic) },
+	"teleport":      func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.teleport) },
+	"pointTarget":   func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.pointTarget) },
+	"fastRange":     func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.fastRange) },
+	"manualOnly":    func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.manualOnly) },
+	"controlSpirit": func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.controlSpirit) },
+	"summon":        func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.summon) },
+	"stoneCurse":    func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.stoneCurse) },
+	"invisibility":  func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.invisibility) },
+	"attachAward":   func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.attachAward) },
+	"selfAimed":     func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.selfAimed) },
+	"sparesMages":   func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.sparesMages) },
+	"ownEffect":     func(r spellArm, _ SpellRule, _ *spellRow) int { return int(r.own.kind) },
+	"ownScaled":     func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.own.scaled) },
+	"opposite":      func(r spellArm, _ SpellRule, _ *spellRow) int { return int(r.opposite) },
+	"magnitude": func(r spellArm, _ SpellRule, _ *spellRow) int {
+		return boolAnswer(r.magnitude != nil || r.poisonScaled)
+	},
+	"formulaMagnitude": func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.formulaMagnitude) },
+	"lastingDuration":  func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.lastingDuration) },
+	"durationLaw": func(r spellArm, _ SpellRule, _ *spellRow) int {
 		return map[durationLaw]int{lawFastThree: recordLawFastThree, lawSegmented: recordLawSegmented}[r.durationLaw]
 	},
-	"form": func(r spellArm, _ SpellRule) int {
+	"form": func(r spellArm, _ SpellRule, _ *spellRow) int {
 		return map[spellForm]int{formBolt: recordFormBolt, formFan: recordFormFan}[r.form]
 	},
-	"autoCastLevel": func(r spellArm, _ SpellRule) int { return int(r.autoCast.level) },
-	"autoCastOrder": func(r spellArm, _ SpellRule) int { return int(r.autoCast.order) },
-	"autoCastRole": func(r spellArm, _ SpellRule) int {
+	"autoCastLevel": func(r spellArm, _ SpellRule, _ *spellRow) int { return int(r.autoCast.level) },
+	"autoCastOrder": func(r spellArm, _ SpellRule, _ *spellRow) int { return int(r.autoCast.order) },
+	"autoCastRole": func(r spellArm, _ SpellRule, _ *spellRow) int {
 		return map[autoCastRole]int{autoCastHealer: recordRoleHeal, autoCastShielder: recordRoleShield, autoCastHider: recordRoleHide}[r.autoCast.role]
 	},
-	"light": func(r spellArm, _ SpellRule) int {
+	"light": func(r spellArm, _ SpellRule, _ *spellRow) int {
 		return map[SpellLighting]int{SpellLightBright: recordLightBright, SpellLightDark: recordLightDark}[r.light]
 	},
-	"sightClass": func(r spellArm, _ SpellRule) int {
+	"sightClass": func(r spellArm, _ SpellRule, _ *spellRow) int {
 		return map[sightClass]int{sightNotHumanoid: recordSightUnit, sightHumanoid: recordSightHuman}[r.sightClass]
 	},
-	"drawnDuration": func(_ spellArm, rule SpellRule) int { return boolAnswer(rule.secondArm().drawnDuration) },
-	"blankCurse":    func(_ spellArm, rule SpellRule) int { return boolAnswer(rule.secondArm().blankCurse) },
-	"keepsLarger":   func(_ spellArm, rule SpellRule) int { return boolAnswer(rule.secondArm().keepsLarger) },
-	"powerDuration": func(_ spellArm, rule SpellRule) int { return boolAnswer(rule.secondArm().powerDuration) },
-	"creatureAim":   func(r spellArm, _ SpellRule) int { return int(r.creatureAim) },
-	"burst":         func(r spellArm, _ SpellRule) int { return boolAnswer(r.burst) },
-	"speedFlight":   func(r spellArm, _ SpellRule) int { return boolAnswer(r.speedFlight) },
-	"healID":        func(r spellArm, _ SpellRule) int { return boolAnswer(r.heals && uint32(r.arm) == uint32(healingArm)) },
-	"caption": func(r spellArm, _ SpellRule) int {
+	"drawnDuration": func(_ spellArm, rule SpellRule, row *spellRow) int { return boolAnswer(row.second(rule).drawnDuration) },
+	"blankCurse":    func(_ spellArm, rule SpellRule, row *spellRow) int { return boolAnswer(row.second(rule).blankCurse) },
+	"keepsLarger":   func(_ spellArm, rule SpellRule, row *spellRow) int { return boolAnswer(row.second(rule).keepsLarger) },
+	"powerDuration": func(_ spellArm, rule SpellRule, row *spellRow) int { return boolAnswer(row.second(rule).powerDuration) },
+	"creatureAim":   func(r spellArm, _ SpellRule, _ *spellRow) int { return int(r.creatureAim) },
+	"burst":         func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.burst) },
+	"speedFlight":   func(r spellArm, _ SpellRule, _ *spellRow) int { return boolAnswer(r.speedFlight) },
+	"healID": func(r spellArm, _ SpellRule, _ *spellRow) int {
+		return boolAnswer(r.heals && uint32(r.arm) == uint32(healingArm))
+	},
+	"caption": func(r spellArm, _ SpellRule, _ *spellRow) int {
 		return int(r.caption.kind)*2 + boolAnswer(r.caption.negate)
 	},
 }
@@ -93,7 +97,7 @@ var spellArmFieldQuestions = map[string][]string{
 	"fastRange": {"fastRange"}, "manualOnly": {"manualOnly"}, "controlSpirit": {"controlSpirit"},
 	"summon": {"summon"}, "stoneCurse": {"stoneCurse"}, "invisibility": {"invisibility"},
 	"attachAward": {"attachAward"}, "selfAimed": {"selfAimed"}, "sparesMages": {"sparesMages"}, "own": {"ownEffect", "ownScaled"},
-	"opposite": {"opposite"}, "magnitude": {"magnitude"}, "formulaMagnitude": {"formulaMagnitude"},
+	"opposite": {"opposite"}, "magnitude": {"magnitude"}, "poisonScaled": {"magnitude"}, "formulaMagnitude": {"formulaMagnitude"},
 	"lastingDuration": {"lastingDuration"}, "durationLaw": {"durationLaw"}, "form": {"form"},
 	"autoCast": {"autoCastLevel", "autoCastOrder", "autoCastRole"}, "light": {"light"}, "sightClass": {"sightClass"},
 	"second": {"drawnDuration", "blankCurse", "keepsLarger", "powerDuration"},
@@ -110,7 +114,7 @@ func TestSpellArmTable(t *testing.T) {
 			}
 			for _, arm := range armProbe() {
 				for _, second := range []bool{false, true} {
-					if got, want := of(spellArmOf(arm), probeRule(arm, second)), record.of(arm, second); got != want {
+					if got, want := of(spellArmOf(arm), probeRule(arm, second), testRowOf(second)), record.of(arm, second); got != want {
 						t.Errorf("arm %d second=%v answers %d, record %d", arm, second, got, want)
 					}
 				}

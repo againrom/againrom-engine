@@ -142,7 +142,7 @@ func bookOrder(table []sim.SpellRule, rows []uint16) ([]sim.SpellRule, bool) {
 	return table, false
 }
 
-func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uint16]string,
+func spellbookOf(game rules.SpellGame, r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uint16]string,
 	w ui.Words, icon func(uint16) *image.RGBA, rows []uint16) []ui.SpellEntry {
 	var book []ui.SpellEntry
 	ordered, _ := bookOrder(table, nil)
@@ -157,7 +157,7 @@ func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uin
 		// already in hand, so the drawing tier receives a flag and a list of
 		// strings and derives neither.
 		auto := e.AutoSpell != 0 && uint32(e.AutoSpell) == uint32(rule.ID)
-		characteristics := sim.SpellCharacteristicsFor(r, e, rule)
+		characteristics := sim.SpellCharacteristicsFor(game, r, e, rule)
 		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], PointTarget: !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: spellSelfKind(rule), SelfCastable: spellBookSelfCastable(rule),
 			Autocast: auto, Info: spellInfoLines(rule, characteristics, names[rule.ID], &w, rows)}
 		// THE ICON IS OPTIONAL AND ITS ABSENCE IS ORDINARY (0141;
@@ -183,7 +183,7 @@ func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uin
 // union; information comes from the first knower, or the primary otherwise.
 // A scroll fills the cell of a spell no selected actor knows; a known spell's
 // cell stays the book's own (DIV-4732).
-func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule, names map[uint16]string, w ui.Words, icon func(uint16) *image.RGBA, rows []uint16, scrolls ...sim.BookScroll) ([]ui.SpellEntry, bool) {
+func selectedSpellbook(game rules.SpellGame, r sim.Rules, selected []sim.Entity, table []sim.SpellRule, names map[uint16]string, w ui.Words, icon func(uint16) *image.RGBA, rows []uint16, scrolls ...sim.BookScroll) ([]ui.SpellEntry, bool) {
 	if len(selected) == 0 {
 		return nil, false
 	}
@@ -204,12 +204,12 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 				if len(knowers) == 0 {
 					rule = resolved
 				}
-				knowers = append(knowers, spellKnower{resolved, sim.SpellCharacteristicsFor(r, e, resolved)})
+				knowers = append(knowers, spellKnower{resolved, sim.SpellCharacteristicsFor(game, r, e, resolved)})
 			}
 		}
 		known := len(knowers) > 0
 		if !known {
-			knowers = []spellKnower{{rule, sim.SpellCharacteristicsFor(r, selected[0], rule)}}
+			knowers = []spellKnower{{rule, sim.SpellCharacteristicsFor(game, r, selected[0], rule)}}
 		}
 		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], Unavailable: !known,
 			PointTarget: known && !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: known && spellSelfKind(rule), SelfCastable: known && spellBookSelfCastable(rule),
@@ -260,7 +260,7 @@ func (mw *mapWorld) pushSpellbook() {
 		if rows == nil {
 			rows = ground
 		}
-		book, fixed := selectedSpellbook(mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, rows, mw.bookScrolls(selected)...)
+		book, fixed := selectedSpellbook(mw.world.SpellGame(), mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, rows, mw.bookScrolls(selected)...)
 		if fixed {
 			markMovedSpells(book, rows, ground, mw.bookIcons)
 			mw.view.SetSpellbookCatalog(uint32(selected[0].ID), book)

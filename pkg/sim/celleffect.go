@@ -186,7 +186,7 @@ func (w *World) tickCellEffect(index int, obs *castObs) bool {
 			}
 		case areaModeRing:
 			e.Phase++
-			phase := int(e.Phase) - int(rule.secondArm().firstStageDelay)
+			phase := int(e.Phase) - int(w.spellRow().second(rule).firstStageDelay)
 			if phase >= 0 && phase%3 == 0 {
 				stage := phase / 3
 				cells := w.ringStageCells(e, stage)
@@ -295,7 +295,7 @@ func (w *World) areaLandingRefusal(rule SpellRule, power uint16, x, y int32) str
 	if mode == areaModeRing && ringStageCount(rule.arm()) == 0 {
 		return "row selects a staged program its spell id has none of"
 	}
-	if spellDurationOf(w.rules, rule, int32(power), durationArea) == 0 {
+	if spellDurationOf(w.spellRow(), w.rules, rule, int32(power), durationArea) == 0 {
 		return "area lifetime is zero"
 	}
 	if issue := w.areaPaintIssue(rule, x, y); issue != "" {
@@ -373,9 +373,9 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 	if mode == areaModeRing {
 		// R2-ENGINE-812: an ordinary actor inserts after the area pass.
 		// The row's delay keeps stage zero for the next area update.
-		e.Remaining = spellDurationOf(w.rules, rule, int32(power), durationArea)
+		e.Remaining = spellDurationOf(w.spellRow(), w.rules, rule, int32(power), durationArea)
 		e.Phase = 0
-		if rule.secondArm().firstStageDelay == 0 {
+		if w.spellRow().second(rule).firstStageDelay == 0 {
 			cells := w.ringStageCells(e, 0)
 			e.Cells = canonicalCells(cells)
 			obs.recordPaint(w, e, cells)
@@ -386,7 +386,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 	// A cloud stores the raw counter V0, while areaLife reports the V0+1
 	// ticks over which the record is observed and removed. areaLandingRefusal
 	// has already rejected a wrapped zero life, so the subtraction is defined.
-	e.Remaining = spellDurationOf(w.rules, rule, int32(power), durationArea) - 1
+	e.Remaining = spellDurationOf(w.spellRow(), w.rules, rule, int32(power), durationArea) - 1
 	if current != nil {
 		e.Remaining = current.Remaining
 	}
@@ -891,8 +891,8 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 						side = 1
 					}
 					adjusted := rule
-					base, spread := spellDamageUnder(w.rules, rule, power)
-					if !rule.wholeDamageColumns() {
+					base, spread := w.spellRow().damageUnder(w.rules, rule, power)
+					if !w.spellRow().wholeDamageColumns(rule) {
 						base, spread = int64(uint8(base)), int64(uint8(spread))
 					}
 					adjusted.DamageMin = int32(base / (side * side))
@@ -927,8 +927,8 @@ func (w *World) applyStructureSpellAt(x, y int32, rule SpellRule, power int32) b
 		return false
 	}
 	s := &w.structures[i]
-	base, spread := spellDamageUnder(w.rules, rule, power)
-	if !rule.wholeDamageColumns() {
+	base, spread := w.spellRow().damageUnder(w.rules, rule, power)
+	if !w.spellRow().wholeDamageColumns(rule) {
 		base, spread = int64(uint8(base)), int64(uint8(spread))
 	}
 	// A zero spread suppresses the base; a positive spread rolls then loses five.

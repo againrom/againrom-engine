@@ -47,7 +47,7 @@ func TestFireballPointUsesBookRangeAcrossTerrainHeights(t *testing.T) {
 		for _, p := range [][2]int32{{12, 0}, {12, 12}, {13, 0}, {13, 13}} {
 			t.Run(fmt.Sprintf("%s/%d,%d", altitude.name, p[0], p[1]), func(t *testing.T) {
 				w := fireballReachWorld(t, p[0], p[1], altitude.observer, altitude.ground)
-				if got := SpellCharacteristicsFor(Rules{}, w.entities[0], w.spells[0]).Range; got != 12 {
+				if got := SpellCharacteristicsFor(testFirstGame, Rules{}, w.entities[0], w.spells[0]).Range; got != 12 {
 					t.Fatalf("Fireball range=%d, want12", got)
 				}
 				before := w.Hash()

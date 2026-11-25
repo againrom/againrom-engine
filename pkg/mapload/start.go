@@ -1170,7 +1170,7 @@ func StartCampaignMissionScriptedWith(m *alm.Map, t *Table, diff Difficulty, par
 
 func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	mission int, s *sim.Script, draws *sim.Draws) (*sim.World, Start, error) {
-	base, st, err := startMission(m, t, diff, party, mission, draws, s != nil && s.Dialect() == sim.ScriptROM2)
+	base, st, err := startMission(m, t, diff, party, mission, draws, s.Dialect().HoldsScriptState())
 	if err != nil {
 		return nil, Start{}, err
 	}

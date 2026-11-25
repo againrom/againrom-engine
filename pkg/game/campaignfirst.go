@@ -8,7 +8,6 @@ import (
 	"againrom/pkg/campaignset"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
-	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
 )
@@ -74,7 +73,7 @@ func (r firstCampaignRules) validateSession(s *currentSessionData) error {
 }
 
 func (firstCampaignRules) validateAuthored(_ *sav.DocumentData, a *currentActionData) error {
-	if a != nil && (a.Session != nil && a.Session.Second != nil || a.Program != nil && a.Program.Dialect != sim.ScriptROM1 || a.Policy != nil && a.Policy.ROM2 != nil) {
+	if a != nil && (a.Session != nil && a.Session.Second != nil || a.Program != nil && a.Program.Dialect.HoldsScriptState() || a.Policy != nil && a.Policy.ROM2 != nil) {
 		return fmt.Errorf("ROM1 save contains ROM2 continuation")
 	}
 	return nil

@@ -34,7 +34,7 @@ func (w *World) NativeAreaSaveStates() ([]AreaSaveState, error) {
 			if ringStageDraws(w.spellArm(e.Spell)) {
 				row.Policy.RingCells = slices.Clone(e.Cells)
 			}
-			phase := uint16(e.Phase) + 3 - uint16(rule.secondArm().firstStageDelay)
+			phase := uint16(e.Phase) + 3 - uint16(w.spellRow().second(rule).firstStageDelay)
 			row.Stage = uint8(phase / 3)
 			row.Remaining = 2 - phase%3
 		}
@@ -83,7 +83,7 @@ func OriginalEffectKind(kind EffectKind) uint8 {
 func areaSavePayload(w *World, e cellEffect, rule SpellRule) SavedEffect {
 	payload := SavedEffect{Class: "Effect", E0C: uint8(e.Spell)}
 	if rule.Damaging || e.DamageMin != 0 || e.DamageMax != 0 {
-		base, spread := spellDamageUnder(w.rules, rule, int32(e.Power))
+		base, spread := w.spellRow().damageUnder(w.rules, rule, int32(e.Power))
 		if e.DamageMin != 0 || e.DamageMax != 0 {
 			base, spread = int64(e.DamageMin), int64(e.DamageMax-e.DamageMin)
 		}

@@ -590,7 +590,7 @@ func TestWeaponSpellCharacteristicsForReportsPrismaticDamageRaysAndRange(t *test
 		TargetsUnit: true, Damaging: true}
 	e := Entity{MaxMana: 1, WeaponSpell: 14, WeaponSpellLevel: 30}
 
-	got, ok := WeaponSpellCharacteristicsFor(Rules{}, e, []SpellRule{rule})
+	got, ok := WeaponSpellCharacteristicsFor(testFirstGame, Rules{}, e, []SpellRule{rule})
 	if !ok {
 		t.Fatal("WeaponSpellCharacteristicsFor refused Prismatic Spray")
 	}
@@ -598,7 +598,7 @@ func TestWeaponSpellCharacteristicsForReportsPrismaticDamageRaysAndRange(t *test
 		got.MaxRange != 7 || got.RayCount != 3 || got.HasDuration {
 		t.Fatalf("Prismatic characteristics = %+v", got)
 	}
-	base, spread, damageOK := WeaponSpellDamageFor(Rules{}, e, []SpellRule{rule})
+	base, spread, damageOK := WeaponSpellDamageFor(testFirstGame, Rules{}, e, []SpellRule{rule})
 	if !damageOK || base != 10 || spread != 20 {
 		t.Fatalf("WeaponSpellDamageFor = %d + %d, %v; want 10 + 20, true", base, spread, damageOK)
 	}
@@ -609,7 +609,7 @@ func TestWeaponSpellCharacteristicsForReportsStoneCurseDurationInTicks(t *testin
 		EffectKind: EffectAbsorption, EffectMode: EffectDuration}
 	e := Entity{MaxMana: 1, WeaponSpell: 20, WeaponSpellLevel: 1}
 
-	got, ok := WeaponSpellCharacteristicsFor(Rules{}, e, []SpellRule{rule})
+	got, ok := WeaponSpellCharacteristicsFor(testFirstGame, Rules{}, e, []SpellRule{rule})
 	if !ok {
 		t.Fatal("WeaponSpellCharacteristicsFor refused Stone Curse")
 	}

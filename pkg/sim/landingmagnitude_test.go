@@ -14,7 +14,7 @@ func TestLandingMagnitudeTable(t *testing.T) {
 			rule := probeRule(arm, second)
 			a := spellArmOf(rule.arm())
 			for _, power := range []int32{30, 150, 400} {
-				mag := a.magnitude(rule, 0, power)
+				mag := a.magnitude(0, power)
 				for _, humanoid := range []bool{false, true} {
 					for _, source := range []uint8{0, 1} {
 						w := &World{entities: []Entity{{ID: 1, Humanoid: humanoid, ScanRange: 3}}}

@@ -124,7 +124,7 @@ func spellPictureBook(f *FrontEnd, atlas []uint16, src entrySource) []ui.SpellEn
 	strip := loadSpellAtlas(src)
 	own := modSpellIcons(f.Table)
 	icon := func(id uint16) *image.RGBA { return cutBookIcon(strip, atlas, own, id) }
-	book, _ := selectedSpellbook(sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, icon, atlas)
+	book, _ := selectedSpellbook(testFirstGame, sim.Rules{}, []sim.Entity{e}, table, nil, ui.Words{}, icon, atlas)
 	markMovedSpells(book, atlas, atlas, own)
 	return book
 }

@@ -86,7 +86,7 @@ func TestReleaseScrollDescriptionCompleteFieldMatrix(t *testing.T) {
 		}
 		for power := int32(1); power <= 100; power++ {
 			item := scrollDescriptionInstalledItem(t, f, id, power)
-			c := sim.SpellCharacteristicsAtPower(mapload.TableRules(f.Table), rules[id-1], power)
+			c := sim.SpellCharacteristicsAtPower(testFirstGame, mapload.TableRules(f.Table), rules[id-1], power)
 			want := oracle(id, power, c)
 			if got := itemInstanceInfoLines(item, f.Table, f.Words); !slices.Equal(got, want) {
 				t.Fatalf("ordinary spell%d power%d = %q, want %q", id, power, got, want)
@@ -100,7 +100,7 @@ func TestReleaseScrollDescriptionCompleteFieldMatrix(t *testing.T) {
 	for _, stored := range []int32{0, 1, 80, 100, 101, 255, 256, -1} {
 		power := int32(uint8(stored))
 		item := scrollDescriptionInstalledItem(t, f, 28, stored)
-		c := sim.SpellCharacteristicsAtPower(mapload.TableRules(f.Table), rules[27], power)
+		c := sim.SpellCharacteristicsAtPower(testFirstGame, mapload.TableRules(f.Table), rules[27], power)
 		want := oracle(28, power, c)
 		if got := itemInstanceInfoLines(item, f.Table, f.Words); !slices.Equal(got, want) {
 			t.Fatalf("Slow descriptor stored%d byte%d = %q, want %q", stored, power, got, want)
@@ -128,7 +128,7 @@ func TestReleaseScrollDescriptionPopulationSAVAndNextSale(t *testing.T) {
 		}
 		item := scrollDescriptionInstalledItem(t, f, id, power)
 		source = append(source, sim.StackItem(item, quantity))
-		c := sim.SpellCharacteristicsAtPower(mapload.TableRules(f.Table), rules[id-1], power)
+		c := sim.SpellCharacteristicsAtPower(testFirstGame, mapload.TableRules(f.Table), rules[id-1], power)
 		expected[id] = oracle(id, power, c)
 	}
 	cityShopSetTestPack(t, f, 0, source...)

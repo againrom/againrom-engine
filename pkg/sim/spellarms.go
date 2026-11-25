@@ -31,10 +31,11 @@ type spellArm struct {
 	selfAimed        bool // the cast cursor's self kind by arm
 	sparesMages      bool // an unbidden cast never chooses a mage (owner, DIV-4830, DIV-4831)
 	own              ownEffect
-	opposite         uint16                                       // the arm an attach removes instead (Bless, Curse)
-	magnitude        func(rule SpellRule, mag, power int32) int32 // MAGIC-EFFECT-015
-	formulaMagnitude bool                                         // a mod magnitude formula applies
-	lastingDuration  bool                                         // the duration follows Spell Duration
+	opposite         uint16                       // the arm an attach removes instead (Bless, Curse)
+	magnitude        func(mag, power int32) int32 // MAGIC-EFFECT-015
+	formulaMagnitude bool                         // a mod magnitude formula applies
+	poisonScaled     bool                         // the point magnitude is the game's poison scaling
+	lastingDuration  bool                         // the duration follows Spell Duration
 	durationLaw      durationLaw
 	form             spellForm
 	autoCast         autoCastPlace
@@ -208,7 +209,7 @@ var spellArms = [...]spellArm{
 	{arm: 6, heals: true, autoCast: autoCastPlace{1, 0, autoCastHealer}, creatureAim: creatureAimCaster, second: renews},
 	{arm: 7, magnitude: slowMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, caption: captionRow{kind: SpellCaptionSpeed},
 		second: renews},
-	{arm: 8, magnitude: poisonPointMagnitude, formulaMagnitude: true, creatureAim: creatureAimVictimCell, second: secondArmRow{keepsLarger: true, skipsFirstHealth: true}},
+	{arm: 8, poisonScaled: true, formulaMagnitude: true, creatureAim: creatureAimVictimCell, second: secondArmRow{keepsLarger: true, skipsFirstHealth: true}},
 	{arm: 9, creatureAim: creatureAimStepCell, second: secondArmRow{keepsLarger: true, firstStageDelay: 1}},
 	{arm: 10, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 3, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}, second: renews},
@@ -251,24 +252,17 @@ var spellArms = [...]spellArm{
 // difference: its Effect renewal keeps the larger magnitude and duration.
 var renews = secondArmRow{keepsLarger: true}
 
-func halfPower(_ SpellRule, _, power int32) int32 { return power / 2 }
+func halfPower(_, power int32) int32 { return power / 2 }
 
-func slowMagnitude(_ SpellRule, _, power int32) int32 { return -(power/15 + 1) }
+func slowMagnitude(_, power int32) int32 { return -(power/15 + 1) }
 
-func poisonPointMagnitude(rule SpellRule, mag, power int32) int32 {
-	if rule.Second {
-		return mag * (power + 45) / 45
-	}
-	return PoisonMagnitude(mag, power)
-}
+func lightMagnitude(_, power int32) int32 { return power/30 + 1 }
 
-func lightMagnitude(_ SpellRule, _, power int32) int32 { return power/30 + 1 }
+func darknessMagnitude(_, power int32) int32 { return -1 - power/30 }
 
-func darknessMagnitude(_ SpellRule, _, power int32) int32 { return -1 - power/30 }
+func shieldMagnitude(_, power int32) int32 { return power/10 + 3 }
 
-func shieldMagnitude(_ SpellRule, _, power int32) int32 { return power/10 + 3 }
-
-func hasteMagnitude(_ SpellRule, _, power int32) int32 { return power/15 + 1 }
+func hasteMagnitude(_, power int32) int32 { return power/15 + 1 }
 
 // ownScaledMagnitude is the magnitude of an own effect that scales with
 // power, at the width its reader computes in.
@@ -292,7 +286,7 @@ func SpellCaptionOf(rule SpellRule, c SpellCharacteristics) (SpellCaption, int64
 		if row.own.scaled {
 			v = ownScaledMagnitude(int64(c.Power))
 		} else {
-			v = int64(row.magnitude(rule, 0, c.Power))
+			v = int64(row.magnitude(0, c.Power))
 		}
 		if row.caption.negate {
 			v = -v
@@ -332,14 +326,6 @@ func spellArmOf(arm uint16) spellArm {
 	return spellArm{}
 }
 
-// secondArm is the row's second-game difference, zero on a first-game row.
-func (r SpellRule) secondArm() secondArmRow {
-	if !r.Second {
-		return secondArmRow{}
-	}
-	return spellArmOf(r.arm()).second
-}
-
 // arm is the arm the row runs: its Arm, or its own id when Arm is unset.
 func (r SpellRule) arm() uint16 {
 	if r.Arm != 0 {
@@ -366,7 +352,7 @@ func (w *World) spellIDOfArm(arm uint16) uint16 {
 // table returns arm itself; a second-game table returns the row running arm,
 // or ArmNone, which no effect carries, when no row runs it.
 func (w *World) armSpellID(arm uint16) uint16 {
-	if len(w.spells) == 0 || !w.spells[0].Second {
+	if len(w.spells) == 0 || !w.spellRow().armRows {
 		return arm
 	}
 	for _, r := range w.spells {

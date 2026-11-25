@@ -15,9 +15,11 @@ import (
 // Outside the named sites, production code in pkg/sim and pkg/game does not
 // ask the game again, however the question is written.
 //
-// A spell row's Second is not the World's game: it is the row's own format,
-// the second game's columns, set by AssignSecondGameArms where a table is
-// loaded or decoded. Its reads and that call stay at named sites.
+// A spell rule row carries no game: the rules a World applies are the
+// spellRow its profile's spellGame selects. A Second field or key, and the
+// per-row branches it fed (drainRuleOf, secondArm, spellDamageUnder), stay
+// out of pkg/sim; AssignSecondGameArms, which writes the arm ids of a
+// second-game table, stays at named sites.
 
 // The shapes the scan refuses.
 const (
@@ -28,6 +30,7 @@ const (
 	worldGameDialect     = "a script dialect compared as the game"
 	worldGameChooser     = "a game profile chosen or written"
 	worldGameSpellRow    = "a spell row's format marker"
+	worldGameRowBranch   = "a per-row game branch the spell rows replaced"
 	worldGameSpellTable  = "a spell table's format read from one row"
 	worldGameSpellArms   = "a use of AssignSecondGameArms"
 )
@@ -62,29 +65,10 @@ var WorldGameAllowed = map[string]map[string]string{
 	worldGameDialect: {
 		"pkg/sim/gameprofile.go#newGameProfile":                       "the one chooser of the World's game profile",
 		"pkg/sim/rom2script.go#initializeROM2Script":                  "builds the second game's script state with the profile",
-		"pkg/sim/currentrom2policy.go#restoreCurrentROM2Policy":       "refuses a policy whose second-game state disagrees with the program's dialect",
 		"pkg/sim/rom2statebinary.go#rom2ScriptStateFault":             "the byte form holds the state exactly when the dialect is the second game's",
 		"pkg/sim/script.go#newScriptOn":                               "the compiler admits each operation by the program's own dialect",
-		"pkg/sim/scriptslotbinary.go#unmarshalScriptSlots":            "the slot form exists only for a second-game program",
 		"pkg/sim/world.go#newWorld":                                   "an empty first-game program is no program",
-		"pkg/game/campaignfirst.go":                                   "the first game's campaign service refuses another game's save",
-		"pkg/game/campaignsecond.go":                                  "the second game's campaign service refuses another game's save",
-		"pkg/game/currentscriptprogram.go#compile":                    "compiles a saved program by its own dialect",
 		"pkg/game/currentscriptbindings.go#restoreCurrentScriptRoles": "compiles the roles by the running program's own dialect",
-	},
-	worldGameSpellRow: {
-		"pkg/sim/secondspell.go#AssignSecondGameArms": "the one writer: marks each row of a second-game table where the table is loaded or decoded",
-		"pkg/sim/spell.go#drainRuleOf":                "row format: a second-game Drain Life row rolls its own draw (R2-ENGINE-026)",
-		"pkg/sim/spell.go#applySpellDamage":           "row format: a second-game row rolls its own damage draw",
-		"pkg/sim/spell.go#applySpellHealing":          "row format: a second-game row rolls its own heal draw",
-		"pkg/sim/spellarms.go#poisonPointMagnitude":   "row format: a second-game row scales its own poison magnitude",
-		"pkg/sim/spellarms.go#secondArm":              "row format: the row's second-game arm difference",
-		"pkg/sim/spellformula.go#spellDamageUnder":    "row format: a second-game row's damage columns take that game's formula",
-		"pkg/sim/spellformula.go#wholeDamageColumns":  "row format: only a first-game row holds whole damage columns above 255",
-		"pkg/sim/spellvalues.go#lastingRule":          "row format: a second-game area row lasts by its formula",
-	},
-	worldGameSpellTable: {
-		"pkg/sim/spellarms.go#armSpellID": "the table's own format: an empty or first-game table carries arm ids; the profile would answer otherwise for an empty table and a cross-game controlled copy",
 	},
 	worldGameSpellArms: {
 		"pkg/sim/secondspell.go#AssignSecondGameArms":         "its declaration",
@@ -97,6 +81,8 @@ var WorldGameAllowed = map[string]map[string]string{
 		"pkg/sim/binary.go#unmarshalBinary":                   "the decoder's base form",
 		"pkg/sim/rom2statebinary.go#unmarshalROM2ScriptState": "the decoder's second-game wrapper",
 		"pkg/sim/script.go#newScriptOn":                       "the compiler admits each operation by the rows of the program's own profile",
+		"pkg/sim/gameprofile.go#HoldsScriptState":             "a caller with a program and no World reads the dialect's own profile field",
+		"pkg/sim/spellrow.go#formSpellRow":                    "a wrapper decodes its spell rows before the World it builds has its game",
 		"pkg/sim/skill.go#HeldSkillLevel":                     "a party load outside a World reads the skill award of the chooser's profile",
 	},
 }
@@ -281,6 +267,9 @@ func worldGameNode(n ast.Node, scope worldGameScope, aliases map[string]bool, ad
 			add(x, worldGameSpellRow)
 		}
 	case *ast.Ident:
+		if world && (x.Name == "drainRuleOf" || x.Name == "secondArm" || x.Name == "spellDamageUnder") {
+			add(x, worldGameRowBranch)
+		}
 		if x.Name == "secondGameGroupRoute" || x.Name == "secondGameCreatureAim" {
 			add(x, worldGameChooser)
 		}
@@ -319,8 +308,10 @@ func CheckWorldGame(found []WorldGameFinding, allowed map[string]map[string]stri
 		switch f.Shape {
 		case worldGameNative, worldGameSavedGroups:
 			out = append(out, f.String()+"; every World uses its Group registry; only named construction and decode guards may test its presence")
-		case worldGameSpellRow, worldGameSpellTable, worldGameSpellArms:
-			out = append(out, f.String()+"; a spell row's format is chosen where its table is loaded or decoded; name the site with its reason")
+		case worldGameSpellRow, worldGameSpellTable, worldGameRowBranch:
+			out = append(out, f.String()+"; a spell rule row carries no game; read the World's spellRow")
+		case worldGameSpellArms:
+			out = append(out, f.String()+"; a second-game table's arm ids are written where it is loaded or decoded; name the site with its reason")
 		default:
 			out = append(out, f.String()+"; read a field of the World's game profile")
 		}

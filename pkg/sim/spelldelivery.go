@@ -99,7 +99,7 @@ func (w *World) queueSpellDelivery(d spellDelivery) {
 	}
 	d.Rule.bookInstance, d.Rule.bookDefensive, d.Rule.itemCast = false, 0, false
 	d.Rule.Delivery = 1 // the child is already delivered when consumed
-	if !d.Rule.Damaging || !d.Rule.wholeDamageColumns() {
+	if !d.Rule.Damaging || !w.spellRow().wholeDamageColumns(d.Rule) {
 		payload := w.preparedSpellPayload(d.Rule, d.Power, indexOfEntity(w.entities, d.Target))
 		d.Payload = &payload
 	}

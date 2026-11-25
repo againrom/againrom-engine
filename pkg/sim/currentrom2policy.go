@@ -86,7 +86,7 @@ func (w *World) currentROM2Policy() *CurrentROM2Policy {
 }
 
 func (w *World) restoreCurrentROM2Policy(p *CurrentROM2Policy) error {
-	if (p != nil) != (w.script.Dialect() == ScriptROM2) {
+	if (p != nil) != w.script.Dialect().HoldsScriptState() {
 		return fmt.Errorf("sim: current ROM2 policy and script dialect disagree")
 	}
 	if p == nil {

@@ -13,10 +13,10 @@ func castDistanceRow(second bool, drain bool) SpellRule {
 	}
 	if drain {
 		return SpellRule{ID: 26, Delivery: 1, ManaCost: 20, School: 5, MaxRange: 7, DamageMin: 4,
-			DamageMax: 6, TargetsUnit: true, Distribution: 1, Arm: 11, Second: true}
+			DamageMax: 6, TargetsUnit: true, Distribution: 1, Arm: 11}
 	}
 	return SpellRule{ID: 1, Delivery: 2, EffectSpeed: 200, ManaCost: 3, School: 1, MaxRange: 7,
-		DamageMin: 5, DamageMax: 10, TargetsUnit: true, Damaging: true, Distribution: 1, Arm: 1, Second: true}
+		DamageMin: 5, DamageMax: 10, TargetsUnit: true, Damaging: true, Distribution: 1, Arm: 1}
 }
 
 // castDistanceWorld: a mage of sight 5 at (20, 8) and a standing target whose

@@ -51,7 +51,7 @@ func (w *World) unmarshalScriptSlots(data []byte, proof formProof) error {
 	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
-	if next.script == nil || next.script.Dialect() != ScriptROM2 || uint64(len(next.script.instants)) != n {
+	if next.script == nil || !next.script.Dialect().HoldsScriptState() || uint64(len(next.script.instants)) != n {
 		return fail()
 	}
 	instants := append([]ScriptInstant(nil), next.script.instants...)

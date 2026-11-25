@@ -145,7 +145,7 @@ func TestReleaseSpellbookCaptionHoverIsBuiltFromTheClaim(t *testing.T) {
 		if rule.ID != spell {
 			t.Fatalf("installed rules have no spell %d", spell)
 		}
-		c := sim.SpellCharacteristicsFor(sim.Rules{}, entity, rule)
+		c := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, entity, rule)
 		level := min(max(int(entity.Skill[rule.School])+int(entity.Mind)-30, 0), 100)
 		if int(c.Power) != level {
 			t.Fatalf("spell %d: power %d, claim level %d", spell, c.Power, level)

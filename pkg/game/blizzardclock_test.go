@@ -12,7 +12,11 @@ func TestSecondBlizzardWatchTracksTheDeferredFirstPulse(t *testing.T) {
 	sim.AssignSecondGameArms(rows)
 	caster := sim.Entity{ID: 1, X: 20, Y: 12, HP: 100, MaxHP: 100, Owner: 3, TokenSize: 1,
 		Mind: 30, Mana: 500, MaxMana: 500, KnownSpells: 1 << 7, AttackCharge: 4, AttackRelax: 2}
-	w, err := sim.NewSpelledWorld(7, sim.Bounds{Width: 40, Height: 40}, sim.ModeCanonical, nil, []sim.Entity{caster}, nil, rows)
+	script, err := sim.NewROM2Script(missionChecks(), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := sim.NewSpelledWorld(7, sim.Bounds{Width: 40, Height: 40}, sim.ModeCanonical, nil, []sim.Entity{caster}, script, rows)
 	if err != nil {
 		t.Fatal(err)
 	}

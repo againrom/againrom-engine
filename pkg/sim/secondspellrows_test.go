@@ -420,12 +420,12 @@ func TestSecondStoneCurseBookDurationIsTheRecordWord(t *testing.T) {
 		power int32
 		want  uint16
 	}{{1, 4}, {50, 240}, {100, 480}, {255, 1224}} {
-		if got := spellDurationOf(Rules{}, stone, tc.power, durationRecord); got != tc.want {
+		if got := spellDurationOf(testRowOf(true), Rules{}, stone, tc.power, durationRecord); got != tc.want {
 			t.Errorf("Stone Curse record word at power %d = %d, want P*15*16*2/100 = %d", tc.power, got, tc.want)
 		}
 	}
 	first := SpellRule{ID: 18, Arm: 20, SpellDuration: 10}
-	if got := spellDurationOf(Rules{}, first, 100, durationRecord); got != spellLastingTicks(first, 100) {
+	if got := spellDurationOf(testRowOf(false), Rules{}, first, 100, durationRecord); got != spellLastingTicks(first, 100) {
 		t.Errorf("the first game's Stone Curse record word %d moved", got)
 	}
 }

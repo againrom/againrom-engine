@@ -203,7 +203,7 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 			knower := spellKnower{rule: sim.SpellRule{ID: spell}}
 			for _, rule := range rules {
 				if rule.ID == spell {
-					knower = spellKnower{rule, sim.SpellCharacteristicsAtPower(mapload.TableRules(table), rule, power)}
+					knower = spellKnower{rule, sim.SpellCharacteristicsAtPower(mapload.SpellGameOf(table), mapload.TableRules(table), rule, power)}
 					break
 				}
 			}
@@ -223,7 +223,7 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 // range column, not the spell's (R2-ENGINE-998), with no base lines
 // (DIV-4702); the other Effects follow.
 func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16, power int32, weaponRange uint8, words ui.Words) ([]string, bool) {
-	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(table), sim.Entity{
+	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.SpellGameOf(table), mapload.TableRules(table), sim.Entity{
 		MaxMana: 1, WeaponSpell: spellID, WeaponSpellLevel: power,
 	}, mapload.SpellRules(table))
 	if !ok {
@@ -323,7 +323,7 @@ func itemInstanceInfoLinesWithWeaponDamage(item sim.ItemInstance, table *mapload
 			if index == 0 && scroll {
 				for _, rule := range mapload.SpellRules(table) {
 					if rule.ID == id {
-						c := sim.SpellCharacteristicsAtPower(mapload.TableRules(table), rule, power)
+						c := sim.SpellCharacteristicsAtPower(mapload.SpellGameOf(table), mapload.TableRules(table), rule, power)
 						lines = spellDetailsLines([]spellKnower{{rule, c}}, lines, &words, scrollDetails, nil)
 						break
 					}

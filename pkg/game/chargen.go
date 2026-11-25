@@ -359,7 +359,7 @@ func (f *FrontEnd) ChargenDerived(res ui.ChargenResult) []ui.ChargenDerived {
 		line(chargenDerivedDefence, d.Combat.Defence),
 	}
 	spellID, _ := mapload.SpellIDByToken(f.Table, d.Combat.SpellName)
-	spellBase, spellSpread, hasWeaponSpell := sim.WeaponSpellDamageFor(mapload.TableRules(f.Table), sim.Entity{
+	spellBase, spellSpread, hasWeaponSpell := sim.WeaponSpellDamageFor(mapload.SpellGameOf(f.Table), mapload.TableRules(f.Table), sim.Entity{
 		MaxMana:          mana,
 		WeaponSpell:      spellID,
 		WeaponSpellLevel: d.Combat.SpellPower,
@@ -406,7 +406,7 @@ func (f *FrontEnd) ChargenPreview(res ui.ChargenResult) ui.ChargenPreview {
 	preview.Subject.Unplaced = true
 	if member.Mage && !tableFiles(f.Table).releasedSpellReadout {
 		worn := mapload.MemberItemEquipment(member, f.Table)
-		base, spread, ok := generatorCardDamage(worn[0], mapload.TableRules(f.Table), mapload.SpellRules(f.Table))
+		base, spread, ok := generatorCardDamage(mapload.SpellGameOf(f.Table), worn[0], mapload.TableRules(f.Table), mapload.SpellRules(f.Table))
 		preview.Subject.Combat.WeaponSpellDamageKnown = ok
 		preview.Subject.Combat.SpellDamageBase, preview.Subject.Combat.SpellDamageSpread = base, spread
 	}

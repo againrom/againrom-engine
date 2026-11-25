@@ -15,14 +15,8 @@ import (
 // is valid or consents to the state beside it. Any other file asks the game
 // through the game profile.
 var keptDialectComparisons = map[string]int{
-	"pkg/sim/gameprofile.go":           1,
-	"pkg/sim/currentrom2policy.go":     1,
-	"pkg/sim/rom2statebinary.go":       3,
-	"pkg/sim/scriptslotbinary.go":      1,
-	"pkg/game/campaignfirst.go":        1,
-	"pkg/game/campaignsecond.go":       2,
-	"pkg/game/currentscriptprogram.go": 3,
-	"pkg/mapload/start.go":             1,
+	"pkg/sim/gameprofile.go":     1,
+	"pkg/sim/rom2statebinary.go": 3,
 }
 
 func isDialectName(e ast.Expr) bool {

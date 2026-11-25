@@ -93,7 +93,7 @@ func ModSpellRefusal(t *Table, r mod.SpellRow) (line int, msg string) {
 	if r.Rays.Set && !sim.SpellArmFiresRays(rule.ArmID()) {
 		return r.Rays.Line, fmt.Sprintf("%s does not fire rays, so rays does not apply to it", sp.Name)
 	}
-	return modSpellFormulaRefusal(sp, rule, r)
+	return modSpellFormulaRefusal(SpellGameOf(t), sp, rule, r)
 }
 
 // modSpellRule is spell number id as t's game runs it: its arm and format.
@@ -105,14 +105,14 @@ func modSpellRule(t *Table, id int) sim.SpellRule {
 	return rows[0]
 }
 
-func modSpellFormulaRefusal(sp data.Spell, rule sim.SpellRule, r mod.SpellRow) (int, string) {
+func modSpellFormulaRefusal(game rules.SpellGame, sp data.Spell, rule sim.SpellRule, r mod.SpellRow) (int, string) {
 	if t := r.DamageFactor; t.Set && sp.DamageMin <= 0 && sp.DamageMax <= 0 {
 		return t.Line, fmt.Sprintf("%s has no damage or healing pair, so damage_factor does not apply to it", sp.Name)
 	}
 	if t := r.RangeBonus; t.Set && sp.MaxRange == 0 && (!r.Range.Set || r.Range.Val == 0) {
 		return t.Line, fmt.Sprintf("%s has range 0, so range_bonus does not apply to it", sp.Name)
 	}
-	if t := r.DurationFactor; t.Set && !sim.DurationTableRule(rule) {
+	if t := r.DurationFactor; t.Set && !sim.DurationTableRule(game, rule) {
 		if sim.DurationArm(rule.ArmID()) {
 			return t.Line, fmt.Sprintf("%s draws its duration from 0 up to a ceiling of power in this game, so duration_factor does not apply to it", sp.Name)
 		}

@@ -107,7 +107,7 @@ func TestScrollDescriptionsCoverEveryDescriptorAndBytePower(t *testing.T) {
 			power := int32(uint8(stored))
 			item := sim.ItemInstance{Code: 0x0e10, Kind: 4, Price: 137,
 				Effects: []sim.ItemEffect{{Kind: 41, Operand: uint32(id) | uint32(uint16(stored))<<16}}}
-			c := sim.SpellCharacteristicsAtPower(mapload.TableRules(table), rules[id-1], power)
+			c := sim.SpellCharacteristicsAtPower(testFirstGame, mapload.TableRules(table), rules[id-1], power)
 			want := []string{fmt.Sprintf("Scroll of localized spell %d", id)}
 			want = append(want, scrollDescriptionExpectedDetails(id, power, c, func(i int) string { return words.Hover[i] })...)
 			got := itemInstanceInfoLines(item, table, words)

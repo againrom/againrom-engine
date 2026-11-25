@@ -29,7 +29,7 @@ func TestFormulasWithoutTablesAreTheOriginalArithmetic(t *testing.T) {
 	rule := SpellRule{ID: 24, DamageMin: 4, DamageMax: 9, MaxRange: 7, SpellDuration: 5}
 	for _, power := range []int32{0, 29, 30, 100, 101, 255} {
 		wb, ws := spellDamage(4, 9, power)
-		if gb, gs := spellDamageUnder(r, rule, power); gb != wb || gs != ws {
+		if gb, gs := testRowOf(true).damageUnder(r, rule, power); gb != wb || gs != ws {
 			t.Errorf("damage at %d: %d %d, want %d %d", power, gb, gs, wb, ws)
 		}
 		if got, want := spellRangeUnder(r, rule, power), spellRange(rule, power); got != want {
@@ -38,7 +38,7 @@ func TestFormulasWithoutTablesAreTheOriginalArithmetic(t *testing.T) {
 		if got, want := spellRecordRangeUnder(r, rule, power), spellRecordRange(rule, power); got != want {
 			t.Errorf("record range at %d: %d, want %d", power, got, want)
 		}
-		if got, want := spellLastingTicksUnder(r, rule, power), spellLastingTicks(rule, power); got != want {
+		if got, want := spellLastingTicksUnder(testRowOf(false), r, rule, power), spellLastingTicks(rule, power); got != want {
 			t.Errorf("duration at %d: %d, want %d", power, got, want)
 		}
 	}
@@ -79,16 +79,16 @@ func TestDamageFactorScalesThePairInThirtiethsAboveHundred(t *testing.T) {
 	set.Spell[FormulaDamage][1] = table
 	r := formulaRules(t, set)
 	rule := SpellRule{ID: 1, DamageMin: 4, DamageMax: 9}
-	if base, spread := spellDamageUnder(r, rule, 0); base != 4 || spread != 5 {
+	if base, spread := testRowOf(false).damageUnder(r, rule, 0); base != 4 || spread != 5 {
 		t.Errorf("factor 30: %d %d, want 4 5", base, spread)
 	}
-	if base, spread := spellDamageUnder(r, rule, 200); base != 20 || spread != 25 {
+	if base, spread := testRowOf(false).damageUnder(r, rule, 200); base != 20 || spread != 25 {
 		t.Errorf("power 200 at factor 150: %d %d, want 20 25", base, spread)
 	}
-	if base, spread := spellDamageUnder(r, rule, 1000); base != 4 || spread != 5 {
+	if base, spread := testRowOf(false).damageUnder(r, rule, 1000); base != 4 || spread != 5 {
 		t.Errorf("past the table: %d %d, want the last entry's 4 5", base, spread)
 	}
-	if base, spread := spellDamageUnder(r, SpellRule{ID: 2, DamageMin: 4, DamageMax: 9}, 200); base != 4*230/30 || spread != 9*230/30-4*230/30 {
+	if base, spread := testRowOf(false).damageUnder(r, SpellRule{ID: 2, DamageMin: 4, DamageMax: 9}, 200); base != 4*230/30 || spread != 9*230/30-4*230/30 {
 		t.Errorf("another row changed: %d %d", base, spread)
 	}
 }
@@ -135,30 +135,30 @@ func TestDurationFactorIsThousandthsOfSixteenthsAboveHundred(t *testing.T) {
 	set.Global[FormulaDuration] = table
 	r := formulaRules(t, set)
 	haste := SpellRule{ID: 24, SpellDuration: 5}
-	if got := spellLastingTicksUnder(r, haste, 0); got != 80 {
+	if got := spellLastingTicksUnder(testRowOf(false), r, haste, 0); got != 80 {
 		t.Errorf("factor 1000: %d, want 80", got)
 	}
-	if got := spellLastingTicksUnder(r, haste, 200); got != 200 {
+	if got := spellLastingTicksUnder(testRowOf(false), r, haste, 200); got != 200 {
 		t.Errorf("power 200 at factor 2500: %d, want 200", got)
 	}
-	if got := spellLastingTicksUnder(r, SpellRule{ID: 15}, 200); got != 120 {
+	if got := spellLastingTicksUnder(testRowOf(false), r, SpellRule{ID: 15}, 200); got != 120 {
 		t.Errorf("Invisibility keeps its literal base of 3: %d, want 120", got)
 	}
 	stone := SpellRule{ID: 20, SpellDuration: 2}
-	if got := spellLastingTicksUnder(r, stone, 250); got != 32 {
+	if got := spellLastingTicksUnder(testRowOf(false), r, stone, 250); got != 32 {
 		t.Errorf("Stone Curse reads the table whole, not in segments: %d, want 32", got)
 	}
-	if got := spellLastingTicksUnder(r, SpellRule{ID: 24}, 200); got != 0 {
+	if got := spellLastingTicksUnder(testRowOf(false), r, SpellRule{ID: 24}, 200); got != 0 {
 		t.Errorf("a zero base gave %d", got)
 	}
 	set.Global[FormulaDuration] = constantTable(1, 1000000)
-	if got := spellLastingTicksUnder(formulaRules(t, set), SpellRule{ID: 24, SpellDuration: 4095}, 0); got != durationTickCeiling {
+	if got := spellLastingTicksUnder(testRowOf(false), formulaRules(t, set), SpellRule{ID: 24, SpellDuration: 4095}, 0); got != durationTickCeiling {
 		t.Errorf("saturation: %d", got)
 	}
-	if got := spellPointDurationUnder(r, SpellRule{ID: 7, EffectDuration: 33}, 0); got != 33 {
+	if got := spellPointDurationUnder(testRowOf(false), r, SpellRule{ID: 7, EffectDuration: 33}, 0); got != 33 {
 		t.Errorf("a row off the power duration arm changed: %d", got)
 	}
-	if got := spellRecordDurationUnder(r, haste, 200); got != 200 {
+	if got := spellRecordDurationUnder(testRowOf(false), r, haste, 200); got != 200 {
 		t.Errorf("record duration: %d", got)
 	}
 }
@@ -302,19 +302,19 @@ func TestSpellCharacteristicsCarryTheTablesForThePopup(t *testing.T) {
 	rule := SpellRule{ID: 24, School: 1, DamageMin: 3, DamageMax: 6, MaxRange: 4, SpellDuration: 5}
 	e := spEnt(1, 0, 0)
 	e.Skill[1], e.Mind = 40, 30
-	c := SpellCharacteristicsFor(r, e, rule)
+	c := SpellCharacteristicsFor(testFirstGame, r, e, rule)
 	if c.Power != 120 || c.DamageMin != 6 || c.DamageMax != 12 || !c.HasMagnitude || c.Magnitude != 11 {
 		t.Errorf("%+v", c)
 	}
 	if c.Range != 7 || c.Duration != 160 {
 		t.Errorf("range %d duration %d, want 7 and 160", c.Range, c.Duration)
 	}
-	plain := SpellCharacteristicsFor(Rules{}, e, rule)
+	plain := SpellCharacteristicsFor(testFirstGame, Rules{}, e, rule)
 	if plain.DamageMin != 6 || plain.DamageMax != 13 || plain.HasMagnitude || plain.Power != 40 {
 		t.Errorf("unmodded %+v", plain)
 	}
 	rule.Damaging, rule.TargetsUnit = true, true
-	got, ok := weaponSpellCharacteristics(r, rule, 10)
+	got, ok := weaponSpellCharacteristics(testFirstGame, r, rule, 10)
 	if !ok || got.DamageMin != 6 || got.DamageMax != 12 {
 		t.Errorf("tooltip %+v %v, want damage 6-12", got, ok)
 	}

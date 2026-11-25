@@ -118,6 +118,8 @@ func TestTheWorldGameScanRefusesEachSpellMarkerShape(t *testing.T) {
 		{"pkg/sim/planted.go", worldGameSpellRow, "func f(r SpellRule) bool { return r.Second }\n"},
 		{"pkg/sim/planted.go", worldGameSpellRow, "func f() SpellRule { return SpellRule{Second: true} }\n"},
 		{"pkg/sim/planted.go", worldGameSpellTable, "func f(w *World) bool { return len(w.spells) > 0 && w.spells[0].Second }\n"},
+		{"pkg/sim/planted.go", worldGameRowBranch, "func drainRuleOf(w *World) bool { return w == nil }\n"},
+		{"pkg/sim/planted.go", worldGameRowBranch, "func f(r SpellRule) bool { return r.secondArm() }\n"},
 		{"pkg/sim/planted.go", worldGameSpellArms, "func f(r []SpellRule) { AssignSecondGameArms(r) }\n"},
 		{"pkg/sim/planted.go", worldGameSpellArms, "func f(w *World) { w.rowArms = AssignSecondGameArms }\n"},
 		{"pkg/game/planted.go", worldGameSpellArms, "func f(r []sim.SpellRule) { sim.AssignSecondGameArms(r) }\n"},
@@ -133,14 +135,11 @@ func TestTheWorldGameScanRefusesEachSpellMarkerShape(t *testing.T) {
 			t.Errorf("%s in %s: violations %v, want none", tc.shape, test, got)
 		}
 	}
-	if got := planted("pkg/sim/spellarms.go", "func armSpellID(w *World) bool { return w.spells[0].Second }\n"); len(got) != 0 {
-		t.Errorf("the named whole-table site is refused: %v", got)
+	if got := planted("pkg/sim/spellarms.go", "func armSpellID(w *World) bool { return w.spells[0].Second }\n"); len(got) != 1 {
+		t.Errorf("a whole-table read is admitted: %v", got)
 	}
-	if got := planted("pkg/sim/spellarms.go", "func poisonPointMagnitude(w *World) bool { return w.spells[0].Second }\n"); len(got) != 1 {
-		t.Errorf("a whole-table read at a row site is admitted: %v", got)
-	}
-	if got := planted("pkg/sim/spellarms.go", "func armSpellID(r SpellRule) bool { return r.Second }\n"); len(got) != 1 {
-		t.Errorf("a row read at the whole-table site is admitted: %v", got)
+	if got := planted("pkg/sim/spell.go", "func applySpellDamage(r SpellRule) bool { return r.Second }\n"); len(got) != 1 {
+		t.Errorf("a row read is admitted: %v", got)
 	}
 	if got := planted("pkg/game/planted.go", "func f(s *session) bool { return s.Second != nil || time.Second > 0 }\n"); len(got) != 0 {
 		t.Errorf("a pkg/game field named Second is refused: %v", got)

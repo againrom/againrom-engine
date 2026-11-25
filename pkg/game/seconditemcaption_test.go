@@ -54,7 +54,7 @@ func TestSecondGameScrollCaptionStatLine(t *testing.T) {
 			first := scrollCaptionTable(false)
 			second := scrollCaptionTable(true)
 			rules := mapload.SpellRules(second)
-			c := sim.SpellCharacteristicsAtPower(mapload.TableRules(second), rules[id-1], 100)
+			c := sim.SpellCharacteristicsAtPower(testSecondGame, mapload.TableRules(second), rules[id-1], 100)
 			head := []string{fmt.Sprintf("Scroll of localized spell %d", id)}
 			if c.DamageMax != c.DamageMin {
 				head = append(head, fmt.Sprintf("%s: %d-%d", words.Hover[118], c.DamageMin, c.DamageMax))
@@ -78,7 +78,7 @@ func TestSecondGameScrollCaptionStatLine(t *testing.T) {
 				t.Errorf("%s spell %d: stat line %q, want label %q", install, id, stat, words.Hover[label])
 			}
 			// The first game's caption of the same scroll is the arm's own.
-			c1 := sim.SpellCharacteristicsAtPower(mapload.TableRules(first), mapload.SpellRules(first)[id-1], 100)
+			c1 := sim.SpellCharacteristicsAtPower(testFirstGame, mapload.TableRules(first), mapload.SpellRules(first)[id-1], 100)
 			want := append([]string{head[0]}, scrollDescriptionExpectedDetails(uint16(id), 100, c1, func(i int) string { return words.Hover[i] })...)
 			if got := itemInstanceInfoLines(item, first, words); !slices.Equal(got, want) {
 				t.Errorf("%s spell %d: first game caption %q, want %q", install, id, got, want)

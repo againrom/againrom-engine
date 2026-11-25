@@ -3201,7 +3201,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	casts, bookCasts, effects, attached, caused, err := decodeCasting(tail[used+gused+sused+cused+eused+tused+pused+spused+iwused:], spells)
+	casts, bookCasts, effects, attached, caused, err := decodeCasting(w.formSpellRow(), tail[used+gused+sused+cused+eused+tused+pused+spused+iwused:], spells)
 	if err != nil {
 		return err
 	}

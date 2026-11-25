@@ -1086,7 +1086,7 @@ func TestTheAreaModeComesFromTheRowsOwnColumns(t *testing.T) {
 		if got := areaModeFor(tc.rule); got != tc.mode {
 			t.Errorf("%s: mode = %d, want %d", tc.name, got, tc.mode)
 		}
-		if got := areaLife(tc.rule, 0); got != tc.life {
+		if got := areaLife(testRowOf(false), tc.rule, 0); got != tc.life {
 			t.Errorf("%s: life = %d, want %d", tc.name, got, tc.life)
 		}
 	}

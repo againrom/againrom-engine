@@ -19,12 +19,17 @@ func blizzardCaster(x, y int32) Entity {
 		AttackCharge: 4, AttackRelax: 2}
 }
 
-func blizzardWorld(t *testing.T, seed uint64, original bool, rule SpellRule, structures []Structure, ents ...Entity) *World {
+func blizzardWorld(t *testing.T, second bool, seed uint64, original bool, rule SpellRule, structures []Structure, ents ...Entity) *World {
 	t.Helper()
 	w, err := NewStructuredWorld(seed, Bounds{Width: 40, Height: 40}, ModeCanonical, Terrain{}, ents, nil,
 		Relations{}, nil, nil, []SpellRule{rule}, GhostTemplate{}, structures)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if second {
+		// Only the spell rows are the second game's: the claims these tests
+		// check name the area rules, not the second game's idle draws.
+		w.game.spellGame = testSecondGame
 	}
 	if original {
 		w.rng = rng{state: uint64(uint32(seed * 2654435761)), original: true}
@@ -96,7 +101,7 @@ func (m *blizzardModel) update() bool {
 func TestSecondBlizzardPulseScheduleAndCellDraws(t *testing.T) {
 	for _, mode := range []bool{false, true} {
 		for _, centre := range [][2]int32{{20, 20}, {9, 30}} {
-			w := blizzardWorld(t, 7, mode, blizzardRow(10, 30), nil, blizzardCaster(centre[0], centre[1]-8))
+			w := blizzardWorld(t, true, 7, mode, blizzardRow(10, 30), nil, blizzardCaster(centre[0], centre[1]-8))
 			report, _ := blizzardLanding(t, w, centre[0], centre[1])
 			if len(report.AreaPaints) > 1 {
 				t.Fatalf("landing painted %d stages", len(report.AreaPaints))
@@ -194,7 +199,7 @@ func TestSecondBlizzardDamagesEveryActorItStrikes(t *testing.T) {
 					ents = append(ents, a)
 				}
 			}
-			w := blizzardWorld(t, seed, mode, blizzardRow(10, 30), nil, ents...)
+			w := blizzardWorld(t, true, seed, mode, blizzardRow(10, 30), nil, ents...)
 			_, power := blizzardLanding(t, w, 20, 20)
 			base, spread := blizzardPair(10, 30, power)
 			model := blizzardModel{}
@@ -250,7 +255,7 @@ func TestSecondBlizzardDamagesEveryActorItStrikes(t *testing.T) {
 func TestSecondBlizzardStructureLosesTheRollLessFive(t *testing.T) {
 	for _, pair := range [][2]int32{{10, 30}, {10, 10}} {
 		hall := Structure{ID: 1, Field42: 4000, MaxHealth: 4000, Col: 19, Row: 19, Width: 2, Height: 2, Attach: 15}
-		w := blizzardWorld(t, 3, false, blizzardRow(pair[0], pair[1]), []Structure{hall}, blizzardCaster(20, 12))
+		w := blizzardWorld(t, true, 3, false, blizzardRow(pair[0], pair[1]), []Structure{hall}, blizzardCaster(20, 12))
 		_, power := blizzardLanding(t, w, 20, 20)
 		base, spread := blizzardPair(int64(pair[0]), int64(pair[1]), power)
 		model := blizzardModel{}
@@ -285,7 +290,7 @@ func TestSecondBlizzardStructureLosesTheRollLessFive(t *testing.T) {
 // sampled staged record to what one stage can paint: none or one cell, -2..3
 // from the anchor, inside the 8..dimension-9 inset.
 func TestSampledRingCellsAdmitOnlyAStageCell(t *testing.T) {
-	w := blizzardWorld(t, 1, false, blizzardRow(10, 30), nil, blizzardCaster(20, 12))
+	w := blizzardWorld(t, true, 1, false, blizzardRow(10, 30), nil, blizzardCaster(20, 12))
 	e := cellEffect{Key: cellKey(20, 20), Spell: 7, Mode: areaModeRing}
 	for _, tc := range []struct {
 		cells []uint16

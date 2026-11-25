@@ -54,7 +54,7 @@ func TestReleaseSpellPowerAbove100EffectsSaveAndColdLoad(t *testing.T) {
 		t.Fatalf("no spell row %d", id)
 		return sim.SpellRule{}
 	}
-	if got := sim.SpellCharacteristicsFor(sim.Rules{}, releaseEntity(t, f.live, caster), rule(24)).Power; got <= 100 {
+	if got := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, releaseEntity(t, f.live, caster), rule(24)).Power; got <= 100 {
 		t.Fatalf("cast power %d, want above 100", got)
 	}
 	victim := releaseEntity(t, f.live, target)
@@ -140,7 +140,7 @@ func TestReleaseSpellDamageFitsTheEffectByteAtPower255(t *testing.T) {
 		if !rule.Damaging && rule.ID != 11 && !rule.Restorative {
 			continue
 		}
-		c := sim.SpellCharacteristicsFor(sim.Rules{}, sim.Entity{Mind: 285}, rule)
+		c := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, sim.Entity{Mind: 285}, rule)
 		if c.Power != 255 {
 			t.Fatalf("power %d, want 255", c.Power)
 		}
@@ -326,7 +326,7 @@ func TestReleaseSpellPowerBoundEffectsSaveAndColdLoad(t *testing.T) {
 	caster := f.live.mission.ids[0]
 	for _, r := range mapload.SpellRules(f.Table) {
 		if r.ID == 24 {
-			if got := sim.SpellCharacteristicsFor(sim.Rules{}, releaseEntity(t, f.live, caster), r).Power; got != 244 {
+			if got := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, releaseEntity(t, f.live, caster), r).Power; got != 244 {
 				t.Fatalf("cast power %d, want 244", got)
 			}
 		}
@@ -440,7 +440,7 @@ func TestReleaseSpellPowerBonusEquippedInPlaySavesAndLoads(t *testing.T) {
 			if r.ID != 24 && r.ID != 1 && r.ID != 26 {
 				continue
 			}
-			a, b := sim.SpellCharacteristicsFor(sim.Rules{}, live, r), sim.SpellCharacteristicsFor(sim.Rules{}, got, r)
+			a, b := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, live, r), sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, got, r)
 			if a != b {
 				t.Fatalf("base %d mind %d spell %d: live %+v, cold %+v", tc.base, tc.mind, r.ID, a, b)
 			}

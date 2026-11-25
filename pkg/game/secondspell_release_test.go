@@ -86,8 +86,8 @@ func TestReleaseSecondGameSpellTableLoads(t *testing.T) {
 		t.Fatalf("SpellRules = %d rows, want 29", len(rules))
 	}
 	for i, r := range rules {
-		if r.ID != uint16(i+1) || !r.Second || r.ArmID() != sim.SecondGameSpellArm(r.ID) {
-			t.Errorf("row %d: id %d arm %d second %v", i+1, r.ID, r.ArmID(), r.Second)
+		if r.ID != uint16(i+1) || r.ArmID() != sim.SecondGameSpellArm(r.ID) {
+			t.Errorf("row %d: id %d arm %d", i+1, r.ID, r.ArmID())
 		}
 	}
 	heal, drain, prismatic := rules[23], rules[25], rules[10]
@@ -230,7 +230,7 @@ func TestReleaseSecondMissionTenHealSaveContinuation(t *testing.T) {
 		t.Fatalf("cold LOAD mage mana %d known %b, want %d %b", loaded.Mana, loaded.KnownSpells, spent.Mana, spent.KnownSpells)
 	}
 	for i, r := range cold.live.world.Spells() {
-		if want := f.live.world.Spells()[i]; r != want || !r.Second {
+		if want := f.live.world.Spells()[i]; r != want {
 			t.Fatalf("cold LOAD row %d = %+v, want %+v", r.ID, r, want)
 		}
 	}
@@ -352,7 +352,7 @@ func TestReleaseSecondGameAttachedEffectsActAsTheirOwnArms(t *testing.T) {
 	t.Run("Invisibility record duration", func(t *testing.T) {
 		w := secondSpellBookCastWorld(t, 12)
 		invisible := secondSpellRule(t, w, 12)
-		if got := sim.SpellCharacteristicsFor(sim.Rules{}, sim.Entity{Mind: 100}, invisible); got.Duration != 70<<4 {
+		if got := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, sim.Entity{Mind: 100}, invisible); got.Duration != 70<<4 {
 			t.Fatalf("installed Invisibility record at P70 = %d, want %d", got.Duration, 70<<4)
 		}
 	})

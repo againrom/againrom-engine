@@ -23,11 +23,11 @@ func TestBookRoutesOrder(t *testing.T) {
 		}
 		return out
 	}
-	selected, fixed := selectedSpellbook(sim.Rules{}, []sim.Entity{e}, rules, nil, testSpellPopupWords(), nil, rows)
+	selected, fixed := selectedSpellbook(testFirstGame, sim.Rules{}, []sim.Entity{e}, rules, nil, testSpellPopupWords(), nil, rows)
 	if want := []uint32{3, 1, 2}; !fixed || !slices.Equal(ids(selected), want) {
 		t.Fatalf("selected book order %v fixed %v, want %v fixed true", ids(selected), fixed, want)
 	}
-	known := spellbookOf(sim.Rules{}, e, rules, nil, testSpellPopupWords(), nil, rows)
+	known := spellbookOf(testFirstGame, sim.Rules{}, e, rules, nil, testSpellPopupWords(), nil, rows)
 	if want := []uint32{1, 2, 3, 4}; !slices.Equal(ids(known), want) {
 		t.Fatalf("known-only list %v, want %v", ids(known), want)
 	}

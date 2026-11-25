@@ -48,19 +48,19 @@ func TestAreaArmCapabilitiesKeepEachSiteAnswer(t *testing.T) {
 			t.Errorf("creature aim %d = %d, today %d", a, got, want)
 		}
 		for _, second := range []bool{false, true} {
-			rule := SpellRule{ID: a, Second: second}
+			rule, row := SpellRule{ID: a}, testRowOf(second)
 			for _, power := range []int32{-50, -1, 0, 1, 7, 14, 15, 29, 30, 44, 45, 90, 255, 1000} {
 				for _, mag := range []int32{-7, 0, 3, 10} {
 					got := mag
 					if i := int(rule.arm()); i < len(pointMagnitudes) && pointMagnitudes[i] != nil {
-						got = pointMagnitudes[i](rule, mag, power)
+						got = pointMagnitudes[i](row, mag, power)
 					}
-					if want := todayPointMagnitude(rule, mag, power); got != want {
+					if want := todayPointMagnitude(second, rule, mag, power); got != want {
 						t.Fatalf("arm %d second=%v power %d mag %d: magnitude %d, today %d", a, second, power, mag, got, want)
 					}
 				}
 				rule.SpellDuration, rule.EffectDuration = 4, 9
-				if got, want := spellPointDurationUnder(Rules{}, rule, power), todayPointDuration(Rules{}, rule, power); got != want {
+				if got, want := spellPointDurationUnder(row, Rules{}, rule, power), todayPointDuration(row, Rules{}, rule, power); got != want {
 					t.Fatalf("arm %d second=%v power %d: duration %d, today %d", a, second, power, got, want)
 				}
 			}
@@ -120,7 +120,7 @@ func todayCreatureAim(id uint32) creatureAim {
 	return creatureAimNone
 }
 
-func todayPointMagnitude(rule SpellRule, mag, power int32) int32 {
+func todayPointMagnitude(second bool, rule SpellRule, mag, power int32) int32 {
 	switch rule.arm() {
 	case 5, 10, 16, 22:
 		mag = power / 2
@@ -131,7 +131,7 @@ func todayPointMagnitude(rule SpellRule, mag, power int32) int32 {
 	case 7, 28:
 		mag = -(power/15 + 1)
 	case 8:
-		if rule.Second {
+		if second {
 			mag = mag * (power + 45) / 45
 		} else {
 			mag = PoisonMagnitude(mag, power)
@@ -144,10 +144,10 @@ func todayPointMagnitude(rule SpellRule, mag, power int32) int32 {
 	return mag
 }
 
-func todayPointDuration(r Rules, rule SpellRule, power int32) uint16 {
+func todayPointDuration(row *spellRow, r Rules, rule SpellRule, power int32) uint16 {
 	switch rule.arm() {
 	case 15, 5, 10, 16, 18, 20, 22, 23, 24, 27, 28:
-		return spellLastingTicksUnder(r, rule, power)
+		return spellLastingTicksUnder(row, r, rule, power)
 	}
 	return rule.EffectDuration
 }

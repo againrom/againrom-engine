@@ -9,10 +9,8 @@ import (
 // per difference. newGameProfile is its one chooser and the only code that
 // asks the game; each branch reads its field. The zero value is the first
 // game's profile, as a World with no second-game script state runs the first
-// game. A flag names what the second game does. A spell row's Second is no
-// profile field: it is the row's own format, the second game's columns, set
-// by AssignSecondGameArms where its table is loaded or decoded, and an empty
-// table or a cross-game controlled copy keeps the table's own answer.
+// game. A flag names what the second game does. The spell rules a World
+// applies are the spellRow its spellGame selects, not a field of each row.
 type gameProfile struct {
 	// spellGame: the game whose spell effect rules the World's driver takes.
 	spellGame rules.SpellGame
@@ -255,6 +253,13 @@ func (d ScriptDialect) Profile() scriptprofile.Profile {
 	}
 	return dialectProfiles[ScriptROM1]
 }
+
+// Known reports whether d is a dialect the engine runs.
+func (d ScriptDialect) Known() bool { return int(d) < len(dialectProfiles) }
+
+// HoldsScriptState reports whether the game of dialect d keeps the second
+// game's script state: its gameProfile's holdsScriptState.
+func (d ScriptDialect) HoldsScriptState() bool { return newGameProfile(d).holdsScriptState }
 
 // scriptLimits returns the script profile of g: the dialect table's row.
 func (g gameProfile) scriptLimits() scriptprofile.Profile {

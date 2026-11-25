@@ -14,9 +14,8 @@ import (
 func autoChoiceSightWorld(t *testing.T, second bool) *World {
 	t.Helper()
 	fire, heal := castDistanceRow(second, false), hlHeal()
-	heal.Second = second
 	hide := SpellRule{ID: 15, Arm: InvisibilitySpellArm(), School: 3, ManaCost: 5, TargetsUnit: true,
-		Defensive: true, Second: second}
+		Defensive: true}
 	unit := func(id EntityID, x, y int32, owner uint32, sight, detect uint8, hp int32) Entity {
 		e := spEnt(id, x, y)
 		e.Owner, e.ScanRange, e.SeeInvisible, e.TokenSize, e.HP = owner, sight, detect, 1, hp

@@ -110,7 +110,7 @@ func TestSourceBookDoesNotOverrideScrollOrWeaponSources(t *testing.T) {
 	e := w.entities[0]
 	e.MaxMana = 100
 	e.WeaponSpell, e.WeaponSpellLevel, e.WeaponSpellSource = 1, 60, WeaponSpellInnate
-	raw, ok := WeaponSpellCharacteristicsFor(Rules{}, e, w.Spells())
+	raw, ok := WeaponSpellCharacteristicsFor(testFirstGame, Rules{}, e, w.Spells())
 	if !ok || raw.MaxRange != 3 {
 		t.Fatalf("book replaced weapon source: %+v %v", raw, ok)
 	}

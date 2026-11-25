@@ -105,29 +105,29 @@ func TestTheFrozenRulesDriveTheBookAndTheTooltip(t *testing.T) {
 		t.Errorf("book range %d, want the row's 7 plus the table's 5 at power 1", got)
 	}
 	arrow := ruleByID(t, spells, 1)
-	c := sim.SpellCharacteristicsFor(r, mage, arrow)
+	c := sim.SpellCharacteristicsFor(testFirstGame, r, mage, arrow)
 	if c.Power != 1 || c.DamageMin != int64(arrow.DamageMin)*90/30 || c.DamageMax != int64(arrow.DamageMax)*90/30 || c.Range != 12 {
 		t.Errorf("fire arrow %+v", c)
 	}
 	legacy := mage
 	legacy.Book = sim.Spellbook{}
-	lo, hi := sim.SpellDamagePair(sim.Rules{}, arrow, 0)
-	if plain := sim.SpellCharacteristicsFor(sim.Rules{}, legacy, arrow); plain.DamageMin != lo || plain.DamageMax != hi || plain.Range != 7 {
+	lo, hi := sim.SpellDamagePair(testFirstGame, sim.Rules{}, arrow, 0)
+	if plain := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, legacy, arrow); plain.DamageMin != lo || plain.DamageMax != hi || plain.Range != 7 {
 		t.Errorf("without the tables %+v", plain)
 	}
-	if tabled := sim.SpellCharacteristicsFor(r, legacy, arrow); tabled.Range != 12 {
+	if tabled := sim.SpellCharacteristicsFor(testFirstGame, r, legacy, arrow); tabled.Range != 12 {
 		t.Errorf("tabled range without a book cache %+v", tabled)
 	}
-	protection := sim.SpellCharacteristicsFor(r, mage, ruleByID(t, spells, 5))
+	protection := sim.SpellCharacteristicsFor(testFirstGame, r, mage, ruleByID(t, spells, 5))
 	if !protection.HasMagnitude || protection.Magnitude != 5 || protection.Duration != 30*16*1000/1000 {
 		t.Errorf("protection %+v", protection)
 	}
 	weapon := sim.Entity{MaxMana: 1, WeaponSpell: 1, WeaponSpellLevel: 1}
-	got, ok := sim.WeaponSpellCharacteristicsFor(r, weapon, spells)
+	got, ok := sim.WeaponSpellCharacteristicsFor(testFirstGame, r, weapon, spells)
 	if !ok || got.DamageMin != 4*90/30 || got.DamageMax != 8*90/30 {
 		t.Errorf("tooltip %+v %v", got, ok)
 	}
-	if base, spread, ok := sim.WeaponSpellDamageFor(sim.Rules{}, weapon, spells); !ok || base != 4*31/30 || base+spread != 8*31/30 {
+	if base, spread, ok := sim.WeaponSpellDamageFor(testFirstGame, sim.Rules{}, weapon, spells); !ok || base != 4*31/30 || base+spread != 8*31/30 {
 		t.Errorf("unmodded tooltip %d %d %v", base, spread, ok)
 	}
 }
