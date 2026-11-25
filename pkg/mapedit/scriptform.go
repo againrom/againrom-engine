@@ -277,6 +277,18 @@ func CountGlobalNodes(sc alm.Script) int {
 	return n
 }
 
+// CountTeleportNodes is how many of the action nodes are the first game's
+// teleport action, which only an extended script runs (DIV-5200).
+func CountTeleportNodes(nodes []alm.ScriptNode) int {
+	n := 0
+	for _, a := range nodes {
+		if a.Opcode == scriptprofile.TeleportCellOp {
+			n++
+		}
+	}
+	return n
+}
+
 // ExtendScript moves the map's type-7 triggers into the Againrom script
 // record as one edit, in map order, each as extended reads it, with the
 // hundred registers as the record's first variables; the type-7 record
@@ -351,6 +363,9 @@ func (e *Editor) FoldScript() error {
 			}
 			if n := CountGlobalNodes(sc); n > 0 {
 				return &ScriptLimitError{Limit: LimitGlobal, Got: int64(n)}
+			}
+			if n := CountTeleportNodes(sc.Actions); n > 0 {
+				return &ScriptLimitError{Limit: LimitTeleport, Got: int64(n)}
 			}
 		}
 	}

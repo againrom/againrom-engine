@@ -383,20 +383,22 @@ func sig(parts ...[]Slot) []Slot {
 
 // The Againrom operations' opcodes and the build-time constant operation.
 const (
-	constantOp  = 0x10002
-	formOp      = 0x10003
-	healthBelow = 0x4101
-	undying     = 0x4100
-	readGlobal  = 0x4102
-	setGlobal   = 0x4103
-	addGlobal   = 0x4104
+	constantOp   = 0x10002
+	formOp       = 0x10003
+	healthBelow  = 0x4101
+	undying      = 0x4100
+	readGlobal   = 0x4102
+	setGlobal    = 0x4103
+	addGlobal    = 0x4104
+	teleportCell = 0x4106
 )
 
-// The global operations, as the wizard lists them.
+// The global and teleport operations, as the wizard lists them.
 const (
-	ReadGlobalOp = readGlobal
-	SetGlobalOp  = setGlobal
-	AddGlobalOp  = addGlobal
+	ReadGlobalOp   = readGlobal
+	SetGlobalOp    = setGlobal
+	AddGlobalOp    = addGlobal
+	TeleportCellOp = teleportCell
 )
 
 // firstCommandVariants and secondCommandVariants are each game's action 6
@@ -569,6 +571,8 @@ var firstActions = []Op{
 		Presets: []WizardPreset{{Order: 17, Word: "editor.wizard.a.setglobal", Fields: map[string]string{"global": "global", "value": "value"}}}},
 	{ID: addGlobal, Name: "Add to global (Againrom)", Word: "editor.action.op16644", Decoded: true, Again: true, Signature: sig(number("global"), number("delta")), // DIV-5108
 		Presets: []WizardPreset{{Order: 18, Word: "editor.wizard.a.addglobal", Fields: map[string]string{"global": "global", "delta": "delta"}}}},
+	{ID: teleportCell, Name: "Teleport (Againrom)", Word: "editor.action.op16646", Decoded: true, Offered: true, Again: true, Signature: sig(cell("source"), cell("cell2")), // DIV-5200
+		Presets: []WizardPreset{{Order: 35, Word: "editor.wizard.a.teleport", Fields: map[string]string{"source": "teleportsource", "cell2": "teleporttarget"}}}},
 }
 
 // The second game's rows: the operations a claim reads the body of

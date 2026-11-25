@@ -33,7 +33,7 @@ func TestWizardReadsOperationWordAndSlots(t *testing.T) {
 func TestWizardPresetsJoinOperationRows(t *testing.T) {
 	for k, condition := range []bool{false, true} {
 		items := wizardTables[scriptprofile.OpsFirst][k]
-		if want := [2]int{34, 24}[k]; len(items) != want {
+		if want := [2]int{35, 24}[k]; len(items) != want {
 			t.Fatalf("condition %t: got %d items, want %d", condition, len(items), want)
 		}
 		for _, op := range scriptprofile.OpRows(scriptprofile.OpsFirst, condition) {

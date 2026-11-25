@@ -30,6 +30,7 @@ func TestFormQuestionForABareLimitNamesTheLimit(t *testing.T) {
 		{mapedit.LimitID, []any{3, 4}, "editor.script.limit.id"},
 		{mapedit.LimitDialogue, []any{4}, "editor.script.limit.dialogue"},
 		{mapedit.LimitGlobal, []any{4}, "editor.script.limit.global"},
+		{mapedit.LimitTeleport, []any{4}, "editor.script.limit.teleport"},
 	}
 	for _, c := range []struct {
 		profile base.Profile

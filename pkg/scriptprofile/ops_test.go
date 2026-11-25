@@ -12,7 +12,7 @@ func TestOpRowsCarryTheOldWordKeysAndRegisterSlots(t *testing.T) {
 	words := map[Ops]map[bool][]uint32{
 		OpsFirst: {
 			true:  {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 65538, 16641, 16642},
-			false: {2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 65538, 16640, 16643, 16644},
+			false: {2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 65538, 16640, 16643, 16644, 16646},
 		},
 		OpsSecond: {
 			true:  {1, 2, 4, 5, 6, 7, 8, 9, 10, 14, 15, 16, 17, 18, 19, 21, 23, 24, 25, 26, 27, 65538},
@@ -75,6 +75,22 @@ func TestOpRowsHoldConditionShapes(t *testing.T) {
 					t.Errorf("ops %d condition %v id %d: shape %d, want %d", ops, condition, row.ID, row.Shape, want)
 				}
 			}
+		}
+	}
+}
+
+func TestSecondGameActionsUnchangedByFirstGameTeleport(t *testing.T) {
+	if _, ok := OpRow(OpsSecond, false, TeleportCellOp); ok {
+		t.Fatal("the second game's action table carries the first game's teleport action")
+	}
+	want := []uint32{2, 3, 4, 5, 6, 8, 10, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 39, 65538}
+	rows := OpRows(OpsSecond, false)
+	if len(rows) != len(want) {
+		t.Fatalf("second actions count %d, want %d", len(rows), len(want))
+	}
+	for i, id := range want {
+		if rows[i].ID != id {
+			t.Errorf("second action %d: id %d, want %d", i, rows[i].ID, id)
 		}
 	}
 }

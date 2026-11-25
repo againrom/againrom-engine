@@ -178,8 +178,50 @@ func (w *World) relocateOnCellEvent(c scriptCast, obs *castObs) {
 	if cx, cy := int32(c.FromX), int32(c.FromY); cx < e.X || cy < e.Y || cx >= e.X+n || cy >= e.Y+n {
 		return
 	}
-	if w.relocateActor(i, int32(c.ToX), int32(c.ToY), obs) && w.game.cellMoveStands {
+	w.finishCellMove(i, int32(c.ToX), int32(c.ToY), obs)
+}
+
+// finishCellMove is the trap teleport's one move: relocate the actor and,
+// where the profile's cellMoveStands holds, stand it at its new cell.
+func (w *World) finishCellMove(i int, x, y int32, obs *castObs) bool {
+	if !w.relocateActor(i, x, y, obs) {
+		return false
+	}
+	if w.game.cellMoveStands {
 		w.standScriptedUnit(i, actorStateAcquire)
+	}
+	return true
+}
+
+// teleportCellOccupants moves every living on-map unit covering (srcX, srcY)
+// to (dstX, dstY), or the nearest free cell when the target is taken, through
+// finishCellMove (DIV-5200).
+func (w *World) teleportCellOccupants(srcX, srcY, dstX, dstY int32, obs *castObs) {
+	if _, ok := w.cellIndex(srcX, srcY); !ok {
+		return
+	}
+	if _, ok := w.cellIndex(dstX, dstY); !ok {
+		return
+	}
+	ground, air := w.cellLayerOccupants(srcX, srcY)
+	for _, layer := range [][]int{ground, air} {
+		for _, i := range layer {
+			e := w.entities[i]
+			if !e.Alive() || e.OffMap {
+				continue
+			}
+			tx, ty := dstX, dstY
+			if !w.placeFree(i, tx, ty) {
+				var ok bool
+				if tx, ty, ok = nearestFreeCell(dstX, dstY)(w, i); !ok {
+					continue
+				}
+			}
+			if tx == e.X && ty == e.Y {
+				continue
+			}
+			w.finishCellMove(i, tx, ty, obs)
+		}
 	}
 }
 

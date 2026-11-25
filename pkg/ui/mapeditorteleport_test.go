@@ -193,3 +193,58 @@ func TestSecondGameWizardOffersTeleportRow(t *testing.T) {
 		t.Fatal("a teleport with another power is read as the ready row")
 	}
 }
+
+// The first game's trigger wizard offers Teleport under the cells heading with
+// Source cell and Target cell, picks both cells through scriptCellPicked,
+// writes the Againrom teleport node, and reads it back; the node popup offers
+// both cells with map picking too.
+func TestFirstGameWizardAndNodePopupOfferTeleportWithMapPick(t *testing.T) {
+	e, _ := wizardChoiceEditor(t)
+	e.Layout(1920, 1080)
+	items := e.wizItems(false)
+	i := slices.IndexFunc(items, func(it wizItem) bool { return it.opcode == scriptprofile.TeleportCellOp })
+	if i < 0 || items[i].subject != subjectCells || items[i].labelWord != "editor.wizard.a.teleport" || len(items[i].params) != 2 {
+		t.Fatalf("first-game teleport wizard row %d: %+v", i, items)
+	}
+	it := items[i]
+	if it.params[0].kind != wpCell || it.params[0].labelWord != "editor.cast.teleportsource" ||
+		it.params[1].kind != wpCell || it.params[1].labelWord != "editor.cast.teleporttarget" {
+		t.Fatalf("teleport wizard params %+v", it.params)
+	}
+	row := wizRow{item: i, vals: []string{strconv.Itoa(i), "10,12", "20,25"}}
+	n, _, _, err := e.wizardNode(row)
+	wantTypes := [10]uint32{scriptX, scriptY, scriptX, scriptY}
+	wantValues := [10]uint32{10, 12, 20, 25}
+	if err != nil || n.Opcode != scriptprofile.TeleportCellOp || n.Types != wantTypes || n.Values != wantValues {
+		t.Fatalf("wizardNode wrote %+v, %v", n, err)
+	}
+	got := make([]string, 2)
+	node := InspectionScriptNode{ID: 9, Opcode: scriptprofile.TeleportCellOp, Types: wantTypes, Values: wantValues}
+	if !e.readParams(it, node, false, got) || got[0] != "10,12" || got[1] != "20,25" {
+		t.Fatalf("readParams read %q", got)
+	}
+	// Node popup: Source cell and Target cell both pick through scriptCellPicked.
+	node.Record = 4
+	e.doc.Script.Actions[0] = node
+	e.doc.Script.Catalog.Actions = append(e.doc.Script.Catalog.Actions,
+		InspectionScriptOperation{Opcode: scriptprofile.TeleportCellOp, Named: true, Againrom: true})
+	e.Select(4, false)
+	e.loadObject()
+	src, dst := objField(e, "cell0"), objField(e, "cell2")
+	if src < 0 || dst < 0 || e.obj.buf[src] != "10,12" || e.obj.buf[dst] != "20,25" {
+		t.Fatalf("node popup fields %+v / %q", e.obj.fields, e.obj.buf)
+	}
+	e.obj.pickField = src
+	e.scriptCellPicked(image.Pt(7, 8))
+	e.obj.pickField = dst
+	e.scriptCellPicked(image.Pt(14, 15))
+	v, _ := e.scriptPopup()
+	vals, err := e.scriptValues(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []InspectionFieldValue{{Key: "value0", Value: 7}, {Key: "value1", Value: 8}, {Key: "value2", Value: 14}, {Key: "value3", Value: 15}}
+	if !slices.Equal(vals, want) {
+		t.Fatalf("Apply sends %+v, want %+v", vals, want)
+	}
+}

@@ -224,6 +224,11 @@ const (
 	// no write.
 	ScriptInstantSetGlobal int32 = 0x4103
 	ScriptInstantAddGlobal int32 = 0x4104
+
+	// ScriptInstantTeleport is Againrom's own action (DIV-5200): any living
+	// unit standing on (p0, p1) moves to (p2, p3), or the nearest free cell
+	// when the target is taken.
+	ScriptInstantTeleport int32 = 0x4106
 )
 
 // The three PROPERTY SELECTORS instant 34 defines. They are the arm's own three
@@ -272,7 +277,8 @@ func scriptInstantSupported(in ScriptInstant) bool {
 		ScriptInstantCastAtCell, ScriptInstantCastAtUnit, ScriptInstantCellEffectAge,
 		ScriptInstantFormation, ScriptInstantDropAll, ScriptInstantCellTail,
 		ScriptInstantUnitEffectAge, ScriptInstantProperty, ScriptInstantStructField,
-		ScriptInstantUndying, ScriptInstantSetGlobal, ScriptInstantAddGlobal:
+		ScriptInstantUndying, ScriptInstantSetGlobal, ScriptInstantAddGlobal,
+		ScriptInstantTeleport:
 		return true
 	case ScriptInstantGroupOrder:
 		return groupOrderSupported(in.Args[0])
@@ -2068,6 +2074,9 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 		if i := indexOfEntity(w.entities, in.Unit); i >= 0 {
 			w.setUndying(i, in.Args[0] != 0)
 		}
+
+	case ScriptInstantTeleport:
+		w.teleportCellOccupants(in.Args[0], in.Args[1], in.Args[2], in.Args[3], obs)
 
 	case ScriptInstantStructField:
 		// THE STRUCTURE FIELD SETTER (1033 B3, `TRIG-CHECK-053`): the

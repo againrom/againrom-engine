@@ -116,7 +116,7 @@ func nodeIndex(nodes []alm.ScriptNode, id uint32) int {
 func wizardRoom(t ui.WizardTrigger, limits scriptprofile.Profile, extended bool) error {
 	limit := &mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: int64(limits.Pairs), Got: int64(len(t.Pairs))}
 	plan := planScript(t)
-	globals, dialogues := mapedit.CountGlobalNodes(plan), mapedit.CountInteractive(plan.Actions)
+	globals, dialogues, teleports := mapedit.CountGlobalNodes(plan), mapedit.CountInteractive(plan.Actions), mapedit.CountTeleportNodes(plan.Actions)
 	switch {
 	case len(t.Pairs) > limits.Pairs:
 	case len(t.Actions) > limits.Actions:
@@ -130,6 +130,9 @@ func wizardRoom(t ui.WizardTrigger, limits scriptprofile.Profile, extended bool)
 	case !extended && globals > 0:
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGlobal, Got: int64(globals)}
 		return lifted(limit, "editor.script.limit.global", globals)
+	case !extended && teleports > 0:
+		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitTeleport, Got: int64(teleports)}
+		return lifted(limit, "editor.script.limit.teleport", teleports)
 	default:
 		return nil
 	}

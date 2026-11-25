@@ -337,6 +337,9 @@ func scriptFieldAllowed(m *mapedit.Editor, k mapedit.Kind, index int, key string
 				return err
 			}
 		}
+		if k == mapedit.KindAction && value == int64(scriptprofile.TeleportCellOp) && !m.Extended() {
+			return lifted(&mapedit.ScriptLimitError{Limit: mapedit.LimitTeleport, Got: 1}, "editor.script.limit.teleport", 1)
+		}
 	}
 	if err := againromValueAllowed(k == mapedit.KindCondition, nodes[index], key, value); err != nil {
 		return err

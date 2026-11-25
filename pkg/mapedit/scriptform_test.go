@@ -221,3 +221,19 @@ func TestFoldScriptRefusesAGlobalNode(t *testing.T) {
 		t.Fatalf("a fold with global nodes answered %v", err)
 	}
 }
+
+// An extended map whose script holds the first game's teleport action cannot
+// fold back into original trigger records; a map without it folds unchanged.
+func TestFoldScriptRefusesATeleportNode(t *testing.T) {
+	e := newEditor(t, synth.ALM(synth.ALMOptions{Width: 16, Height: 16, Type7Payload: scriptPayload(
+		testNodeRecord(0x10002, 1, [2]uint32{5, 5}, [2]uint32{6, 6}), testNodeRecord(4, 2),
+		testNodeRecord(0x4106, 3, [2]uint32{5, 4}, [2]uint32{6, 5}, [2]uint32{5, 10}, [2]uint32{6, 11}))}))
+	if err := e.ExtendScript(); err != nil {
+		t.Fatal(err)
+	}
+	held := e.Bytes()
+	var limit *mapedit.ScriptLimitError
+	if err := e.FoldScript(); !errors.As(err, &limit) || limit.Limit != mapedit.LimitTeleport || limit.Got != 1 || !limit.Lifted() || !bytes.Equal(e.Bytes(), held) {
+		t.Fatalf("a fold with a teleport action answered %v", err)
+	}
+}
