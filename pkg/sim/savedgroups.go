@@ -96,6 +96,10 @@ func (o *SavedActorOrder) authorNative() {
 	o.RepairStage, o.EscortTarget, o.EscortBound = 0, 0, false
 }
 
+func (o *SavedActorOrder) clearDestination() {
+	clear(o.Raw[10:12])
+}
+
 func cloneSavedGroups(s *savedGroupState) *savedGroupState {
 	if s == nil {
 		return nil

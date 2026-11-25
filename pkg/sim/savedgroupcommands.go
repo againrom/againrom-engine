@@ -230,7 +230,7 @@ func (w *World) handOverSaved(i int, player uint32) {
 	w.entities[i].Owner = player
 	w.inheritAutoHealing(i)
 	w.savedGroupFor(w.entities[i].ID).Owner = SavedGroupReference{Class: 1, Owner: player}
-	w.standScriptedUnit(i, actorStateAcquire)
+	w.standScriptedUnit(i, actorStateAcquire, keepOrderDestination)
 }
 
 func (w *World) freeSavedSelector() uint32 {

@@ -1655,11 +1655,29 @@ func (w *World) handOver(i int, player uint32) {
 	w.handOverSaved(i, player)
 }
 
-// standScriptedUnit is the one-unit order setter a script reaches: the command
-// reset, the given state and the post at the unit's own cell. A hand-over
-// stands the unit with state 0xc; the second game's action 27 guards it with
-// 0xb (R2-ENGINE-1700).
-func (w *World) standScriptedUnit(i int, state uint8) {
+// orderDestinationRule says what standScriptedUnit does with the saved order's
+// destination bytes.
+type orderDestinationRule uint8
+
+const (
+	keepOrderDestination orderDestinationRule = iota
+	clearOrderDestination
+)
+
+// scriptedOrderReset is the state and destination rule standScriptedUnit
+// applies to one unit.
+type scriptedOrderReset struct {
+	state       uint8
+	destination orderDestinationRule
+}
+
+// standScriptedUnit is the one-unit order setter a script or cell move reaches:
+// the command reset, the given state, the post at the unit's own cell and the
+// destination rule. A hand-over stands the unit with state 0xc keeping its
+// destination; the first game's cell move stands it with 0xc clearing its
+// destination (MOVE-129, AI-535); the second game's action 27 guards it with
+// 0xb keeping its destination (R2-ENGINE-1700).
+func (w *World) standScriptedUnit(i int, state uint8, destination orderDestinationRule) {
 	if !w.entities[i].Alive() {
 		return
 	}
@@ -1668,7 +1686,10 @@ func (w *World) standScriptedUnit(i int, state uint8) {
 	e := &w.entities[i]
 	e.ActorState = state
 	e.PostX, e.PostY = e.X, e.Y
-	w.syncSavedActorCommand(i)
+	o := w.syncSavedActorCommand(i)
+	if destination == clearOrderDestination {
+		o.clearDestination()
+	}
 	w.syncSavedPost(i)
 }
 

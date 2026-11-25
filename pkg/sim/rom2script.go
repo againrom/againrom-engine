@@ -197,7 +197,7 @@ func secondGameScriptRows() scriptOpRows {
 				}
 				w.relocateActor(i, in.Args[0]&0xff, in.Args[1]&0xff, obs)
 				if w.computerControlledUnit(w.entities[i]) {
-					w.standScriptedUnit(i, actorStateGuard)
+					w.standScriptedUnit(i, actorStateGuard, keepOrderDestination)
 				}
 			},
 		},

@@ -214,9 +214,9 @@ type gameProfile struct {
 	// cellEvent: the cell move event (cellMoveEvent) moves the unit whose
 	// step ends centred on the cell (R2-ENGINE-1778, DIV-4700, MOVE-129).
 	cellEvent cellEventRule
-	// cellMoveStands: a unit the cell move moved stands at its new cell
-	// (MOVE-129, AI-535).
-	cellMoveStands bool
+	// cellMoveStand: the order reset a cell move applies at the new cell;
+	// zero leaves the unit's order (MOVE-129, AI-535).
+	cellMoveStand scriptedOrderReset
 	// cellMoveSkipsOrigin: a cell move whose target is (0,0) queues nothing
 	// (DIV-5176).
 	cellMoveSkipsOrigin bool
@@ -311,7 +311,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			skillAward:          firstGameSkillAward,
 			computerSupport:     supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, pick: supportPicksDrawn, hold: supportHeldInCombat, shield: shieldNone},
 			cellEvent:           cellEventRelocating,
-			cellMoveStands:      true,
+			cellMoveStand:       scriptedOrderReset{state: actorStateAcquire, destination: clearOrderDestination},
 			cellMoveSkipsOrigin: true,
 		}
 	}

@@ -167,8 +167,8 @@ var cellEventBodies = [...]cellEventBody{
 // relocateOnCellEvent moves the unit whose step ended on the event's cell,
 // held in the record's source. A unit off that cell when the record runs
 // stays; a refused target leaves the unit in place (R2-ENGINE-705, MOVE-129).
-// Where the profile's cellMoveStands holds, a moved unit then stands at its
-// new cell with state 0xc and no order (MOVE-129, AI-535, DIV-5176).
+// Where the profile's cellMoveStand holds a state, a moved unit then stands at
+// its new cell with that state and destination rule (MOVE-129, AI-535, DIV-5176).
 func (w *World) relocateOnCellEvent(c scriptCast, obs *castObs) {
 	i := indexOfEntity(w.entities, c.Target)
 	if i < 0 || !w.entities[i].Alive() || w.entities[i].OffMap {
@@ -182,16 +182,13 @@ func (w *World) relocateOnCellEvent(c scriptCast, obs *castObs) {
 }
 
 // finishCellMove is the trap teleport's one move: relocate the actor and,
-// where the profile's cellMoveStands holds, stand it at its new cell.
+// where the profile's cellMoveStand holds a state, stand it at its new cell.
 func (w *World) finishCellMove(i int, x, y int32, obs *castObs) bool {
 	if !w.relocateActor(i, x, y, obs) {
 		return false
 	}
-	if w.game.cellMoveStands {
-		w.standScriptedUnit(i, actorStateAcquire)
-		// The reset clears the order: with no destination the group pass
-		// acquires where the unit stands instead of walking it back.
-		clear(w.ensureSavedOrder(i).Raw[10:12])
+	if r := w.game.cellMoveStand; r.state != 0 {
+		w.standScriptedUnit(i, r.state, r.destination)
 	}
 	return true
 }
