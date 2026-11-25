@@ -65,6 +65,7 @@ func LoadDefinitionsOf(fsys *vfs.FS, p base.Profile) (*Definitions, error) {
 	if err == nil {
 		d.Table.StraightCone = sim.StraightCone(p.StraightCone)
 		d.Table.OutpostSpread = p.OutpostSpread
+		d.Table.Build = sim.BuildRules{HeroBodyRaise: p.HeroBodyRaise, DeathSackCap: p.DeathSackCap}
 	}
 	return d, err
 }

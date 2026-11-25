@@ -111,6 +111,8 @@ var nstPinned = []struct {
 		// The death item draw: install-derived input like ghost.
 		{"deathItems", "sim.DeathItemDraw"},
 		{"straightCone", "sim.StraightCone"},
+		// The build's rules: install-derived input like ghost.
+		{"build", "sim.BuildRules"},
 		{"safeMode", "bool"},
 		{"carried", "[][]sim.ItemStack"},
 		{"equipment", "[][12]sim.ItemInstance"},

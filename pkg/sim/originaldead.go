@@ -274,7 +274,7 @@ func (w *World) decayHeldDead(decrement bool) {
 		if decrement {
 			s.HP--
 		}
-		stage := decayStageFor(int32(s.HP))
+		stage := w.game.decay.stage(int32(s.HP))
 		if stage > decayLast {
 			s.Stage, s.HP, s.RuntimeID = 5, -10001, 0
 		} else if uint8(stage) > s.Stage {

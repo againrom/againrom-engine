@@ -113,6 +113,14 @@ type Profile struct {
 	// OutpostSpread: the type-10 pass keeps the members' spread as an
 	// Outpost's radius (R2-ENGINE-511).
 	OutpostSpread bool
+
+	// HeroBodyRaise: the corpse walk raises a body of class word 0x21..0x24
+	// below -61 health to -61 (R2-ENGINE-1825).
+	HeroBodyRaise bool
+
+	// DeathSackCap: a death bag merges nothing into a cell's sack of this
+	// many entries or more; 0 is no bound (R2-ENGINE-1828).
+	DeathSackCap int
 }
 
 // GameOf is the profile's game.
@@ -192,6 +200,10 @@ var Profiles = []Profile{
 		Limits:   rom2Limits,
 		// R2-ENGINE-511: the Russian group function stores the spread.
 		OutpostSpread: true,
+		// R2-ENGINE-1825: the Russian corpse walk raises a hero body to -61.
+		HeroBodyRaise: true,
+		// R2-ENGINE-1828: the Russian sack merge refuses a bag at 1024 entries.
+		DeathSackCap: 1024,
 	},
 }
 

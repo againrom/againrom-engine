@@ -536,14 +536,14 @@ func (w *World) sourceTerminalLoot(i int, x, y int32, validCell bool) bool {
 		}
 		if gold != 0 || len(w.carried[i]) != 0 {
 			if w.savedObjects != nil {
-				if !w.dropSavedPackAt(i, gold, x, y) {
+				if !w.dropDeathPackAt(i, gold, x, y) {
 					return false
 				}
-			} else {
+			} else if items := w.deathBagAt(x, y, expandItems(w.carried[i])); gold != 0 || len(items) != 0 {
 				// All fallible producer work is done. The caller's candidate owns
 				// this sack slice too, including an existing destination's items.
 				w.sacks = cloneGroundSacks(w.sacks)
-				w.pourSack(x, y, gold, expandItems(w.carried[i]))
+				w.pourSack(x, y, gold, items)
 			}
 		}
 	}

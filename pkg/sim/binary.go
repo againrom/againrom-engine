@@ -3252,7 +3252,13 @@ func (w *World) unmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	dead, err := decodeOriginalDead(data[deadStart:deadEnd], b, ents, carried, equipment)
+	// The decoded World takes the profile a wrapper form names, else the one
+	// its script dialect chooses.
+	game := newGameProfile(st.script.Dialect())
+	if w.formGame != nil {
+		game = *w.formGame
+	}
+	dead, err := decodeOriginalDead(data[deadStart:deadEnd], b, ents, carried, equipment, game.decay)
 	if err != nil {
 		return err
 	}
@@ -3284,12 +3290,6 @@ func (w *World) unmarshalBinary(data []byte) error {
 	}
 	if err := motionCheck.savedCellPlaneStateFault(); err != nil {
 		return err
-	}
-	// The decoded World takes the profile a wrapper form names, else the one
-	// its script dialect chooses.
-	game := newGameProfile(st.script.Dialect())
-	if w.formGame != nil {
-		game = *w.formGame
 	}
 	candidate := World{
 		entityIDFloor:       entityIDFloor,
@@ -3343,6 +3343,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		mergeOperands:     w.mergeOperands,
 		deathItems:        w.deathItems,
 		straightCone:      w.straightCone,
+		build:             w.build,
 		burst:             burstState{phases: w.burst.phases},
 		flightInputs:      w.flightInputs,
 		rules:             w.rules,

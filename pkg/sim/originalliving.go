@@ -118,6 +118,7 @@ func (w *World) importLivingActors(batch []OriginalLivingActor, current map[Enti
 	checked.mergeOperands = w.mergeOperands
 	checked.deathItems = w.deathItems
 	checked.straightCone = w.straightCone
+	checked.build = w.build
 	checked.burst.phases = w.burst.phases
 	checked.rules = w.rules
 	checked.diary = w.diary

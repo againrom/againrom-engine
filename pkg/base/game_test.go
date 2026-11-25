@@ -71,6 +71,18 @@ func TestStraightConeRowsBelongToTheEnglishSecondGameBuild(t *testing.T) {
 	}
 }
 
+// Only the Russian second-game build raises a hero body on the corpse walk
+// and bounds the death sack merge (R2-ENGINE-1825, R2-ENGINE-1828).
+func TestCorpseRulesBelongToTheRussianSecondGameBuild(t *testing.T) {
+	for _, id := range []string{ROM1EN, ROM1RU, ROM2EN, ROM2RU} {
+		p, _ := Find(id)
+		ru := id == ROM2RU
+		if p.HeroBodyRaise != ru || (p.DeathSackCap == 1024) != ru || !ru && p.DeathSackCap != 0 {
+			t.Errorf("%s: hero body raise %v, death sack cap %d", id, p.HeroBodyRaise, p.DeathSackCap)
+		}
+	}
+}
+
 func TestCreatureResistanceHeadingFollowsEdition(t *testing.T) {
 	if got := (Profile{}).CreatureResistanceHeading(); !got {
 		t.Fatal("the default profile does not keep the first game's creature heading")

@@ -999,8 +999,9 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 		// HERO-CLAMP-030 reads source-current protection signed and clamps
 		// only the resulting component. Negative protection amplifies it.
 		// Authority belongs to the target's sheet, not the attacker's. Keep
-		// the existing 0..100 consumer policy for native/native-retired sheets.
-		if t.CurrentProfileBasis != ProfileOriginalCurrent {
+		// the existing 0..100 consumer policy for native/native-retired sheets
+		// where the game's resolver bounds the word.
+		if t.CurrentProfileBasis != ProfileOriginalCurrent && !rule.signedProtection {
 			if p < 0 {
 				p = 0
 			} else if p > 100 {
@@ -1054,6 +1055,9 @@ type blowRule struct {
 	// absorbsPositiveOnly: absorption comes off a physical part above 0 only
 	// (R2-ENGINE-1148).
 	absorbsPositiveOnly bool
+	// signedProtection: the magic part reads every sheet's protection word
+	// signed and unbounded (R2-ENGINE-1830).
+	signedProtection bool
 }
 
 // zeroSpreadRule selects the draw a physical part makes at spread 0.
@@ -1075,7 +1079,7 @@ var zeroSpreadRules = [...]zeroSpreadRow{
 }
 
 var secondGameBlow = blowRule{draw: blowDrawsEffectsFirst, zeroSpread: zeroSpreadSkips,
-	absorbsPositiveOnly: true}
+	absorbsPositiveOnly: true, signedProtection: true}
 
 // blowValue is the physical pair's value and makes its draws, in the order
 // the rule holds. Bless that takes effect gives base plus spread, Curse the

@@ -140,15 +140,15 @@ func SaleCell(price int64) int64 { return (price + 1) / 2 }
 const priceCap = 19999999
 
 // EffectPrice is the one surcharge an item's ordinary effects add, S being
-// the sum of their sizes: trunc((pow(S/70, 1.5)+1)*S*50), the first
-// multiplication in that order (R2-ENGINE-1764). A sum past the price cap
-// returns the cap, which the total reaches whatever the base.
+// the sum of their sizes: trunc((1.5^(S/70)+1)*S*50), the first
+// multiplication in that order (R2-ENGINE-1764, R2-ENGINE-1824). A sum past
+// the price cap returns the cap, which the total reaches whatever the base.
 func EffectPrice(s int) int64 {
 	if s <= 0 {
 		return 0
 	}
 	v := float64(s)
-	return int64(min((math.Pow(v/70, 1.5)+1)*v*50, priceCap))
+	return int64(min((math.Pow(1.5, v/70)+1)*v*50, priceCap))
 }
 
 // SpellEffectPrice is the price of an enchanted spell of base c20 at level L:
@@ -214,13 +214,18 @@ func (t Tables) NameKey(it Item) (uint16, bool) {
 }
 
 // Price is the unit price P of an item (R2-ENGINE-267): equipment
-// trunc(base product + 0.5) plus its effects' prices, a magic item its column
-// 0, a book its spell's column 21; capped at 19999999.
+// trunc(base product + 0.5) plus its effects' prices, or the value of its
+// first tag 1 effect; a magic item its column 0, a book its spell's column
+// 21; capped at 19999999.
 func (t Tables) Price(it Item) int64 {
 	var p int64
 	switch it.Table {
 	case Armor, Shield, Weapon:
-		p = int64(t.baseProduct(it)+0.5) + t.effectsPrice(it.Effects)
+		if v, ok := fixedPrice(it.Effects); ok {
+			p = v
+			break
+		}
+		p = int64(t.baseProduct(it)+0.5) + t.effectsPrice(it.Table, it.Effects)
 	case Magic:
 		p = int64(param(t.MagicItems, it.Row, colMagic))
 	case Book:

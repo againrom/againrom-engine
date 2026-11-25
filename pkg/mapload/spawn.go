@@ -131,6 +131,8 @@ type Table struct {
 	StraightCone sim.StraightCone
 	// OutpostSpread: the build keeps a type-10 group's spread as its radius.
 	OutpostSpread bool
+	// Build is the build's rules beside its game's.
+	Build sim.BuildRules
 
 	// DocumentCellPlanes marks a World whose cell planes a loaded document
 	// supplies: Planes names no installed base, so the World is built without
@@ -1262,6 +1264,7 @@ func (t *Table) bindTableInputs(w *sim.World) {
 	if t != nil {
 		w.SetDeathItemDraw(t.DeathItems)
 		w.SetStraightCone(t.StraightCone)
+		w.SetBuildRules(t.Build)
 	}
 }
 

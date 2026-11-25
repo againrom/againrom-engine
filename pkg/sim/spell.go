@@ -1168,20 +1168,14 @@ func (w *World) directDamage(ci, vi int, base, spread int64, school uint8) int64
 	return max(v, 0)
 }
 
-// secondSpellDamage is the second game's roll: base plus the spread draw,
-// with the school's protection held to 0..100.
+// secondSpellDamage is the second game's roll: base plus the spread draw.
+// The resolver bounds no protection word: a word of 0 leaves the roll, one
+// above 100 gives 0 and a negative one raises it; a result below 0 is 0
+// (R2-ENGINE-1830).
 func (w *World) secondSpellDamage(vi int, base, spread int64, school uint8) int64 {
-	target := &w.entities[vi]
 	amount := base + int64(w.rng.uniform(int32(spread)))
 	if school >= 1 && school <= 5 {
-		p := target.Protection[school-1]
-		if p < 0 {
-			p = 0
-		}
-		if p > 100 {
-			p = 100
-		}
-		amount = (amount*int64(100-p) + 75) / 100
+		amount = max(ResistedSpellDamage(amount, int16(w.entities[vi].Protection[school-1])), 0)
 	}
 	return amount
 }

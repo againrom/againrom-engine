@@ -60,7 +60,7 @@ func (w *World) encodeOriginalDead(b []byte, off int) int {
 	return off + 4
 }
 
-func decodeOriginalDead(data []byte, b Bounds, ents []Entity, carried [][]ItemStack, equipment [][EquipSlots]ItemInstance) ([]originalDeadRecord, error) {
+func decodeOriginalDead(data []byte, b Bounds, ents []Entity, carried [][]ItemStack, equipment [][EquipSlots]ItemInstance, ladder decayLadder) ([]originalDeadRecord, error) {
 	if len(data)%originalDeadRecordLen != 0 {
 		return nil, fmt.Errorf("sim: invalid original dead record span")
 	}
@@ -112,7 +112,7 @@ func decodeOriginalDead(data []byte, b Bounds, ents []Entity, carried [][]ItemSt
 			if ei >= 0 {
 				return nil, fmt.Errorf("sim: virtual dead actor %d is still an entity", r.ID)
 			}
-			if !validHeldDeadContinuation(s.State, current) {
+			if !validHeldDeadContinuation(s.State, current, ladder) {
 				return nil, fmt.Errorf("sim: virtual dead actor %d has invalid continuation", r.ID)
 			}
 			r.terminal = current
@@ -145,7 +145,9 @@ func decodeOriginalDead(data []byte, b Bounds, ents []Entity, carried [][]ItemSt
 	return out, nil
 }
 
-func validHeldDeadContinuation(source, current DeadActorState) bool {
+// validHeldDeadContinuation reports a held body's current state that the
+// game's ladder can reach from its source state.
+func validHeldDeadContinuation(source, current DeadActorState, ladder decayLadder) bool {
 	if source.Stage == 5 || current == source {
 		return current == source
 	}
@@ -156,5 +158,5 @@ func validHeldDeadContinuation(source, current DeadActorState) bool {
 	if current.Stage == 5 {
 		return current.HP == -10001 && current.RuntimeID == 0
 	}
-	return current.RuntimeID == source.RuntimeID && current.Stage == max(source.Stage, uint8(decayStageFor(int32(current.HP))))
+	return current.RuntimeID == source.RuntimeID && current.Stage == max(source.Stage, uint8(ladder.stage(int32(current.HP))))
 }

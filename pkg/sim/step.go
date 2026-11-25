@@ -1609,7 +1609,7 @@ func (w *World) clearFelled(i int) {
 		// transfers immediately, preserving resolution order when several die
 		// in one tick. A body still playing its fall waits for decayPass.
 		if e := &w.entities[i]; e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() {
-			if stage := decayStageFor(e.HP); stage > DecayFallen && stage <= decayLast {
+			if stage := w.game.decay.stage(e.HP); stage > DecayFallen && stage <= decayLast {
 				if w.dropTerminalLoot(i) {
 					w.entities[i].Decay = stage
 					w.detachSavedMember(w.entities[i].ID)
@@ -1655,9 +1655,11 @@ func (w *World) dropTerminalLoot(i int) bool {
 			if gold, item, rolled := w.deathRoll(i); gold != 0 || rolled {
 				var items []ItemInstance
 				if rolled {
-					items = []ItemInstance{item}
+					items = w.deathBagAt(x, y, []ItemInstance{item})
 				}
-				w.pourSack(x, y, gold, items)
+				if gold != 0 || len(items) != 0 {
+					w.pourSack(x, y, gold, items)
+				}
 			}
 		}
 	} else if validCell {
@@ -1688,6 +1690,7 @@ func (w *World) dropTerminalLoot(i int) bool {
 				// The rolled item joins the bag after its holdings.
 				items = append(items, rolledItem)
 			}
+			items = w.deathBagAt(x, y, items)
 			if gold != 0 || len(items) != 0 {
 				w.pourSack(x, y, gold, items)
 			}
@@ -2040,9 +2043,14 @@ func nativeDecayBefore(w *World)             { w.decayHeldDead(w.tick%decayCycle
 func nativeDecayStage(stage DecayStage) bool { return stage != DecayNone }
 
 // nativeDecayStep takes one health on the walk tick; it saturates at the
-// representation's floor rather than wrapping.
+// representation's floor rather than wrapping. A hero body takes none at
+// decayHeroHP, and the build's raise comes first (BuildRules.HeroBodyRaise).
 func nativeDecayStep(w *World, e *Entity) {
-	if w.tick%decayCycle == decayPhase && decayAges(e.HP) && e.InLife(LifeDecayWalk) {
+	hero := w.game.decay.heroBody(e.TypeID)
+	if hero && w.build.HeroBodyRaise && heroBelowFloor(e.HP) && !e.InLife(LifeConsumed) {
+		e.setCurrentHealth(decayHeroHP)
+	}
+	if w.tick%decayCycle == decayPhase && decayAges(e.HP) && e.InLife(LifeDecayWalk) && (!hero || !heroHeld(e.HP)) {
 		e.setCurrentHealth(e.HP - 1)
 	}
 }
@@ -2106,7 +2114,7 @@ func (w *World) decayPass() {
 			e = &w.entities[i]
 			rule.atTeardown(w, e)
 		}
-		if s := decayStageFor(e.HP); s > decayLast {
+		if s := w.game.decay.stage(e.HP); s > decayLast {
 			// A downed body whose walk crosses below zero and leaves in the same
 			// pass is never seen by the kill scan after the ladder.
 			if LifeNonNegative.Holds(int64(beforeHP), 0, false) {

@@ -46,8 +46,8 @@ func TestSecondGameBodyLosesHealthAtTheClaimsSum(t *testing.T) {
 		if hp != want(ticks) {
 			t.Errorf("after %d sub-ticks health %d, want %d", ticks, hp, want(ticks))
 		}
-		if stage != decayStageFor(hp) {
-			t.Errorf("after %d sub-ticks stage %d, health %d names %d", ticks, stage, hp, decayStageFor(hp))
+		if named := newGameProfile(ScriptROM2).decay.stage(hp); stage != named {
+			t.Errorf("after %d sub-ticks stage %d, health %d names %d", ticks, stage, hp, named)
 		}
 	}
 	if hp, _ := bodyHealthAt(t, true, 0, 640); hp != 0 {

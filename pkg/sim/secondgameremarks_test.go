@@ -47,6 +47,26 @@ func TestSecondGameWellSpendsOneChargeAndHealsAtOnce(t *testing.T) {
 	}
 }
 
+// The well arm spends a use before any benefit test: a unit at full health
+// at a health well, and one with no mana at a mana well, each take a use and
+// gain nothing (R2-ENGINE-1831).
+func TestSecondGameWellSpendsAUseWithoutABenefit(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		kind uint16
+	}{
+		{"full health at a health well", 15},
+		{"no mana at a mana well", 16},
+	} {
+		w := scriptWorld(t, secondGameScript(t, nil, nil, nil), []Entity{{ID: 1, X: 1, Y: 1, HP: 300, MaxHP: 300}})
+		w.structures = []Structure{{ID: 0, Kind: c.kind, Width: 2, Height: 2, Col: 5, Row: 5, Field42: 2, MaxHealth: 3, UseAmount: 100}}
+		w.applyStructureUse(0, 0)
+		if e := w.entities[0]; e.HP != 300 || e.Mana != 0 || w.structures[0].Field42 != 1 {
+			t.Errorf("%s: hp %d mana %d uses %d, want 300 0 1", c.name, e.HP, e.Mana, w.structures[0].Field42)
+		}
+	}
+}
+
 // Checks 1, 5 and 8 count a living or unconscious unit and not a dead one in
 // the second game (R2-ENGINE-1696); the first game leaves the downed unit out.
 func TestSecondGameCountsUnconsciousUnitsAndNotTheDead(t *testing.T) {

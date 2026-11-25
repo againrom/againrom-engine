@@ -48,6 +48,12 @@ modder or developer can notice gets no entry.
 - [ROM2] A mage's automatic Heal set to allies now also heals the player's own units, and one set to neutral units alone does not, as in the original.
 - [ROM2] Hired and placed humans no longer start a mission ready to back off or flee by their class; they fight on until a Retreat setting tells them otherwise, as in the original.
 - [ROM1] A unit placed on a map now knows the spells the map's unit spell records give it, so a spell given to a unit in the map editor's spell book is in its spell bar in the game; before, it knew only the spells of its kind.
+- [ROM2] Shop prices of armour, shields and weapons with magic effects now follow the original: the effects' surcharge is 8750 gold for a size of 70 rather than 7000, a spell on an armour or a shield adds to that size, and an item with a price effect costs that price.
+- [ROM2] A negative protection now raises the damage of a spell or of a weapon's magic part, and a protection above 100 stops it whole, as in the original; before, protection counted only from 0 to 100.
+- [ROM2] The experience a mage gets for killing a unit with a spell now goes to the skill the original picks, which the spell's sphere number chooses, rather than always to the spell's own sphere.
+- [ROM2] A corpse now turns to bones only below -10 health, and reaches its later stages below -20 and -40, as in the original; a dead hero's body stops decaying at -61 health and, in the Russian version, is never removed by decay.
+- [ROM2] In the Russian version, a unit that dies on a cell whose sack already holds 1024 or more items adds only its gold to that sack and its items are lost, as in the original.
+- [ROM2] A unit that kills with its weapon's spell now gets the experience for the kill, as in the original.
 
 ## 0.160.0
 

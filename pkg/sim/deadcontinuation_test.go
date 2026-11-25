@@ -47,7 +47,7 @@ func TestGeneratedCorpseRetirementKeepsIdentityThroughColdSave(t *testing.T) {
 	section := make([]byte, w.originalDeadSectionLen())
 	w.encodeOriginalDead(section, 0)
 	section = section[:len(section)-4]
-	if _, err := decodeOriginalDead(section, w.bounds, w.entities, w.carried, w.equipment); err != nil {
+	if _, err := decodeOriginalDead(section, w.bounds, w.entities, w.carried, w.equipment, w.game.decay); err != nil {
 		t.Fatal("valid generated retirement section rejected", err)
 	}
 	for name, change := range map[string]func([]byte){
@@ -60,7 +60,7 @@ func TestGeneratedCorpseRetirementKeepsIdentityThroughColdSave(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			bad := append([]byte(nil), section...)
 			change(bad)
-			if _, err := decodeOriginalDead(bad, w.bounds, w.entities, w.carried, w.equipment); err == nil {
+			if _, err := decodeOriginalDead(bad, w.bounds, w.entities, w.carried, w.equipment, w.game.decay); err == nil {
 				t.Fatal("invalid retirement binding accepted")
 			}
 		})
@@ -149,13 +149,13 @@ func TestVirtualCorpseBinaryRejectsRewrittenHistory(t *testing.T) {
 			current := valid
 			change(&current)
 			putDeadState(bad[62:], current)
-			if _, err := decodeOriginalDead(bad, w.bounds, w.entities, w.carried, w.equipment); err == nil {
+			if _, err := decodeOriginalDead(bad, w.bounds, w.entities, w.carried, w.equipment, w.game.decay); err == nil {
 				t.Fatal("accepted altered dead history")
 			}
 		})
 	}
 	putDeadState(section[62:], valid)
-	if _, err := decodeOriginalDead(section[:originalDeadRecordLen], w.bounds, w.entities, w.carried, w.equipment); err != nil {
+	if _, err := decodeOriginalDead(section[:originalDeadRecordLen], w.bounds, w.entities, w.carried, w.equipment, w.game.decay); err != nil {
 		t.Fatal("current dead state cannot continue through the existing binary form", err)
 	}
 }

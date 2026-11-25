@@ -211,6 +211,16 @@ func (w *World) disposeSavedPack(i int) bool {
 	return true
 }
 
+// dropDeathPackAt is dropSavedPackAt for a death bag: where the cell's sack
+// refuses it (deathSackRefuses) its objects are disposed of and only its
+// gold is added.
+func (w *World) dropDeathPackAt(i int, gold uint32, x, y int32) bool {
+	if w.deathSackRefuses(x, y) && !w.disposeSavedPack(i) {
+		return false
+	}
+	return w.dropSavedPackAt(i, gold, x, y)
+}
+
 func (w *World) terminalSavedNative(i int, x, y int32, validCell bool) bool {
 	e := &w.entities[i]
 	if !validCell && !e.discardsCorpseLoot() {
@@ -239,7 +249,7 @@ func (w *World) terminalSavedNative(i int, x, y int32, validCell bool) bool {
 	}
 	if validCell {
 		gold, item, rolled := w.deathRoll(i)
-		if rolled && !w.addCarried(i, StackItem(item, 1)) || !w.dropSavedPackAt(i, gold, x, y) {
+		if rolled && !w.addCarried(i, StackItem(item, 1)) || !w.dropDeathPackAt(i, gold, x, y) {
 			return false
 		}
 	}

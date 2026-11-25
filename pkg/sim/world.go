@@ -1014,8 +1014,19 @@ const (
 	controlSpiritCorpseHP = -10001
 )
 
-// decayStageFor is the stage a torn-down body's health puts it at — the whole of
-// the ladder, in one expression.
+// decayHeroHP is the lowest health the walk takes a hero body to, and the
+// health the build's raise sets one below it to (R2-ENGINE-1825).
+const decayHeroHP = -61
+
+// decayLadder is how a game reads the ladder. strict: a stage begins below
+// its threshold and not at it. heroFloor: a body of class word 0x21..0x24
+// loses health only above decayHeroHP (R2-ENGINE-1825).
+type decayLadder struct {
+	strict, heroFloor bool
+}
+
+// stage is the stage a torn-down body's health puts it at — the whole of the
+// ladder, in one expression.
 //
 // It answers decayLast+1, the stage that is not a value, for a body that has
 // finished; that is how the pass tells "remove this" from "write this down"
@@ -1023,19 +1034,30 @@ const (
 //
 // A body whose health has not reached the first threshold stays at DecayFallen,
 // so the answer is total over every int32 and no caller needs a floor test.
-func decayStageFor(hp int32) DecayStage {
+func (l decayLadder) stage(hp int32) DecayStage {
+	past := func(threshold int32) bool { return hp < threshold || !l.strict && hp == threshold }
 	switch {
 	case hp < decayGoneHP:
 		return decayLast + 1
-	case hp <= decayFourthHP:
+	case past(decayFourthHP):
 		return decayLast
-	case hp <= decayThirdHP:
+	case past(decayThirdHP):
 		return 3
-	case hp <= decayBonesHP:
+	case past(decayBonesHP):
 		return DecayBones
 	}
 	return DecayFallen
 }
+
+// heroBody reports a body the ladder's hero floor holds.
+func (l decayLadder) heroBody(typeID int32) bool {
+	return l.heroFloor && typeID >= HumanTypeID && typeID <= HeroTypeID(true, true)
+}
+
+// heroBelowFloor reports a hero body's health under decayHeroHP; heroHeld
+// one the walk takes no more health from.
+func heroBelowFloor(hp int32) bool { return hp < decayHeroHP }
+func heroHeld(hp int32) bool       { return hp <= decayHeroHP }
 
 // dwellOf is the dwell a fresh body takes on: its own dying time, clamped into
 // the field's width at both ends.
@@ -1953,10 +1975,12 @@ type World struct {
 	deathItems DeathItemDraw
 	// straightCone is install-derived input, carried across a decode.
 	straightCone StraightCone
-	safeMode     bool
-	carried      [][]ItemStack
-	equipment    [][EquipSlots]ItemInstance
-	purses       [relationSlots]uint32
+	// build is install-derived input, carried across a decode (BuildRules).
+	build     BuildRules
+	safeMode  bool
+	carried   [][]ItemStack
+	equipment [][EquipSlots]ItemInstance
+	purses    [relationSlots]uint32
 
 	smoothRegen bool
 

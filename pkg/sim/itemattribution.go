@@ -58,7 +58,7 @@ func (w *World) pointAttribution(ci, ti int, rule SpellRule) {
 	}
 	target.KillCreditSource = source.ID
 	target.HasKillCredit = true
-	target.KillCreditSpell = int8(rule.ID)
+	w.tailSpell(target, rule)
 }
 
 // areaAttribution is the distinct AreaEffect tail. Wall of Earth and Light do
@@ -82,7 +82,15 @@ func (w *World) areaAttribution(ci, ti int, rule SpellRule) {
 	}
 	target.KillCreditSource = source.ID
 	target.HasKillCredit = true
-	target.KillCreditSpell = int8(rule.ID)
+	w.tailSpell(target, rule)
+}
+
+// tailSpell is the kill spell a point or area tail writes: the spell id
+// where the game's spell row writes one (spellRow.tailSpell).
+func (w *World) tailSpell(target *Entity, rule SpellRule) {
+	if w.spellRow().tailSpell {
+		target.KillCreditSpell = int8(rule.ID)
+	}
 }
 
 // processNewKillCredits is the delayed death processor. standing holds the

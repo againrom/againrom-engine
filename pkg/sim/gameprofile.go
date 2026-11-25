@@ -191,6 +191,8 @@ type gameProfile struct {
 	regenBodyLoss bool
 	// decayWalk: the decay pass's walk rule (decayWalks).
 	decayWalk decayWalkRule
+	// decay: how the ladder reads a body's health (decayLadder).
+	decay decayLadder
 	// deadList: a body's teardown ranks it on the dead list, which Animate
 	// Dead walks (joinDeadList, R2-ENGINE-780).
 	deadList bool
@@ -379,6 +381,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		regenLife:                  LifeStanding,
 		regenBodyLoss:              true,
 		decayWalk:                  nativeDecayWalk,
+		decay:                      decayLadder{strict: true, heroFloor: true},
 		deadList:                   true,
 		keepsCastRetain:            true,
 		residueOverBookCasts:       true,

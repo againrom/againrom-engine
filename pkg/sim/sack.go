@@ -268,6 +268,25 @@ func (w *World) pourSack(x, y int32, gold uint32, items []ItemInstance) {
 	w.registerPlacedSackCell(x, y)
 }
 
+// deathSackRefuses reports a cell whose sack a death bag merges nothing into:
+// one of the build's DeathSackCap entries or more (BuildRules.DeathSackCap).
+func (w *World) deathSackRefuses(x, y int32) bool {
+	if w.build.DeathSackCap <= 0 {
+		return false
+	}
+	j := w.savedGroundIndex(x, y)
+	return j >= 0 && len(FoldItems(w.sacks[j].ItemInstances)) >= w.build.DeathSackCap
+}
+
+// deathBagAt is the items a death drop pours at (x, y): none where the
+// cell's sack refuses the bag, whose items are then lost.
+func (w *World) deathBagAt(x, y int32, items []ItemInstance) []ItemInstance {
+	if w.deathSackRefuses(x, y) {
+		return nil
+	}
+	return items
+}
+
 // Sacks returns the world's ground sacks, in the world's own ascending
 // order, as a fresh copy with each item list copied too: mutating the
 // result, or any item list in it, cannot reach the world it came from.

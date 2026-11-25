@@ -175,8 +175,9 @@ func blizzardPair(dmin, dmax int64, power uint16) (int64, int64) {
 // TestSecondBlizzardDamagesEveryActorItStrikes fills the 6 by 6 footprint with
 // actors, the caster among them, and checks each pulse against the claims:
 // the struck actor loses max(trunc((B+U[0,S])*(100-p)/100 + 0.75), 0) for its
-// water resistance p held to 0..100, with no hit roll and no caster
-// exclusion, and the same actor again on a later pulse.
+// water resistance p, which the resolver does not bound (R2-ENGINE-1830),
+// with no hit roll and no caster exclusion, and the same actor again on a
+// later pulse.
 func TestSecondBlizzardDamagesEveryActorItStrikes(t *testing.T) {
 	casterHit, repeated := false, false
 	for _, mode := range []bool{false, true} {
@@ -219,7 +220,7 @@ func TestSecondBlizzardDamagesEveryActorItStrikes(t *testing.T) {
 							struck = e.ID
 						}
 					}
-					p := int64(min(max(water[struck], 0), 100))
+					p := int64(water[struck])
 					v := base + blizzardDraw(w, &r, spread)
 					want = max(int64(math.Trunc(float64(v*(100-p))/100+0.75)), 0)
 				}

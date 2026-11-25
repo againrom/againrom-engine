@@ -21,6 +21,10 @@ type spellRow struct {
 	poison func(mag, power int32) int32
 	// armRows: the arm table's second-game rows apply.
 	armRows bool
+	// tailSpell: a point or area tail writes the spell id as the kill's
+	// spell. The second game's tails write none, so a mage's spell kill
+	// keeps the damage kind its resolver wrote (R2-ENGINE-1826).
+	tailSpell bool
 }
 
 // drainBody holds how a game rolls Drain Life's amount and credits the kill.
@@ -54,6 +58,7 @@ func init() {
 			columns:      SpellColumnDamage,
 			wholeColumns: true,
 			poison:       PoisonMagnitude,
+			tailSpell:    true,
 		},
 		rules.SpellGameSecond: {
 			drain: drainBody{

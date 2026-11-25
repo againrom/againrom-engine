@@ -445,7 +445,7 @@ func (w *World) restoreActorValues(values map[EntityID]ActorValues) error {
 				if err := deadSourceFault(r.Source, w.bounds); err != nil {
 					return err
 				}
-				if !validHeldDeadContinuation(r.Source.State, r.terminal) {
+				if !validHeldDeadContinuation(r.Source.State, r.terminal, w.game.decay) {
 					return fmt.Errorf("sim: virtual dead source health disagrees with its current body")
 				}
 			}

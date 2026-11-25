@@ -74,7 +74,7 @@ func TestOriginalTerminalFinePositionKeepsValidationBounds(t *testing.T) {
 	changed := valid.Source.State
 	changed.FineX++
 	putDeadState(section[62:], changed)
-	if _, err := decodeOriginalDead(section[:originalDeadRecordLen], w.bounds, w.entities, w.carried, w.equipment); err == nil {
+	if _, err := decodeOriginalDead(section[:originalDeadRecordLen], w.bounds, w.entities, w.carried, w.equipment, w.game.decay); err == nil {
 		t.Fatal("binary LOAD accepted changed terminal fine history")
 	}
 }

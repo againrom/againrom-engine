@@ -200,7 +200,7 @@ func (w *World) decaySessionActors(c SessionClock) {
 		if c.deadDecayDue() {
 			decaySessionHealth(e)
 		}
-		if stage := decayStageFor(e.HP); stage > decayLast {
+		if stage := w.game.decay.stage(e.HP); stage > decayLast {
 			gone = append(gone, e.ID)
 		} else if stage > e.Decay {
 			e.Decay = stage
