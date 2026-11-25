@@ -238,6 +238,12 @@ type InspectionField struct {
 	// Of, on an Action field of W, is the key of the field whose row
 	// carries it as a button; "" for a button of a row of its own.
 	Of string `json:",omitempty"`
+	// CellPair, on the X field of a map cell, is the key of its Y field:
+	// the row carries an On map button whose click sets both. CellOwn marks
+	// the pair as the record's own cell, which then has no cell row of its
+	// own.
+	CellPair string `json:",omitempty"`
+	CellOwn  bool   `json:",omitempty"`
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.

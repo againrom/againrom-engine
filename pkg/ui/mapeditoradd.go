@@ -359,6 +359,16 @@ func (e *MapEditor) addPlacementAt(p, cell image.Point) (InspectionNewRecord, bo
 	return record, true
 }
 
+// placedCellPair reports that the record just placed has map cell fields
+// (a teleport trap): its window opens with them, so the placed cell stands as
+// its Source and a click sets Source or Target.
+func (e *MapEditor) placedCellPair(ref RecordRef) bool {
+	if e.doc.Edits == nil || ref.Kind != KindEnchantment {
+		return false
+	}
+	return slices.ContainsFunc(e.doc.Edits.Fields(ref.Kind, ref.Index), func(f InspectionField) bool { return f.CellPair != "" })
+}
+
 func (e *MapEditor) addPicked(p, cell image.Point) {
 	r, ok := e.addRunning()
 	if !ok {
@@ -374,6 +384,11 @@ func (e *MapEditor) addPicked(p, cell image.Point) {
 	if err != nil {
 		r.note = e.editorHostText(err.Error())
 		e.armPick(pickPlace)
+		return
+	}
+	if ch.doc != nil && e.placedCellPair(ch.doc.AddedRecord) {
+		e.leave(leavePick)
+		e.selectNewest(record.Kind, ch.doc.AddedRecord)
 		return
 	}
 	if ch.doc != nil {

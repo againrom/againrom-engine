@@ -208,7 +208,8 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		r = e.doc.Records[e.selected]
 	}
 	o.rowBlock, o.usesShown, o.viewOffer, o.cell, o.usesFold = nil, false, false, -1, 0
-	if r.Spatial && e.editable() && r.Kind.Placed() && len(s.Rows) > 0 {
+	ownPair := slices.ContainsFunc(o.fields, func(f InspectionField) bool { return f.CellPair != "" && f.CellOwn })
+	if r.Spatial && e.editable() && r.Kind.Placed() && len(s.Rows) > 0 && !ownPair {
 		s.Rows[len(s.Rows)-1].Kind = popupPick
 		s.PickLabel = e.word("editor.object.pick")
 		o.cell = len(s.Rows) - 1
@@ -365,6 +366,10 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			row.Label = ""
 			row.Value = ""
 			row.Buttons = []string{e.editorHostText(f.Label)}
+		}
+		if f.CellPair != "" && e.editable() {
+			row.Buttons = []string{e.word("editor.object.pick")}
+			row.Armed = []bool{e.pick == pickScriptCell && o.pickField == i}
 		}
 		if e.modWindow && strings.HasSuffix(f.Key, ".character") {
 			row.Buttons = []string{"..."}
@@ -712,6 +717,12 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 	}
 	if o.fields[i].Book != nil && !e.modWindow {
 		e.openUnitBook(i)
+		return
+	}
+	if part == popupRowButton && o.fields[i].CellPair != "" {
+		o.focus, o.pickField = i, i
+		e.leave(leaveDrag)
+		e.armPick(pickScriptCell)
 		return
 	}
 	if part == popupRowButton && o.fields[i].Inherit {

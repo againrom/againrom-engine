@@ -1050,11 +1050,17 @@ func (e *MapEditor) editSlotNode(f int) {
 	e.openObjectRecord(n.Record, false)
 }
 
-// scriptCellPicked writes the clicked cell into the pick's field.
+// scriptCellPicked writes the clicked cell into the pick's field: as x,y
+// into a cell field, as its two numbers into an X field with a CellPair.
 func (e *MapEditor) scriptCellPicked(cell image.Point) {
 	o := &e.obj
 	if o.pickField >= 0 && o.pickField < len(o.buf) {
-		o.buf[o.pickField] = fmt.Sprintf("%d,%d", cell.X, cell.Y)
+		f := o.fields[o.pickField]
+		if y := slices.IndexFunc(o.fields, func(g InspectionField) bool { return f.CellPair != "" && g.Key == f.CellPair }); y >= 0 && y < len(o.buf) {
+			o.buf[o.pickField], o.buf[y] = strconv.Itoa(cell.X), strconv.Itoa(cell.Y)
+		} else {
+			o.buf[o.pickField] = fmt.Sprintf("%d,%d", cell.X, cell.Y)
+		}
 	}
 	o.pickField = -1
 }

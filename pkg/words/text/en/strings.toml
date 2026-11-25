@@ -1764,6 +1764,8 @@
 "editor.cast.sourcey" = "Source cell Y"
 "editor.cast.targetx" = "Target cell X"
 "editor.cast.targety" = "Target cell Y"
+"editor.cast.teleportsource" = "Source cell"
+"editor.cast.teleporttarget" = "Target cell"
 "editor.cast.event" = "Cell event"
 "editor.cast.tile" = "cell"
 "editor.cast.unit" = "unit"

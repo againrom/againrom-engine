@@ -438,6 +438,9 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			out = append(out, s.stockRecipeFields(index, element)...)
 		}
 	}
+	if k == mapedit.KindEnchantment {
+		out = s.trapCellFields(out, index)
+	}
 	if locked && k == mapedit.KindPlayer {
 		out = append(out, s.inspector.playerNote())
 	}

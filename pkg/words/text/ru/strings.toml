@@ -1758,6 +1758,8 @@
 "editor.cast.sourcey" = "Клетка источника Y"
 "editor.cast.targetx" = "Клетка цели X"
 "editor.cast.targety" = "Клетка цели Y"
+"editor.cast.teleportsource" = "Клетка источника"
+"editor.cast.teleporttarget" = "Клетка цели"
 "editor.cast.event" = "Событие клетки"
 "editor.cast.tile" = "клетка"
 "editor.cast.unit" = "отряд"
