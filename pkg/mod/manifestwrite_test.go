@@ -92,3 +92,27 @@ func TestWriteManifestListSpanUsesTheReaderScanner(t *testing.T) {
 		t.Fatalf("changed list:\n%q\nwant\n%q", changed, want)
 	}
 }
+
+func TestWriteManifestFindsPairsThroughTOMLReader(t *testing.T) {
+	source := "unknown = [\n  [\"a\"],\n]\ntitle = \"Old\"\n"
+	out, err := WriteManifest([]byte(source), map[string]any{"title": "New"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "unknown = [\n  [\"a\"],\n]\ntitle = \"New\"\n"
+	if string(out) != want {
+		t.Fatalf("got:\n%q\nwant:\n%q", out, want)
+	}
+	if _, err := WriteManifest([]byte("id = \"a\"\ntitle = \"Old\"\nauthor = \"open\n"), map[string]any{"title": "New"}); err == nil || !strings.Contains(err.Error(), "line 3: author") {
+		t.Fatalf("malformed unedited pair: got %v", err)
+	}
+	bomTable := "\xef\xbb\xbf[custom]\nvalue = 1\n"
+	got, err := WriteManifest([]byte(bomTable), map[string]any{"id": "sample"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantBOM := "\xef\xbb\xbfid = \"sample\"\n[custom]\nvalue = 1\n"
+	if string(got) != wantBOM {
+		t.Fatalf("bom before table: got %q want %q", got, wantBOM)
+	}
+}

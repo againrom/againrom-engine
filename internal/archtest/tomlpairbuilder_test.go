@@ -30,5 +30,18 @@ func TestModTOMLHasOnePairReaderAndWriter(t *testing.T) {
 		if !strings.HasSuffix(file, "toml.go") && strings.Contains(string(src), "func rewritePair(") {
 			t.Errorf("%s holds a second rewritePair", file)
 		}
+		if strings.HasSuffix(file, "manifestwrite.go") {
+			text := string(src)
+			for _, need := range []string{"parseTOMLWith(", "rewritePair("} {
+				if !strings.Contains(text, need) {
+					t.Errorf("%s must use %s", file, need)
+				}
+			}
+			for _, scan := range []string{"strings.IndexByte(", "strings.HasPrefix(", "strings.TrimSpace("} {
+				if strings.Contains(text, scan) {
+					t.Errorf("%s: %s is a second line scanner; use parseTOMLWith", file, scan)
+				}
+			}
+		}
 	}
 }

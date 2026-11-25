@@ -41,53 +41,44 @@ func WriteManifest(source []byte, values map[string]any) ([]byte, error) {
 			return nil, fmt.Errorf("%s: unsupported manifest value %T", key, value)
 		}
 	}
+	tables, err := parseTOMLWith(source, tomlOptions{})
+	if err != nil {
+		return nil, err
+	}
 	lines := strings.SplitAfter(string(bytes.TrimPrefix(source, utf8BOM)), "\n")
-	var out strings.Builder
-	if bytes.HasPrefix(source, utf8BOM) {
-		out.Write(utf8BOM)
+	for _, p := range tables[0].pairs {
+		value, change := encoded[p.key]
+		if !change {
+			continue
+		}
+		if _, err := rewritePair(lines, p.line-1, 0, value); err != nil {
+			return nil, fmt.Errorf("line %d: %w", p.line, err)
+		}
+		delete(encoded, p.key)
+	}
+	split := len(lines)
+	if len(tables) > 1 {
+		split = tables[1].line - 1
 	}
 	newline := "\n"
 	if bytes.Contains(source, []byte("\r\n")) {
 		newline = "\r\n"
 	}
-	appendMissing := func() {
-		for _, key := range manifestKeyNames() {
-			if value, ok := encoded[key]; ok {
-				if out.Len() > 0 && !strings.HasSuffix(out.String(), "\n") {
-					out.WriteString(newline)
-				}
-				out.WriteString(key + " = " + value + newline)
+	var out strings.Builder
+	var bom []byte
+	if bytes.HasPrefix(source, utf8BOM) {
+		bom = utf8BOM
+		out.Write(bom)
+	}
+	out.WriteString(strings.Join(lines[:split], ""))
+	for _, key := range manifestKeyNames() {
+		if value, ok := encoded[key]; ok {
+			if out.Len() > len(bom) && !strings.HasSuffix(out.String(), "\n") {
+				out.WriteString(newline)
 			}
+			out.WriteString(key + " = " + value + newline)
 		}
-		clear(encoded)
 	}
-	for i := 0; i < len(lines); i++ {
-		line := lines[i]
-		text := strings.TrimSpace(line)
-		if strings.HasPrefix(text, "[") {
-			appendMissing()
-			out.WriteString(strings.Join(lines[i:], ""))
-			return []byte(out.String()), nil
-		}
-		eq := strings.IndexByte(line, '=')
-		if eq < 0 || strings.HasPrefix(text, "#") {
-			out.WriteString(line)
-			continue
-		}
-		key := strings.TrimSpace(line[:eq])
-		value, change := encoded[key]
-		if !change {
-			out.WriteString(line)
-			continue
-		}
-		last, err := rewritePair(lines, i, 0, value)
-		if err != nil {
-			return nil, fmt.Errorf("line %d: %w", i+1, err)
-		}
-		out.WriteString(lines[i])
-		delete(encoded, key)
-		i = last
-	}
-	appendMissing()
+	out.WriteString(strings.Join(lines[split:], ""))
 	return []byte(out.String()), nil
 }
