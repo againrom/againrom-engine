@@ -211,11 +211,16 @@ func TestSecondEditorFieldsAndCardsForUnitStructureAndSack(t *testing.T) {
 			}
 		}
 	}
-	checkCard(recordByKind(t, d, ui.KindUnit, 0), "Owner: 1: PlayerOne", "Definition: 600: Goblin_Pike", "Field 0x0a: 2", "Field 0x20: 10")
+	checkCard(recordByKind(t, d, ui.KindUnit, 0), "Owner: 1: PlayerOne", "Definition: 600: Goblin_Pike",
+		"Lookup index 0x08 (picks the object the load builds): 7", "Word 0x0a, 0 to 7 in the installed maps (Medium: no game reader found): 2",
+		"Flags 0x10: 1, 2, 4 offered at an Inn, 8 drops nothing at death (Medium): 0", "Dword 0x20, 0 to 14 in the installed maps (Medium: no game reader found): 10")
 	checkCard(recordByKind(t, d, ui.KindUnit, 1), "Owner: 2: PlayerTwo", "Definition: 2113: 2F_Knight1", "Health (-1 = default): 150", "Maximum health (-1 = default): 150")
-	checkCard(recordByKind(t, d, ui.KindStructure, 0), "Type: 34: Shop", "Owner: 1: PlayerOne", "Field 0x0c: 100")
-	checkCard(recordByKind(t, d, ui.KindStructure, 1), "Type: 33: Vertical Wooden Bridge", "Owner: 2: PlayerTwo", "Field 0x14: 4", "Field 0x18: 5")
-	checkCard(recordByKind(t, d, ui.KindSack, 0), "Field 0x10: 100", "Item 1: 258: Dagger", "Item 1: field 0x04: 0")
+	checkCard(recordByKind(t, d, ui.KindStructure, 0), "Type: 34: Shop", "Owner: 1: PlayerOne", "Word 0x0c (no game reader found for a Shop, Inn or Pointer): 100")
+	checkCard(recordByKind(t, d, ui.KindStructure, 1), "Type: 33: Vertical Wooden Bridge", "Owner: 2: PlayerTwo",
+		"Word 0x0c: 0 clears the building's word +0x42 (no reader of another value found): 100",
+		"Size X (replaces the building row's, Medium): 4", "Size Y (replaces the building row's, Medium): 5")
+	checkCard(recordByKind(t, d, ui.KindSack, 0), "Word 0x10 (the ground bag is placed with it): 100", "Item 1: 258: Dagger",
+		"Item 1: word 0x04 (no game reader found for a ground sack): 0")
 
 	// Unit fields list no level/experience and offer catalogue definition choices per arm.
 	u0Fields := host.Fields(ui.KindUnit, 0)
@@ -284,10 +289,10 @@ func TestSecondEditorFieldsAndCardsForUnitStructureAndSack(t *testing.T) {
 	if err != nil || !bytes.Equal(reloaded.SourceBytes, saved) {
 		t.Fatalf("reload: %v", err)
 	}
-	checkCard(recordByKind(t, reloaded, ui.KindUnit, 0), "Owner: 2: PlayerTwo", "Definition: 601: Goblin_Pike.2", "Health (-1 = default): 75", "Field 0x0a: 4")
-	checkCard(recordByKind(t, reloaded, ui.KindStructure, 0), "Type: 5: Mill")
-	checkCard(recordByKind(t, reloaded, ui.KindStructure, 1), "Type: 33: Vertical Wooden Bridge", "Field 0x14: 6")
-	checkCard(recordByKind(t, reloaded, ui.KindSack, 0), "Field 0x10: 250", "Item 1: 258: Dagger", "Item 2: 3649: Potion Body")
+	checkCard(recordByKind(t, reloaded, ui.KindUnit, 0), "Owner: 2: PlayerTwo", "Definition: 601: Goblin_Pike.2", "Health (-1 = default): 75", "Word 0x0a, 0 to 7 in the installed maps (Medium: no game reader found): 4")
+	checkCard(recordByKind(t, reloaded, ui.KindStructure, 0), "Type: 5: Mill", "Word 0x0c: 0 clears the building's word +0x42")
+	checkCard(recordByKind(t, reloaded, ui.KindStructure, 1), "Type: 33: Vertical Wooden Bridge", "Size X (replaces the building row's, Medium): 6")
+	checkCard(recordByKind(t, reloaded, ui.KindSack, 0), "Word 0x10 (the ground bag is placed with it): 250", "Item 1: 258: Dagger", "Item 2: 3649: Potion Body")
 
 	// Undo all 8 edits back to exact original bytes.
 	for i := 0; i < 8; i++ {

@@ -283,8 +283,11 @@ func (e *MapEditor) brushRows() []string {
 		// sets a height and the fourth paints a sampled one.
 		return []string{e.word("editor.brush.raise"), e.word("editor.brush.lower"), e.word("editor.brush.setheight"), e.word("editor.brush.sampleheight")}
 	case brushPassability:
-		// The first row sets the impassable flag, the second clears it.
-		return []string{e.word("editor.brush.block"), e.word("editor.brush.unblock")}
+		var rows []string
+		for _, r := range e.passBrushRows() {
+			rows = append(rows, e.word(r.Word))
+		}
+		return rows
 	case brushObjects:
 		var rows []string
 		if h := e.brushHost(); h != nil {
@@ -807,10 +810,11 @@ func (e *MapEditor) brushCommit() {
 			op.Value, op.Forest = 0, forest
 		}
 	case brushPassability:
-		op.Plane, op.Value = BrushPlanePassability, 1
-		if sel == 1 {
-			op.Value = 0
+		rows := e.passBrushRows()
+		if sel < 0 || sel >= len(rows) {
+			return
 		}
+		op.Plane, op.Value = BrushPlanePassability, rows[sel].Value
 	default:
 		terrains := host.BrushTerrains()
 		if sel >= len(terrains) {

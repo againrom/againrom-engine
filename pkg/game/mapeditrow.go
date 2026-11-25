@@ -92,6 +92,11 @@ type editRow struct {
 	// passNoteWord is the word given when the passability view is switched on,
 	// and passClosedWord the hover's word for a cell with arms; "": the plain ones.
 	passNoteWord, passClosedWord string
+	// passValues: the passability view shows each cell's value from its arms
+	// (mapload.MarkValue) and the move kinds the value closes.
+	passValues bool
+	// passBrush are the passability brush's rows; nil: block and unblock.
+	passBrush []ui.PassBrushRow
 	// areaOps are the checks whose node draws a shape on the map.
 	areaOps mapload.AreaOps
 	// rawHeights: the height numbers show the stored height.
@@ -165,10 +170,14 @@ var editRows = map[alm.Format]*editRow{
 		// gives a unit is unread (R2-ENGINE-1292, R2-SESSION-162).
 		unitBookWord: "editor.map.secondbook",
 		// The arms are the ring (R2-ENGINE-1341) and the cells the terrain
-		// build marks (R2-ENGINE-1340); what a mark does to movement is not
-		// established, and the tile-class mark is not engine data.
+		// build marks (R2-ENGINE-1340); the value they leave closes move
+		// kinds by the route test (R2-ENGINE-1805, Medium). The brush sets the
+		// values its file bytes reach: 1 and 0; which type-3 value stores 5
+		// with no object drawn is unread (R2-ENGINE-1667).
 		groundArms: func(_ *MapInspector, m *alm.Map) []mapload.GroundArm { return mapload.MarkedArms(m) },
 		armRows:    mapload.MarkArmRows(), passNoteWord: "editor.view.secondpass", passClosedWord: "editor.pass.marked",
+		passValues: true,
+		passBrush:  []ui.PassBrushRow{{Value: 1, Word: "editor.brush.secondclose"}, {Value: 0, Word: "editor.brush.secondopen"}},
 		areaOps:    mapload.SecondAreaOps,
 		rawHeights: true,
 	},

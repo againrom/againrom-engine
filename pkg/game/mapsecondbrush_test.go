@@ -51,8 +51,9 @@ func paintedSecond(t *testing.T, host *mapInspectionEdits) *alm.Map {
 }
 
 // On a second-game map the height brush writes the type-2 plane, the
-// passability brush the type-1 word's bit 0x2000 and the object brush clears
-// type-3 bytes; each decodes back from the saved map.
+// passability brush the type-1 word's bit 0x2000 with the cell's type-3 byte
+// cleared, and the object brush clears type-3 bytes; each decodes back from
+// the saved map.
 func TestSecondMapBrushesPaintHeightsPassabilityAndClearObjects(t *testing.T) {
 	_, host, was := secondBrushHost(t)
 	strokes := []ui.BrushStroke{
@@ -67,11 +68,11 @@ func TestSecondMapBrushesPaintHeightsPassabilityAndClearObjects(t *testing.T) {
 	}
 	got := paintedSecond(t, host)
 	height, block, object := 16*32+16, 20*32+12, 12*32+20
-	if got.Altitudes[height] != 12 || got.Tiles[block] != was.Tiles[block]|alm.TileImpassable || got.Overlay[object] != 0 {
-		t.Fatalf("saved planes: height %d, word %#x, object %d", got.Altitudes[height], got.Tiles[block], got.Overlay[object])
+	if got.Altitudes[height] != 12 || got.Tiles[block] != was.Tiles[block]|alm.TileImpassable || got.Overlay[object] != 0 || got.Overlay[block] != 0 {
+		t.Fatalf("saved planes: height %d, word %#x, objects %d, %d", got.Altitudes[height], got.Tiles[block], got.Overlay[object], got.Overlay[block])
 	}
 	for i := range was.Altitudes {
-		if i != height && got.Altitudes[i] != was.Altitudes[i] || i != block && got.Tiles[i] != was.Tiles[i] || i != object && got.Overlay[i] != was.Overlay[i] {
+		if i != height && got.Altitudes[i] != was.Altitudes[i] || i != block && got.Tiles[i] != was.Tiles[i] || i != object && i != block && got.Overlay[i] != was.Overlay[i] {
 			t.Fatalf("cell (%d,%d) changed outside the strokes", i%32, i/32)
 		}
 	}

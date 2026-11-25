@@ -43,7 +43,8 @@ const (
 // Value is the terrain class the brush cells take (a Palette entry's Class);
 // on the height plane Value is the signed height change at the centre; on the
 // object plane Value is the class code every brush cell takes, 0 clearing it;
-// on the impassable plane Value 1 sets and 0 clears the tile word's bit 13.
+// on the impassable plane Value 1 sets and 0 clears the tile word's bit 13,
+// and the format's ClearsObjects clears the cell's type-3 byte too.
 // Radius and Shape give the cells around each centre (walk). A stroke is a
 // Brush and the centres the pointer visited.
 type Brush struct {
@@ -86,11 +87,13 @@ type Brush struct {
 
 // PlaneRule is one brush plane's row on a format: the stroke values the plane
 // takes (nil any), the word of the refusal of another value, and the edge ring
-// in cells the plane's brush leaves.
+// in cells the plane's brush leaves. ClearsObjects, on the impassable plane,
+// makes the stroke also write 0 into the type-3 byte of every cell it covers.
 type PlaneRule struct {
-	Values  []int
-	Refusal string
-	Band    int
+	Values        []int
+	Refusal       string
+	Band          int
+	ClearsObjects bool
 }
 
 // PlaneRule returns the row of plane p on this map's format. A format with no
@@ -618,5 +621,12 @@ func (e *Editor) impassableStroke(f frame, b Brush, at []Cell, w, h int) (edit, 
 			}
 		})
 	}
-	return e.wordRuns(span, old, next), nil
+	ed := e.wordRuns(span, old, next)
+	if !formatRows[e.format].planes[PlaneImpassable].ClearsObjects || !f.carries(alm.TypeOverlay) {
+		return ed, nil
+	}
+	clear := b
+	clear.Value = 0
+	objects, err := e.objectStroke(f, clear, at, w, h)
+	return append(ed, objects...), err
 }

@@ -74,11 +74,14 @@ func init() {
 	}
 	// The type-1 word's bit 0x2000 and the height plane are read by the game;
 	// the object brush only clears, since what a type-3 value shows is unread
-	// (R2-ENGINE-1667); the type-4 bridge is unread.
+	// (R2-ENGINE-1667); the type-4 bridge is unread. A nonzero type-3 byte
+	// stores 5 over the bit's 1 (R2-ENGINE-1340), so the passability stroke
+	// clears it to leave the cell closed to move kind 1 alone or open
+	// (R2-ENGINE-1805).
 	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second, planes: map[Plane]PlaneRule{
 		PlaneTile:       {},
 		PlaneHeight:     {Band: secondBand},
-		PlaneImpassable: {Band: secondBand},
+		PlaneImpassable: {Band: secondBand, ClearsObjects: true},
 		PlaneObject:     {Values: []int{0}, Refusal: "editor.map.secondobjects", Band: secondBand},
 		PlaneStructure:  {Values: []int{}, Refusal: "editor.map.secondbridge"},
 	}}
@@ -92,7 +95,10 @@ func init() {
 const secondBand = 8
 
 // secondUnitFields are the settable fields of a second-game type-6 unit record
-// (R2-ENGINE-1510 to R2-ENGINE-1512, R2-ASSET-313 to R2-ASSET-316).
+// (R2-ENGINE-1510 to R2-ENGINE-1512, R2-ASSET-313 to R2-ASSET-316). The load
+// looks 0x08 up to pick the object it builds (R2-ENGINE-513); 0x10 carries the
+// Inn offer bits and the no-drop bit (R2-ENGINE-537, R2-ENGINE-535); no reader
+// of 0x0a or 0x20 is found (R2-ENGINE-1801).
 var secondUnitFields = []Field{
 	{Key: "owner", Label: "editor.plain.owner", Offset: alm.SecondUnitOwner, Width: 4, Min: 1, Max: math.MaxUint16, Check: CheckRosterSlot},
 	{Key: "definition", Label: "editor.second.unit.definition", Offset: alm.SecondUnitDef, Width: 4, Min: 0, Max: math.MaxUint32},
@@ -100,10 +106,10 @@ var secondUnitFields = []Field{
 	{Key: "hpmax", Label: "editor.second.unit.hpmax", Offset: alm.SecondUnitHPMax, Width: 2, Signed: true, Min: -1, Max: math.MaxInt16},
 	{Key: "flags", Label: "editor.second.unit.flags", Offset: alm.SecondUnitFlags, Width: 4, Min: 0, Max: math.MaxUint32},
 	{Key: "group", Label: "editor.unit.field.group", Offset: alm.SecondUnitGroup, Width: 4, Min: 0, Max: math.MaxUint32},
-	{Key: "field08", Label: "editor.second.field.08", Offset: alm.SecondUnitClass, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
-	{Key: "field0a", Label: "editor.second.field.0a", Offset: alm.SecondUnitField0A, Width: 2, Min: 0, Max: math.MaxUint16},
-	{Key: "field10", Label: "editor.second.field.10", Offset: alm.SecondUnitFlags10, Width: 4, Min: 0, Max: math.MaxUint32},
-	{Key: "field20", Label: "editor.second.field.20", Offset: alm.SecondUnitField20, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "field08", Label: "editor.second.unit.lookup", Offset: alm.SecondUnitClass, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+	{Key: "field0a", Label: "editor.second.unit.word0a", Offset: alm.SecondUnitField0A, Width: 2, Min: 0, Max: math.MaxUint16},
+	{Key: "field10", Label: "editor.second.unit.offers", Offset: alm.SecondUnitFlags10, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "field20", Label: "editor.second.unit.dword20", Offset: alm.SecondUnitField20, Width: 4, Min: 0, Max: math.MaxUint32},
 }
 
 // secondSpellMax is the highest spell a shipped type-9 record names
@@ -162,22 +168,39 @@ var secondCasterFields = []Field{
 
 // secondStructureFieldsBase and secondStructureExtFields are the settable
 // fields of a second-game type-4 structure record (R2-ASSET-317, R2-ASSET-318).
+// The extension replaces the size of the building's row (R2-ENGINE-1289).
 var secondStructureFieldsBase = []Field{
 	{Key: "kind", Label: "editor.plain.type", Offset: alm.ObjectKind, Width: 4, Min: 1, Max: 255, Check: CheckStructureKind},
 	{Key: "owner", Label: "editor.plain.owner", Offset: alm.ObjectOwner, Width: 2, Min: 1, Max: 16, Check: CheckRosterSlot},
-	{Key: "field0c", Label: "editor.second.field.0c", Offset: alm.ObjectPlacement, Width: 2, Min: 0, Max: math.MaxUint16},
+	{Key: "field0c", Label: "editor.second.structure.word0c", Offset: alm.ObjectPlacement, Width: 2, Min: 0, Max: math.MaxUint16},
 }
 
 var secondStructureExtFields = []Field{
-	{Key: "field14", Label: "editor.second.field.14", Offset: alm.ObjectWidth, Width: 4, Min: 0, Max: math.MaxUint32},
-	{Key: "field18", Label: "editor.second.field.18", Offset: alm.ObjectHeight, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "field14", Label: "editor.second.structure.sizex", Offset: alm.ObjectWidth, Width: 4, Min: 0, Max: math.MaxUint32},
+	{Key: "field18", Label: "editor.second.structure.sizey", Offset: alm.ObjectHeight, Width: 4, Min: 0, Max: math.MaxUint32},
 }
 
+// secondUnreadWordKinds are the kinds the type-4 pass builds a Shop, an Inn
+// or a Pointer from; that arm does not read word 0x0c, which the Building arm
+// tests for zero (R2-ENGINE-1802). Such a structure lists secondUnreadWord.
+var (
+	secondUnreadWordKinds = [][2]uint16{{0x22, 0x23}, {0x5d, 0x5f}, {0x69, 0x6b}, {0x43, 0x45}, {0x63, 0x65}, {0x6f, 0x71}, {0x46, 0x4b}}
+	secondUnreadWord      = Field{Key: "field0c", Label: "editor.second.structure.word0c.unread", Offset: alm.ObjectPlacement, Width: 2, Min: 0, Max: math.MaxUint16}
+)
+
 func secondStructureFields(_ *Editor, rec []byte) []Field {
-	if len(rec) <= alm.ObjectSize {
-		return append([]Field(nil), secondStructureFieldsBase...)
+	out := append([]Field(nil), secondStructureFieldsBase...)
+	// A record with the extension is loaded as kind 0x21, a Building.
+	kind := binary.LittleEndian.Uint32(rec[alm.ObjectKind:])
+	if len(rec) <= alm.ObjectSize && slices.ContainsFunc(secondUnreadWordKinds, func(r [2]uint16) bool {
+		return uint16(kind) >= r[0] && uint16(kind) <= r[1]
+	}) {
+		out[2] = secondUnreadWord
 	}
-	return append(append([]Field(nil), secondStructureFieldsBase...), secondStructureExtFields...)
+	if len(rec) <= alm.ObjectSize {
+		return out
+	}
+	return append(out, secondStructureExtFields...)
 }
 
 // reshapeSecondStructure adds or drops the 8-byte extension when a structure
@@ -195,12 +218,15 @@ func reshapeSecondStructure(rec []byte) []byte {
 }
 
 // secondLootFields are the settable fields of a second-game type-8 sack record
-// (R2-ASSET-254, R2-ASSET-319, R2-ENGINE-1513).
+// (R2-ASSET-254, R2-ASSET-319, R2-ENGINE-1513). A ground sack's bag is placed
+// with word 0x10 and takes every item; a unit's sack reads no 0x10, and its
+// item word chooses the owner's hand or bag (R2-ENGINE-1328, R2-ENGINE-1803).
 func secondLootFields(e *Editor, rec []byte) []Field {
 	var out []Field
 	head := e.lootHead()
+	words := secondSackWords[binary.LittleEndian.Uint32(rec[alm.LootOwner:]) != 0]
 	if head == alm.LootHeadWide {
-		out = append(out, Field{Key: "field10", Label: "editor.second.field.10", Offset: alm.LootGold, Width: 4, Min: 0, Max: math.MaxUint32})
+		out = append(out, Field{Key: "field10", Label: words.headWord, Offset: alm.LootGold, Width: 4, Min: 0, Max: math.MaxUint32})
 	}
 	n := (len(rec) - head) / alm.LootElementSize
 	for k := 0; k < n; k++ {
@@ -208,13 +234,20 @@ func secondLootFields(e *Editor, rec []byte) []Field {
 			Field{Key: fmt.Sprintf("item%d", k+1), Label: "editor.plain.item",
 				Offset: head + k*alm.LootElementSize, Width: 2, Min: 0, Max: math.MaxUint16, Check: CheckItemCode,
 				Element: alm.LootElementSize, Counter: alm.LootCount},
-			Field{Key: fmt.Sprintf("field04_%d", k+1), Label: "editor.second.item.field04",
+			Field{Key: fmt.Sprintf("field04_%d", k+1), Label: words.itemWord,
 				Offset: head + k*alm.LootElementSize + alm.LootElementField04, Width: 2, Min: 0, Max: math.MaxUint16},
 		)
 	}
 	out = append(out, Field{Key: "additem", Label: "editor.plain.additem", Offset: len(rec), Width: 2, Min: 0, Max: math.MaxUint16,
 		Check: CheckItemCode, Element: alm.LootElementSize, Counter: alm.LootCount})
 	return out
+}
+
+// secondSackWords word a sack's 0x10 and item word fields, keyed by whether a
+// unit owns the sack.
+var secondSackWords = map[bool]struct{ headWord, itemWord string }{
+	false: {headWord: "editor.second.sack.ground10", itemWord: "editor.second.item.ground"},
+	true:  {headWord: "editor.second.sack.owned10", itemWord: "editor.second.item.hand"},
 }
 
 func secondStructureLength(_ *Editor, b []byte) int {

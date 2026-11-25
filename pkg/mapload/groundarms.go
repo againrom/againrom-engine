@@ -1,6 +1,9 @@
 package mapload
 
-import "againrom/pkg/formats/alm"
+import (
+	"againrom/pkg/formats/alm"
+	"againrom/pkg/sim"
+)
 
 // GroundArm is one reason a cell is closed to a ground mover.
 type GroundArm uint8
@@ -79,13 +82,72 @@ type MarkRow struct {
 	On    func(tile uint16, overlay uint8) bool
 }
 
+// GroundClass8 is a tile word the second game's classifier gives class 8,
+// which its terrain build marks with the value 1.
+const GroundClass8 GroundArm = GroundType3 << 1
+
 // MarkRows are the cells the second game's terrain build marks, in the order
-// it stores them. The tile-class mark (class 8) is not here: the class table
-// is not engine data.
+// it stores them (R2-ENGINE-1340).
 var MarkRows = [...]MarkRow{
 	{Arm: GroundFlag, Word: "editor.mark.flag", Value: 1, On: func(t uint16, _ uint8) bool { return alm.Impassable(t) }},
+	{Arm: GroundClass8, Word: "editor.mark.class8", Value: 1, On: func(t uint16, _ uint8) bool { return TileClass(t) == classMountain }},
 	{Arm: GroundWater, Word: "editor.mark.water", Value: 1, On: func(t uint16, _ uint8) bool { return alm.TileIndex(t)&0x300 == 0x200 }},
 	{Arm: GroundType3, Word: "editor.mark.type3", Value: 5, On: func(_ uint16, o uint8) bool { return o != 0 }},
+}
+
+// RingValue is what the ring routine stores over the 8-cell border ring
+// (R2-ENGINE-1341).
+const RingValue = 0x1f
+
+// MoveKindMasks are the block masks of move kinds 1, 2 and 3: a cell whose
+// value AND the mask is nonzero is closed to that kind (R2-ENGINE-809,
+// R2-ENGINE-1804).
+// They are read from pkg/sim, where the creature-aim profile holds them.
+var MoveKindMasks = sim.SecondGameMoveKindMasks()
+
+// PlaneValueRow is one value the second game's terrain build stores for a
+// cell, the move kinds it closes (bit k-1 for kind k) and the word the editor
+// names it by.
+type PlaneValueRow struct {
+	Value, Kinds uint8
+	Word         string
+}
+
+// planeValues are the values the terrain build stores from a map's bytes:
+// none, the marks' 1 and 5 and the ring's (R2-ENGINE-1805, Medium).
+var planeValues = [...]PlaneValueRow{
+	{Value: 0, Word: "editor.pass.value.0"},
+	{Value: 1, Word: "editor.pass.value.1"},
+	{Value: 5, Word: "editor.pass.value.5"},
+	{Value: RingValue, Word: "editor.pass.value.31"},
+}
+
+// PlaneValueRows are planeValues with the kinds each closes by MoveKindMasks.
+func PlaneValueRows() []PlaneValueRow {
+	out := append([]PlaneValueRow(nil), planeValues[:]...)
+	for i := range out {
+		for k, mask := range MoveKindMasks {
+			if out[i].Value&mask != 0 {
+				out[i].Kinds |= 1 << k
+			}
+		}
+	}
+	return out
+}
+
+// MarkValue is the value the terrain build leaves for a cell of arms: the
+// ring's when the ring holds it, else the last mark stored, else 0.
+func MarkValue(arms GroundArm) uint8 {
+	if arms&GroundBorder != 0 {
+		return RingValue
+	}
+	var v uint8
+	for _, r := range MarkRows {
+		if arms&r.Arm != 0 {
+			v = r.Value
+		}
+	}
+	return v
 }
 
 // MarkArmRows is the arm table of a map whose cells carry marks: the ring and
@@ -99,8 +161,8 @@ func MarkArmRows() []GroundArmRow {
 }
 
 // MarkedArms is, per cell and row-major, the border ring and each mark the
-// second game's terrain build stores for the cell. What a mark does to
-// movement is not established.
+// second game's terrain build stores for the cell; MarkValue gives the value
+// they leave.
 func MarkedArms(m *alm.Map) []GroundArm {
 	w, h, ok := extent(m)
 	if !ok {

@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"math/bits"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -20,6 +21,56 @@ type PassArmRow struct {
 	Arm    PassArm
 	Word   string
 	Border bool
+}
+
+// PassValueRow is one value of the document's PassValues: the move kinds it
+// closes (bit k-1 for kind k) and the word the status line names it by.
+type PassValueRow struct {
+	Value, Kinds uint8
+	Word         string
+}
+
+// PassBrushRow is one row of the passability brush's list: the stroke value
+// it paints and its word.
+type PassBrushRow struct {
+	Value int
+	Word  string
+}
+
+// passBrushPlain are the rows of a document that names none: the first sets
+// the impassable flag, the second clears it.
+var passBrushPlain = []PassBrushRow{{Value: 1, Word: "editor.brush.block"}, {Value: 0, Word: "editor.brush.unblock"}}
+
+// passBrushRows are the passability brush's rows for the open document.
+func (e *MapEditor) passBrushRows() []PassBrushRow {
+	if e.doc != nil && len(e.doc.PassBrush) > 0 {
+		return e.doc.PassBrush
+	}
+	return passBrushPlain
+}
+
+// passValueAt is the value of cell and its row; ok is false when the
+// document carries no values, and row nil when no row names the value.
+func (e *MapEditor) passValueAt(cell image.Point) (v uint8, row *PassValueRow, ok bool) {
+	if len(e.doc.PassValues) != e.doc.Width*e.doc.Height || cell.X < 0 || cell.Y < 0 || cell.X >= e.doc.Width || cell.Y >= e.doc.Height {
+		return 0, nil, false
+	}
+	v = e.doc.PassValues[cell.Y*e.doc.Width+cell.X]
+	for i := range e.doc.PassValueRows {
+		if e.doc.PassValueRows[i].Value == v {
+			return v, &e.doc.PassValueRows[i], true
+		}
+	}
+	return v, nil, true
+}
+
+// passValueFill is a valued cell's fill: by the kinds its row closes, a blue
+// one for a value no row names.
+func passValueFill(row *PassValueRow) color.RGBA {
+	if row == nil {
+		return passRawFill
+	}
+	return passKindFills[bits.OnesCount8(row.Kinds&7)]
 }
 
 // passArmWords are the words of the arms in arms, in the table's order.
@@ -155,14 +206,28 @@ func (e *MapEditor) hoverPassability() (string, bool) {
 		return "", false
 	}
 	arms := e.passArmAt(e.hoverCell)
-	if arms == 0 {
+	value, row, valued := e.passValueAt(e.hoverCell)
+	var text string
+	switch {
+	case valued && row != nil:
+		text = e.word(row.Word)
+	case valued:
+		text = fmt.Sprintf(e.word("editor.pass.value.raw"), value)
+	case arms == 0:
 		return e.word("editor.pass.open"), true
+	}
+	if arms == 0 {
+		return text, true
 	}
 	word := "editor.pass.closed"
 	if e.doc.PassClosed != "" {
 		word = e.doc.PassClosed
 	}
-	return fmt.Sprintf(e.word(word), strings.Join(e.passArmWords(arms), ", ")), true
+	closed := fmt.Sprintf(e.word(word), strings.Join(e.passArmWords(arms), ", "))
+	if text == "" {
+		return closed, true
+	}
+	return text + "; " + closed, true
 }
 
 // hoverHeight is the status line's height of the hovered cell while the
@@ -223,7 +288,9 @@ func (e *MapEditor) passabilityQuads() []passQuad {
 			return
 		}
 		q := passQuad{verts: v.cellSpace().vertices(v.cam, col, row), fill: passOpenFill}
-		if e.passArmAt(image.Pt(col, row)) != 0 {
+		if _, r, valued := e.passValueAt(image.Pt(col, row)); valued {
+			q.fill = passValueFill(r)
+		} else if e.passArmAt(image.Pt(col, row)) != 0 {
 			q.fill = passClosedFill
 		}
 		out = append(out, q)

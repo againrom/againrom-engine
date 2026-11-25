@@ -42,6 +42,14 @@ var areaInks = []color.RGBA{
 	{0x7a, 0x9c, 0xff, 255}, {0xff, 0x7a, 0x8a, 255}, {0xd8, 0xe0, 0x6a, 255}, {0xb0, 0x86, 0xff, 255},
 }
 
+// passKindFills are the passability view's fills of a valued cell by how many
+// move kinds its value closes: none, one, two, three; passRawFill is a value
+// no row names.
+var (
+	passKindFills = [...]color.RGBA{passOpenFill, {0xf0, 0xb0, 0x20, 0x60}, passClosedFill, {0x80, 0x10, 0x70, 0x80}}
+	passRawFill   = color.RGBA{0x30, 0x50, 0xe0, 0x60}
+)
+
 // relationInks are the relation matrix's icons: neutral, hostile, ally.
 var relationInks = []color.RGBA{{176, 176, 176, 255}, {214, 48, 40, 255}, {64, 184, 72, 255}}
 

@@ -94,6 +94,13 @@ type InspectionDocument struct {
 	// PassClosed is the hover's word for a cell with arms, one %s for them;
 	// "" is the closed-cell word.
 	PassClosed string
+	// PassValues is, per cell and row-major, the value the format's terrain
+	// build stores for the cell, which PassValueRows name with the move kinds
+	// each closes; nil: the view reads Passability alone.
+	PassValues    []uint8
+	PassValueRows []PassValueRow
+	// PassBrush are the passability brush's rows; nil: block and unblock.
+	PassBrush []PassBrushRow
 	// RawHeights shows a stored height as it is, not from the first game's zero.
 	RawHeights bool
 	// Refused is, in a placement's preview, each record the placement

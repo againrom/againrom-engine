@@ -53,7 +53,13 @@ var absentVictimRules = [...]absentVictimRow{
 var firstGameCreatureAim = creatureAimProfile{}
 
 var secondGameCreatureAim = creatureAimProfile{aims: secondCreatureAims[:], scanBeyond: 2,
-	absent: absentVictimSkips, scanMasks: [3]byte{0x41, 0x44, 0x82}, stepOffsets: &stepOf, stepEdge: stepPacksKey}
+	absent: absentVictimSkips, scanMasks: secondMoveKindMasks, stepOffsets: &stepOf, stepEdge: stepPacksKey}
+
+// SecondGameMoveKindMasks are the block masks of the second game's move kinds
+// 1, 2 and 3; its creature-aim profile holds this one table.
+func SecondGameMoveKindMasks() [3]uint8 { return secondMoveKindMasks }
+
+var secondMoveKindMasks = [3]byte{0x41, 0x44, 0x82}
 
 func (p *creatureAimProfile) byArm() bool { return p.aims == nil }
 

@@ -63,6 +63,25 @@ func passArms(arms []mapload.GroundArm) []ui.PassArm {
 	return out
 }
 
+// passValues is, per cell, the value the second game's terrain build leaves
+// for the cell's arms.
+func passValues(arms []mapload.GroundArm) []uint8 {
+	out := make([]uint8, len(arms))
+	for i, a := range arms {
+		out[i] = mapload.MarkValue(a)
+	}
+	return out
+}
+
+// passValueRows is the window's form of mapload's value table.
+func passValueRows() []ui.PassValueRow {
+	var out []ui.PassValueRow
+	for _, r := range mapload.PlaneValueRows() {
+		out = append(out, ui.PassValueRow{Value: r.Value, Kinds: r.Kinds, Word: r.Word})
+	}
+	return out
+}
+
 // passArmRows is the window's form of mapload's arm table.
 func passArmRows(rows []mapload.GroundArmRow) []ui.PassArmRow {
 	if rows == nil {
