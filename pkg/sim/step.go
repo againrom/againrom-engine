@@ -2107,12 +2107,19 @@ func (w *World) decayPass() {
 			}
 		}
 		rule.stepBody(w, e)
-		if e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() {
+		if e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() && !w.lootSpent(i) {
 			if !w.dropTerminalLoot(i) {
 				continue
 			}
 			e = &w.entities[i]
 			rule.atTeardown(w, e)
+			// A body the ladder still reads as Fallen (the strict ladder at
+			// exactly -10) is met here again next tick; its loot is marked
+			// gone so that visit rolls and drops nothing.
+			if w.game.decay.stage(e.HP) == DecayFallen {
+				e.SuppressCorpseLoot = true
+				e.GoldChance, e.TreasureMin, e.TreasureMax, e.DeathItem = 0, 0, spentTreasureMax, DeathItemRoll{}
+			}
 		}
 		if s := w.game.decay.stage(e.HP); s > decayLast {
 			// A downed body whose walk crosses below zero and leaves in the same

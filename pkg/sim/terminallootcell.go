@@ -73,6 +73,19 @@ func (e Entity) discardsCorpseLoot() bool {
 	return e.SuppressCorpseLoot || e.SuppressRewards
 }
 
+// spentTreasureMax is the treasure maximum a first terminal drop leaves on a body
+// the strict ladder keeps at Fallen. No unit row carries a negative one, so it
+// tells that drop's repeat visits from a first visit, which draws as ever.
+const spentTreasureMax = -1
+
+// lootSpent reports a body whose first terminal drop has run: the corpse-loot
+// mark, the spent treasure maximum, every other roll column cleared, nothing held.
+func (w *World) lootSpent(i int) bool {
+	e := w.entities[i]
+	return e.SuppressCorpseLoot && e.GoldChance == 0 && e.TreasureMin == 0 && e.TreasureMax == spentTreasureMax &&
+		e.DeathItem == DeathItemRoll{} && !w.holdsSomething(i)
+}
+
 func (w *World) hasTerminalLoot(i int) bool {
 	e := w.entities[i]
 	if w.rollsAtDeath(e) && (e.GoldChance > 0 && (e.TreasureMin != 0 || e.TreasureMax != 0) || w.rollsDeathItem(e)) {

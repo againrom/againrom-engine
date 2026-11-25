@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM1] A unit moved by a teleport stays where it lands instead of walking back.
 - [ROM2] A second-game map can carry the engine's extended script, so its triggers can fire when a chosen unit leaves its starting cell.
 - [ROM2] A weapon with Fire Ball now throws its ball after every blow, even one that fells the target, as in the original.
+- [ROM2] A monster felled to exactly -10 health now drops its gold and item once, instead of rolling again on every tick until its body decays further.
 
 ### For map makers and modders
 
