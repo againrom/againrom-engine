@@ -145,7 +145,7 @@ func secondEnchantmentFields(e *Editor, rec []byte) []Field {
 	switch int64(rec[18]) {
 	case move:
 		spell.Label, spell.Min, spell.Max = "editor.cast.event", move, move
-		return append([]Field{spell}, cell...)
+		return cellMoveFields(append([]Field{spell}, cell...))
 	case 0:
 	default:
 		spell.Check = CheckCellSpell

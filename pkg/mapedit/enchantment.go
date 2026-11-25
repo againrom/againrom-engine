@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/scriptprofile"
 )
 
 const enchantmentHead = 26
@@ -79,7 +80,7 @@ func enchantmentLayout(e *Editor, sp span) (arrayLayout, error) {
 	return arrayLayout{countAt: sp.payloadOff, first: 4, n: int(n)}, nil
 }
 
-func enchantmentFields(_ *Editor, rec []byte) []Field {
+func enchantmentFields(e *Editor, rec []byte) []Field {
 	if binary.LittleEndian.Uint32(rec[4:]) != 0 || binary.LittleEndian.Uint32(rec[8:]) != 0 {
 		if !spellRecordKnown(rec) {
 			return nil
@@ -98,15 +99,20 @@ func enchantmentFields(_ *Editor, rec []byte) []Field {
 			out = append(out, Field{Key: "range", Label: "editor.cast.range", Offset: 0, Width: 4, Min: 0, Max: math.MaxUint8})
 		}
 		if binary.LittleEndian.Uint16(rec[12:]) < 4 {
-			out = append(out,
-				Field{Key: "link", Label: "editor.cast.link", Offset: 14, Width: 4, Min: 0, Max: math.MaxUint32},
-				Field{Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
-				Field{Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
-				Field{Key: "castkind", Label: "editor.cast.kind", Offset: 12, Width: 2, Min: 0, Max: 3},
-				Field{Key: "sourcex", Label: "editor.cast.sourcex", Offset: 26, Width: 2, Min: 0, Max: 255},
-				Field{Key: "sourcey", Label: "editor.cast.sourcey", Offset: 28, Width: 2, Min: 0, Max: 255},
-				Field{Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
-				Field{Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255})
+			cell := []Field{
+				{Key: "link", Label: "editor.cast.link", Offset: 14, Width: 4, Min: 0, Max: math.MaxUint32},
+				{Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
+				{Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
+				{Key: "castkind", Label: "editor.cast.kind", Offset: 12, Width: 2, Min: 0, Max: 3},
+				{Key: "sourcex", Label: "editor.cast.sourcex", Offset: 26, Width: 2, Min: 0, Max: 255},
+				{Key: "sourcey", Label: "editor.cast.sourcey", Offset: 28, Width: 2, Min: 0, Max: 255},
+				{Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
+				{Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255},
+			}
+			if move := scriptprofile.VocabularyOf(e.Profile().Ops).CellMove; move != 0 && uint32(binary.LittleEndian.Uint16(rec[18:])) == move {
+				cell = cellMoveFields(cell)
+			}
+			out = append(out, cell...)
 		}
 		return out
 	}

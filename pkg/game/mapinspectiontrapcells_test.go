@@ -52,3 +52,29 @@ func TestFirstGameTeleportTrapListsSourceAndTargetCells(t *testing.T) {
 		t.Fatalf("record %x", rec)
 	}
 }
+
+// The first-format card of a cell-move record is the format dictionary's row:
+// the model's own fields hold no source cell and declare the cell pairs.
+func TestFirstFormatCellMoveCardIsTheDictionaryRow(t *testing.T) {
+	e := spellMap(t)
+	s := e.Document().Edits.(*mapInspectionEdits)
+	if _, err := s.AddRecord(ui.InspectionNewRecord{Kind: ui.KindEnchantment, Cell: image.Pt(12, 20), HasCell: true, Values: []ui.InspectionFieldValue{
+		{Key: "template", Value: int64(mapedit.SpellConstructor(0))}, {Key: "spell", Value: firstCellMove}, {Key: "power", Value: 9}}}); err != nil {
+		t.Fatal(err)
+	}
+	fields, err := s.model.Fields(mapedit.KindEnchantment, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keys []string
+	pairs := map[string]string{}
+	for _, f := range fields {
+		keys = append(keys, f.Key)
+		if f.CellPair != "" {
+			pairs[f.Key] = f.CellPair
+		}
+	}
+	if slices.Contains(keys, "sourcex") || slices.Contains(keys, "sourcey") || pairs["triggerx"] != "triggery" || pairs["targetx"] != "targety" {
+		t.Fatalf("model fields %v pairs %v", keys, pairs)
+	}
+}

@@ -404,10 +404,16 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		if f.Key == "prependitem" || strings.HasPrefix(f.Key, "duplicate") {
 			continue
 		}
-		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward, ValueWidth: fieldValueWidth(f), ReadOnly: f.ReadOnly}
+		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward, ValueWidth: fieldValueWidth(f), ReadOnly: f.ReadOnly, CellPair: f.CellPair, CellOwn: f.CellOwn}
 		locked = locked || f.ReadOnly
 		if strings.HasPrefix(f.Label, "editor.") {
 			row.Label = fieldWordLabel(s.inspector, f.Key, f.Label)
+		}
+		if f.CellWord != "" {
+			row.Label = s.inspector.word(f.CellWord) + " Y"
+			if f.CellPair != "" {
+				row.Label = s.inspector.word(f.CellWord) + " X"
+			}
 		}
 		if template != nil {
 			label, offered := template.label(f)
@@ -437,9 +443,6 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		if element, part, ok := stockItemField(f.Key); k == mapedit.KindLoot && ok && part == "recipe" {
 			out = append(out, s.stockRecipeFields(index, element)...)
 		}
-	}
-	if k == mapedit.KindEnchantment {
-		out = s.trapCellFields(out, index)
 	}
 	if locked && k == mapedit.KindPlayer {
 		out = append(out, s.inspector.playerNote())

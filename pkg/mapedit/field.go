@@ -60,6 +60,12 @@ type Field struct {
 	// ReadOnly is set by Fields on a field its section's locked row holds
 	// for that record; SetFields refuses it.
 	ReadOnly bool
+	// CellPair, on the X field of a map cell, is the key of its Y field;
+	// CellOwn marks the record's own cell; CellWord is the word both fields'
+	// labels take, with the axis after it. All are empty for other fields.
+	CellPair string
+	CellOwn  bool
+	CellWord string
 }
 
 // UnitField and UnitFieldCheck are the type-6 names of Field and FieldCheck.
