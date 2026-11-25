@@ -314,7 +314,11 @@ func secondSpellBookCastWorld(t *testing.T, id uint16) *sim.World {
 	}
 	actor := sim.Entity{ID: 1, Owner: sim.SelfSlot, X: 2, Y: 2, HP: 100, MaxHP: 100, TypeID: sim.HumanTypeID, TokenSize: 1, Speed: 4, Mind: 60, MaxMana: 1000, Mana: 1000, KnownSpells: 1 << id, ScanRange: 12}
 	observer := sim.Entity{ID: 2, Owner: 2, X: 6, Y: 2, HP: 100, MaxHP: 100, TokenSize: 1, ScanRange: 12}
-	w, err := sim.NewSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, nil, []sim.Entity{actor, observer}, nil, mapload.SpellRules(defs.Table))
+	script, err := sim.NewROM2Script(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := sim.NewSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, nil, []sim.Entity{actor, observer}, script, mapload.SpellRules(defs.Table))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -352,7 +356,7 @@ func TestReleaseSecondGameAttachedEffectsActAsTheirOwnArms(t *testing.T) {
 	t.Run("Invisibility record duration", func(t *testing.T) {
 		w := secondSpellBookCastWorld(t, 12)
 		invisible := secondSpellRule(t, w, 12)
-		if got := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, sim.Entity{Mind: 100}, invisible); got.Duration != 70<<4 {
+		if got := sim.SpellCharacteristicsFor(testSecondGame, sim.Rules{}, sim.Entity{Mind: 100}, invisible); got.Duration != 70<<4 {
 			t.Fatalf("installed Invisibility record at P70 = %d, want %d", got.Duration, 70<<4)
 		}
 	})
