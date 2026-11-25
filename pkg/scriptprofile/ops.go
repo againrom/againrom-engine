@@ -66,7 +66,68 @@ type Op struct {
 	EffectUnread bool
 	// Forms are the nodes of the operation a claim reads by the value of
 	// their first parameter, each under its own name and slot roles.
-	Forms []Form
+	Forms           []Form
+	Presets         []WizardPreset
+	WizardSignature []Slot // editor-authored slots when the raw signature is unknown
+}
+
+// WizardPreset describes one reading of an operation in the trigger wizard.
+// Fields selects a control by slot role. Compared names an editable constant,
+// PeerWord a second node, and Fixed the values of trailing, uneditable slots.
+type WizardPreset struct {
+	Order                   int
+	Word, Hint, SubjectWord string
+	Command                 uint32
+	GroupFirst, Variant     bool
+	Fields                  map[string]string
+	ExtraSlots              []Slot
+	Fixed                   []uint32
+	Cmp                     int
+	ChooseCmp, Holds        bool
+	Right                   int64
+	RightType               uint32
+	Also                    [][2]int64
+	Compared, PeerWord      string
+	DialogSource            string
+}
+
+// ReadyPresets returns the authored readings, or the ordinary reading of an
+// offered, decoded operation. An explicit empty list omits an operation.
+func (o Op) ReadyPresets() []WizardPreset {
+	if o.Presets != nil || !o.Offered || !o.Decoded || o.Again || o.EffectUnread || o.ID >= constantOp {
+		return o.Presets
+	}
+	if o.Condition {
+		return []WizardPreset{{ChooseCmp: true, Compared: "value", Right: 1}}
+	}
+	return []WizardPreset{{}}
+}
+
+// Slots combines the operation's signature with any additional authored
+// slots. Fixed values take their types from the end of that layout.
+func (p WizardPreset) Slots(op Op, command uint32) ([10]Slot, [][2]uint32, bool) {
+	if !op.HasSignature() {
+		op.Signature = op.WizardSignature
+	}
+	slots, ok := op.Slots(command)
+	end := len(slots)
+	for end > 0 && slots[end-1].Type == 0 {
+		end--
+	}
+	if !ok || end+len(p.ExtraSlots) > len(slots) {
+		return slots, nil, false
+	}
+	end += copy(slots[end:], p.ExtraSlots)
+	if len(p.Fixed) > end {
+		return slots, nil, false
+	}
+	var fixed [][2]uint32
+	for i, value := range p.Fixed {
+		at := end - len(p.Fixed) + i
+		fixed = append(fixed, [2]uint32{slots[at].Type, value})
+		slots[at] = Slot{}
+	}
+	return slots, fixed, true
 }
 
 // Form is the reading of an operation's node whose first parameter holds
@@ -327,71 +388,147 @@ var groupCommands = []uint32{1, 2, 3, 4, 5, 10, 11, 14, 15, 17, 18}
 
 // The first game's rows. An operation with no row is read by its raw number.
 var firstChecks = []Op{
-	{Condition: true, ID: 1, Name: "Group count", Word: "editor.check.op1", Decoded: true, Offered: true, Signature: sig(group)},                                                                 // TRIG-COUNT-015
-	{Condition: true, ID: 2, Name: "Unit in box", Word: "editor.check.op2", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("corner"), cell("corner2"))},                         // TRIG-CHECKGEOM-130
-	{Condition: true, ID: 3, Name: "Unit in distance square", Word: "editor.check.op3", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("cell"), number("radius"))},              // TRIG-DIST-014
-	{Condition: true, ID: 4, Name: "Unit field (selector 6)", Word: "editor.check.op4", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("selector"))},                          // TRIG-CHECK-051
-	{Condition: true, ID: 5, Name: "Unit alive", Word: "editor.check.op5", Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                                           // TRIG-CHECKGEOM-130
-	{Condition: true, ID: 6, Name: "Distance between units", Word: "editor.check.op6", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},                                // TRIG-DIST-014
-	{Condition: true, ID: 7, Name: "Point to unit distance", Word: "editor.check.op7", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("cell"))},                                 // TRIG-DIST-014
-	{Condition: true, ID: 8, Name: "Player population", Word: "editor.check.op8", Decoded: true, Offered: true, Signature: sig(player("player"))},                                                // TRIG-LISTREAD-131
-	{Condition: true, ID: 9, Name: "Unit target ID", Word: "editor.check.op9", Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                                       // TRIG-TARGETID-032
-	{Condition: true, ID: 10, Name: "Player relation", Word: "editor.check.op10", Decoded: true, Offered: true, Signature: sig(player("player"), player("player2"))},                             // TRIG-DIPLO-020
-	{Condition: true, ID: 11, Name: "No-write arm", Word: "editor.check.op11", Decoded: true, Offered: true, Signature: sig()},                                                                   // TRIG-COND-003, a dead arm
-	{Condition: true, ID: 12, Name: "Item presence", Word: "editor.check.op12", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},                                                // TRIG-ITEMTEST-040
-	{Condition: true, ID: 13, Name: "No-write arm", Word: "editor.check.op13", Decoded: true, Offered: true, Signature: sig()},                                                                   // TRIG-COND-003, a dead arm
-	{Condition: true, ID: 14, Name: "Sack at cell", Word: "editor.check.op14", Decoded: true, Offered: true, Signature: sig(cell("cell"))},                                                       // TRIG-SACK-022
-	{Condition: true, ID: 15, Name: "Nearest player unit distance", Word: "editor.check.op15", Decoded: true, Offered: true, Signature: sig(player("player"), cell("cell"))},                     // TRIG-NEAREST-029
-	{Condition: true, ID: 16, Name: "Item to point distance", Word: "editor.check.op16", Decoded: true, Offered: true, Signature: sig(unit("unit"), item, cell("cell"))},                         // TRIG-CHECK-052
-	{Condition: true, ID: 17, Name: "Item presence", Word: "editor.check.op17", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},                                                // TRIG-ITEMTEST-040
-	{Condition: true, ID: 18, Name: "Lose if unit dies", Word: "editor.check.op18", Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                                  // MISSION-VIP-004
-	{Condition: true, ID: 19, Name: "Read variable", Word: "editor.check.op19", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"))},                                // TRIG-COND-003
-	{Condition: true, ID: 20, Signature: sig(player("player"))},                                                                                                                                  // TRIG-CHECKCOUNT-132
-	{Condition: true, ID: 21, Name: "Structure field", Word: "editor.check.op21", Decoded: true, Offered: true, Signature: sig(structure)},                                                       // TRIG-CHECK-053
-	{Condition: true, ID: 22, Name: "Move object check", Word: "editor.check.op22", Decoded: true, Signature: sig(cell("cell"), cell("cell2"))},                                                  // TRIG-CELLRESULT-133
-	{Condition: true, ID: constantOp, Name: "Constant / variable preset", Word: "editor.check.op65538", Decoded: true, Offered: true, Signature: sig(number("value"))},                           // TRIG-COND-003
+	{Condition: true, ID: 1, Name: "Group count", Word: "editor.check.op1", Decoded: true, Offered: true, Signature: sig(group), // TRIG-COUNT-015
+		Presets: []WizardPreset{{Order: 6, Word: "editor.wizard.c.groupcount", ChooseCmp: true, Compared: "count"}}},
+	{Condition: true, ID: 2, Name: "Unit in box", Word: "editor.check.op2", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("corner"), cell("corner2")), // TRIG-CHECKGEOM-130
+		Presets: []WizardPreset{{Order: 1, Word: "editor.wizard.c.heroarea", Right: 1, Also: [][2]int64{{1, 0}}}}},
+	{Condition: true, ID: 3, Name: "Unit in distance square", Word: "editor.check.op3", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("cell"), number("radius")), // TRIG-DIST-014
+		Presets: []WizardPreset{{Order: 3, Word: "editor.wizard.c.unitnear", Right: 1, Fields: map[string]string{"radius": "radius"}}}},
+	{Condition: true, ID: 4, Name: "Unit field (selector 6)", Word: "editor.check.op4", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("selector")), // TRIG-CHECK-051
+		Presets: []WizardPreset{{Order: 12, Word: "editor.wizard.c.health", Fixed: []uint32{6}, Cmp: 2, ChooseCmp: true, Compared: "health"}}},
+	{Condition: true, ID: 5, Name: "Unit alive", Word: "editor.check.op5", Decoded: true, Offered: true, Signature: sig(unit("unit")), // TRIG-CHECKGEOM-130
+		Presets: []WizardPreset{
+			{Order: 5, Word: "editor.wizard.c.unitdead", Also: [][2]int64{{1, 1}}},
+			{Order: 10, Word: "editor.wizard.c.unitalive", Cmp: 1, Also: [][2]int64{{0, 1}}},
+		}},
+	{Condition: true, ID: 6, Name: "Distance between units", Word: "editor.check.op6", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2")), // TRIG-DIST-014
+		Presets: []WizardPreset{{Order: 4, Word: "editor.wizard.c.unitnearunit", Hint: "editor.wizard.c.unitnearunit.hint", Cmp: 5, ChooseCmp: true, Compared: "radius", Right: 3}}},
+	{Condition: true, ID: 7, Name: "Point to unit distance", Word: "editor.check.op7", Decoded: true, Offered: true, Signature: sig(unit("unit"), cell("cell")), // TRIG-DIST-014
+		Presets: []WizardPreset{{Order: 11, Word: "editor.wizard.c.unitcell", Cmp: 5, ChooseCmp: true, Compared: "radius", Right: 3}}},
+	{Condition: true, ID: 8, Name: "Player population", Word: "editor.check.op8", Decoded: true, Offered: true, Signature: sig(player("player")), // TRIG-LISTREAD-131
+		Presets: []WizardPreset{{Order: 7, Word: "editor.wizard.c.playercount", ChooseCmp: true, Compared: "count"}}},
+	{Condition: true, ID: 9, Name: "Unit target ID", Word: "editor.check.op9", Decoded: true, Offered: true, Signature: sig(unit("unit")), // TRIG-TARGETID-032
+		Presets: []WizardPreset{{Order: 13, Word: "editor.wizard.c.target", Hint: "editor.wizard.c.target.hint", ChooseCmp: true, Compared: "targetunit", Right: 1}}},
+	{Condition: true, ID: 10, Name: "Player relation", Word: "editor.check.op10", Decoded: true, Offered: true, Signature: sig(player("player"), player("player2")), // TRIG-DIPLO-020
+		Presets: []WizardPreset{{Order: 8, Word: "editor.wizard.c.relation", Hint: "editor.wizard.c.relation.hint", ChooseCmp: true, Compared: "relation"}}},
+	{Condition: true, ID: 11, Name: "No-write arm", Word: "editor.check.op11", Decoded: true, Offered: true, Signature: sig(), // TRIG-COND-003, a dead arm
+		Presets: []WizardPreset{}},
+	{Condition: true, ID: 12, Name: "Item presence", Word: "editor.check.op12", Decoded: true, Offered: true, Signature: sig(unit("unit"), item), // TRIG-ITEMTEST-040
+		Presets: []WizardPreset{}},
+	{Condition: true, ID: 13, Name: "No-write arm", Word: "editor.check.op13", Decoded: true, Offered: true, Signature: sig(), // TRIG-COND-003, a dead arm
+		Presets: []WizardPreset{}},
+	{Condition: true, ID: 14, Name: "Sack at cell", Word: "editor.check.op14", Decoded: true, Offered: true, Signature: sig(cell("cell")), // TRIG-SACK-022
+		Presets: []WizardPreset{
+			{Order: 16, Word: "editor.wizard.c.sackgone", RightType: slotConst, Also: [][2]int64{{1, 1}}},
+			{Order: 17, Word: "editor.wizard.c.sacklies", Right: 1, RightType: slotConst, Also: [][2]int64{{1, 0}}},
+		}},
+	{Condition: true, ID: 15, Name: "Nearest player unit distance", Word: "editor.check.op15", Decoded: true, Offered: true, Signature: sig(player("player"), cell("cell")), // TRIG-NEAREST-029
+		Presets: []WizardPreset{{Order: 2, Word: "editor.wizard.c.playernear", Cmp: 5, ChooseCmp: true, Compared: "radius", Right: 3}}},
+	{Condition: true, ID: 16, Name: "Item to point distance", Word: "editor.check.op16", Decoded: true, Offered: true, Signature: sig(unit("unit"), item, cell("cell")), // TRIG-CHECK-052
+		Presets: []WizardPreset{{Order: 20, Word: "editor.wizard.c.itemnear", Hint: "editor.wizard.c.itemnear.hint", Cmp: 5, ChooseCmp: true, Compared: "radius", Right: 3}}},
+	{Condition: true, ID: 17, Name: "Item presence", Word: "editor.check.op17", Decoded: true, Offered: true, Signature: sig(unit("unit"), item), // TRIG-ITEMTEST-040
+		Presets: []WizardPreset{
+			{Order: 18, Word: "editor.wizard.c.hasitem", Right: 1, RightType: slotConst, Also: [][2]int64{{1, 0}}},
+			{Order: 19, Word: "editor.wizard.c.lacksitem", RightType: slotConst, Also: [][2]int64{{1, 1}}},
+		}},
+	{Condition: true, ID: 18, Name: "Lose if unit dies", Word: "editor.check.op18", Decoded: true, Offered: true, Signature: sig(unit("unit")), // MISSION-VIP-004
+		Presets: []WizardPreset{
+			{Order: 14, Word: "editor.wizard.c.lose", SubjectWord: "editor.wizard.s.mission", Hint: "editor.wizard.c.lose.hint", Cmp: 2, ChooseCmp: true, Compared: "value", Right: 1},
+			{Order: 15, Word: "editor.wizard.c.losetwo", SubjectWord: "editor.wizard.s.mission", Hint: "editor.wizard.c.lose.hint", Cmp: 1, ChooseCmp: true, PeerWord: "editor.wizard.p.unit2"},
+		}},
+	{Condition: true, ID: 19, Name: "Read variable", Word: "editor.check.op19", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable")), // TRIG-COND-003
+		Presets: []WizardPreset{
+			{Order: 22, Word: "editor.wizard.c.variable", Fields: map[string]string{"variable": "variable"}, ChooseCmp: true, Compared: "value"},
+			{Order: 23, Word: "editor.wizard.c.variables", Fields: map[string]string{"variable": "variable"}, ChooseCmp: true, PeerWord: "editor.wizard.p.variable2"},
+		}},
+	{Condition: true, ID: 20, Signature: sig(player("player"))}, // TRIG-CHECKCOUNT-132
+	{Condition: true, ID: 21, Name: "Structure field", Word: "editor.check.op21", Decoded: true, Offered: true, Signature: sig(structure), // TRIG-CHECK-053
+		Presets: []WizardPreset{{Order: 21, Word: "editor.wizard.c.structure", Cmp: 3, ChooseCmp: true, Compared: "value", Right: 1}}},
+	{Condition: true, ID: 22, Name: "Move object check", Word: "editor.check.op22", Decoded: true, Signature: sig(cell("cell"), cell("cell2"))}, // TRIG-CELLRESULT-133
+	{Condition: true, ID: constantOp, Name: "Constant / variable preset", Word: "editor.check.op65538", Decoded: true, Offered: true, Signature: sig(number("value")), // TRIG-COND-003
+		Presets: []WizardPreset{{Order: 9, Word: "editor.wizard.c.always", Right: 1, Fixed: []uint32{1}, Holds: true}}},
 	{Condition: true, ID: healthBelow, Name: "Health below (Againrom)", Word: "editor.check.op16641", Decoded: true, Offered: true, Again: true, Signature: sig(unit("unit"), number("health"))}, // DIV-4009
-	{Condition: true, ID: readGlobal, Name: "Read global (Againrom)", Word: "editor.check.op16642", Decoded: true, Again: true, Signature: sig(number("global"))},                                // DIV-5108
+	{Condition: true, ID: readGlobal, Name: "Read global (Againrom)", Word: "editor.check.op16642", Decoded: true, Again: true, Signature: sig(number("global")), // DIV-5108
+		Presets: []WizardPreset{{Order: 24, Word: "editor.wizard.c.global", Fields: map[string]string{"global": "global"}, ChooseCmp: true, Compared: "count"}}},
 }
 
 var firstActions = []Op{
 	{ID: 1, Signature: sig()}, // TRIG-ACTIONWRITE-135
-	{ID: 2, Name: "Send message", Word: "editor.action.op2", Decoded: true, Offered: true, Signature: sig(number("message"))},                                   // TRIG-MSG-023
-	{ID: 3, Name: "Set variable", Word: "editor.action.op3", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"), number("value"))}, // TRIG-ACT-004
-	{ID: 4, Name: "Win", Word: "editor.action.op4", Decoded: true, Offered: true, Signature: sig()},                                                             // TRIG-ACT-004
-	{ID: 5, Name: "Lose", Word: "editor.action.op5", Decoded: true, Offered: true, Signature: sig()},                                                            // TRIG-ACT-004
-	{ID: 6, Name: "Group command", Word: "editor.action.op6", Decoded: true, Offered: true, Commands: groupCommands, CommandSignatures: firstCommandSignatures},
-	{ID: 7, Name: "Set formation", Offered: true},
-	{ID: 8, Name: "Increment variable", Word: "editor.action.op8", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"))},                        // TRIG-ACT-004
-	{ID: 9, Name: "No-op arm", Word: "editor.action.op9", Decoded: true, Signature: sig()},                                                                                  // TRIG-ACT-004, a dead arm
-	{ID: 10, Name: "Set relation", Word: "editor.action.op10", Decoded: true, Offered: true, Signature: sig(number("player"), number("player2"), number("value"))},          // TRIG-DIPLO-019
-	{ID: 11, Word: "editor.action.op11", Decoded: true, Signature: sig(unit("unit"), unit("unit2"), item)},                                                                  // TRIG-XFERITEM-039
-	{ID: 12, Name: "Create item", Word: "editor.action.op12", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},                                             // TRIG-ADDITEM-027
-	{ID: 13, Name: "Take item", Word: "editor.action.op13", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},                                               // TRIG-TAKEITEM-038
-	{ID: 16, Name: "Take unit off map", Word: "editor.action.op16", Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                             // TRIG-OFFMAP-041
-	{ID: 17, Name: "Return unit to map", Word: "editor.action.op17", Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                            // TRIG-RETURN-042
-	{ID: 18, Name: "Replace unit on map", Word: "editor.action.op18", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},                            // TRIG-MAPGROUP-043
-	{ID: 19, Name: "Give unit to player", Word: "editor.action.op19", Decoded: true, Offered: true, Signature: sig(unit("unit"), player("player"))},                         // PARTY-JOIN-025
-	{ID: 20, Name: "Drop inventory", Word: "editor.action.op20", Decoded: true, Offered: true, Signature: sig(unit("unit"))},                                                // TRIG-DROPALL-024
-	{ID: 21, Name: "Cast at cell", Word: "editor.action.op21", Decoded: true, Offered: true, Signature: sig(cell("cell"), cell("cell2"), number("spell"), number("power"))}, // TRIG-CAST-033
-	{ID: 22, Name: "Give group to player", Word: "editor.action.op22", Decoded: true, Offered: true, Signature: sig(group, player("player"))},                               // PARTY-JOIN-025
-	{ID: 23, Name: "Give money to player", Word: "editor.action.op23", Decoded: true, Offered: true, Signature: sig(player("player"), number("money"))},                     // TRIG-MONEY-028
-	{ID: 24, Name: "Cast at unit", Word: "editor.action.op24", Decoded: true, Offered: true, Signature: sig(cell("cell"), unit("unit"), number("spell"), number("power"))},  // TRIG-CAST-033
-	{ID: 25, Name: "Set cell tail", Word: "editor.action.op25", Decoded: true, Offered: true, Signature: sig(number("spell"), number("power"), cell("cell"))},               // TRIG-CELLTAIL-035
-	{ID: 26, Name: "Set structure field", Word: "editor.action.op26", Decoded: true, Offered: true, Signature: sig(structure, number("value"))},                             // TRIG-CHECK-053
-	{ID: 27, Name: "Move unit", Word: "editor.action.op27", Decoded: true, Signature: sig(unit("unit"), cell("cell"))},                                                      // AI-SCRIPTGUARD-625
-	{ID: 28, Name: "Give entire inventory", Word: "editor.action.op28", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},                          // TRIG-GIVEALL-025
-	{ID: 29, Name: "Set cell effect duration", Word: "editor.action.op29", Decoded: true, Offered: true, Signature: sig(cell("cell"), number("spell"), number("time"))},     // TRIG-EFFECTTIME-034
-	{ID: 30, Name: "Set unit effect duration", Word: "editor.action.op30", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("spell"), number("time"))},     // TRIG-EFFECTTIME-034
-	{ID: 32, Name: "Take group off map", Word: "editor.action.op32", Decoded: true, Offered: true, Signature: sig(group)},                                                   // TRIG-MAPGROUP-043
-	{ID: 33, Name: "Return group to map", Word: "editor.action.op33", Decoded: true, Offered: true, Signature: sig(group)},                                                  // TRIG-MAPGROUP-043
-	{ID: 34, Name: "Set unit field", Word: "editor.action.op34", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("selector"), number("value"))},           // TRIG-PROPERTY-036
-	{ID: constantOp, Name: "Drop location (build time)", Word: "editor.action.op65538", Decoded: true, Offered: true, Signature: sig(cell("cell")), // TRIG-DROP-013
-		CopyRefused: "editor.trigger.copydropzone"},
+	{ID: 2, Name: "Send message", Word: "editor.action.op2", Decoded: true, Offered: true, Signature: sig(number("message")), // TRIG-MSG-023
+		Presets: []WizardPreset{
+			{Order: 4, Word: "editor.wizard.a.dialog", DialogSource: "message", Fields: map[string]string{"message": "message"}},
+			{Order: 34, Word: "editor.wizard.a.dialog", DialogSource: "file", Variant: true, ExtraSlots: number("source"), Fixed: []uint32{0, 1}},
+		}},
+	{ID: 3, Name: "Set variable", Word: "editor.action.op3", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"), number("value")), // TRIG-ACT-004
+		Presets: []WizardPreset{{Order: 16, Word: "editor.wizard.a.setvar", Fields: map[string]string{"variable": "variable", "value": "value"}}}},
+	{ID: 4, Name: "Win", Word: "editor.action.op4", Decoded: true, Offered: true, Signature: sig(), // TRIG-ACT-004
+		Presets: []WizardPreset{{Order: 2, Word: "editor.wizard.a.win"}}},
+	{ID: 5, Name: "Lose", Word: "editor.action.op5", Decoded: true, Offered: true, Signature: sig(), // TRIG-ACT-004
+		Presets: []WizardPreset{{Order: 3, Word: "editor.wizard.a.lose"}}},
+	{ID: 6, Name: "Group command", Word: "editor.action.op6", Decoded: true, Offered: true, Commands: groupCommands, CommandSignatures: firstCommandSignatures,
+		Presets: []WizardPreset{
+			{Order: 13, Word: "editor.wizard.a.order", Command: 4, GroupFirst: true},
+			{Order: 30, Word: "editor.wizard.a.order.stand", Command: 3, GroupFirst: true, Variant: true},
+			{Order: 31, Word: "editor.wizard.a.order.attack", Command: 10, GroupFirst: true, Variant: true},
+			{Order: 32, Word: "editor.wizard.a.order.defend", Command: 11, GroupFirst: true, Variant: true, Fields: map[string]string{"range": "range"}},
+			{Order: 33, Word: "editor.wizard.a.order.follow", Command: 15, GroupFirst: true, Variant: true, Fields: map[string]string{"range": "range"}},
+		}},
+	{ID: 7, Name: "Set formation", Offered: true, WizardSignature: sig(player("player"), number("value")),
+		Presets: []WizardPreset{{Order: 29, Word: "editor.wizard.a.action7", Fields: map[string]string{"value": "value"}}}},
+	{ID: 8, Name: "Increment variable", Word: "editor.action.op8", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable")), // TRIG-ACT-004
+		Presets: []WizardPreset{{Order: 15, Word: "editor.wizard.a.addvar", Fields: map[string]string{"variable": "variable"}}}},
+	{ID: 9, Name: "No-op arm", Word: "editor.action.op9", Decoded: true, Signature: sig()}, // TRIG-ACT-004, a dead arm
+	{ID: 10, Name: "Set relation", Word: "editor.action.op10", Decoded: true, Offered: true, Signature: sig(number("player"), number("player2"), number("value")), // TRIG-DIPLO-019
+		Presets: []WizardPreset{{Order: 14, Hint: "editor.wizard.a.relation.hint", Fields: map[string]string{"player": "player", "player2": "player2", "value": "relation"}}}},
+	{ID: 11, Word: "editor.action.op11", Decoded: true, Signature: sig(unit("unit"), unit("unit2"), item)}, // TRIG-XFERITEM-039
+	{ID: 12, Name: "Create item", Word: "editor.action.op12", Decoded: true, Offered: true, Signature: sig(unit("unit"), item), // TRIG-ADDITEM-027
+		Presets: []WizardPreset{{Order: 20, Word: "editor.wizard.a.giveitem"}}},
+	{ID: 13, Name: "Take item", Word: "editor.action.op13", Decoded: true, Offered: true, Signature: sig(unit("unit"), item), // TRIG-TAKEITEM-038
+		Presets: []WizardPreset{{Order: 19, Word: "editor.wizard.a.takeitem"}}},
+	{ID: 16, Name: "Take unit off map", Word: "editor.action.op16", Decoded: true, Offered: true, Signature: sig(unit("unit")), // TRIG-OFFMAP-041
+		Presets: []WizardPreset{{Order: 8, Word: "editor.wizard.a.unitoff"}}},
+	{ID: 17, Name: "Return unit to map", Word: "editor.action.op17", Decoded: true, Offered: true, Signature: sig(unit("unit")), // TRIG-RETURN-042
+		Presets: []WizardPreset{{Order: 9, Word: "editor.wizard.a.unitback"}}},
+	{ID: 18, Name: "Replace unit on map", Word: "editor.action.op18", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2")), // TRIG-MAPGROUP-043
+		Presets: []WizardPreset{{Order: 22, Word: "editor.wizard.a.replace", Hint: "editor.wizard.a.replace.hint"}}},
+	{ID: 19, Name: "Give unit to player", Word: "editor.action.op19", Decoded: true, Offered: true, Signature: sig(unit("unit"), player("player")), // PARTY-JOIN-025
+		Presets: []WizardPreset{{Order: 5, Word: "editor.wizard.a.giveunit"}}},
+	{ID: 20, Name: "Drop inventory", Word: "editor.action.op20", Decoded: true, Offered: true, Signature: sig(unit("unit")), // TRIG-DROPALL-024
+		Presets: []WizardPreset{}},
+	{ID: 21, Name: "Cast at cell", Word: "editor.action.op21", Decoded: true, Offered: true, Signature: sig(cell("cell"), cell("cell2"), number("spell"), number("power")), // TRIG-CAST-033
+		Presets: []WizardPreset{{Order: 24, Word: "editor.wizard.a.castcell", Hint: "editor.wizard.a.cast.hint", Fields: map[string]string{"cell": "from", "spell": "spell", "power": "power"}}}},
+	{ID: 22, Name: "Give group to player", Word: "editor.action.op22", Decoded: true, Offered: true, Signature: sig(group, player("player")), // PARTY-JOIN-025
+		Presets: []WizardPreset{{Order: 6, Word: "editor.wizard.a.givegroup"}}},
+	{ID: 23, Name: "Give money to player", Word: "editor.action.op23", Decoded: true, Offered: true, Signature: sig(player("player"), number("money")), // TRIG-MONEY-028
+		Presets: []WizardPreset{{Order: 1, Fields: map[string]string{"money": "gold"}}}},
+	{ID: 24, Name: "Cast at unit", Word: "editor.action.op24", Decoded: true, Offered: true, Signature: sig(cell("cell"), unit("unit"), number("spell"), number("power")), // TRIG-CAST-033
+		Presets: []WizardPreset{{Order: 25, Word: "editor.wizard.a.castunit", Fields: map[string]string{"cell": "from", "spell": "spell", "power": "power"}}}},
+	{ID: 25, Name: "Set cell tail", Word: "editor.action.op25", Decoded: true, Offered: true, Signature: sig(number("spell"), number("power"), cell("cell")), // TRIG-CELLTAIL-035
+		Presets: []WizardPreset{{Order: 26, Word: "editor.wizard.a.trap", Fields: map[string]string{"spell": "spell", "power": "power"}}}},
+	{ID: 26, Name: "Set structure field", Word: "editor.action.op26", Decoded: true, Offered: true, Signature: sig(structure, number("value")), // TRIG-CHECK-053
+		Presets: []WizardPreset{}},
+	{ID: 27, Name: "Move unit", Word: "editor.action.op27", Decoded: true, Signature: sig(unit("unit"), cell("cell")), // AI-SCRIPTGUARD-625
+		Presets: []WizardPreset{{Order: 7, Word: "editor.wizard.a.move"}}},
+	{ID: 28, Name: "Give entire inventory", Word: "editor.action.op28", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2")), // TRIG-GIVEALL-025
+		Presets: []WizardPreset{{Order: 21, Word: "editor.wizard.a.giveall", SubjectWord: "editor.wizard.s.items", Fields: map[string]string{"unit2": "receiver"}}}},
+	{ID: 29, Name: "Set cell effect duration", Word: "editor.action.op29", Decoded: true, Offered: true, Signature: sig(cell("cell"), number("spell"), number("time")), // TRIG-EFFECTTIME-034
+		Presets: []WizardPreset{{Order: 27, Word: "editor.wizard.a.celltime", Fields: map[string]string{"spell": "spell", "time": "time"}}}},
+	{ID: 30, Name: "Set unit effect duration", Word: "editor.action.op30", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("spell"), number("time")), // TRIG-EFFECTTIME-034
+		Presets: []WizardPreset{{Order: 28, Word: "editor.wizard.a.unittime", Fields: map[string]string{"spell": "spell", "time": "time"}}}},
+	{ID: 32, Name: "Take group off map", Word: "editor.action.op32", Decoded: true, Offered: true, Signature: sig(group), // TRIG-MAPGROUP-043
+		Presets: []WizardPreset{{Order: 10, Word: "editor.wizard.a.groupoff"}}},
+	{ID: 33, Name: "Return group to map", Word: "editor.action.op33", Decoded: true, Offered: true, Signature: sig(group), // TRIG-MAPGROUP-043
+		Presets: []WizardPreset{{Order: 11, Word: "editor.wizard.a.groupback"}}},
+	{ID: 34, Name: "Set unit field", Word: "editor.action.op34", Decoded: true, Offered: true, Signature: sig(unit("unit"), number("selector"), number("value")), // TRIG-PROPERTY-036
+		Presets: []WizardPreset{{Order: 23, Word: "editor.wizard.a.property", Fields: map[string]string{"selector": "property", "value": "value"}}}},
+	{ID: constantOp, Name: "Drop location (build time)", Word: "editor.action.op65538", Decoded: true, Offered: true, Signature: sig(cell("cell")), CopyRefused: "editor.trigger.copydropzone", // TRIG-DROP-013
+		Presets: []WizardPreset{{Order: 12, Word: "editor.wizard.a.drop", SubjectWord: "editor.wizard.s.mission"}}},
 	{ID: formOp, Name: "Object form (build time)", Offered: true},
 	{ID: undying, Name: "Set undying (Againrom)", Word: "editor.action.op16640", Decoded: true, Offered: true, Again: true, Signature: sig(unit("unit"), number("undying"))}, // DIV-4009
-	{ID: setGlobal, Name: "Set global (Againrom)", Word: "editor.action.op16643", Decoded: true, Again: true, Signature: sig(number("global"), number("value"))},             // DIV-5108
-	{ID: addGlobal, Name: "Add to global (Againrom)", Word: "editor.action.op16644", Decoded: true, Again: true, Signature: sig(number("global"), number("delta"))},          // DIV-5108
+	{ID: setGlobal, Name: "Set global (Againrom)", Word: "editor.action.op16643", Decoded: true, Again: true, Signature: sig(number("global"), number("value")), // DIV-5108
+		Presets: []WizardPreset{{Order: 17, Word: "editor.wizard.a.setglobal", Fields: map[string]string{"global": "global", "value": "value"}}}},
+	{ID: addGlobal, Name: "Add to global (Againrom)", Word: "editor.action.op16644", Decoded: true, Again: true, Signature: sig(number("global"), number("delta")), // DIV-5108
+		Presets: []WizardPreset{{Order: 18, Word: "editor.wizard.a.addglobal", Fields: map[string]string{"global": "global", "delta": "delta"}}}},
 }
 
 // The second game's rows: the operations a claim reads the body of

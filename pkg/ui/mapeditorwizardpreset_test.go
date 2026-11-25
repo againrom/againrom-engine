@@ -1,24 +1,74 @@
 package ui
 
 import (
+	"slices"
 	"testing"
 
 	"againrom/pkg/scriptprofile"
 )
 
-// Every preset row of a game joins an operation row of that game, and the
-// game's offered rows are exactly its presets.
-func TestWizardPresetsJoinOperationRows(t *testing.T) {
-	for ops, presets := range wizPresets {
-		for k, condition := range []bool{false, true} {
-			for _, it := range presets[k] {
-				if _, ok := scriptprofile.OpRow(ops, condition, it.opcode); !ok {
-					t.Errorf("preset %s has no operation row %d (condition %v)", it.labelWord, it.opcode, condition)
-				}
+func TestWizardReadsOperationWordAndSlots(t *testing.T) {
+	for _, ops := range []scriptprofile.Ops{scriptprofile.OpsFirst, scriptprofile.OpsSecond} {
+		for _, id := range []uint32{10, 23} {
+			op, ok := scriptprofile.OpRow(ops, false, id)
+			if !ok {
+				t.Fatalf("vocabulary %v has no action %d", ops, id)
 			}
-			if got := len(wizardTables[ops][k]); got != len(presets[k]) {
-				t.Errorf("game %v condition %v offers %d rows for %d presets", ops, condition, got, len(presets[k]))
+			op.Word = "changed action"
+			at := len(op.Signature)
+			op.Signature = append(slices.Clone(op.Signature), scriptprofile.Slot{Type: scriptStructure})
+			items := opItems([]scriptprofile.Op{op})
+			if len(items) != 1 {
+				t.Fatalf("vocabulary %v action %d built %d items", ops, id, len(items))
+			}
+			it := items[0]
+			types, _, _ := it.itemSlots(false)
+			if it.labelWord != op.Word || types[at] != scriptStructure || len(it.params) != at+1 {
+				t.Errorf("vocabulary %v action %d built word %q, types %v and %d fields", ops, id, it.labelWord, types, len(it.params))
 			}
 		}
+	}
+}
+
+func TestWizardPresetsJoinOperationRows(t *testing.T) {
+	for k, condition := range []bool{false, true} {
+		items := wizardTables[scriptprofile.OpsFirst][k]
+		if want := [2]int{34, 24}[k]; len(items) != want {
+			t.Fatalf("condition %t: got %d items, want %d", condition, len(items), want)
+		}
+		for _, op := range scriptprofile.OpRows(scriptprofile.OpsFirst, condition) {
+			for _, preset := range op.Presets {
+				i := preset.Order - 1
+				word := preset.Word
+				if word == "" {
+					word = op.Word
+				}
+				if i < 0 || i >= len(items) || items[i].opcode != op.ID || items[i].labelWord != word {
+					t.Errorf("condition %t: missing %q (opcode %d) at index %d", condition, word, op.ID, i)
+				}
+			}
+		}
+	}
+}
+
+func TestWizardDialogueNodeUsesMapOperations(t *testing.T) {
+	e, _ := wizardChoiceEditor(t)
+	action := WizardNode{ID: 31}
+	for _, tc := range []struct {
+		file bool
+		name string
+		want WizardNode
+	}{
+		{true, "meeting", WizardNode{ID: 31, Opcode: 2, Label: "meeting", Types: [10]uint32{scriptInt, scriptInt}, Values: [10]uint32{0, 1}}},
+		{false, "", WizardNode{ID: 31, Opcode: 2, Types: [10]uint32{scriptInt}}},
+	} {
+		if err := e.setDialogueNode(&action, tc.file, tc.name); err != nil || action != tc.want {
+			t.Fatalf("dialogue file %v: action %+v, error %v", tc.file, action, err)
+		}
+	}
+	e.doc.Script.Limits = scriptprofile.Second
+	before := action
+	if err := e.setDialogueNode(&action, true, "meeting"); err == nil || action != before {
+		t.Errorf("converted the second game's event to %+v, error %v", action, err)
 	}
 }

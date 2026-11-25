@@ -13,13 +13,9 @@ import (
 // read and write every kind through the item table, so none may test one
 // opcode or one item's label word.
 var wizardRowCode = map[string][]string{
-	"pkg/ui/":   {"readParams", "readCondition", "readPair", "reads", "readAction", "rowsPlan", "wizardNode"},
+	"pkg/ui/":   {"readParams", "readCondition", "readPair", "reads", "readAction", "rowsPlan", "wizardNode", "setDialogueNode"},
 	"pkg/game/": {"writeWizardTrigger", "wizardNode"},
 }
-
-// wizardTables are the one item table's two halves: the first game's preset
-// rows and opItems, which makes each game's items from its operation rows.
-var wizardTables = map[string]bool{"firstConditionPresets": true, "firstActionPresets": true, "opItems": true}
 
 func wizardSelector(e ast.Expr, names ...string) bool {
 	sel, ok := e.(*ast.SelectorExpr)
@@ -61,29 +57,13 @@ func checkWizardItems(name, src string) (found int, vs []string) {
 	if err != nil {
 		return 0, []string{name + ": " + err.Error()}
 	}
-	table := map[ast.Node]bool{}
-	for _, d := range f.Decls {
-		if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.VAR {
-			for _, sp := range g.Specs {
-				v := sp.(*ast.ValueSpec)
-				for i, n := range v.Names {
-					if i < len(v.Values) && wizardTables[n.Name] {
-						table[v.Values[i]] = true
-					}
-				}
-			}
-		}
-		if fn, ok := d.(*ast.FuncDecl); ok && fn.Recv == nil && wizardTables[fn.Name.Name] {
-			table[fn] = true
-		}
-	}
 	if strings.HasPrefix(name, "pkg/ui/") {
 		ast.Inspect(f, func(n ast.Node) bool {
-			if table[n] {
+			if fn, ok := n.(*ast.FuncDecl); ok && fn.Recv == nil && fn.Name.Name == "opItems" {
 				return false
 			}
 			if lit, ok := n.(*ast.CompositeLit); ok && lit.Type != nil && wizardItemType(lit.Type) {
-				vs = append(vs, name+": a wizard item built outside firstConditionPresets, firstActionPresets and opItems; an item is a row of the one table")
+				vs = append(vs, name+": a wizard item built outside opItems")
 			}
 			return true
 		})
@@ -131,7 +111,8 @@ func TestCheckWizardItems(t *testing.T) {
 		name, file, src string
 		bad             bool
 	}{
-		{"the table read", "pkg/ui/a.go", "package ui\nvar firstConditionPresets =[]wizItem{{opcode: 3}}\nfunc (e *E) readPair(l, r, c uint32) int { if n.Opcode != it.opcode || n.Opcode == 0 { return -1 }; return 0 }\n", false},
+		{"the table read", "pkg/ui/a.go", "package ui\nfunc (e *E) readPair(l, r, c uint32) int { if n.Opcode != it.opcode || n.Opcode == 0 { return -1 }; return 0 }\n", false},
+		{"a preset item table", "pkg/ui/a.go", "package ui\nvar firstConditionPresets = []wizItem{{opcode: 3}}\n", true},
 		{"an opcode branch", "pkg/ui/a.go", "package ui\nfunc (e *E) readPair(l, r, c uint32) int { if n.Opcode == 19 { return 21 }; return 0 }\n", true},
 		{"a label branch", "pkg/ui/a.go", "package ui\nfunc (e *E) wizardNode(r R) N { if it.labelWord == \"editor.wizard.c.variable\" { return N{} }; return N{} }\n", true},
 		{"a kind switch", "pkg/game/a.go", "package game\nfunc writeWizardTrigger(m *M, t T) error { switch n.Opcode { case 34: return nil }; return nil }\n", true},

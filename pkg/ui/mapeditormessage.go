@@ -833,7 +833,10 @@ func (e *MapEditor) createMessage(parts []InspectionMessagePart) {
 		// A dialogue file that no longer needs one becomes message pages.
 		if e.dialog != nil && owner.Trigger != nil && owner.Action < len(owner.Trigger.Actions) {
 			a := &owner.Trigger.Actions[owner.Action]
-			*a = dialogueNode(false, "", a.ID)
+			if err := e.setDialogueNode(a, false, ""); err != nil {
+				e.obj.note = e.editorHostText(err.Error())
+				return
+			}
 		}
 	}
 	ch, err := e.commandWriteMessage(messageWrite{Owner: &owner, Page: NewMessagePage, Parts: parts})

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"againrom/pkg/scriptprofile"
 	"againrom/pkg/words"
 )
 
@@ -478,21 +477,26 @@ func (e *MapEditor) dialogueParts(data DialogueData) ([]InspectionMessagePart, m
 	return parts, lines, nil
 }
 
-// dialogueNode is the node a Start dialog action of the interactive kind, or
-// of the message kind, is written as; id is the action it rewrites.
-func dialogueNode(interactive bool, label string, id uint32) WizardNode {
-	for _, it := range wizardTables[scriptprofile.OpsFirst][0] {
-		if it.opcode != 2 || it.interactive != interactive || it.subject != subjectMission {
+func (e *MapEditor) setDialogueNode(action *WizardNode, interactive bool, label string) error {
+	for i, it := range e.wizItems(false) {
+		if !it.hasSource() || it.interactive != interactive {
 			continue
 		}
-		types, _, fixed := it.itemSlots(false)
-		n := WizardNode{ID: id, Opcode: it.opcode, Types: types, Label: label}
-		for k, f := range it.fixed {
-			n.Values[fixed+k] = f[1]
+		vals := e.wizardDefaults(false, i)
+		for k, p := range it.params {
+			if p.kind == wpDialogue {
+				vals[k+1] = label
+			}
 		}
-		return n
+		node, _, _, err := e.wizardNode(wizRow{item: i, vals: vals})
+		if err != nil {
+			return err
+		}
+		node.ID = action.ID
+		*action = node
+		return nil
 	}
-	return WizardNode{ID: id}
+	return fmt.Errorf("%s", e.plainWord("editor.message.unavailable"))
 }
 
 // dialogData is the draft as dialogue data: a node per live card, in order,
@@ -812,7 +816,10 @@ func (e *MapEditor) applyDialogue() {
 			return
 		}
 		a := &owner.Trigger.Actions[owner.Action]
-		*a = dialogueNode(true, name, a.ID)
+		if err := e.setDialogueNode(a, true, name); err != nil {
+			o.note = e.editorHostText(err.Error())
+			return
+		}
 		next, err = h.WriteDialogueFor(owner, name, data)
 	} else {
 		next, err = h.WriteDialogue(name, data)

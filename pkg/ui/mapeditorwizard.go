@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"cmp"
 	"fmt"
 	"image"
 	"math"
@@ -43,17 +44,13 @@ const (
 
 // wizParam is one parameter of an item: its kind, its label's word, its
 // default number, and whether a node slot holds it (else the constant the
-// check is compared with does). A last parameter stands in the node's last
-// slots, as a group command's target group does (ALM-TRIG-045); at, when
-// set, is the slot after the one it starts at; the others fill the slots
-// from the first free one on. A right parameter stands in the pair's right
-// node, a second node of the item's check.
+// check is compared with does). At is the one-based slot in the left or
+// right node of the pair.
 type wizParam struct {
 	kind      wizParamKind
 	labelWord string
 	def       int64
 	inNode    bool
-	last      bool
 	right     bool
 	at        int
 	slot      uint32
@@ -72,6 +69,7 @@ type wizParam struct {
 // variant is the nearest earlier item with its opcode under another command:
 // the list shows the two as one entry; the row's command chooses.
 type wizItem struct {
+	order         int
 	labelWord     string
 	subject       int
 	variant       bool
@@ -93,50 +91,39 @@ type wizItem struct {
 }
 
 var (
-	pUnit   = wizParam{kind: wpUnit, labelWord: "editor.wizard.p.unit", inNode: true}
-	pUnit2  = wizParam{kind: wpUnit, labelWord: "editor.wizard.p.unit2", inNode: true}
-	pPlayer = wizParam{kind: wpPlayer, labelWord: "editor.wizard.p.player", def: 1, inNode: true}
-	pGroup  = wizParam{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true}
-	pPoint  = wizParam{kind: wpCell, labelWord: "editor.wizard.p.point", inNode: true}
-	pArea   = wizParam{kind: wpBox, labelWord: "editor.wizard.p.area", inNode: true}
-
-	pToPlayer = wizParam{kind: wpPlayer, labelWord: "editor.wizard.p.player2", def: 2, inNode: true}
-
+	pUnit      = wizParam{kind: wpUnit, labelWord: "editor.wizard.p.unit", inNode: true}
+	pUnit2     = wizParam{kind: wpUnit, labelWord: "editor.wizard.p.unit2", inNode: true}
+	pPlayer    = wizParam{kind: wpPlayer, labelWord: "editor.wizard.p.player", def: 1, inNode: true}
+	pToPlayer  = wizParam{kind: wpPlayer, labelWord: "editor.wizard.p.player2", def: 2, inNode: true}
+	pGroup     = wizParam{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true}
+	pPoint     = wizParam{kind: wpCell, labelWord: "editor.wizard.p.point", inNode: true}
+	pTo        = wizParam{kind: wpCell, labelWord: "editor.wizard.p.to", inNode: true}
+	pArea      = wizParam{kind: wpBox, labelWord: "editor.wizard.p.area", inNode: true}
 	pItem      = wizParam{kind: wpItem, labelWord: "editor.wizard.p.item", def: 1, inNode: true}
 	pStructure = wizParam{kind: wpStructure, labelWord: "editor.wizard.p.structure", inNode: true}
-	pVariable  = wizParam{kind: wpVariable, labelWord: "editor.wizard.p.variable", inNode: true}
-	pSpell     = wizParam{kind: wpSpell, labelWord: "editor.wizard.p.spell", def: 1, inNode: true}
-	pPower     = wizParam{kind: wpNumber, labelWord: "editor.wizard.p.power", def: 1, inNode: true}
-	pTime      = wizParam{kind: wpNumber, labelWord: "editor.wizard.p.time", def: 100, inNode: true}
-	pFrom      = wizParam{kind: wpCell, labelWord: "editor.wizard.p.from", inNode: true}
-	pTo        = wizParam{kind: wpCell, labelWord: "editor.wizard.p.to", inNode: true}
-	pRadius    = wizParam{kind: wpNumber, labelWord: "editor.wizard.p.radius", def: 3}
-	pCompared  = wizParam{kind: wpNumber, labelWord: "editor.wizard.p.count"}
-	pRange     = wizParam{kind: wpNumber, labelWord: "editor.wizard.p.range", def: 3, inNode: true}
-	pCommand   = wizParam{kind: wpCommand, labelWord: "editor.wizard.p.command", inNode: true}
-	pLastGroup = wizParam{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true, last: true}
-
-	pSource   = wizParam{kind: wpSource, labelWord: "editor.wizard.p.source"}
-	pDialogue = wizParam{kind: wpDialogue, labelWord: "editor.wizard.p.dialogue"}
-	pGlobal   = wizParam{kind: wpGlobal, labelWord: "editor.wizard.p.global", inNode: true}
 )
 
-// command is the command parameter with default c.
-func command(c int64) wizParam {
-	p := pCommand
-	p.def = c
-	return p
-}
-
-// onRight is p standing in the pair's right node.
-func onRight(p wizParam) wizParam {
-	p.right = true
-	return p
-}
-
-func numbered(p wizParam) wizParam {
-	p.slot = scriptInt
-	return p
+// A preset can give a signature role a more specific control or label.
+var presetFields = map[string]wizParam{
+	"player": pPlayer, "player2": pToPlayer,
+	"from":       {kind: wpCell, labelWord: "editor.wizard.p.from"},
+	"receiver":   {kind: wpUnit, labelWord: "editor.wizard.p.receiver"},
+	"message":    {kind: wpMessage, labelWord: "editor.wizard.p.message"},
+	"relation":   {kind: wpRelation, labelWord: "editor.wizard.p.relation"},
+	"variable":   {kind: wpVariable, labelWord: "editor.wizard.p.variable"},
+	"global":     {kind: wpGlobal, labelWord: "editor.wizard.p.global"},
+	"property":   {kind: wpProperty, labelWord: "editor.wizard.p.property", def: 6},
+	"spell":      {kind: wpSpell, labelWord: "editor.wizard.p.spell", def: 1},
+	"gold":       {kind: wpNumber, labelWord: "editor.wizard.p.gold", def: 500},
+	"power":      {kind: wpNumber, labelWord: "editor.wizard.p.power", def: 1},
+	"time":       {kind: wpNumber, labelWord: "editor.wizard.p.time", def: 100},
+	"range":      {kind: wpNumber, labelWord: "editor.wizard.p.range", def: 3},
+	"radius":     {kind: wpNumber, labelWord: wizRadiusWord, def: 3},
+	"value":      {kind: wpNumber, labelWord: "editor.wizard.p.value"},
+	"delta":      {kind: wpNumber, labelWord: "editor.wizard.p.delta"},
+	"count":      {kind: wpNumber, labelWord: "editor.wizard.p.count"},
+	"health":     {kind: wpNumber, labelWord: "editor.wizard.p.health"},
+	"targetunit": {kind: wpNumber, labelWord: "editor.wizard.p.targetunit"},
 }
 
 func (p wizParam) types() []uint32 {
@@ -163,106 +150,14 @@ const (
 
 var wizSubjectWords = []string{"editor.wizard.s.mission", "editor.wizard.s.units", "editor.wizard.s.players", "editor.wizard.s.groups", "editor.wizard.s.cells", "editor.wizard.s.items", "editor.wizard.s.structures", "editor.wizard.s.spells", "editor.wizard.s.variables", "editor.wizard.s.globals"}
 
-// firstConditionPresets are the first game's ready conditions. Check 2 is a unit in a box, 5 a
-// unit alive, each writing 0 or 1 (TRIG-CHECKGEOM-130); 3 a unit within a
-// radius of a cell; 6 the distance between two units, 255 when either is
-// dead, and 7 from a unit to a cell (TRIG-DIST-014); 15 the distance from a
-// cell to a player's nearest unit (TRIG-NEAREST-029); 1 a group's living
-// count (TRIG-COUNT-015), 8 a player's (TRIG-LISTREAD-131); a constant is
-// preset to its value and 19 copies a variable (TRIG-COND-003); 4 with 6 a
-// unit's health (TRIG-CHECK-051); 9 the unit a unit pursues
-// (TRIG-TARGETID-032); 18 a loss when its unit dies, written into no slot
-// (MISSION-VIP-004); 14 a sack on a cell (TRIG-SACK-022) and 17 an item a
-// unit holds (TRIG-ITEMTEST-040), each 0 or 1; 21 a structure's value
-// (TRIG-CHECK-053); 16 the distance from a unit with an item (TRIG-CHECK-052).
-var firstConditionPresets = []wizItem{
-	{labelWord: "editor.wizard.c.heroarea", subject: subjectUnits, opcode: 2, params: []wizParam{pUnit, pArea}, cmp: 0, right: 1, rightParam: -1, also: [][2]int64{{1, 0}}},
-	{labelWord: "editor.wizard.c.playernear", subject: subjectPlayers, opcode: 15, params: []wizParam{pPlayer, pPoint, pRadius}, cmp: 5, chooseCmp: true, rightParam: 2},
-	{labelWord: "editor.wizard.c.unitnear", subject: subjectUnits, opcode: 3, params: []wizParam{pUnit, pPoint, {kind: wpNumber, labelWord: "editor.wizard.p.radius", def: 3, inNode: true}}, cmp: 0, right: 1, rightParam: -1},
-	{labelWord: "editor.wizard.c.unitnearunit", subject: subjectUnits, opcode: 6, hintWord: "editor.wizard.c.unitnearunit.hint", params: []wizParam{pUnit, pUnit2, pRadius}, cmp: 5, chooseCmp: true, rightParam: 2},
-	{labelWord: "editor.wizard.c.unitdead", subject: subjectUnits, opcode: 5, params: []wizParam{pUnit}, cmp: 0, right: 0, rightParam: -1, also: [][2]int64{{1, 1}}},
-	{labelWord: "editor.wizard.c.groupcount", subject: subjectGroups, opcode: 1, params: []wizParam{pGroup, pCompared}, chooseCmp: true, rightParam: 1},
-	{labelWord: "editor.wizard.c.playercount", subject: subjectPlayers, opcode: 8, params: []wizParam{pPlayer, pCompared}, chooseCmp: true, rightParam: 1},
-	{labelWord: "editor.wizard.c.relation", subject: subjectPlayers, opcode: 10, hintWord: "editor.wizard.c.relation.hint", chooseCmp: true, rightParam: 2, params: []wizParam{pPlayer, pToPlayer, {kind: wpRelation, labelWord: "editor.wizard.p.relation"}}},
-	{labelWord: "editor.wizard.c.always", subject: subjectMission, opcode: scriptConstantOp, cmp: 0, right: 1, rightParam: -1, fixed: [][2]uint32{{scriptInt, 1}}, holds: true},
-	{labelWord: "editor.wizard.c.unitalive", subject: subjectUnits, opcode: 5, params: []wizParam{pUnit}, cmp: 1, right: 0, rightParam: -1, also: [][2]int64{{0, 1}}},
-	{labelWord: "editor.wizard.c.unitcell", subject: subjectUnits, opcode: 7, params: []wizParam{pUnit, pPoint, pRadius}, cmp: 5, chooseCmp: true, rightParam: 2},
-	{labelWord: "editor.wizard.c.health", subject: subjectUnits, opcode: 4, params: []wizParam{pUnit, {kind: wpNumber, labelWord: "editor.wizard.p.health"}}, fixed: [][2]uint32{{scriptInt, 6}}, cmp: 2, chooseCmp: true, rightParam: 1},
-	{labelWord: "editor.wizard.c.target", subject: subjectUnits, opcode: 9, hintWord: "editor.wizard.c.target.hint", params: []wizParam{pUnit, {kind: wpNumber, labelWord: "editor.wizard.p.targetunit", def: 1}}, cmp: 0, chooseCmp: true, rightParam: 1},
-	{labelWord: "editor.wizard.c.lose", subject: subjectMission, opcode: 18, hintWord: "editor.wizard.c.lose.hint", params: []wizParam{pUnit, {kind: wpNumber, labelWord: "editor.wizard.p.value", def: 1}}, cmp: 2, chooseCmp: true, rightParam: 1},
-	{labelWord: "editor.wizard.c.losetwo", subject: subjectMission, opcode: 18, hintWord: "editor.wizard.c.lose.hint", params: []wizParam{pUnit, onRight(pUnit2)}, cmp: 1, chooseCmp: true, rightParam: -1},
-	{labelWord: "editor.wizard.c.sackgone", subject: subjectCells, opcode: 14, params: []wizParam{pPoint}, cmp: 0, right: 0, rightParam: -1, rightType: scriptConst, also: [][2]int64{{1, 1}}},
-	{labelWord: "editor.wizard.c.sacklies", subject: subjectCells, opcode: 14, params: []wizParam{pPoint}, cmp: 0, right: 1, rightParam: -1, rightType: scriptConst, also: [][2]int64{{1, 0}}},
-	{labelWord: "editor.wizard.c.hasitem", subject: subjectItems, opcode: 17, params: []wizParam{pUnit, pItem}, cmp: 0, right: 1, rightParam: -1, rightType: scriptConst, also: [][2]int64{{1, 0}}},
-	{labelWord: "editor.wizard.c.lacksitem", subject: subjectItems, opcode: 17, params: []wizParam{pUnit, pItem}, cmp: 0, right: 0, rightParam: -1, rightType: scriptConst, also: [][2]int64{{1, 1}}},
-	{labelWord: "editor.wizard.c.itemnear", subject: subjectItems, opcode: 16, hintWord: "editor.wizard.c.itemnear.hint", params: []wizParam{pUnit, pItem, pPoint, pRadius}, cmp: 5, chooseCmp: true, rightParam: 3},
-	{labelWord: "editor.wizard.c.structure", subject: subjectStructures, opcode: 21, params: []wizParam{pStructure, {kind: wpNumber, labelWord: "editor.wizard.p.value", def: 1}}, cmp: 3, chooseCmp: true, rightParam: 1},
-	{labelWord: "editor.wizard.c.variable", subject: subjectVariables, opcode: 19, params: []wizParam{pVariable, {kind: wpNumber, labelWord: "editor.wizard.p.value"}}, chooseCmp: true, rightParam: 1},
-	{labelWord: "editor.wizard.c.variables", subject: subjectVariables, opcode: 19, params: []wizParam{pVariable, onRight(wizParam{kind: wpVariable, labelWord: "editor.wizard.p.variable2", inNode: true})}, chooseCmp: true, rightParam: -1},
-	{labelWord: "editor.wizard.c.global", subject: subjectGlobals, opcode: scriptprofile.ReadGlobalOp, params: []wizParam{pGlobal, pCompared}, chooseCmp: true, rightParam: 1},
-}
-
-// firstActionPresets are the first game's ready actions, with the claims that state their
-// parameters: give money (TRIG-MONEY-028), win, lose, set or add 1 to a
-// variable (TRIG-ACT-004), a dialog (TRIG-MSG-023; the player sees only a
-// trigger's first, so one per trigger), give a unit or group to a player
-// (PARTY-JOIN-025), move a unit (AI-SCRIPTGUARD-625), a unit or group off
-// and back on the map and one unit in another's place (TRIG-OFFMAP-041,
-// TRIG-RETURN-042, TRIG-MAPGROUP-043), the drop cell the builder takes
-// (TRIG-DROP-013), a group order by its command (TRIG-GROUP-005,
-// TRIG-GROUPBOUNDS-136), an item made, taken or all given (TRIG-ADDITEM-027,
-// TRIG-TAKEITEM-038, TRIG-GIVEALL-025), a spell cast, its effect's time and a
-// trap (TRIG-CAST-033, TRIG-EFFECTTIME-034, TRIG-CELLTAIL-035), a unit's
-// property (TRIG-PROPERTY-036) and action 7, which no claim names.
-var firstActionPresets = []wizItem{
-	{labelWord: "editor.wizard.a.gold", subject: subjectPlayers, opcode: 23, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.gold", def: 500, inNode: true}}},
-	{labelWord: "editor.wizard.a.win", subject: subjectMission, opcode: 4},
-	{labelWord: "editor.wizard.a.lose", subject: subjectMission, opcode: 5},
-	{labelWord: "editor.wizard.a.dialog", subject: subjectMission, opcode: 2, params: []wizParam{pSource, {kind: wpMessage, labelWord: "editor.wizard.p.message", inNode: true}}, onePerTrigger: true},
-	{labelWord: "editor.wizard.a.giveunit", subject: subjectUnits, opcode: 19, params: []wizParam{pUnit, pPlayer}},
-	{labelWord: "editor.wizard.a.givegroup", subject: subjectGroups, opcode: 22, params: []wizParam{pGroup, pPlayer}},
-	{labelWord: "editor.wizard.a.move", subject: subjectUnits, opcode: 27, params: []wizParam{pUnit, pPoint}},
-	{labelWord: "editor.wizard.a.unitoff", subject: subjectUnits, opcode: 16, params: []wizParam{pUnit}},
-	{labelWord: "editor.wizard.a.unitback", subject: subjectUnits, opcode: 17, params: []wizParam{pUnit}},
-	{labelWord: "editor.wizard.a.groupoff", subject: subjectGroups, opcode: 32, params: []wizParam{pGroup}},
-	{labelWord: "editor.wizard.a.groupback", subject: subjectGroups, opcode: 33, params: []wizParam{pGroup}},
-	{labelWord: "editor.wizard.a.drop", subject: subjectMission, opcode: scriptConstantOp, params: []wizParam{pPoint}},
-	{labelWord: "editor.wizard.a.order", subject: subjectGroups, opcode: scriptGroupCommand, params: []wizParam{pLastGroup, command(4), pPoint}},
-	{labelWord: "editor.action.op10", subject: subjectPlayers, opcode: 10, hintWord: "editor.wizard.a.relation.hint", params: []wizParam{numbered(pPlayer), numbered(pToPlayer), {kind: wpRelation, labelWord: "editor.wizard.p.relation", inNode: true}}},
-	{labelWord: "editor.wizard.a.addvar", subject: subjectVariables, opcode: 8, params: []wizParam{pVariable}},
-	{labelWord: "editor.wizard.a.setvar", subject: subjectVariables, opcode: 3, params: []wizParam{pVariable, {kind: wpNumber, labelWord: "editor.wizard.p.value", inNode: true}}},
-	{labelWord: "editor.wizard.a.setglobal", subject: subjectGlobals, opcode: scriptprofile.SetGlobalOp, params: []wizParam{pGlobal, {kind: wpNumber, labelWord: "editor.wizard.p.value", inNode: true}}},
-	{labelWord: "editor.wizard.a.addglobal", subject: subjectGlobals, opcode: scriptprofile.AddGlobalOp, params: []wizParam{pGlobal, {kind: wpNumber, labelWord: "editor.wizard.p.delta", inNode: true}}},
-	{labelWord: "editor.wizard.a.takeitem", subject: subjectItems, opcode: 13, params: []wizParam{pUnit, pItem}},
-	{labelWord: "editor.wizard.a.giveitem", subject: subjectItems, opcode: 12, params: []wizParam{pUnit, pItem}},
-	{labelWord: "editor.wizard.a.giveall", subject: subjectItems, opcode: 28, params: []wizParam{pUnit, {kind: wpUnit, labelWord: "editor.wizard.p.receiver", inNode: true}}},
-	{labelWord: "editor.wizard.a.replace", subject: subjectUnits, opcode: 18, hintWord: "editor.wizard.a.replace.hint", params: []wizParam{pUnit, pUnit2}},
-	{labelWord: "editor.wizard.a.property", subject: subjectUnits, opcode: 34, params: []wizParam{pUnit, {kind: wpProperty, labelWord: "editor.wizard.p.property", def: 6, inNode: true}, {kind: wpNumber, labelWord: "editor.wizard.p.value", inNode: true}}},
-	{labelWord: "editor.wizard.a.castcell", subject: subjectSpells, opcode: 21, hintWord: "editor.wizard.a.cast.hint", params: []wizParam{pFrom, pTo, pSpell, pPower}},
-	{labelWord: "editor.wizard.a.castunit", subject: subjectSpells, opcode: 24, params: []wizParam{pFrom, pUnit, pSpell, pPower}},
-	{labelWord: "editor.wizard.a.trap", subject: subjectSpells, opcode: 25, params: []wizParam{pSpell, pPower, pPoint}},
-	{labelWord: "editor.wizard.a.celltime", subject: subjectSpells, opcode: 29, params: []wizParam{pPoint, pSpell, pTime}},
-	{labelWord: "editor.wizard.a.unittime", subject: subjectSpells, opcode: 30, params: []wizParam{pUnit, pSpell, pTime}},
-	{labelWord: "editor.wizard.a.action7", subject: subjectPlayers, opcode: 7, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.value", inNode: true}}},
-	{labelWord: "editor.wizard.a.order.stand", variant: true, subject: subjectGroups, opcode: scriptGroupCommand, params: []wizParam{pLastGroup, command(3)}},
-	{labelWord: "editor.wizard.a.order.attack", variant: true, subject: subjectGroups, opcode: scriptGroupCommand, params: []wizParam{pLastGroup, command(10), pUnit}},
-	{labelWord: "editor.wizard.a.order.defend", variant: true, subject: subjectGroups, opcode: scriptGroupCommand, params: []wizParam{pLastGroup, command(11), pUnit, pRange}},
-	{labelWord: "editor.wizard.a.order.follow", variant: true, subject: subjectGroups, opcode: scriptGroupCommand, params: []wizParam{{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true, at: 2}, {kind: wpCommand, labelWord: "editor.wizard.p.command", def: 15, inNode: true, at: 1}, pUnit, pRange}},
-	{labelWord: "editor.wizard.a.dialog", variant: true, interactive: true, subject: subjectMission, opcode: 2, params: []wizParam{interactiveSource(), pDialogue}, fixed: [][2]uint32{{scriptInt, 0}, {scriptInt, 1}}, onePerTrigger: true},
-}
-
-// interactiveSource is the source parameter of the dialog item that starts
-// a dialogue file.
-func interactiveSource() wizParam {
-	p := pSource
-	p.def = 1
-	return p
-}
-
 // isDialog reports a parameter that only the dialog window edits: where the
 // dialog comes from, the page it shows or the dialogue file's name.
 func (p wizParam) isDialog() bool {
 	return p.kind == wpMessage || p.kind == wpSource || p.kind == wpDialogue
+}
+
+func (it wizItem) hasSource() bool {
+	return slices.ContainsFunc(it.params, func(p wizParam) bool { return p.kind == wpSource })
 }
 
 // sourceValue is the source choice that offers item it: 1 for a dialogue
@@ -278,87 +173,107 @@ func (it wizItem) sourceValue() uint32 {
 // drop cell action.
 const scriptConstantOp = 0x10002
 
-// wizPresets are the preset rows of a game's operations, actions then
-// conditions, each row keyed by the operation it uses and listed in the order
-// the wizard offers it. The second game has none.
-var wizPresets = map[scriptprofile.Ops][2][]wizItem{
-	scriptprofile.OpsFirst: {firstActionPresets, firstConditionPresets},
-}
-
 // wizardTables are each game's ready actions and conditions, keyed by its
 // operation vocabulary, both made by opItems.
 var wizardTables = map[scriptprofile.Ops][2][]wizItem{
-	scriptprofile.OpsFirst:  {opItems(scriptprofile.OpsFirst, false), opItems(scriptprofile.OpsFirst, true)},
-	scriptprofile.OpsSecond: {opItems(scriptprofile.OpsSecond, false), opItems(scriptprofile.OpsSecond, true)},
+	scriptprofile.OpsFirst:  {opItems(scriptprofile.OpRows(scriptprofile.OpsFirst, false)), opItems(scriptprofile.OpRows(scriptprofile.OpsFirst, true))},
+	scriptprofile.OpsSecond: {opItems(scriptprofile.OpRows(scriptprofile.OpsSecond, false)), opItems(scriptprofile.OpRows(scriptprofile.OpsSecond, true))},
 }
 
-// opItems are the ready items of a game's operation rows. A game with preset
-// rows offers them, in their order, each joined to its operation's row. A
-// game without presets gets one item per offered row whose slots and effect a
-// claim reads, under its row's word, each slot a parameter in the slot it
-// fills. A check is compared with a number by the comparison the row
-// chooses. An operation with group commands gives one item per slot layout of
-// its commands, the first listed and the rest its variants, each defaulting
-// to its first command.
-func opItems(ops scriptprofile.Ops, condition bool) []wizItem {
+// opItems builds both games' ready rows from operation slots and preset values.
+func opItems(rows []scriptprofile.Op) []wizItem {
 	var out []wizItem
-	presets := wizPresets[ops][0]
-	if condition {
-		presets = wizPresets[ops][1]
-	}
-	if len(presets) > 0 {
-		for _, it := range presets {
-			if _, ok := scriptprofile.OpRow(ops, condition, it.opcode); ok {
+	for _, op := range rows {
+		for _, preset := range op.ReadyPresets() {
+			commands := op.Commands
+			if len(commands) == 0 {
+				commands = []uint32{0}
+			}
+			var layouts [][10]scriptprofile.Slot
+			for _, c := range commands {
+				if preset.Command != 0 && c != preset.Command {
+					continue
+				}
+				slots, fixed, ok := preset.Slots(op, c)
+				if !ok || slices.Contains(layouts, slots) {
+					continue
+				}
+				params := slotParams(slots, int64(c), preset)
+				it := wizItem{
+					order: preset.Order, opcode: op.ID, labelWord: op.Word, hintWord: preset.Hint,
+					params: params, subject: paramSubject(params), fixed: fixed,
+					variant: preset.Variant || len(layouts) > 0, interactive: preset.DialogSource == "file",
+					onePerTrigger: preset.DialogSource != "", holds: preset.Holds,
+					cmp: preset.Cmp, chooseCmp: preset.ChooseCmp, right: preset.Right,
+					rightType: preset.RightType, also: preset.Also, rightParam: -1,
+				}
+				if preset.Word != "" {
+					it.labelWord = preset.Word
+				}
+				if preset.SubjectWord != "" {
+					it.subject = slices.Index(wizSubjectWords, preset.SubjectWord)
+				}
+				if preset.Compared != "" {
+					p := presetFields[preset.Compared]
+					p.def = preset.Right
+					it.rightParam = len(it.params)
+					it.params = append(it.params, p)
+				}
+				layouts = append(layouts, slots)
 				out = append(out, it)
 			}
 		}
-		return out
 	}
-	for _, op := range scriptprofile.OpRows(ops, condition) {
-		if !op.Offered || !op.Decoded || op.Again || op.EffectUnread || op.ID >= scriptConstantOp {
-			continue
-		}
-		commands := op.Commands
-		if len(commands) == 0 {
-			commands = []uint32{0}
-		}
-		var layouts [][10]scriptprofile.Slot
-		for _, c := range commands {
-			slots, ok := op.Slots(c)
-			if !ok || slices.Contains(layouts, slots) {
-				continue
-			}
-			layouts = append(layouts, slots)
-			it := wizItem{labelWord: op.Word, opcode: op.ID, variant: len(layouts) > 1, params: slotParams(slots, int64(c))}
-			it.subject = paramSubject(it.params)
-			if condition {
-				it.params = append(it.params, wizParam{kind: wpNumber, labelWord: "editor.wizard.p.value", def: 1})
-				it.chooseCmp, it.rightParam = true, len(it.params)-1
-			}
-			out = append(out, it)
-		}
-	}
+	slices.SortStableFunc(out, func(a, b wizItem) int { return cmp.Compare(a.order, b.order) })
 	return out
 }
 
-// slotParams are the parameters of a signature's slots, each standing in its
-// own slot: a cell its X and Y slots, two cells of the corner roles one box.
-// A unit, player, group, item, structure and command are chosen; any other
-// slot is a number under its role's word.
-func slotParams(slots [10]scriptprofile.Slot, c int64) []wizParam {
+// slotParams keeps each field tied to its node slot even when the wizard
+// presents the group first or repeats the fields for a second node.
+func slotParams(slots [10]scriptprofile.Slot, c int64, preset scriptprofile.WizardPreset) []wizParam {
 	var out []wizParam
-	for s := 0; s < len(slots); s++ {
-		p, width := slotParam(slots[s], c), len(paramTypes(slotKind(slots[s])))
-		if p.kind == wpCell && s+3 < len(slots) && slots[s].Role == "corner" && slots[s+2].Role == "corner2" {
-			p = pArea
-			width = 4
+	if preset.DialogSource != "" {
+		source := wizParam{kind: wpSource, labelWord: "editor.wizard.p.source"}
+		if preset.DialogSource == "file" {
+			source.def = 1
 		}
-		if slots[s].Type == scriptNone {
+		out = append(out, source)
+	}
+	for s := 0; s < len(slots); s++ {
+		slot := slots[s]
+		if slot.Type == scriptNone {
 			continue
 		}
-		p.at = s + 1
-		out = append(out, p)
+		p := slotParam(slot, c)
+		if field, ok := presetFields[preset.Fields[slot.Role]]; ok && (p.kind == field.kind || slot.Type == scriptInt && len(paramTypes(field.kind)) == 1) {
+			p = field
+		}
+		if slot.Type == scriptX && s+3 < len(slots) && slot.Role == "corner" && slots[s+2].Role == "corner2" {
+			p = pArea
+		}
+		width := len(paramTypes(p.kind))
+		if width == 1 {
+			p.slot = slot.Type
+		}
+		p.inNode, p.at = true, s+1
+		if p.kind == wpGroup && preset.GroupFirst {
+			out = slices.Insert(out, 0, p)
+		} else {
+			out = append(out, p)
+		}
 		s += width - 1
+	}
+	if preset.PeerWord != "" {
+		for i, p := range out {
+			if i == 0 {
+				p.labelWord = preset.PeerWord
+			}
+			p.right = true
+			out = append(out, p)
+		}
+	}
+	if preset.DialogSource == "file" {
+		out = append(out, wizParam{kind: wpDialogue, labelWord: "editor.wizard.p.dialogue"})
 	}
 	return out
 }
@@ -410,7 +325,7 @@ func slotParam(s scriptprofile.Slot, c int64) wizParam {
 	case wpStructure:
 		return pStructure
 	case wpCommand:
-		return command(c)
+		return wizParam{kind: wpCommand, labelWord: "editor.wizard.p.command", def: c, inNode: true}
 	}
 	p := wizParam{kind: wpNumber, labelWord: "editor.param.number", inNode: true}
 	if w, ok := signatureRoleWords[s.Role]; ok {
@@ -421,13 +336,16 @@ func slotParam(s scriptprofile.Slot, c int64) wizParam {
 }
 
 // roleDefaults are the first game's defaults of a number by its role.
-var roleDefaults = map[string]int64{"spell": pSpell.def, "power": pPower.def, "time": pTime.def, "range": pRange.def, "money": 500}
+var roleDefaults = map[string]int64{
+	"spell": presetFields["spell"].def, "power": presetFields["power"].def,
+	"time": presetFields["time"].def, "range": presetFields["range"].def, "money": presetFields["gold"].def,
+}
 
 // paramSubject is the list heading of an item with params: the spells for
 // an item naming a spell, the items for one naming an item, else its first
 // parameter's subject, the mission for none.
 func paramSubject(params []wizParam) int {
-	if slices.ContainsFunc(params, func(p wizParam) bool { return p.labelWord == signatureRoleWords["spell"] }) {
+	if slices.ContainsFunc(params, func(p wizParam) bool { return p.kind == wpSpell || p.labelWord == signatureRoleWords["spell"] }) {
 		return subjectSpells
 	}
 	if slices.ContainsFunc(params, func(p wizParam) bool { return p.kind == wpItem }) {
@@ -447,6 +365,10 @@ func paramSubject(params []wizParam) int {
 		return subjectCells
 	case wpStructure:
 		return subjectStructures
+	case wpVariable:
+		return subjectVariables
+	case wpGlobal:
+		return subjectGlobals
 	}
 	if params[0].labelWord == signatureRoleWords["variable"] {
 		return subjectVariables
@@ -519,14 +441,8 @@ func (it wizItem) itemSlots(right bool) (types [10]uint32, at []int, fixed int) 
 		switch {
 		case !p.inNode || p.right != right:
 			at = append(at, -1)
-		case p.last:
-			at = append(at, len(types)-len(t))
-			copy(types[len(types)-len(t):], t)
 		default:
-			start := fixed
-			if p.at > 0 {
-				start = p.at - 1
-			}
+			start := p.at - 1
 			at = append(at, start)
 			copy(types[start:], t)
 			fixed = max(fixed, start+len(t))
@@ -681,7 +597,7 @@ func (e *MapEditor) readParams(it wizItem, n InspectionScriptNode, right bool, o
 // one, is item it's slots: for a target cell, 2, 4, 5 and 14
 // (TRIG-GROUPBOUNDS-136).
 func (e *MapEditor) itemCommands(it wizItem) []uint32 {
-	if slices.ContainsFunc(it.params, func(p wizParam) bool { return p.kind == wpSource }) {
+	if it.hasSource() {
 		return []uint32{it.sourceValue()}
 	}
 	want, _, _ := it.itemSlots(false)
