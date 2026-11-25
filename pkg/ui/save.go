@@ -658,8 +658,8 @@ func (f *flow) takeMenuExit() bool {
 // player's hand.
 func (f *flow) openLoad(back Screen) { f.openListPage(back, false) }
 
-// openCharacters shows the list page's character role over the menu, with an
-// empty list: no character file is read (DIV-2369).
+// openCharacters shows the list page's character role over the menu: the
+// store's character rows, then the New row.
 func (f *flow) openCharacters() { f.openListPage(ScreenMenu, true) }
 
 // openListPage opens the list page in its load role, or in its character role
@@ -671,19 +671,25 @@ func (f *flow) openListPage(back Screen, characters bool) {
 	f.loadUI.remove = nil
 	f.loadUI.characters = characters
 	f.saves = nil
-	if f.saveList != nil && !characters {
+	message := ""
+	if characters && f.pages.characterFiles.List != nil {
+		f.saves, message = f.pages.characterFiles.List()
+	} else if f.saveList != nil && !characters {
 		f.saves = f.saveList()
 	}
 	rows := make([]PickerRow, len(f.saves))
 	for i, e := range f.saves {
 		rows[i] = PickerRow{Text: e.Label, Choosable: true}
 	}
+	if characters {
+		rows = append(rows, PickerRow{Text: f.characterPage().New, Choosable: true})
+	}
 	f.loadList = NewPicker(rows).SetWindow(loadVisibleRows)
 	f.loadBack = back
 	f.setScreen(ScreenLoad)
 	f.menuPlacement().underlay.raise(f)
 	if characters {
-		f.msg = ""
+		f.msg = message
 	} else if f.saveList == nil {
 		f.msg = "this build has nowhere to load from"
 	} else if len(f.saves) == 0 {
@@ -727,8 +733,8 @@ func (f *flow) closeLoad() {
 // and a mark here would outlive nothing: the list is rebuilt every time the
 // window opens.
 func (f *flow) chooseLoad() {
-	// Ok on the character list does nothing: the list holds no entry and no
-	// character creation runs from it (DIV-2369).
+	// Ok on the character list does nothing: no character is played and no
+	// creation runs from the New row yet (DIV-2369).
 	if f.screen != ScreenLoad || f.loadList == nil || f.loadUI.characters {
 		return
 	}

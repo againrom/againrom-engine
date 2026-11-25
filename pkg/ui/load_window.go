@@ -131,14 +131,29 @@ func (f *flow) pageCanDelete(v pageView, e SaveEntry) bool {
 		s := f.saveDialogSeams
 		return s.CanDelete != nil && s.PrepareDelete != nil && s.CanDelete(v.save.directory.Path, e.Name)
 	}
-	return v.ui.canDelete != nil && v.ui.prepareDelete != nil && v.ui.canDelete(e.Name)
+	can, prepare := f.deleteSeams(v)
+	return can != nil && prepare != nil && can(e.Name)
 }
 
 func (f *flow) pagePrepareDelete(v pageView, e SaveEntry) (func() error, error) {
 	if v.save != nil {
 		return f.saveDialogSeams.PrepareDelete(v.save.directory.Path, e.Name)
 	}
-	return v.ui.prepareDelete(e.Name)
+	_, prepare := f.deleteSeams(v)
+	return prepare(e.Name)
+}
+
+// deleteSeams are the open role's delete seams: the character store's where
+// the character page shows Delete, none where it does not, else the saves'.
+func (f *flow) deleteSeams(v pageView) (func(string) bool, func(string) (func() error, error)) {
+	if !v.ui.characters {
+		return v.ui.canDelete, v.ui.prepareDelete
+	}
+	if !f.characterPage().Delete {
+		return nil, nil
+	}
+	c := f.pages.characterFiles
+	return c.CanDelete, c.PrepareDelete
 }
 
 // acceptPage is Ok: load or save the selection, or delete it once confirmed.
@@ -168,7 +183,7 @@ func (a *App) acceptPage(v pageView) {
 		return
 	}
 	back := f.loadBack
-	f.openLoad(back)
+	f.openListPage(back, v.ui.characters)
 	if f.loadList != nil {
 		f.loadList.Move(i)
 	}

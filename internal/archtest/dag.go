@@ -51,6 +51,9 @@ var allow = map[string][]string{
 	// The WAV leaf owns the RIFF chunk walk; it imports nothing of this tree.
 	"pkg/formats/wav":  {},
 	"pkg/formats/fame": {},
+	// The two character file leaves import nothing of this tree.
+	"pkg/formats/a2c":  {},
+	"pkg/formats/alch": {},
 	// textinput is a formats leaf because CP1251 conversion is a byte-format
 	// concern. It may use the formats tier's narrowly-scoped x/text grant but
 	// cannot reach UI or game state; pkg/locale answers the font remap.

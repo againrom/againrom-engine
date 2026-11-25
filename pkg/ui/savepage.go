@@ -138,24 +138,46 @@ type pageSeams struct {
 	loadable func() bool
 	// characters is the character role's data; nil keeps the defaults.
 	characters *CharacterPage
+	// characterFiles is the character role's store.
+	characterFiles CharacterFiles
 }
 
 // CharacterPage is the list page's character role, the page the menu's
 // Multiplayer button opens (MENU-168, R2-ENGINE-1844). It keeps the game's
 // load page window, list and Cancel, with its own title and Ok caption;
-// Delete shows only where the game's original page has it. Its list is empty:
-// no character file is read (DIV-2369).
+// Delete shows only where the game's original page has it. New is the
+// list's last row, after the character files; choosing it does nothing yet.
 type CharacterPage struct {
-	Title, OK string
-	Delete    bool
+	Title, OK, New string
+	Delete         bool
 }
 
 func defaultCharacterPage() CharacterPage {
-	return CharacterPage{Title: "Characters", OK: "Accept", Delete: true}
+	return CharacterPage{Title: "Characters", OK: "Accept", New: "New Character", Delete: true}
+}
+
+// CharacterFiles is the character role's store. List answers the character
+// rows and the message line, which counts the files it left out; CanDelete
+// and PrepareDelete are the Load page's delete seams for a row's name.
+type CharacterFiles struct {
+	List          func() ([]SaveEntry, string)
+	CanDelete     func(string) bool
+	PrepareDelete func(string) (func() error, error)
 }
 
 // SetCharacterPage installs a game's character role data.
 func (a *App) SetCharacterPage(p CharacterPage) { a.flow.pages.characters = &p }
+
+// SetCharacterFiles installs the character role's store.
+func (a *App) SetCharacterFiles(c CharacterFiles) { a.flow.pages.characterFiles = c }
+
+// characterPage is the installed character role data, or the defaults.
+func (f *flow) characterPage() CharacterPage {
+	if f.pages.characters != nil {
+		return *f.pages.characters
+	}
+	return defaultCharacterPage()
+}
 
 // CharacterList reports whether the list page shows its character role.
 func (a *App) CharacterList() bool { return a.flow.screen == ScreenLoad && a.flow.loadUI.characters }
@@ -233,11 +255,7 @@ func (f *flow) loadPage() SavePage {
 	if !f.loadUI.characters {
 		return p
 	}
-	c := defaultCharacterPage()
-	if f.pages.characters != nil {
-		c = *f.pages.characters
-	}
-	return p.characterRole(c)
+	return p.characterRole(f.characterPage())
 }
 
 // hidden reports whether a save page leaves name out of its list.

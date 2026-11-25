@@ -32,6 +32,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] The Multiplayer character list now shows each game's character files from the player profile by name, newest first, ends with a New Character row, says how many unreadable files it left out, and in the first game deletes the chosen character after the Load page's question.
 - [BASE] The main menu's Multiplayer button now opens an empty character list page with Accept and Cancel (and Delete in the first game); Cancel returns to the menu. Before, the button did nothing.
 - [ROM1] A walking unit that reaches the middle of a map's Teleport trap cell is now moved to the trap's target cell and stands there; a unit that was following a move order then walks on to that order's destination; before, the trap did nothing. A flying unit is not moved.
 - [ROM1] Fire Sacrifice, Acid Stream and Meteor Storm now strike their first cells one tick after the cast, as in the original; before, the first cells were hit on the cast's own tick.

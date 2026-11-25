@@ -30,7 +30,7 @@ func TestCharacterPageIsTheGamesData(t *testing.T) {
 			}
 			if del {
 				if v.page.Buttons[1] != load.Buttons[1] || !a.flow.pageButtonDisabled(v, loadDeleteButton) {
-					t.Errorf("%s: Delete %+v, want the load page's Delete, disabled on the empty list", name, v.page.Buttons[1])
+					t.Errorf("%s: Delete %+v, want the load page's Delete, disabled on the New row", name, v.page.Buttons[1])
 				}
 			} else {
 				r := load.Buttons[1].Rect

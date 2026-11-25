@@ -31,17 +31,20 @@ func (f *FrontEnd) wireLoadWindow(a *ui.App) {
 	}
 }
 
-// characterPage is the character list page's data: the engine's title and
-// Ok caption, as the original's texts are not read, and the game's Delete.
+// characterPage is the character list page's data: the engine's title, Ok
+// caption and last row, as the original's texts are not read (DIV-5193), and
+// the game's Delete.
 func (f *FrontEnd) characterPage() ui.CharacterPage {
 	selector := 0
 	if f.Font.Value() != nil {
 		selector = f.Font.Value().Selector
 	}
+	files := filesOf(f.Archives.Game())
 	return ui.CharacterPage{
 		Title:  encodeEngineWord(f.Words.Engine.Text("characters.title"), selector),
 		OK:     encodeEngineWord(f.Words.Engine.Text("characters.ok"), selector),
-		Delete: filesOf(f.Archives.Game()).characterDelete,
+		Delete: files.characterDelete,
+		New:    f.Words.Engine.Text(files.characters.newEntry),
 	}
 }
 
@@ -54,6 +57,12 @@ func prepareLoadDeleteFiles(dir, token string, fences []string, files namedSaveF
 	if err != nil {
 		return nil, err
 	}
+	return prepareFileDelete(path, true, fences, files, profiles...)
+}
+
+// prepareFileDelete is the Load page's deletion of the file at path, held to
+// the bytes it has now; companions adds an owned slot's companion file.
+func prepareFileDelete(path string, companions bool, fences []string, files namedSaveFileOps, profiles ...*runtimeProfileAccess) (func() error, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return nil, err
@@ -68,6 +77,9 @@ func prepareLoadDeleteFiles(dir, token string, fences []string, files namedSaveF
 	}
 	targets := []namedSaveTarget{{path: path, before: info, oldHash: sha256.Sum256(raw), old: raw}}
 	for _, kind := range allOwnedSlotKinds() {
+		if !companions {
+			break
+		}
 		if companion, owned := kind.deleteCompanion(path, raw); owned {
 			targets = append(targets, companion)
 			break
@@ -127,7 +139,16 @@ func loadDeletePath(dir, token string, fences []string, profiles ...*runtimeProf
 	} else if IsOriginal(token) {
 		return "", fmt.Errorf("the original save is read-only")
 	}
-	if name != filepath.Base(name) || !savename.Is(name) {
+	if !savename.Is(name) {
+		return "", fmt.Errorf("invalid save name")
+	}
+	return listedFilePath(dir, name, fences, profiles...)
+}
+
+// listedFilePath is the regular file name inside dir, which the fences or the
+// profile grant admit.
+func listedFilePath(dir, name string, fences []string, profiles ...*runtimeProfileAccess) (string, error) {
+	if name == "" || name != filepath.Base(name) {
 		return "", fmt.Errorf("invalid save name")
 	}
 	root, err := namedSaveDirectory(dir, fences, profiles...)

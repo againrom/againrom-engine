@@ -96,6 +96,8 @@ type gameFiles struct {
 	// game's page has it (MENU-ROUTE-163); the second game's page controls are
 	// Unknown (R2-ENGINE-1844).
 	characterDelete bool
+	// characters is the game's row of the character store.
+	characters characterStoreRow
 	// orderThresholds keeps each actor's Withdraw and Wimpy in its SAV Order
 	// or command block, written on SAVE and read on LOAD (AI-WITHDRAW-027,
 	// R2-ENGINE-1005).
@@ -232,6 +234,7 @@ var firstGameFiles = gameFiles{
 	missionScreen:     ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true},
 	boundedSaveView:   true,
 	characterDelete:   true,
+	characters:        firstCharacterFiles,
 	orderThresholds:   true,
 	heroSavedType:     true,
 	missionBookClosed: true,
@@ -274,6 +277,7 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
 
 var secondGameFiles = gameFiles{
+	characters:           secondCharacterFiles,
 	catalogPalettes:      true,
 	editorTables:         secondEditorTables,
 	choiceCatalogs:       secondChoiceCatalogs,

@@ -34,8 +34,8 @@ func clickPageButton(t *testing.T, a *App, i int, now time.Time) {
 }
 
 // The Multiplayer button opens the list page's character role in both games:
-// the load page's window and Cancel, its own title and Ok, and an empty list.
-// Ok on the empty list stays; Cancel returns to the menu, and Load then opens
+// the load page's window and Cancel, its own title and Ok, and with no store
+// the New row alone. Ok on it stays; Cancel returns to the menu, and Load then opens
 // the load page as before.
 func TestMultiplayerOpensTheCharacterListInBothGames(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
@@ -62,12 +62,12 @@ func checkCharacterList(t *testing.T, a *App, now time.Time) {
 		page.Buttons[0].Rect != load.Buttons[0].Rect || page.Buttons[2] != load.Buttons[2] {
 		t.Errorf("character page %+v, want the load window with Accept and its Cancel", page)
 	}
-	if rows := a.HeadlessRows(); len(rows) != 0 || a.HeadlessMessage() != "" {
-		t.Errorf("character list rows %v message %q, want none", rows, a.HeadlessMessage())
+	if rows := a.HeadlessRows(); len(rows) != 1 || rows[0].Text != "New Character" || a.HeadlessMessage() != "" {
+		t.Errorf("character list rows %v message %q, want the New row alone", rows, a.HeadlessMessage())
 	}
 	clickPageButton(t, a, 0, now)
-	if a.Screen() != ScreenLoad || len(a.HeadlessRows()) != 0 {
-		t.Errorf("Ok on the empty list left for %v", a.Screen())
+	if a.Screen() != ScreenLoad || len(a.HeadlessRows()) != 1 {
+		t.Errorf("Ok on the New row left for %v", a.Screen())
 	}
 	clickPageButton(t, a, 2, now)
 	if a.Screen() != ScreenMenu {

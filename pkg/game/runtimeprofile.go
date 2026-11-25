@@ -9,9 +9,10 @@ import (
 
 // RuntimeProfile keeps all mutable player files under one launch choice.
 type RuntimeProfile struct {
-	Directory string
-	Saves     SaveStore
-	Options   OptionsStore
+	Directory  string
+	Saves      SaveStore
+	Options    OptionsStore
+	Characters CharacterStore
 }
 
 func (p RuntimeProfile) PrepareDirectory(originalDir string) (string, error) {
@@ -111,8 +112,22 @@ func (p RuntimeProfile) folder(name, originalDir string) (string, *runtimeProfil
 
 func runtimeProfileStores(saves, originalDir string, access *runtimeProfileAccess) RuntimeProfile {
 	return RuntimeProfile{Directory: filepath.Dir(saves),
-		Saves:   SaveStore{Dir: saves, profile: access},
-		Options: OptionsStore{Path: filepath.Join(filepath.Dir(saves), optionsFileName), originalDir: originalDir, profile: access.rootAccess()}}
+		Saves:      SaveStore{Dir: saves, profile: access},
+		Options:    OptionsStore{Path: filepath.Join(filepath.Dir(saves), optionsFileName), originalDir: originalDir, profile: access.rootAccess()},
+		Characters: CharacterStore{Dir: filepath.Join(filepath.Dir(saves), characterFolder), profile: access.rootAccess()}}
+}
+
+// within is p's root granting the existing folder dir alone, or nil when p is
+// nil or dir is not a folder. It creates nothing.
+func (p *runtimeProfileAccess) within(dir string) *runtimeProfileAccess {
+	if p == nil {
+		return nil
+	}
+	folder, err := resolveSaveDirectory(dir)
+	if err != nil {
+		return nil
+	}
+	return &runtimeProfileAccess{root: p.root, directory: folder}
 }
 
 type runtimeProfileAccess struct {

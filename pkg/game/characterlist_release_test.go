@@ -7,7 +7,7 @@ import (
 )
 
 // On the installed game the Multiplayer button opens the character list page
-// with no row, its frame composes, Escape returns to the menu and Load then
+// with the New row alone when no store is set, its frame composes, Escape returns to the menu and Load then
 // opens the load page.
 func TestReleaseMultiplayerOpensTheCharacterList(t *testing.T) {
 	f := releaseFront(t)
@@ -17,7 +17,7 @@ func TestReleaseMultiplayerOpensTheCharacterList(t *testing.T) {
 	if err := app.HeadlessActivate("multi player"); err != nil {
 		t.Fatal(err)
 	}
-	if !app.CharacterList() || app.Screen() != ui.ScreenLoad || len(app.HeadlessRows()) != 0 {
+	if !app.CharacterList() || app.Screen() != ui.ScreenLoad || len(app.HeadlessRows()) != 1 {
 		t.Fatalf("Multiplayer opens %v (character list %v) with %d rows", app.Screen(), app.CharacterList(), len(app.HeadlessRows()))
 	}
 	if pix, _, err := app.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartFrame}); err != nil || pix == nil {

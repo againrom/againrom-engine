@@ -71,6 +71,7 @@ Paths are relative to the repository root. A `*` stands for the rest of a file n
 | WAV sound, Smacker video | `pkg/formats/wav`, `pkg/video`, `pkg/video/smacker` |
 | Texts, item names, typed-text codec | `pkg/formats/itemname`, `pkg/formats/itempkt`, `pkg/formats/textinput`, `pkg/game/installtext.go` |
 | Hall of fame | `pkg/formats/fame`, `pkg/game/fame*.go` |
+| Multiplayer character files | `pkg/formats/a2c`, `pkg/formats/alch`, `pkg/game/characterstore.go` |
 | Game and language of an install | `pkg/base`, `pkg/locale`, `pkg/installinfo`, `pkg/sim/gameprofile.go`, `pkg/game/runtimeprofile.go` |
 
 ### Simulation (`pkg/sim`)

@@ -36,7 +36,7 @@ var recaptioned = map[string]bool{"keys.action.spell": true}
 
 // laterIDs are ids authored after the dump, like the editor words.
 var laterIDs = map[string]bool{"keys.action.bind-item": true, "keys.action.bind-spell": true,
-	"characters.title": true, "characters.ok": true}
+	"characters.title": true, "characters.ok": true, "characters.new": true, "characters.left": true}
 
 func TestTablesEqualTheReplacedWords(t *testing.T) {
 	f, err := os.Open(filepath.Join("testdata", "replaced.tsv"))
@@ -351,6 +351,11 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 		// The base menu action table holds these two as positional struct
 		// fields, which the scan above does not read.
 		if id == "mission.abandon" || id == "mission.abandon.confirm" {
+			continue
+		}
+		// The character store's game rows hold the list's last row word as a
+		// struct field.
+		if id == "characters.new" {
 			continue
 		}
 		prefixed := false

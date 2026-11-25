@@ -952,6 +952,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			fmt.Fprintln(stderr, "againrom: headless saves in", profile.Saves.Dir)
 		}
 		front.ConfigureSaveSeams(app, profile.Saves, orig, nil)
+		front.ConfigureCharacters(app, profile.Characters)
 		if err := game.RunHeadlessScenario(front, app, scenario, stdout, stderr); err != nil {
 			fmt.Fprintln(stderr, "againrom: headless:", err)
 			return 1
@@ -987,6 +988,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		fmt.Fprintln(stderr, "againrom: saves in", profile.Saves.Dir)
 	}
 	front.ConfigureSaveSeams(app, profile.Saves, orig, nil)
+	front.ConfigureCharacters(app, profile.Characters)
 	// NEW GAME IS THE GENERATION DOOR FOR MISSION N, NOT NORMAL STARTUP (owner
 	// reversal; docs/DIVERGENCES.md DIV-523 carries the ruling this replaces).
 	// The window always opens at the main menu now — app.Run below draws
