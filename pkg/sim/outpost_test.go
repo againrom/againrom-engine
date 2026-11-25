@@ -247,3 +247,40 @@ func TestOutpostActionThirtyOneLateGroupActsOnGroupZero(t *testing.T) {
 		t.Fatalf("countdowns %d %d, a late group reference must not name group 7 or 8", g7.Countdown, g8.Countdown)
 	}
 }
+
+func newOutpostGroupActor(t *testing.T, w *World, group uint32) EntityID {
+	t.Helper()
+	id, err := w.createActor(outpostActor(9, 2, group, 16, 16), nil, [EquipSlots]ItemInstance{}, 16, 16, nearestFreeCell(16, 16), false,
+		actorCreationProfile{ungrouped: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+func TestOutpostNewGroupTakesTheNextIdentityAndOwner(t *testing.T) {
+	w := outpostWorld(t)
+	id := newOutpostGroupActor(t, w, 9)
+	want := max(w.savedGroups.HighWater, maxSavedGroupID(w.savedGroups.Groups)) + 1
+	container := w.uniqueSavedPlayerSlot(2)
+	n := len(w.savedGroups.Groups)
+	w.reformOutpostGroup(2, 9, []EntityID{id})
+	g := w.outpostGroup(2, 9)
+	if g == nil || len(w.savedGroups.Groups) != n+1 || g.ID != want || w.savedGroups.HighWater != want || g.ContainerID != container {
+		t.Fatalf("new Outpost group %+v, want id %d container %d", g, want, container)
+	}
+	if wantOwner := map[bool]uint32{true: container}[w.hasSavedFormations()]; g.OwnerID != wantOwner {
+		t.Fatalf("owner %d under formations %v", g.OwnerID, w.hasSavedFormations())
+	}
+}
+
+func TestOutpostNewGroupIsRefusedAtTheIdentityCeiling(t *testing.T) {
+	w := outpostWorld(t)
+	id := newOutpostGroupActor(t, w, 9)
+	w.savedGroups.HighWater = ^uint32(0)
+	n := len(w.savedGroups.Groups)
+	w.reformOutpostGroup(2, 9, []EntityID{id})
+	if len(w.savedGroups.Groups) != n || w.savedGroups.HighWater != ^uint32(0) || w.outpostGroup(2, 9) != nil {
+		t.Fatal("an Outpost group was added past the identity ceiling")
+	}
+}

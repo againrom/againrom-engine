@@ -271,11 +271,8 @@ func (w *World) reformOutpostGroup(owner, selector uint32, ids []EntityID) {
 		g.Members = append(slices.Clone(old.Members), g.Members...)
 		*old = g
 	} else {
-		g.ID = max(w.savedGroups.HighWater, maxSavedGroupID(w.savedGroups.Groups)) + 1
-		w.savedGroups.HighWater = g.ID
-		g.ContainerID = w.uniqueSavedPlayerSlot(owner)
-		if w.hasSavedFormations() {
-			g.OwnerID = g.ContainerID
+		if !w.allocSavedGroup(&g, w.uniqueSavedPlayerSlot(owner), false) {
+			return
 		}
 		w.appendSavedCommandGroup(g)
 	}

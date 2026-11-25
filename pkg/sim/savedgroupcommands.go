@@ -132,26 +132,39 @@ func (w *World) commandSavedGroup(members []int, order uint8, ordered cell) {
 	w.newSavedCommandGroup(members, order, ordered, true, w.savedCommandContainer(members), true)
 }
 
-func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, resetOrder bool, container uint32, cleanup bool) bool {
-	if len(members) == 0 {
-		return false
-	}
+// allocSavedGroup is the one allocator of a new registry group's identity: the
+// next id above the high-water mark and every listed id, the container, and the
+// owner under saved formations. It refuses, changing nothing, when the id space
+// is exhausted (unreachable in play). clearEmpty first drops the container's
+// first empty Group, as a command Group does.
+func (w *World) allocSavedGroup(g *SavedGroup, container uint32, clearEmpty bool) bool {
 	high := max(w.savedGroups.HighWater, maxSavedGroupID(w.savedGroups.Groups))
 	if high == ^uint32(0) {
 		return false
 	}
-	id := high + 1
+	if clearEmpty {
+		w.removeFirstEmptySavedGroup(container)
+	}
+	g.ID = high + 1
+	w.savedGroups.HighWater = g.ID
+	g.ContainerID = container
+	if w.hasSavedFormations() {
+		g.OwnerID = container
+	}
+	return true
+}
+
+func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, resetOrder bool, container uint32, cleanup bool) bool {
+	if len(members) == 0 {
+		return false
+	}
 	selector := w.freeSavedSelector()
 	if selector == 0 {
 		return false
 	}
-	if cleanup {
-		w.removeFirstEmptySavedGroup(container)
-	}
-	w.savedGroups.HighWater = id
-	g := SavedGroup{ID: id, ContainerID: container, Selector: selector, Authored: true}
-	if w.hasSavedFormations() {
-		g.OwnerID = container
+	g := SavedGroup{Selector: selector, Authored: true}
+	if !w.allocSavedGroup(&g, container, cleanup) {
+		return false
 	}
 	setGroupWords(w, &g, members, commandIssueRow(order), groupValues{order: order, active: 1, commanded: ordered})
 	for _, i := range members {
