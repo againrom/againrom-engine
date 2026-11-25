@@ -190,8 +190,8 @@ func TestSecondMapBoxAreaTakesTheSecondFormatRegisters(t *testing.T) {
 }
 
 // A new check past the second game's 1000 result registers is refused in
-// words naming 1000, not the first game's 100, and asks no change of the
-// script's form: the second game has no Againrom script record.
+// words naming 1000, not the first game's 100, and asks to extend the
+// script, whose record lifts the limit.
 func TestSecondMapChecksFullNamesTheSecondGameLimit(t *testing.T) {
 	host := secondAuthorHost(t)
 	m, err := mapedit.New(host.model.Bytes())
@@ -214,7 +214,7 @@ func TestSecondMapChecksFullNamesTheSecondGameLimit(t *testing.T) {
 	full := d.Edits.(*mapInspectionEdits)
 	_, err = full.AddRecord(ui.InspectionNewRecord{Kind: ui.KindCondition})
 	var need *ui.ScriptFormNeeded
-	if want := fmt.Sprintf(full.inspector.word("editor.wizard.checksfull"), 1000); err == nil || err.Error() != want || errors.As(err, &need) {
+	if want := fmt.Sprintf(full.inspector.word("editor.wizard.checksfull"), 1000); !errors.As(err, &need) || need.Why != want {
 		t.Fatalf("the 1001st check: %v, want %q", err, want)
 	}
 }

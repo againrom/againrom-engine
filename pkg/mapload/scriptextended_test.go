@@ -2,7 +2,6 @@ package mapload_test
 
 import (
 	"slices"
-	"strings"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -48,8 +47,10 @@ func TestExtendedRecordCompilesGroupsListsAndMisses(t *testing.T) {
 	if tr.Pairs != [3]sim.ScriptPair{} || tr.Instants != [4]int32{sim.ScriptNone, sim.ScriptNone, sim.ScriptNone, sim.ScriptNone} {
 		t.Fatalf("the record slots of an extended trigger are used: %+v", tr)
 	}
-	if _, _, err := mapload.CompileROM2ScriptFrom(src, mapload.ScriptRefs{}); err == nil || !strings.Contains(err.Error(), "first game's") {
-		t.Fatal("the second game compiled the extended record", err)
+	second, _, err := mapload.CompileROM2ScriptFrom(src, mapload.ScriptRefs{})
+	if err != nil || second.Dialect() != sim.ScriptROM2 || !second.Extended() || second.Variables() != 150 ||
+		!slices.Equal(second.Triggers()[0].Conditions, want) || !slices.Equal(second.Triggers()[0].Actions, tr.Actions) {
+		t.Fatal("the second game did not compile the extended record on its own operations", err)
 	}
 }
 

@@ -263,6 +263,17 @@ func (d ScriptDialect) Profile() scriptprofile.Profile {
 	return dialectProfiles[ScriptROM1]
 }
 
+// DialectOf is the dialect whose profile holds operation vocabulary ops,
+// the first game's when none does.
+func DialectOf(ops scriptprofile.Ops) ScriptDialect {
+	for d, p := range dialectProfiles {
+		if p.Ops == ops {
+			return ScriptDialect(d)
+		}
+	}
+	return ScriptROM1
+}
+
 // Known reports whether d is a dialect the engine runs.
 func (d ScriptDialect) Known() bool { return int(d) < len(dialectProfiles) }
 

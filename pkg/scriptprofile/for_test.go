@@ -14,7 +14,11 @@ func TestForSelectsOneTable(t *testing.T) {
 		{"first game", OpsFirst, false, First},
 		{"second game", OpsSecond, false, Second},
 		{"extended, first game", OpsFirst, true, Extended},
-		{"extended, second game", OpsSecond, true, Extended},
+		{"extended, second game", OpsSecond, true, Second.onExtendedMachine()},
+	}
+	if x := For(OpsSecond, true); x.Ops != OpsSecond || x.Omit != Second.Omit || x.Units != Second.Units || x.Pairs != Extended.Pairs ||
+		x.Variables != Extended.Variables || x.Registers != 0 || !x.Extended || !x.Groups {
+		t.Errorf("the second game on the extended machine: %+v", x)
 	}
 	for _, c := range cases {
 		if got := For(c.ops, c.extended); got != c.want {

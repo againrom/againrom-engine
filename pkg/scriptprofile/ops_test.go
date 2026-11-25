@@ -29,6 +29,10 @@ func TestOpRowsCarryTheOldWordKeysAndRegisterSlots(t *testing.T) {
 			for _, id := range ids {
 				want[id] = prefix[ops][condition] + strconv.Itoa(int(id))
 			}
+			// The engine's condition keeps its one word in both games.
+			if ops == OpsSecond && condition {
+				want[UnitLeftCellOp] = "editor.check.op16645"
+			}
 			for _, row := range OpRows(ops, condition) {
 				if row.Word != want[row.ID] {
 					t.Errorf("ops %d condition %v id %d: word %q, want %q", ops, condition, row.ID, row.Word, want[row.ID])

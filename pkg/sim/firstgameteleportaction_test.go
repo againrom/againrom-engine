@@ -34,7 +34,7 @@ func TestFirstGameTeleportActionMovesAnyUnitAndFindsNearestFreeCell(t *testing.T
 			{"air", 4, DomainAir},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
-				s, err := NewExtendedScript(100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
+				s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
 					{Op: ScriptInstantTeleport, Args: [scriptParams]int32{10, 10, 30, 40}},
 				}, []ScriptTrigger{
 					{Instants: acts(), Latch: 0, Conditions: []ScriptPair{pair(0, 0, ScriptCmpEQ)}, Actions: []int32{0}},
@@ -64,7 +64,7 @@ func TestFirstGameTeleportActionMovesAnyUnitAndFindsNearestFreeCell(t *testing.T
 	})
 
 	t.Run("taken target gives nearest free cell", func(t *testing.T) {
-		s, err := NewExtendedScript(100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
+		s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
 			{Op: ScriptInstantTeleport, Args: [scriptParams]int32{10, 10, 30, 40}},
 		}, []ScriptTrigger{
 			{Instants: acts(), Latch: 0, Conditions: []ScriptPair{pair(0, 0, ScriptCmpEQ)}, Actions: []int32{0}},
@@ -91,7 +91,7 @@ func TestFirstGameTeleportActionMovesAnyUnitAndFindsNearestFreeCell(t *testing.T
 	})
 
 	t.Run("empty source or dead body moves nothing", func(t *testing.T) {
-		s, err := NewExtendedScript(100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
+		s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
 			{Op: ScriptInstantTeleport, Args: [scriptParams]int32{10, 10, 30, 40}},
 		}, []ScriptTrigger{
 			{Instants: acts(), Latch: 0, Conditions: []ScriptPair{pair(0, 0, ScriptCmpEQ)}, Actions: []int32{0}},
@@ -121,7 +121,7 @@ func TestFirstGameTeleportActionMovesAnyUnitAndFindsNearestFreeCell(t *testing.T
 // during play, and moves a second unit stepping on Source later to Target or
 // the nearest free cell when the first still stands there.
 func TestFirstGameTeleportActionRepeatsAndRoundTripsSave(t *testing.T) {
-	s, err := NewExtendedScript(100, []ScriptCheck{
+	s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{
 		{Op: ScriptCheckNearest, Register: 0, Player: SelfSlot, HasPlayer: true, Args: [scriptParams]int32{10, 10}},
 		constCheck(1, 0),
 	}, []ScriptInstant{

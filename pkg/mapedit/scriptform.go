@@ -73,12 +73,15 @@ func recordTriggerFields(rec []byte) []Field {
 func (e *Editor) Extended() bool { return e.locate().carries(alm.ScriptRecordTypeID) }
 
 // Profile is the script limits and operation vocabulary of the map's game:
-// the profile its format's row holds, else the one the script record chooses.
+// its format row's operations, on the machine the script record chooses.
 func (e *Editor) Profile() scriptprofile.Profile {
-	if p := formatRows[e.format].profile; p != nil {
-		return *p
-	}
-	return scriptprofile.For(scriptprofile.OpsFirst, e.Extended())
+	return scriptprofile.For(formatRows[e.format].ops, e.Extended())
+}
+
+// OriginalProfile is the profile of the map's game on the original machine,
+// the form a fold writes.
+func (e *Editor) OriginalProfile() scriptprofile.Profile {
+	return scriptprofile.For(formatRows[e.format].ops, false)
 }
 
 // scriptRoom refuses a write that adds checks conditions and triggers
@@ -321,7 +324,7 @@ func (e *Editor) ExtendScript() error {
 		return err
 	}
 	forms := scriptFormsOf(sc)
-	r := alm.ScriptRecord{Variables: scriptprofile.FirstRegisters}
+	r := alm.ScriptRecord{Variables: e.OriginalProfile().Registers}
 	for i, t := range sc.Triggers {
 		x, err := forms.extended(t)
 		if err != nil {
@@ -337,6 +340,7 @@ func (e *Editor) ExtendScript() error {
 	ed := edit{replace(last.payloadOff+last.payloadSize, nil, framed), e.wordPart(alm.FileRecordCount, 1)}
 	if start, end := w.span.abs(w.starts[0]), w.span.abs(w.starts[w.n()]); end > start {
 		ed = append(ed, replace(start, e.data[start:end], nil), e.wordPart(w.countAt, -w.n()), e.sizeWordPart(w.span, start-end))
+		ed = append(ed, e.tallyParts(w, -w.n())...)
 	}
 	e.apply(ed)
 	return nil
@@ -356,7 +360,7 @@ func (e *Editor) FoldScript() error {
 	if err != nil {
 		return err
 	}
-	first := scriptprofile.First
+	first := e.OriginalProfile()
 	if r.Variables > first.Registers {
 		return &ScriptLimitError{Limit: LimitVariables, Max: int64(first.Registers), Got: int64(r.Variables - 1)}
 	}
@@ -382,13 +386,17 @@ func (e *Editor) FoldScript() error {
 			}
 		}
 	}
-	w, err := e.walkRow(f, sections[KindTrigger], "fold the script")
+	row, err := originalSection(KindTrigger, f)
+	if err != nil {
+		return err
+	}
+	w, err := e.walkRow(f, row, "fold the script")
 	if err != nil {
 		return err
 	}
 	var recs []byte
 	for _, t := range r.Triggers {
-		b, err := NewScriptTrigger(t)
+		b, err := newScriptTrigger(first, t, nil)
 		if err != nil {
 			return err
 		}
@@ -396,6 +404,7 @@ func (e *Editor) FoldScript() error {
 	}
 	at, frameEnd := w.span.abs(w.starts[w.n()]), sp.payloadOff+sp.payloadSize
 	ed := edit{e.wordPart(w.countAt, len(r.Triggers)), e.sizeWordPart(w.span, len(recs)), e.wordPart(alm.FileRecordCount, -1)}
+	ed = append(ed, e.tallyParts(w, len(r.Triggers))...)
 	if at == sp.headerOff {
 		ed = append(ed, replace(at, e.data[at:frameEnd], recs))
 	} else {

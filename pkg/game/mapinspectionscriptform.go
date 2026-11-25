@@ -252,9 +252,9 @@ func (s *mapInspectionEdits) FoldScript() (_ *ui.InspectionDocument, said error)
 }
 
 // foldScript folds m's script and checks every variable a node addresses
-// as the original's registers hold it: below 100, and no check result in
-// its register. The variable count falls to 100 first when no node
-// addresses a variable past it.
+// as the original's registers hold it: below the game's register count, and
+// no check result in its register. The variable count falls to that count
+// first when no node addresses a variable past it.
 func foldScript(m *mapedit.Editor) error {
 	_, sc, err := wizardScript(m)
 	if err != nil {
@@ -264,8 +264,8 @@ func foldScript(m *mapedit.Editor) error {
 	for v := range variableRegisters(sc) {
 		need = max(need, int(min(v, math.MaxInt32-1))+1)
 	}
-	if v := m.ScriptVariables(); v > scriptprofile.FirstRegisters && need <= scriptprofile.FirstRegisters {
-		if err := m.SetScriptVariables(scriptprofile.FirstRegisters); err != nil {
+	if v, held := m.ScriptVariables(), m.OriginalProfile().Registers; v > held && need <= held {
+		if err := m.SetScriptVariables(held); err != nil {
 			return err
 		}
 	}
@@ -510,7 +510,7 @@ func (s *mapInspectionEdits) scriptSaveForm(path string) error {
 // extendedName refuses map bytes that carry the extended script record or
 // the texts record under a name that is not .almx.
 func extendedName(data []byte, name string) error {
-	m, err := alm.Open(data)
+	m, err := alm.OpenFormat(data, alm.FormatOf(data))
 	if err != nil || !m.HasScriptRecord() && !m.HasTextsRecord() || namefold.HostEqual(filepath.Ext(name), extendedMapExt) {
 		return nil
 	}

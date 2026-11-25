@@ -42,6 +42,14 @@ const (
 	dialectROM2 = SecondFormat
 )
 
+// againromRecords is, per format, which Againrom records its reader takes:
+// both games carry the extended script record (DIV-4599), the texts record
+// is the first game's alone.
+var againromRecords = [...]struct{ script, texts bool }{
+	FirstFormat:  {script: true, texts: true},
+	SecondFormat: {script: true},
+}
+
 func selectedFormat(formats []Format) Format {
 	if len(formats) > 0 {
 		return formats[0]

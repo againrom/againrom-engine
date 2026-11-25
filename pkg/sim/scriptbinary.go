@@ -524,6 +524,21 @@ func (w *World) appendExtendedScript(b []byte) []byte {
 	}
 	b = le.AppendUint32(b, uint32(len(w.latchTail)))
 	b = append(b, w.latchTail...)
+	// The late checks' indices close the form, only when there is one, so a
+	// program without late references keeps its bytes. putScriptRecords has
+	// no byte for the flag.
+	var late []int
+	for i, c := range s.checks {
+		if c.Late {
+			late = append(late, i)
+		}
+	}
+	if len(late) > 0 {
+		b = le.AppendUint32(b, uint32(len(late)))
+		for _, i := range late {
+			b = le.AppendUint32(b, uint32(i))
+		}
+	}
 	return endWrapper(b, ws, extendedScriptFormVersion)
 }
 
@@ -605,19 +620,43 @@ func (w *World) unmarshalExtendedScript(data []byte, proof formProof) error {
 		return fail()
 	}
 	latches, ok := take(int64(nLatch))
-	if !ok || off != int64(len(s)) {
+	if !ok {
 		return fail()
 	}
-	program, err := NewExtendedScript(int32(vars), recs.checks, recs.instants, recs.triggers)
-	if err != nil {
-		return err
+	if off != int64(len(s)) {
+		n, okN := word()
+		if !okN || n == 0 || n > nc {
+			return fail()
+		}
+		prev := int64(-1)
+		for k := uint32(0); k < n; k++ {
+			i, okI := word()
+			if !okI || i >= nc || int64(i) <= prev {
+				return fail()
+			}
+			prev = int64(i)
+			recs.checks[i].Late = true
+		}
+		if off != int64(len(s)) {
+			return fail()
+		}
 	}
 	next := *w
 	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
-	if next.script != nil {
-		return fail()
+	// The base form carries no program. A second-game base holds the empty
+	// one its script state compiles, and its dialect is the program's.
+	dialect := ScriptROM1
+	if s := next.script; s != nil {
+		if s.Extended() || len(s.checks)+len(s.instants)+len(s.triggers) != 0 {
+			return fail()
+		}
+		dialect = s.Dialect()
+	}
+	program, err := NewExtendedScript(dialect, int32(vars), recs.checks, recs.instants, recs.triggers)
+	if err != nil {
+		return err
 	}
 	next.script = program
 	next.scriptVars, next.scriptResults, next.latchTail = nil, nil, nil

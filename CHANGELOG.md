@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM1] A map can trigger an event when a chosen unit leaves its starting cell.
 - [ROM1] A unit moved by a teleport stays where it lands instead of walking back.
+- [ROM2] A second-game map can carry the engine's extended script, so its triggers can fire when a chosen unit leaves its starting cell.
 
 ### For map makers and modders
 

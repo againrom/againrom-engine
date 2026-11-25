@@ -421,6 +421,9 @@ func Impassable(cell uint16) bool { return cell&TileImpassable != 0 }
 // out-of-bounds read.
 func Open(data []byte) (*Map, error) { return open(data, dialectROM1) }
 
+// OpenFormat reads a map in the grammar of format f.
+func OpenFormat(data []byte, f Format) (*Map, error) { return open(data, f) }
+
 func open(data []byte, d dialect) (*Map, error) {
 	f, err := walkRecordsIn(data, d)
 	if err != nil {
@@ -653,13 +656,14 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 			f.extPresent[typeID-TypeIDCount] = true
 			f.ext[typeID-TypeIDCount] = data[payloadStart:payloadEnd]
 		}
-		// The Againrom script record is the first game's alone; the second
-		// game's reader leaves the id where the original leaves it.
-		if d == dialectROM1 && typeID == ScriptRecordTypeID {
+		// The Againrom records a format's reader takes are its row of
+		// againromRecords; an id it does not take stays where the original
+		// leaves it.
+		if againromRecords[d].script && typeID == ScriptRecordTypeID {
 			f.scriptRecords++
 			f.scriptRecord = data[payloadStart:payloadEnd]
 		}
-		if d == dialectROM1 && typeID == TextsRecordTypeID {
+		if againromRecords[d].texts && typeID == TextsRecordTypeID {
 			f.textsRecords++
 			f.textsRecord = data[payloadStart:payloadEnd]
 		}

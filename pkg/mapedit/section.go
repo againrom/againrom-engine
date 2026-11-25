@@ -83,14 +83,15 @@ type section struct {
 var sections map[Kind]*section
 
 // formatRow is what one map format fixes in the record layer: the section
-// rows it replaces in the shared table, and the script profile it holds
-// whatever the map carries. A format without a row has the shared table and
-// the profile its script record chooses. planes is the brush row of each
-// plane the format's brushes write; nil takes every plane, any value, no band.
+// rows it replaces in the shared table, and the operation vocabulary of its
+// script profile, which the script record puts on the extended machine. A
+// format without a row has the shared table and the first game's operations.
+// planes is the brush row of each plane the format's brushes write; nil takes
+// every plane, any value, no band.
 type formatRow struct {
-	own     map[Kind]*section
-	profile *scriptprofile.Profile
-	planes  map[Plane]PlaneRule
+	own    map[Kind]*section
+	ops    scriptprofile.Ops
+	planes map[Plane]PlaneRule
 }
 
 // formatRows is the one table of formats, keyed by the map's format.
@@ -153,11 +154,17 @@ func sectionOf(k Kind) (*section, error) {
 // sectionFor is k's row in frame f. A map carrying the Againrom script
 // record holds its triggers there, so KindTrigger is that record's row.
 func sectionFor(k Kind, f frame) (*section, error) {
-	if s, ok := formatRows[f.format].own[k]; ok {
-		return s, nil
-	}
 	if k == KindTrigger && f.carries(alm.ScriptRecordTypeID) {
 		return recordTriggers, nil
+	}
+	return originalSection(k, f)
+}
+
+// originalSection is k's row in frame f were it to carry no script record:
+// the format's own row, else the shared one.
+func originalSection(k Kind, f frame) (*section, error) {
+	if s, ok := formatRows[f.format].own[k]; ok {
+		return s, nil
 	}
 	return sectionOf(k)
 }

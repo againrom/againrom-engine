@@ -375,7 +375,7 @@ func CompileScript(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, erro
 // and the other is what a caller holding the script itself — or building one —
 // needs, without a map to route it through.
 func CompileScriptFrom(src alm.Script, refs ScriptRefs) (*sim.Script, ScriptReport, error) {
-	return compileScriptFrom(src, refs, scriptprofile.For(scriptprofile.OpsFirst, src.Extended), sim.NewScript)
+	return compileScriptFrom(src, refs, scriptprofile.OpsFirst, sim.NewScript)
 }
 
 func CompileROM2Script(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, error) {
@@ -391,13 +391,16 @@ func CompileROM2Script(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, 
 }
 
 func CompileROM2ScriptFrom(src alm.Script, refs ScriptRefs) (*sim.Script, ScriptReport, error) {
-	return compileScriptFrom(src, refs, scriptprofile.Second, sim.NewROM2Script)
+	return compileScriptFrom(src, refs, scriptprofile.OpsSecond, sim.NewROM2Script)
 }
 
-// compileScriptFrom compiles src under profile p, the game's rules for its
-// nodes, and hands the records to build, the constructor of that game's script.
-func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
+// compileScriptFrom compiles src under the profile of operations ops, the
+// game's rules for its nodes, on the machine src's record chooses, and hands
+// the records of an original program to build, the constructor of that
+// game's script.
+func compileScriptFrom(src alm.Script, refs ScriptRefs, ops scriptprofile.Ops,
 	build func([]sim.ScriptCheck, []sim.ScriptInstant, []sim.ScriptTrigger) (*sim.Script, error)) (*sim.Script, ScriptReport, error) {
+	p := scriptprofile.For(ops, src.Extended)
 	var rep ScriptReport
 	if emptyBodies[p.Empty](src) {
 		return nil, rep, nil
@@ -599,12 +602,9 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, p scriptprofile.Profile,
 		rep.ActionOf, rep.CheckOf = instantOf, registerOf
 	}
 	compile := build
-	switch {
-	case src.Extended && !p.Extended:
-		return nil, rep, fmt.Errorf("mapload: the Againrom script record is the first game's")
-	case src.Extended:
+	if src.Extended {
 		compile = func(c []sim.ScriptCheck, in []sim.ScriptInstant, t []sim.ScriptTrigger) (*sim.Script, error) {
-			return sim.NewExtendedScript(int32(src.Variables), c, in, t)
+			return sim.NewExtendedScript(sim.DialectOf(ops), int32(src.Variables), c, in, t)
 		}
 	}
 	s, err := compile(checks, instants, triggers)

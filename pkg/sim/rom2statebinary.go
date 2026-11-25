@@ -67,10 +67,11 @@ func (w *World) appendROM2ScriptState(b []byte) []byte {
 // lateCheckIndices lists the checks that name a late reference, in order.
 func (w *World) lateCheckIndices() []int {
 	var out []int
-	if w.script == nil {
+	s := w.sectionScript()
+	if s == nil {
 		return out
 	}
-	for i, c := range w.script.checks {
+	for i, c := range s.checks {
 		if c.Late {
 			out = append(out, i)
 		}

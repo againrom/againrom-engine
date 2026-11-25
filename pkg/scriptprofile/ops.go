@@ -608,6 +608,9 @@ var secondChecks = []Op{
 	{Ops: OpsSecond, Condition: true, ID: 25, Name: "Cell effect layer present", Word: "editor.second.check.25", Decoded: true, Offered: true, Signature: sig(cell("cell"), number(""))},
 	{Ops: OpsSecond, Condition: true, ID: 26, Name: "Unit effect active", Word: "editor.second.check.26", Decoded: true, Offered: true, Signature: sig(unit("unit"), number(""))},
 	{Ops: OpsSecond, Condition: true, ID: 27, Name: "Unit tile position", Word: "editor.second.check.27", Decoded: true, Offered: true},
+	// The engine's condition, on the extended machine alone (DIV-5204).
+	{Ops: OpsSecond, Condition: true, ID: UnitLeftCellOp, Name: "Unit left its cell", Word: "editor.check.op16645", Decoded: true, Again: true, Signature: sig(unit("unit"), cell("cell")),
+		Presets: []WizardPreset{{Word: "editor.wizard.c.leftcell", Fields: map[string]string{"unit": "placement"}, Right: 1}}},
 	{Ops: OpsSecond, Condition: true, ID: constantOp, Name: "Compiler parameter", Word: "editor.second.check.65538", Decoded: true, Offered: true},
 }
 

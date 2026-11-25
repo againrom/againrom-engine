@@ -71,14 +71,12 @@ func (p *currentScriptProgram) compile() (*sim.Script, error) {
 	switch {
 	case !p.Dialect.Known():
 		return nil, fmt.Errorf("invalid current script dialect")
-	case !p.Dialect.HoldsScriptState() && p.Extended != nil:
-		program, err = sim.NewExtendedScript(p.Extended.Variables, p.Checks, p.Instants, triggers)
+	case p.Extended != nil:
+		program, err = sim.NewExtendedScript(p.Dialect, p.Extended.Variables, p.Checks, p.Instants, triggers)
 	case !p.Dialect.HoldsScriptState():
 		program, err = sim.NewScript(p.Checks, p.Instants, triggers)
-	case p.Extended == nil:
-		program, err = sim.NewROM2Script(p.Checks, p.Instants, triggers)
 	default:
-		return nil, fmt.Errorf("invalid current script dialect")
+		program, err = sim.NewROM2Script(p.Checks, p.Instants, triggers)
 	}
 	if err != nil {
 		return nil, err

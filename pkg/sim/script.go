@@ -648,15 +648,18 @@ type scriptMachine struct {
 	registerCap int
 }
 
-// NewExtendedScript compiles an extended program: the first game's opcodes
+// NewExtendedScript compiles an extended program: the opcodes of dialect d
 // on the extended machine, with variables variables. It refuses what NewScript
 // refuses, measured against the extended profile, and a record slot used on
 // an extended trigger.
-func NewExtendedScript(variables int32, checks []ScriptCheck, instants []ScriptInstant, triggers []ScriptTrigger) (*Script, error) {
+func NewExtendedScript(d ScriptDialect, variables int32, checks []ScriptCheck, instants []ScriptInstant, triggers []ScriptTrigger) (*Script, error) {
 	if variables < 0 || variables > scriptprofile.ExtendedVariables {
 		return nil, fmt.Errorf("sim: an extended script holds %d variables, at most %d", variables, scriptprofile.ExtendedVariables)
 	}
-	return newScriptOn(ScriptROM1, scriptMachine{extended: true, variables: variables}, checks, instants, triggers)
+	if !d.Known() {
+		return nil, fmt.Errorf("sim: invalid script dialect %d", d)
+	}
+	return newScriptOn(d, scriptMachine{extended: true, variables: variables}, checks, instants, triggers)
 }
 
 // Recompile compiles the given arrays on s's dialect and machine, as

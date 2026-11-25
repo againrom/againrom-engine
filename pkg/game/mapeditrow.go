@@ -160,6 +160,7 @@ var editRows = map[alm.Format]*editRow{
 			reflect.TypeFor[ui.InspectionSelection](), reflect.TypeFor[ui.InspectionGroups](),
 			reflect.TypeFor[ui.InspectionItemLook](),
 			reflect.TypeFor[ui.InspectionTriggerCopy](), reflect.TypeFor[ui.InspectionTriggerWizard](),
+			reflect.TypeFor[ui.InspectionScriptForm](),
 			reflect.TypeFor[ui.InspectionWholeMap](), reflect.TypeFor[ui.InspectionWorkspace](),
 		},
 		// A campaign mission's events read its own file, any other map's

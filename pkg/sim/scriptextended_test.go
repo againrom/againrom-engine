@@ -18,7 +18,7 @@ func extendedProgram(t *testing.T, setup ...int32) *Script {
 		p.Group = g
 		return p
 	}
-	s, err := NewExtendedScript(150, []ScriptCheck{
+	s, err := NewExtendedScript(ScriptROM1, 150, []ScriptCheck{
 		constCheck(0, 1), constCheck(1, 0),
 		{Op: ScriptCheckVariable, Register: 2, Args: [scriptParams]int32{120}},
 		{Op: ScriptCheckVariable, Register: 3, Args: [scriptParams]int32{5}},

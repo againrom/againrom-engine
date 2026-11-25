@@ -278,9 +278,10 @@ func EncodeScriptRecordTrigger(i int, t ScriptTrigger) ([]byte, error) {
 
 // AppendScriptRecord returns stream with r encoded as one more record after
 // its last one, the file header's record count raised by one. stream must be
-// a map Open accepts and carry no script record.
-func AppendScriptRecord(stream []byte, r ScriptRecord) ([]byte, error) {
-	m, err := Open(stream)
+// a map of the first of formats, the first game's when none is given, that
+// carries no script record.
+func AppendScriptRecord(stream []byte, r ScriptRecord, formats ...Format) ([]byte, error) {
+	m, err := open(stream, selectedFormat(formats))
 	if err != nil {
 		return nil, err
 	}

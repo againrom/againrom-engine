@@ -14,7 +14,7 @@ import (
 // once global 2 is 42.
 func globalProgram(t *testing.T) *Script {
 	t.Helper()
-	s, err := NewExtendedScript(100, []ScriptCheck{
+	s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{
 		{Op: ScriptCheckGlobal, Register: 0, Args: [scriptParams]int32{1}},
 		constCheck(1, 0),
 		{Op: ScriptCheckGlobal, Register: 2, Args: [scriptParams]int32{3}},

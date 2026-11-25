@@ -204,21 +204,31 @@ var (
 		OmittedActions: OmittedBuildTime, Drops: DropPacked, Consts: ConstValue, Omit: OmitByAnyFailure,
 		TriggerOmit: TriggersOmitOnCheck, Units: UnitByRole, Late: LateReferences,
 		InstantSlots: true, AliveHeldBody: true, UntypedAsInt: true, LateLow: 8000, LateHigh: 9999}
-	Extended = Profile{Pairs: ExtendedConditions, Actions: ExtendedActions, MaxCompare: MaxCompare,
-		TickRegister: FirstTickRegister, Latches: ExtendedTriggers, Triggers: ExtendedTriggers, MaxID: MaxID,
-		Variables: ExtendedVariables, Groups: true, Extended: true, Empty: EmptyNil}
+	Extended = First.onExtendedMachine()
 )
 
-// For is the one script profile selector: Extended when the map carries the
-// Againrom script record, else the profile of operation vocabulary ops.
+// onExtendedMachine is p's game on the extended machine: the record's pair,
+// action, latch and trigger counts, its own variables and groups; the
+// game's operations and node rules stay.
+func (p Profile) onExtendedMachine() Profile {
+	p.Pairs, p.Actions, p.Registers = ExtendedConditions, ExtendedActions, 0
+	p.Latches, p.Triggers, p.Variables = ExtendedTriggers, ExtendedTriggers, ExtendedVariables
+	p.Groups, p.Extended = true, true
+	return p
+}
+
+// For is the one script profile selector: the profile of operation
+// vocabulary ops, on the extended machine when the map carries the
+// Againrom script record.
 func For(ops Ops, extended bool) Profile {
-	if extended {
-		return Extended
-	}
+	p := First
 	if ops == OpsSecond {
-		return Second
+		p = Second
 	}
-	return First
+	if extended {
+		return p.onExtendedMachine()
+	}
+	return p
 }
 
 // LeftKey, RightKey and CmpKey name pair p's fields of a trigger record,

@@ -26,7 +26,7 @@ var secondWriteOrder = []uint32{0, 1, 2, 3, 5, 11, 4, 9, 8, 6, 7, 10, 12}
 
 // The second format's row: these sections, the three type-7 arrays whose
 // adds and removals keep the type-0 word +0x28 at their sum, and its own
-// script profile.
+// script operations.
 func init() {
 	own := map[Kind]*section{
 		KindUnit: {name: "unit", typeID: alm.TypeUnits, count: alm.MetaUnitCount, x: alm.UnitX, y: alm.UnitY, create: true,
@@ -78,7 +78,7 @@ func init() {
 	// stores 5 over the bit's 1 (R2-ENGINE-1340), so the passability stroke
 	// clears it to leave the cell closed to move kind 1 alone or open
 	// (R2-ENGINE-1805).
-	formatRows[alm.SecondFormat] = formatRow{own: own, profile: &scriptprofile.Second, planes: map[Plane]PlaneRule{
+	formatRows[alm.SecondFormat] = formatRow{own: own, ops: scriptprofile.OpsSecond, planes: map[Plane]PlaneRule{
 		PlaneTile:       {},
 		PlaneHeight:     {Band: secondBand},
 		PlaneImpassable: {Band: secondBand, ClearsObjects: true},

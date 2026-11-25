@@ -32,7 +32,7 @@ func TestFirstGameTeleportTrapClearsTheMoveOrder(t *testing.T) {
 // A unit moved by the Teleport action under a Move order stays at the target,
 // and a member of its group that was not moved keeps its order.
 func TestFirstGameTeleportActionClearsTheMoveOrder(t *testing.T) {
-	s, err := NewExtendedScript(100, []ScriptCheck{
+	s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{
 		{Op: ScriptCheckNearest, Register: 0, Player: SelfSlot, HasPlayer: true, Args: [scriptParams]int32{10, 10}},
 		constCheck(1, 0),
 	}, []ScriptInstant{
