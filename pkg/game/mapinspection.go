@@ -273,10 +273,9 @@ func (x *MapInspector) inspect(b []byte, source string) (*ui.InspectionDocument,
 }
 
 func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *editorWorkspaceState) (*ui.InspectionDocument, error) {
-	var pages map[string][]byte
 	var labels map[uint32]string
 	if w != nil {
-		pages, labels = w.Pages, w.Labels
+		labels = w.Labels
 	}
 	m, err := model.Map()
 	if err != nil {
@@ -515,7 +514,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		inspectScript(d, m, script, limits, x.inspectionUTF8)
 		x.inspectNodeTexts(d.Script, model)
 		d.Script.Labels = liveLabels(script, limits, labels)
-		d.Script.Targets = x.scriptTargets(d, m, script, pages)
+		d.Script.Targets = x.scriptTargets(d, m, script, w)
 		inspectScriptUses(d)
 		d.ScriptNotice = fmt.Sprintf("%d triggers / %d conditions / %d actions / %d registers", len(script.Triggers), len(script.Conditions), len(script.Actions), max(limits.Registers, limits.Variables))
 		if len(script.Triggers) == 0 {

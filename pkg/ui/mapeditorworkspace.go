@@ -354,6 +354,24 @@ func (e *MapEditor) keyWorkspace(key string) error {
 	return nil
 }
 
+// openPage opens the pages prompt on the page called name, at its text.
+func (e *MapEditor) openPage(name string) {
+	if _, err := e.commandSetMapField(mapField{Scope: "pages", Key: "page", Value: name}); err != nil {
+		e.message = err.Error()
+		return
+	}
+	host, ok := e.workspace()
+	if !ok {
+		return
+	}
+	fields := host.WorkspaceFields("pages")
+	if len(fields) < 2 {
+		return
+	}
+	e.leave(leaveDrag | leavePick | leaveReport)
+	e.openPrompt(editorPrompt{kind: promptWorkspace, scope: "pages", field: 1, path: fieldInput(fields[1])})
+}
+
 func (e *MapEditor) setWorkspaceField(value string) error {
 	_, ok := e.workspace()
 	fields := e.promptFields()

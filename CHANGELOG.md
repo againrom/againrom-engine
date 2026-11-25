@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [ROM1] In the map editor a first-game trap of the Teleport spell now reads as a teleport from its cell to its target cell, and its cell, target and power are set and saved as before.
+- [ROM2] In the map editor a second-game map's pages window now shows the sections of the mission text the game reads for the map, names the actions that send each event, edits a section or adds one, and saves the edited text into the map's mod, where the game shows it.
 - [ROM2] In the map editor a second-game unit, structure and sack now name every field and mark the ones no game reader was found for, a sack item's word says whether the owner takes the item in hand or into the bag, and the passability view and brush show and set which move kinds each cell closes.
 - [ROM2] In the map editor the trigger wizard now offers the teleport as its own ready action under the cells heading, asking for the entry cell and the exit cell, and the action line reads as the teleport with those two cells; the event number, the default power and a source equal to the entry cell are no longer shown.
 - [BASE] In the map editor the unit window's spellcaster caption now looks and reacts like a button, spells that are off in the unit's spell book are drawn dimmed, and a spell given to a unit no longer shows as a label beside it on the map.

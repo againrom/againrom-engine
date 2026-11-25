@@ -220,6 +220,10 @@ func (e *MapEditor) openParameter(field int) {
 	if !ok || !e.objectMayLeave() {
 		return
 	}
+	if e.messageField(field) && target.Page != "" {
+		e.openPage(target.Page)
+		return
+	}
 	if e.messageField(field) {
 		e.openMessage(target.Value)
 		return

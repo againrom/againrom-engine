@@ -775,6 +775,8 @@ var (
 	briefingSource        = &textSource{address: mainPrefix + "text/battle/m%d/briefing.txt", numbered: true, codec: storedUTF8, edge: edgeTrimSpace}
 	eventTextSource       = &textSource{address: mainPrefix + "text/battle/m%d/event%02d.txt", numbered: true}
 	missionTextSource     = &textSource{address: mainPrefix + "text/mission%d.txt", numbered: true, codec: fontBytes, form: keySections}
+	editorMissionText     = &textSource{address: mainPrefix + "text/mission%d.txt", numbered: true}
+	editorQuestText       = &textSource{address: mainPrefix + "text/quest.txt"}
 	townTextSource        = &textSource{address: secondTownText, codec: fontBytes, form: keySections}
 	townDialogueSource    = &textSource{}
 	missionTitleSource    = &textSource{address: mainPrefix + "text/battle/m%d/title.txt", numbered: true, absence: absentBlank}
@@ -990,6 +992,12 @@ func (t lineText) section(key string) string {
 	return secondGameTextSection(t.body, key)
 }
 
+// editedSection is key's section with its CR LF line ends as LF, the form
+// the editor shows it in.
+func (t lineText) editedSection(key string) string {
+	return strings.ReplaceAll(t.section(key), "\r\n", "\n")
+}
+
 // sectionKeys lists the text's "#" section keys in order, each key once under
 // the archive text fold (the first spelling stays); nil when absent.
 func (t lineText) sectionKeys() []string {
@@ -1035,23 +1043,89 @@ func (t lineText) sectionCut(key string, n int) string {
 // R2-ENGINE-049/050: first substring, two separator bytes, then the next '#'.
 func secondGameTextSection(payload []byte, key string) string {
 	source := string(dialoguePayload(payload))
+	start, end, ok := sectionSpan(source, key)
+	if !ok {
+		return ""
+	}
+	return source[start:end]
+}
+
+// sectionSpan is where the section the game reads for key stands in source.
+func sectionSpan(source, key string) (start, end int, ok bool) {
 	at := strings.Index(source, "#"+strings.ToLower(key))
 	if at < 0 {
-		return ""
+		return 0, 0, false
 	}
-	start := at + len(key) + 3
+	start = at + len(key) + 3
 	if start >= len(source) {
-		return ""
+		return 0, 0, false
 	}
-	body := source[start:]
-	if end := strings.IndexByte(body, '#'); end >= 0 {
-		body = body[:end]
+	end = len(source)
+	if cut := strings.IndexByte(source[start:], '#'); cut >= 0 {
+		end = start + cut
 	}
-	return body
+	return start, end, true
+}
+
+// withTextSection is text with key's section holding lines, CR LF ended: the
+// section the game's lookup reads for key, else a new one at the end. False
+// when that lookup would find text that is not key's own header.
+func withTextSection(text, key, lines string) (string, bool) {
+	payload := string(dialoguePayload([]byte(text)))
+	lf := func(s string) string { return strings.ReplaceAll(s, "\r\n", "\n") }
+	if start, end, ok := sectionSpan(payload, key); ok {
+		if payload[start-2:start] != "\r\n" {
+			return "", false
+		}
+		if lf(payload[start:end]) == lf(lines) {
+			return text, true
+		}
+		return text[:start] + lines + text[end:], true
+	}
+	if strings.Contains(payload, "#"+key) {
+		return "", false
+	}
+	head := payload
+	if head != "" && !strings.HasSuffix(head, "\r\n") {
+		head += "\r\n"
+	}
+	return head + "#" + key + "\r\n" + lines + text[len(payload):], true
 }
 
 // modTextFile is a mod's UTF-8 text file as the install's text files hold it:
 // EncodeInstallTextFile's bytes in the install's code page under c.
 func (c TextCode) modTextFile(b []byte, selector int) []byte {
 	return c.FileBytes(EncodeInstallTextFile(b, selector))
+}
+
+// modTextOf is modTextFile's inverse: an install text file as a mod's UTF-8
+// text file, and false when that file would not serve back as b.
+func (c TextCode) modTextOf(b []byte, selector int) ([]byte, bool) {
+	u, ok := DecodeInstallTextFile(c.Bytes(b), selector)
+	if !ok || !bytes.Equal(c.modTextFile(u, selector), b) {
+		return nil, false
+	}
+	return u, true
+}
+
+// ModTextUnserved are the runes of a mod's text file, each once in order,
+// whose bytes the game does not show as written: the file is served through
+// modTextFile and read back through Bytes, and a rune whose font byte does
+// not come back is shown as another letter. The runes ModTextDropped finds
+// are not counted here.
+func (c TextCode) ModTextUnserved(b []byte, selector int) []rune {
+	if !utf8.Valid(b) {
+		return nil
+	}
+	var out []rune
+	for _, r := range string(b) {
+		if r < 0x20 || r == 0x7f || r == 0xfeff || slices.Contains(out, r) {
+			continue
+		}
+		one := []byte(string(r))
+		if !bytes.Equal(c.Bytes(c.modTextFile(one, selector)), EncodeInstallTextFile(one, selector)) {
+			out = append(out, r)
+		}
+	}
+	return out
 }

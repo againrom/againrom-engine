@@ -474,76 +474,111 @@ func (x *MapInspector) writeEditorProject(folder, id string, old []string, files
 	return installMissionPackage(stage, folder, id, replace, plan)
 }
 
-func writeMapInMod(root, target string, data []byte, pages map[string][]byte, labels []byte, dialogues map[string][]byte, overwrite, withLabels bool) (bool, error) {
-	for folder := filepath.Dir(target); ; folder = filepath.Dir(folder) {
+// modFolderOf is the mod folder holding path: the nearest folder above it
+// with a manifest.
+func modFolderOf(path string) (string, bool) {
+	for folder := filepath.Dir(path); ; folder = filepath.Dir(folder) {
 		if _, err := os.Lstat(filepath.Join(folder, mod.ManifestName)); err == nil {
-			x := &MapInspector{archives: &Archives{Root: root}}
-			if err := x.SetMod(folder); err != nil {
-				return true, err
-			}
-			if _, err := os.Lstat(target); !overwrite && !errors.Is(err, os.ErrNotExist) {
-				return true, wordCause(os.ErrExist, "editor.err.tp.mapexists")
-			}
-			rel, err := filepath.Rel(folder, target)
-			if err != nil {
-				return true, err
-			}
-			files := map[string][]byte{filepath.ToSlash(rel): data}
-			for name, b := range pages {
-				if !pageTreeName(name) || len(b) > mod.MaxFileBytes {
-					return true, wordErr("editor.err.tp.mappage", name)
-				}
-				path, err := filepath.Rel(folder, filepath.Join(mapTextFolder(target), filepath.FromSlash(name)))
-				if err != nil {
-					return true, err
-				}
-				files[filepath.ToSlash(path)] = b
-			}
-			for name, b := range dialogues {
-				if b == nil && !overwrite {
-					continue
-				}
-				path, err := filepath.Rel(folder, dialogueFile(target, name))
-				if err != nil {
-					return true, err
-				}
-				files[filepath.ToSlash(path)] = b
-			}
-			if withLabels && (labels == nil || len(labels) != 0) {
-				path, err := filepath.Rel(folder, mod.MapLabelFile(target))
-				if err != nil {
-					return true, err
-				}
-				if labels != nil || overwrite {
-					files[filepath.ToSlash(path)] = labels
-				}
-			}
-			if overwrite {
-				for name := range files {
-					key := namefold.ModTree(name)
-					if _, known := x.mod.snapshot[key]; !known {
-						data, err := os.ReadFile(filepath.Join(folder, filepath.FromSlash(name)))
-						if err == nil {
-							x.mod.snapshot[key] = sha256.Sum256(data)
-						} else if !errors.Is(err, os.ErrNotExist) {
-							return true, err
-						}
-					}
-				}
-			}
-			var old []string
-			if x.mod.owned {
-				old, err = missionPackageOwnership(folder, editorPackageRecord, nil)
-				if err != nil {
-					return true, err
-				}
-			}
-			return true, x.writeEditorProject(folder, x.mod.id, old, files, missionPackagePlan{Source: folder}, true)
+			return folder, true
 		}
 		if next := filepath.Dir(folder); next == folder {
-			return false, nil
+			return "", false
 		}
 	}
+}
+
+// modTexts are install text files a map's save writes into the mod holding
+// the map, by their path in the mod. from is the mod folder they were read
+// from, "" for the install: a mod that holds another file at a path keeps it.
+type modTexts struct {
+	files map[string][]byte
+	base  map[string][]byte // what the game serves at a path when the mod holds no file there
+	from  string
+}
+
+// textUnwritten is a save whose map is written and whose texts are not: no
+// mod holds the map.
+type textUnwritten struct{}
+
+func (textUnwritten) Error() string { return "no mod holds the map: its texts are not written" }
+
+func writeMapInMod(root, target string, data []byte, pages map[string][]byte, labels []byte, dialogues map[string][]byte, texts modTexts, overwrite, withLabels bool) (bool, error) {
+	folder, ok := modFolderOf(target)
+	if !ok {
+		return false, nil
+	}
+	x := &MapInspector{archives: &Archives{Root: root}}
+	if err := x.SetMod(folder); err != nil {
+		return true, err
+	}
+	if _, err := os.Lstat(target); !overwrite && !errors.Is(err, os.ErrNotExist) {
+		return true, wordCause(os.ErrExist, "editor.err.tp.mapexists")
+	}
+	rel, err := filepath.Rel(folder, target)
+	if err != nil {
+		return true, err
+	}
+	files := map[string][]byte{filepath.ToSlash(rel): data}
+	for name, b := range pages {
+		if !pageTreeName(name) || len(b) > mod.MaxFileBytes {
+			return true, wordErr("editor.err.tp.mappage", name)
+		}
+		path, err := filepath.Rel(folder, filepath.Join(mapTextFolder(target), filepath.FromSlash(name)))
+		if err != nil {
+			return true, err
+		}
+		files[filepath.ToSlash(path)] = b
+	}
+	for name, b := range dialogues {
+		if b == nil && !overwrite {
+			continue
+		}
+		path, err := filepath.Rel(folder, dialogueFile(target, name))
+		if err != nil {
+			return true, err
+		}
+		files[filepath.ToSlash(path)] = b
+	}
+	if withLabels && (labels == nil || len(labels) != 0) {
+		path, err := filepath.Rel(folder, mod.MapLabelFile(target))
+		if err != nil {
+			return true, err
+		}
+		if labels != nil || overwrite {
+			files[filepath.ToSlash(path)] = labels
+		}
+	}
+	for path, b := range texts.files {
+		held, err := os.ReadFile(filepath.Join(folder, filepath.FromSlash(path)))
+		if err == nil && bytes.Equal(held, b) || errors.Is(err, os.ErrNotExist) && bytes.Equal(texts.base[path], b) {
+			continue
+		}
+		if _, err := os.Lstat(filepath.Join(folder, filepath.FromSlash(path))); err == nil && !sameSaveName(folder, texts.from) {
+			return true, wordErr("editor.err.textheld", path)
+		}
+		files[path] = b
+	}
+	if overwrite {
+		for name := range files {
+			key := namefold.ModTree(name)
+			if _, known := x.mod.snapshot[key]; !known {
+				data, err := os.ReadFile(filepath.Join(folder, filepath.FromSlash(name)))
+				if err == nil {
+					x.mod.snapshot[key] = sha256.Sum256(data)
+				} else if !errors.Is(err, os.ErrNotExist) {
+					return true, err
+				}
+			}
+		}
+	}
+	var old []string
+	if x.mod.owned {
+		old, err = missionPackageOwnership(folder, editorPackageRecord, nil)
+		if err != nil {
+			return true, err
+		}
+	}
+	return true, x.writeEditorProject(folder, x.mod.id, old, files, missionPackagePlan{Source: folder}, true)
 }
 
 func changedProjectFiles(folder string, files map[string][]byte, baseline map[string][32]byte) (map[string][]byte, error) {
@@ -651,6 +686,13 @@ func editorProjectSet(folder string, files map[string][]byte, snapshot map[strin
 // writeEditedMap writes a host file, never an input or a preserved install,
 // even through an alias.
 func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
+	return writeEditedMapTexts(root, source, path, data, modTexts{}, overwrite, grants...)
+}
+
+// writeEditedMapTexts is writeEditedMap that also writes texts into the mod
+// holding the map. With no mod there the map alone is written, and the
+// answer is the target and a textUnwritten.
+func writeEditedMapTexts(root, source, path string, data []byte, texts modTexts, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
 	if err := extendedName(data, path); err != nil {
 		return "", err
 	}
@@ -658,7 +700,7 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 	if err != nil {
 		return "", err
 	}
-	if handled, err := writeMapInMod(root, target, data, nil, nil, nil, overwrite, false); handled {
+	if handled, err := writeMapInMod(root, target, data, nil, nil, nil, texts, overwrite, false); handled {
 		if err != nil {
 			return "", err
 		}
@@ -670,6 +712,9 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 	}
 	if _, err := hostfile.Commit(set); err != nil {
 		return "", err
+	}
+	if len(texts.files) > 0 {
+		return target, textUnwritten{}
 	}
 	return target, nil
 }
@@ -834,7 +879,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		if err != nil {
 			return "", err
 		}
-		if handled, err := writeMapInMod(root, target, data, pages, labels, dialogues, overwrite, true); handled {
+		if handled, err := writeMapInMod(root, target, data, pages, labels, dialogues, modTexts{}, overwrite, true); handled {
 			if err != nil {
 				return "", err
 			}
@@ -872,7 +917,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	if err != nil {
 		return "", err
 	}
-	if handled, err := writeMapInMod(root, target, data, pages, labels, dialogues, overwrite, true); handled {
+	if handled, err := writeMapInMod(root, target, data, pages, labels, dialogues, modTexts{}, overwrite, true); handled {
 		if err != nil {
 			return "", err
 		}

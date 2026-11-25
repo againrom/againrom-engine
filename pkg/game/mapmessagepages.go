@@ -43,7 +43,15 @@ func freeMessage(pages map[string][]byte) uint32 {
 	}
 }
 
-func (x *MapInspector) messageTargets(targets map[uint32][]ui.InspectionScriptTarget, pages map[string][]byte) {
+func (x *MapInspector) messageTargets(targets map[uint32][]ui.InspectionScriptTarget, w *editorWorkspaceState) {
+	var pages map[string][]byte
+	if w != nil {
+		if w.EventText != "" {
+			targets[ui.ScriptMessageParameter] = x.eventTargets(w)
+			return
+		}
+		pages = w.Pages
+	}
 	var ids []uint32
 	for name := range pages {
 		if !strings.HasPrefix(name, "event") || !strings.HasSuffix(name, ".txt") {
@@ -803,6 +811,6 @@ func (s *mapInspectionEdits) pointedMessage(owner ui.InspectionMessageOwner, n u
 	}
 	s.rememberWorkspace(!bytes.Equal(s.model.Bytes(), next.Bytes()))
 	s.model, s.workspace, s.workspaceImage = next, w, workspaceBytes(w)
-	s.inspector.messageTargets(d.Script.Targets, w.Pages)
+	s.inspector.messageTargets(d.Script.Targets, w)
 	return d, nil
 }

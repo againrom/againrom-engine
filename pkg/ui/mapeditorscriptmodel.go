@@ -240,6 +240,9 @@ type InspectionScriptTarget struct {
 	// Text is a message page's whole text, line by line; the choice label
 	// shows its first line.
 	Text string
+	// Page is the page of the workspace's pages scope that holds the text;
+	// "": the message window opens it.
+	Page string
 	Uses []InspectionScriptUse
 }
 

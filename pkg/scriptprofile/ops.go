@@ -259,8 +259,10 @@ const (
 type KindRule uint8
 
 const (
-	// NoKinds types a parameter by the type its node stores.
-	NoKinds KindRule = iota
+	// EventKinds types a parameter by the type its node stores, but for the
+	// number a send-event action names its mission text section by
+	// (R2-ENGINE-050).
+	EventKinds KindRule = iota
 	// FirstKinds types a parameter by the first game's kinds.
 	FirstKinds
 )
@@ -291,7 +293,7 @@ var vocabularies = [...]Vocabulary{
 	// +0x48 nowhere found, so a new node holds zero there and in its texts
 	// (R2-ENGINE-1728).
 	OpsSecond: {CheckWord: "editor.op.undecoded", ActionWord: "editor.op.undecoded", Naming: NumberedUndecoded, Fields: UndecodedReadOnly, ObjectType: 9,
-		CellMove: CellMoveEvent},
+		CellMove: CellMoveEvent, Kinds: EventKinds},
 }
 
 // VocabularyOf is the vocabulary of a game's operations.

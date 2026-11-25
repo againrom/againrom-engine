@@ -42,6 +42,9 @@ type mapInspectionEdits struct {
 	characterAdding              bool
 	ground                       int // the terrain page's pressed ground: a mod group, or below 0 one of the game's
 	page                         string
+	eventFrom                    string // the mod folder the event text was read from, "" for the install
+	eventBase                    []byte // the install's own event text as a UTF-8 file, what a mod without the file serves
+	eventNote                    string // why the event text cannot be edited, "" when it can
 	spell                        string // the spells page's chosen spell, by catalog name
 	spellGlobals                 bool   // the spells page shows its globals unfolded
 	undoWorkspace, redoWorkspace []editorWorkspaceSnapshot
@@ -98,7 +101,7 @@ func (s *mapInspectionEdits) CanRedo() bool {
 }
 
 func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument, error) {
-	if m != nil && !rowFor(m).workspace {
+	if m != nil && !rowFor(m).holdsWorkspace() {
 		d, err := s.inspector.inspectModel(m, s.source, nil)
 		if err == nil {
 			d.Edits = s
@@ -159,7 +162,7 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	d, err := s.project(next)
 	s.workspace = old
 	if err == nil {
-		if rowFor(next).workspace {
+		if rowFor(next).holdsWorkspace() {
 			s.rememberWorkspace(true)
 		}
 		s.model = next
@@ -1102,13 +1105,22 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 		root = s.inspector.archives.Root
 	}
 	if bare {
-		// A map whose row holds no workspace has no pages or labels beside it.
+		// A map whose row holds no workspace has no pages or labels beside it;
+		// an edited event text goes into the mod holding the map.
 		maps, grant := s.inspector.mapsFolder()
-		target, err := writeEditedMap(root, s.source, path, b, overwrite, grant)
+		texts := s.eventTextForSave()
+		target, err := writeEditedMapTexts(root, s.source, path, b, texts, overwrite, grant)
+		if errors.As(err, new(textUnwritten)) && target != "" {
+			s.saveNote, err = s.inspector.word("editor.save.eventtext"), nil
+		}
 		if err != nil {
 			return "", s.inspector.fenceRefusal(err, maps)
 		}
 		s.saved, s.source = s.model.Bytes(), target
+		if texts.files != nil && s.saveNote == "" {
+			s.eventFrom, _ = modFolderOf(target)
+			s.savedWorkspace = s.workspaceImage
+		}
 		return target, nil
 	}
 	// A map whose own file holds its pages inside is saved with them or not

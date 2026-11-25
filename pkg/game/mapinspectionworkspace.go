@@ -68,6 +68,9 @@ type editorWorkspaceState struct {
 	Pages   map[string][]byte
 	Package editorPackageSpec
 	Project *editorModDocument
+	// EventText is the install path of the one text file in Pages whose #key
+	// sections the map's events show; "": Pages are the map's own pages.
+	EventText string `json:",omitempty"`
 	// Labels are the mapmaker's names of variable registers, UTF-8; the
 	// labels file beside the map holds them.
 	Labels map[uint32]string `json:",omitempty"`
@@ -131,6 +134,12 @@ func (s *mapInspectionEdits) checkpointPages() {
 
 func (s *mapInspectionEdits) prepareWorkspace() error {
 	x := s.inspector
+	if s.model != nil && s.row().eventText != nil {
+		if s.workspace == nil {
+			s.openEventText()
+		}
+		return nil
+	}
 	if s.workspace != nil {
 		if s.workspace.Project == nil && x.mod != nil {
 			s.workspace = cloneWorkspace(s.workspace)
@@ -294,7 +303,7 @@ func (s *mapInspectionEdits) travelWorkspace(undo bool) (*ui.InspectionDocument,
 	s.refreshModSelection()
 	s.workspaceImage = workspaceBytes(s.workspace)
 	if d != nil && d.Script != nil {
-		s.inspector.messageTargets(d.Script.Targets, s.workspace.Pages)
+		s.inspector.messageTargets(d.Script.Targets, s.workspace)
 	}
 	return d, nil
 }
@@ -348,7 +357,7 @@ func (s *mapInspectionEdits) changeWorkspace(apply func(*editorWorkspaceState) e
 	s.workspace = next
 	s.workspaceImage = image
 	if d != nil && d.Script != nil {
-		s.inspector.messageTargets(d.Script.Targets, s.workspace.Pages)
+		s.inspector.messageTargets(d.Script.Targets, s.workspace)
 	}
 	return d, nil
 }
@@ -439,6 +448,9 @@ func pageScope(scope string) (workspaceScope, bool) {
 }
 
 func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField {
+	if !s.row().offersScope(scope) {
+		return nil
+	}
 	if r, ok := pageScope(scope); ok {
 		return r.fields(s, scope)
 	}
@@ -467,6 +479,9 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 		}
 		return out
 	case "pages":
+		if s.workspace.EventText != "" {
+			return s.eventTextFields()
+		}
 		if s.page == "" {
 			s.page = "title.txt"
 		}
@@ -528,6 +543,9 @@ func opensMod(scope, key, value string) bool {
 
 func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (_ *ui.InspectionDocument, said error) {
 	defer s.worded(&said)
+	if !s.row().offersScope(scope) {
+		return nil, fmt.Errorf("unknown workspace %q", scope)
+	}
 	if r, ok := pageScope(scope); ok {
 		return r.set(s, scope, key, value)
 	}
@@ -545,6 +563,9 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (_ *ui.
 	}
 	if scope == "metadata" {
 		return s.setMapMetadata(key, value)
+	}
+	if scope == "pages" && s.workspace.EventText != "" {
+		return s.setEventTextField(key, value)
 	}
 	if scope == "pages" {
 		if key == "page" {

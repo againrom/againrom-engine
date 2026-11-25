@@ -130,9 +130,12 @@ type kindRuleBody struct {
 
 // kindRuleBodies is the body of each parameter kinds rule, by its value.
 var kindRuleBodies = [...]kindRuleBody{
-	scriptprofile.NoKinds: {
+	scriptprofile.EventKinds: {
 		copyPage: func(*mapInspectionEdits) func(*alm.ScriptNode) error { return nil },
-		parameterKind: func(_ bool, _ uint32, types [10]uint32, slot int) uint32 {
+		parameterKind: func(condition bool, opcode uint32, types [10]uint32, slot int) uint32 {
+			if showsText(condition, opcode, types, slot) {
+				return ui.ScriptMessageParameter
+			}
 			if types[slot] >= ui.ScriptVariableParameter {
 				return 0
 			}
@@ -428,11 +431,18 @@ func scriptVariableSlot(types [10]uint32) int {
 	return -1
 }
 
+// showsText is the first number of action 2, which names the text the action
+// shows: the first game's message page, the second game's event section
+// (R2-ENGINE-050).
+func showsText(condition bool, opcode uint32, types [10]uint32, slot int) bool {
+	return !condition && opcode == 2 && slot == 0 && types[slot] == mapload.ScriptInt
+}
+
 func scriptParameterKind(condition bool, opcode uint32, types [10]uint32, slot int) uint32 {
 	if slot == 0 && scriptprofile.AddressesGlobal(condition, opcode) {
 		return ui.ScriptGlobalParameter
 	}
-	if !condition && opcode == 2 && slot == 0 && types[slot] == mapload.ScriptInt {
+	if showsText(condition, opcode, types, slot) {
 		return ui.ScriptMessageParameter
 	}
 	if !condition && (types[slot] == 1 || types[slot] == 7) {
