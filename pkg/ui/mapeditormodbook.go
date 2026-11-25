@@ -66,6 +66,13 @@ func (e *MapEditor) modBook(b *InspectionBook, width int) (*popupCanvas, []popup
 	cells := bookCellRects(bar, bookColumns)
 	for i, r := range cells[:min(len(cells), len(b.Cells))] {
 		box := canvasBox{Area: r.Add(image.Pt(1, 1)), Bare: c.Picture != nil, Empty: b.Cells[i].ID == 0, Held: b.Cells[i].Icon}
+		if b.Cells[i].Dim && box.Held != nil {
+			// Without the book's art the cell holds its icon: dimmed by the same rule.
+			held := image.NewRGBA(box.Held.Bounds())
+			copy(held.Pix, box.Held.Pix)
+			dimSlot(held, held.Bounds())
+			box.Held = held
+		}
 		if i < len(b.Tips) {
 			box.Tip = b.Tips[i]
 		}

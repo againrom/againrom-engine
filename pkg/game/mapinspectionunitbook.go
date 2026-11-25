@@ -57,7 +57,7 @@ func (s *mapInspectionEdits) unitBookFields(index int) []ui.InspectionField {
 		case len(given[id]) > 0:
 			word = "editor.unit.book.on"
 		default:
-			cells[i].Unavailable = true
+			cells[i].Dim = true
 		}
 		tips[i] = fmt.Sprintf(x.inspectionUTF8(x.word(word)), tips[i])
 	}

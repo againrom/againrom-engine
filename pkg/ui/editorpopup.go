@@ -2310,6 +2310,10 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, sp
 			value = ink.Value
 		}
 		if row.placed() && row.Kind != popupDirection && row.HeadOf == 0 {
+			if row.Kind == popupLink {
+				// A link placed on the card is a push button over its caption.
+				drawPushButton(dst, body, pushButton{Press: held, Rect: rr.Rect, Label: row.Label, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(rr.Rect)})
+			}
 			if !rr.Control.Empty() {
 				// An input on the card replaces the card's value under it.
 				draw.Draw(dst, rr.Control.Intersect(l.Rect), &image.Uniform{C: ink.Ground}, image.Point{}, draw.Src)

@@ -79,7 +79,7 @@ func TestEditorUnitBookTogglesTheUnitSpellRecord(t *testing.T) {
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupRow, N: caption})
 			c.click(e, r, ok && caption >= 0, "the SPELLCASTER caption")
 			_, boxes := e.PopupCanvasBoxes()
-			cell := slices.IndexFunc(book.Book.Cells, func(c ui.SpellEntry) bool { return c.ID != 0 && c.Unavailable })
+			cell := slices.IndexFunc(book.Book.Cells, func(c ui.SpellEntry) bool { return c.ID != 0 && c.Dim })
 			if len(boxes) < len(book.Book.Cells) || cell < 0 {
 				t.Fatalf("the book window shows %d boxes for %d cells, first off cell %d:\n%s", len(boxes), len(book.Book.Cells), cell, strings.Join(e.PopupLines(), "\n"))
 			}
@@ -110,7 +110,7 @@ func TestEditorUnitBookTogglesTheUnitSpellRecord(t *testing.T) {
 			kept := s.model
 			s.model, s.unitViews = reopened, nil
 			again := s.Fields(ui.KindUnit, 0)
-			if f := again[fieldIndex(t, again, unitBookField)]; f.Book.Cells[cell].Unavailable {
+			if f := again[fieldIndex(t, again, unitBookField)]; f.Book.Cells[cell].Dim {
 				t.Fatalf("the reopened map shows spell %d off", id)
 			}
 			s.model, s.unitViews = kept, nil
@@ -131,7 +131,7 @@ func TestEditorUnitBookTogglesTheUnitSpellRecord(t *testing.T) {
 
 			// A spell the unit's kind knows stays on, in the editor's words.
 			kind := slices.IndexFunc(book.Book.Cells, func(c ui.SpellEntry) bool { return c.ID == uint32(known) })
-			if kind < 0 || book.Book.Cells[kind].Unavailable {
+			if kind < 0 || book.Book.Cells[kind].Dim {
 				t.Fatalf("the kind's spell %d is not on in the book", known)
 			}
 			_, boxes = e.PopupCanvasBoxes()
@@ -178,7 +178,7 @@ func TestEditorUnitBookFollowsTheModSpellTable(t *testing.T) {
 	if _, err := s.SetField(ui.KindUnit, 0, unitBookPrefix+strconv.Itoa(int(off)), 1); err == nil || !bytes.Equal(s.model.Bytes(), raw) {
 		t.Fatalf("a spell the mod turns off took a toggle: %v", err)
 	}
-	if !f.Book.Cells[0].Unavailable {
+	if !f.Book.Cells[0].Dim {
 		t.Fatal("the unit knows the mod's first spell before the press")
 	}
 	if _, err := s.SetField(ui.KindUnit, 0, unitBookPrefix+strconv.Itoa(int(f.Book.Cells[0].ID)), 1); err != nil {

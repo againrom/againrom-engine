@@ -9,7 +9,7 @@ func (e *MapEditor) markerLabelRows() []mapLabel {
 	ox, oy := e.mapOrigin()
 	var out []mapLabel
 	for i, r := range e.doc.Records {
-		if !r.Spatial || r.Marker == "" {
+		if !r.Spatial || r.Marker == "" || r.UnitBook {
 			continue
 		}
 		if d := e.recordDrag; d != nil && d.moved && i == d.record {

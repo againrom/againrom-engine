@@ -126,6 +126,7 @@ func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Ma
 			r.Label = fmt.Sprintf(x.inspectionUTF8(x.word("editor.cast.teleport")), e.X, e.Y, uint8(target.Kind), uint8(target.Low))
 		}
 	case e.A == 8:
+		r.UnitBook = true
 		r.Cell, r.Spatial = image.Pt(int(e.X), int(e.Y)), true
 		r.Label = fmt.Sprintf(word("book"), uint32(e.B)|uint32(e.C)<<16, spell, uint16(e.SpellRaw>>16))
 		if m != nil {

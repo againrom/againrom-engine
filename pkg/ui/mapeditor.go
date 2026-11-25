@@ -29,6 +29,7 @@ type InspectionRecord struct {
 	Marker         string
 	LinkedCells    []image.Point
 	FixedCell      bool
+	UnitBook       bool // a type-9 record that gives a unit a spell: the unit's own, never a map label
 	SetSize        int
 	Details        []string
 	Warning        string

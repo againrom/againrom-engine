@@ -72,7 +72,7 @@ func (e *MapEditor) unitBookPress(f InspectionField, n int) {
 		return
 	}
 	on := int64(0)
-	if b.Cells[n].Unavailable {
+	if b.Cells[n].Dim {
 		on = 1
 	}
 	r := e.doc.Records[e.selected]

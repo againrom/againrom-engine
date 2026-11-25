@@ -24,6 +24,9 @@ type SpellEntry struct {
 	// Unavailable keeps a catalog cell hoverable/bindable without authorizing
 	// a cast. Zero preserves the existing custom/compact SetSpellbook seam.
 	Unavailable bool
+	// Dim draws the cell's spell at half brightness: a switch that is off in
+	// the map editor's spell book window. It changes no cast rule.
+	Dim bool
 	// ItemCast on an Unavailable cell is a carried scroll of this spell: the
 	// cell shows, and a press arms the scroll's item cast. Every book cast,
 	// bind and autocast test still reads the cell as Unavailable.
@@ -433,7 +436,24 @@ func composeOriginalSpellBar(art *BottomHUDArt, entries []SpellEntry, selected u
 			drawAutocastBorder(img, box, phase, autocastDashColor)
 		}
 	}
+	// The one dimming rule of the bar: a Dim cell drawn above, at half.
+	for i, box := range bookCellRects(bar, bookColumns) {
+		if i < len(entries) && entries[i].Dim && entries[i].ID != 0 {
+			dimSlot(img, box.Sub(bar.Min))
+		}
+	}
 	return img
+}
+
+// dimSlot draws box of img at half brightness.
+func dimSlot(img *image.RGBA, box image.Rectangle) {
+	box = box.Intersect(img.Bounds())
+	for y := box.Min.Y; y < box.Max.Y; y++ {
+		for x := box.Min.X; x < box.Max.X; x++ {
+			c := img.RGBAAt(x, y)
+			img.SetRGBA(x, y, color.RGBA{c.R / 2, c.G / 2, c.B / 2, c.A})
+		}
+	}
 }
 
 const pressedSlotLift = 45
