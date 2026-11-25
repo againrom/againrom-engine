@@ -165,11 +165,15 @@ func (s *mapInspectionEdits) copyMessagePage(n *alm.ScriptNode) error {
 	if err != nil {
 		return err
 	}
-	text, exists := w.Pages[messageFilename(n.Value[0])]
+	name := fmt.Sprintf(s.row().messages.message, n.Value[0])
+	text, exists := s.inspector.pageText(w, name)
 	if !exists {
 		return nil
 	}
-	n.Value[0], err = s.addMessagePage(w, text)
+	if w.Sections == "" {
+		text = string(w.Pages[name])
+	}
+	n.Value[0], err = s.addMessageChecked(w, text, false)
 	return err
 }
 

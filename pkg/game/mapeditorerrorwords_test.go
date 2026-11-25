@@ -52,7 +52,7 @@ var editorHostEnglishErrors = map[string][]string{
 	"mapinspectionscriptform.go":   {"no new node for the field %q"},
 	"mapinspectionsheet.go":        {"the world holds no actor for placement %d"},
 	"mapinspectionunitsettings.go": {"unit %d has no actor"},
-	"mapinspectionworkspace.go":    {"unknown page field %q", "unknown workspace %q", "unknown map metadata %q"},
+	"mapinspectionworkspace.go":    {"unknown workspace %q", "unknown map metadata %q"},
 	"modspeakers.go":               {"the install has no speaker records for the mods to add to"},
 }
 

@@ -45,7 +45,7 @@ func TestReleaseSecondMapEditorOpensEveryMissionText(t *testing.T) {
 		} else {
 			quest++
 		}
-		files[host.workspace.EventText] = true
+		files[host.workspace.Sections] = true
 		sections += len(fields[0].Choices)
 		for _, target := range d.Script.Targets[ui.ScriptMessageParameter] {
 			if len(target.Uses) > 0 {
@@ -166,7 +166,7 @@ func TestReleaseSecondMapEditedEventTextShowsInTheGame(t *testing.T) {
 		t.Fatalf("event %d shows %q, want the edited %q", event, message, edited)
 	}
 	t.Logf("PASS (%s): %s event %d, edited in the pages window and saved into %s, shows %q in mission %d",
-		installLanguage(x), source, event, filepath.ToSlash(filepath.Join("files", x.eventTextLanguage(), host.workspace.EventText)), message, number)
+		installLanguage(x), source, event, filepath.ToSlash(filepath.Join("files", x.eventTextLanguage(), host.workspace.Sections)), message, number)
 }
 
 // TestReleaseSecondMapEditorRefusesTextTheGameShowsAsOtherLetters types the
@@ -185,7 +185,7 @@ func TestReleaseSecondMapEditorRefusesTextTheGameShowsAsOtherLetters(t *testing.
 			t.Fatal(s, err)
 		}
 		host := d.Edits.(*mapInspectionEdits)
-		keys := eventSectionKeys(string(host.workspace.Pages[host.workspace.EventText]))
+		keys := eventSectionKeys(string(host.workspace.Pages[host.workspace.Sections]))
 		if len(keys) == 0 {
 			continue
 		}

@@ -1167,7 +1167,9 @@ func (e *MapEditor) CardRects(c int) (card, grip image.Rectangle, ok bool) {
 // newMessage opens the message popup for a new message the field will
 // name; nothing is made until its Apply.
 func (e *MapEditor) newMessage(field int) {
-	if _, ok := Seam[InspectionMessages](e.doc.Edits); !ok || field < 0 || field >= len(e.obj.fields) {
+	_, window := Seam[InspectionMessages](e.doc.Edits)
+	maker, makes := Seam[InspectionMessageMaker](e.doc.Edits)
+	if !window && !makes || field < 0 || field >= len(e.obj.fields) {
 		return
 	}
 	if e.obj.buf[field] == strconv.FormatInt(createChoice(ScriptMessageParameter), 10) {
@@ -1192,7 +1194,38 @@ func (e *MapEditor) newMessage(field int) {
 		}
 		owner.Trigger = &plan
 	}
+	if !window {
+		e.newPageMessage(maker, owner)
+		return
+	}
 	e.beginMessage(owner, true)
+}
+
+// newPageMessage has the host make a new message that owner names and opens
+// the pages prompt at its text: a host with no message window keeps its
+// messages as pages.
+func (e *MapEditor) newPageMessage(host InspectionMessageMaker, owner InspectionMessageOwner) {
+	had := map[uint32]bool{}
+	for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
+		had[t.Value] = had[t.Value] || t.NewChoice == 0
+	}
+	next, err := host.NewMessage(owner)
+	if err != nil {
+		e.obj.note = e.editorHostText(err.Error())
+		return
+	}
+	if next == nil || next.Script == nil {
+		return
+	}
+	page := ""
+	for _, t := range next.Script.Targets[ScriptMessageParameter] {
+		if t.NewChoice == 0 && !had[t.Value] {
+			page = t.Page
+		}
+	}
+	if e.adoptEdit(next, nil) == nil && page != "" {
+		e.openPage(page)
+	}
 }
 
 // configureDialog opens the dialog editor for the Start dialog action whose

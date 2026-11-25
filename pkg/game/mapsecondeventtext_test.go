@@ -82,7 +82,7 @@ func TestSecondMapEditorShowsAndEditsTheMissionTextSections(t *testing.T) {
 		t.Fatalf("send event's number has kind %d", kind)
 	}
 	targets := d.Script.Targets[ui.ScriptMessageParameter]
-	if len(targets) != 2 || targets[0].Value != 5 || targets[0].Page != "event5" || targets[0].Text != "The gate opens.\nRun!" || targets[1].Page != "event7" {
+	if len(targets) != 3 || targets[0].Value != 5 || targets[0].Page != "event5" || targets[0].Text != "The gate opens.\nRun!" || targets[1].Page != "event7" || targets[2].NewChoice != ui.NewMessageChoice {
 		t.Fatalf("event targets %+v", targets)
 	}
 	if target := d.Script.OpenTarget(ui.ScriptMessageParameter, 5); target == nil || len(target.Uses) != 1 {

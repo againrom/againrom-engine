@@ -14,7 +14,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc alm.Script, w *editorWorkspaceState) map[uint32][]ui.InspectionScriptTarget {
+func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc alm.Script, w *editorWorkspaceState, st messageStore) map[uint32][]ui.InspectionScriptTarget {
 	out := map[uint32][]ui.InspectionScriptTarget{}
 	add := func(kind, value uint32, record int, name, choice string, members int) {
 		out[kind] = append(out[kind], ui.InspectionScriptTarget{Value: value, Record: record, Name: name, Choice: choice, Members: members})
@@ -152,7 +152,7 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 			fresh = true
 		}
 	}
-	x.messageTargets(out, w)
+	x.messageTargets(out, w, st)
 	return out
 }
 

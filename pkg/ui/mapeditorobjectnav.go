@@ -220,7 +220,9 @@ func (e *MapEditor) openParameter(field int) {
 	if !ok || !e.objectMayLeave() {
 		return
 	}
-	if e.messageField(field) && target.Page != "" {
+	// A host with no message window opens a message's page in the pages
+	// prompt.
+	if _, window := Seam[InspectionMessages](e.doc.Edits); e.messageField(field) && !window && target.Page != "" {
 		e.openPage(target.Page)
 		return
 	}

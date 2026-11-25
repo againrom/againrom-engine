@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
@@ -68,9 +67,9 @@ type editorWorkspaceState struct {
 	Pages   map[string][]byte
 	Package editorPackageSpec
 	Project *editorModDocument
-	// EventText is the install path of the one text file in Pages whose #key
-	// sections the map's events show; "": Pages are the map's own pages.
-	EventText string `json:",omitempty"`
+	// Sections is the install path of the one text file in Pages whose #key
+	// sections are the map's pages; "": Pages are the map's own page files.
+	Sections string `json:",omitempty"`
 	// Labels are the mapmaker's names of variable registers, UTF-8; the
 	// labels file beside the map holds them.
 	Labels map[uint32]string `json:",omitempty"`
@@ -134,9 +133,9 @@ func (s *mapInspectionEdits) checkpointPages() {
 
 func (s *mapInspectionEdits) prepareWorkspace() error {
 	x := s.inspector
-	if s.model != nil && s.row().eventText != nil {
+	if s.model != nil && s.row().messages.file != nil {
 		if s.workspace == nil {
-			s.openEventText()
+			s.openSectionFile()
 		}
 		return nil
 	}
@@ -303,7 +302,7 @@ func (s *mapInspectionEdits) travelWorkspace(undo bool) (*ui.InspectionDocument,
 	s.refreshModSelection()
 	s.workspaceImage = workspaceBytes(s.workspace)
 	if d != nil && d.Script != nil {
-		s.inspector.messageTargets(d.Script.Targets, s.workspace)
+		s.inspector.messageTargets(d.Script.Targets, s.workspace, s.row().messages)
 	}
 	return d, nil
 }
@@ -357,7 +356,7 @@ func (s *mapInspectionEdits) changeWorkspace(apply func(*editorWorkspaceState) e
 	s.workspace = next
 	s.workspaceImage = image
 	if d != nil && d.Script != nil {
-		s.inspector.messageTargets(d.Script.Targets, s.workspace)
+		s.inspector.messageTargets(d.Script.Targets, s.workspace, s.row().messages)
 	}
 	return d, nil
 }
@@ -479,15 +478,7 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 		}
 		return out
 	case "pages":
-		if s.workspace.EventText != "" {
-			return s.eventTextFields()
-		}
-		if s.page == "" {
-			s.page = "title.txt"
-		}
-		value := installText(nil, editorPageSource.holding(s.workspace.Pages[s.page]), s.inspector.pageCode()).bytes()
-		book := words.For(s.inspector.pageLanguage())
-		return []ui.InspectionField{workspaceText("page", book.Text("editor.pages.file"), s.page), workspaceText("body", book.Text("editor.pages.body"), string(value))}
+		return s.pageFields()
 	case "package":
 		p := s.workspace.Package
 		// A mod with no folder yet shows the working folder proposed for it.
@@ -564,41 +555,8 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (_ *ui.
 	if scope == "metadata" {
 		return s.setMapMetadata(key, value)
 	}
-	if scope == "pages" && s.workspace.EventText != "" {
-		return s.setEventTextField(key, value)
-	}
 	if scope == "pages" {
-		if key == "page" {
-			name := strings.ToLower(strings.TrimSpace(value))
-			if !missionPageName(name) {
-				return nil, wordErr("editor.err.pagename", unitNamesPage)
-			}
-			s.page = name
-			return nil, nil
-		}
-		if key != "body" {
-			return nil, fmt.Errorf("unknown page field %q", key)
-		}
-		return s.changeWorkspace(func(w *editorWorkspaceState) error {
-			if !utf8.ValidString(value) || strings.ContainsRune(value, 0) {
-				return wordErr("editor.err.pagetext")
-			}
-			if len(value) > mod.MaxFileBytes {
-				return wordErr("editor.err.pagesize", mod.MaxFileBytes)
-			}
-			if _, exists := w.Pages[s.page]; !exists && len(w.Pages) >= mod.MaxMissionTexts {
-				return wordErr("editor.err.pagecount", mod.MaxMissionTexts)
-			}
-			selector := 0
-			if s.inspector.font != nil {
-				selector = s.inspector.font.Selector
-			}
-			if r, dropped := ModTextDropped([]byte(value), selector); dropped {
-				return wordErr("editor.err.pagechar", r)
-			}
-			w.Pages[s.page] = []byte(value)
-			return nil
-		})
+		return s.setPageField(key, value)
 	}
 	if scope != "package" {
 		return nil, fmt.Errorf("unknown workspace %q", scope)

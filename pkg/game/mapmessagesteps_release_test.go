@@ -73,7 +73,7 @@ func TestReleaseTriggerMessageEditsAndUndo(t *testing.T) {
 	x, e, key, _ := installedTriggerMessage(t)
 	s := e.Document().Edits.(*mapInspectionEdits)
 	before, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
-	page := freeMessage(pages)
+	page := s.freeMessage(&editorWorkspaceState{Pages: pages})
 	configure(t, e, key)
 	messageField(t, e, e.DialogChoiceField())
 	newDialog := x.inspectionUTF8(x.word("editor.message.newdialog"))

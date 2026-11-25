@@ -85,13 +85,11 @@ type editRow struct {
 	storedKeys     bool // each record has a key the model keeps
 	playableRing   bool // a new record is refused in the border ring
 	workspace      bool // the map has pages, labels and a save gate beside it
-	// eventText is the one text file of #key sections the map's events show,
-	// by the map's campaign mission, 0 for none; nil: the map's pages are
-	// files of their own. scopes are the workspace scopes the row offers;
-	// nil: all.
-	eventText func(mission int) textAddress
-	scopes    []string
-	marks     mapload.MarkTable
+	// messages is where the map's pages and messages are kept. scopes are
+	// the workspace scopes the row offers; nil: all.
+	messages messageStore
+	scopes   []string
+	marks    mapload.MarkTable
 	// passNoteWord is the word given when the passability view is switched on,
 	// and passClosedWord the hover's word for a cell with arms; "": the plain ones.
 	passNoteWord, passClosedWord string
@@ -119,6 +117,9 @@ var editRows = map[alm.Format]*editRow{
 		testMission:   func(x *MapInspector, _ string) (mod.Mission, error) { return x.testPlayGuestMission() },
 		unitOverrides: true, spellSets: true, playerRecords: true, structureOwner: true, storedKeys: true, playableRing: true, workspace: true,
 		marks: mapload.FirstMarks,
+		// A message is a page file of its own; the lost notice takes 255.
+		messages: messageStore{message: messagePageForm, label: "%d", least: 1, reserved: []uint32{uint32(ReservedMessageNumber)},
+			fresh: newMessagePage, markup: true, firstPage: "title.txt", name: missionPageNamed},
 	},
 	alm.SecondFormat: {
 		moves: placedKinds,
@@ -162,14 +163,19 @@ var editRows = map[alm.Format]*editRow{
 			reflect.TypeFor[ui.InspectionTriggerCopy](), reflect.TypeFor[ui.InspectionTriggerWizard](),
 			reflect.TypeFor[ui.InspectionScriptForm](),
 			reflect.TypeFor[ui.InspectionWholeMap](), reflect.TypeFor[ui.InspectionWorkspace](),
+			reflect.TypeFor[ui.InspectionMessageMaker](),
 		},
 		// A campaign mission's events read its own file, any other map's
-		// quest.txt (R2-ENGINE-049, R2-ENGINE-047).
-		eventText: func(mission int) textAddress {
-			if mission > 0 {
-				return editorMissionText.at(mission)
-			}
-			return editorQuestText.at()
+		// quest.txt (R2-ENGINE-049, R2-ENGINE-047); event IDs 250, 253, 254
+		// and 255 open no event section (R2-ENGINE-050).
+		messages: messageStore{
+			file: func(mission int) textAddress {
+				if mission > 0 {
+					return missionTextSource.at(mission)
+				}
+				return questTextSource.at()
+			},
+			message: "event%d", label: "event%d", reserved: []uint32{250, 253, 254, 255}, name: sectionKeyNamed,
 		},
 		scopes:          []string{"pages"},
 		templatePlacing: true, centredCells: true, admissions: secondAdmissions,
@@ -213,7 +219,7 @@ func rowFor(m *mapedit.Editor) *editRow {
 func (s *mapInspectionEdits) row() *editRow { return rowFor(s.model) }
 
 // holdsWorkspace: the edits keep a workspace and its history beside the map.
-func (r *editRow) holdsWorkspace() bool { return r.workspace || r.eventText != nil }
+func (r *editRow) holdsWorkspace() bool { return r.workspace || r.messages.file != nil }
 
 // offersScope reports whether the row's workspace offers scope.
 func (r *editRow) offersScope(scope string) bool {

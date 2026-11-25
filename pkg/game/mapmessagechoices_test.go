@@ -38,6 +38,9 @@ func TestMessageChoicesUseWorkspaceFirstLine(t *testing.T) {
 
 func TestMessageFreeNumber(t *testing.T) {
 	pages := map[string][]byte{"event01.txt": {}, "event03.txt": {}, "event254.txt": {}, "event255.txt": {}}
+	freeMessage := func(pages map[string][]byte) uint32 {
+		return (&mapInspectionEdits{}).freeMessage(&editorWorkspaceState{Pages: pages})
+	}
 	if got := freeMessage(pages); got != 2 {
 		t.Fatal(got)
 	}

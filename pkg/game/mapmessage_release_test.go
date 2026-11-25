@@ -142,7 +142,7 @@ func TestReleaseMessagePickerCampaignPage(t *testing.T) {
 	}
 	e.Select(recordIndex(t, e, "Action", index), false)
 	before := bytes.Clone(s.model.Bytes())
-	number := freeMessage(s.workspace.Pages)
+	number := s.freeMessage(s.workspace)
 	messageField(t, e, 2)
 	messageFrame(t, e, lang, "message-list")
 	_ = e.Key("escape")

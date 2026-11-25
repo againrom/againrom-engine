@@ -775,8 +775,7 @@ var (
 	briefingSource        = &textSource{address: mainPrefix + "text/battle/m%d/briefing.txt", numbered: true, codec: storedUTF8, edge: edgeTrimSpace}
 	eventTextSource       = &textSource{address: mainPrefix + "text/battle/m%d/event%02d.txt", numbered: true}
 	missionTextSource     = &textSource{address: mainPrefix + "text/mission%d.txt", numbered: true, codec: fontBytes, form: keySections}
-	editorMissionText     = &textSource{address: mainPrefix + "text/mission%d.txt", numbered: true}
-	editorQuestText       = &textSource{address: mainPrefix + "text/quest.txt"}
+	questTextSource       = &textSource{address: mainPrefix + "text/quest.txt", codec: fontBytes, form: keySections}
 	townTextSource        = &textSource{address: secondTownText, codec: fontBytes, form: keySections}
 	townDialogueSource    = &textSource{}
 	missionTitleSource    = &textSource{address: mainPrefix + "text/battle/m%d/title.txt", numbered: true, absence: absentBlank}

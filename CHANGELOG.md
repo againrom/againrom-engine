@@ -37,6 +37,8 @@ modder or developer can notice gets no entry.
 - [ROM2] In the map editor, a second-game map's traps now show and change their spell, power and cells, and a building's spell caster its spell, power and radius; the palette adds both.
 - [ROM2] In the map editor a second-game map now draws only what is read of it: the passability view stays off and says why, the border view marks the edge ring, trigger areas are drawn as the cells a node names, height numbers show the stored height, and a new map on a second-game install says it is a first-game map; search and the player legend work on a second-game map as before.
 - [BASE] In the map editor a trap can no longer be placed on, or have its Source moved to, a cell that already holds a trap: the editor says "This cell already holds a trap." and leaves the map as it was.
+- [ROM1] In the map editor a first-game map's message text now goes through the second game's letter check too, so both games refuse a letter the game would show as another, and a NUL, with the same words; the pages window lists the map's pages with the actions that show each.
+- [ROM2] In the map editor a second-game send-event action now offers New dialog: it adds the next free event section to the mission text, points the action at it and opens the section's text in the pages window.
 
 ### For players
 

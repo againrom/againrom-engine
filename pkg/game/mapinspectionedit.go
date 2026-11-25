@@ -604,7 +604,7 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 		s.worded(&said)
 		return nil, said
 	}
-	if !s.row().wholeScripts {
+	if !s.row().wholeScripts && !hosted {
 		return s.SetFields(kind, index, []ui.InspectionFieldValue{{Key: key, Value: value}})
 	}
 	defer s.worded(&said)
@@ -613,6 +613,9 @@ func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string,
 			if sc, err := view.Script(); err == nil && index >= 0 && index < len(sc.Actions) && scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) == param {
 				return create(s, ui.InspectionMessageOwner{Kind: kind, Index: index, Key: key})
 			}
+		}
+		if word, _ := ui.NewChoiceRefusal(value); !s.row().wholeScripts {
+			return nil, errors.New(word)
 		}
 	}
 	k, err := editKind(kind)
@@ -1107,33 +1110,16 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	if s.inspector.archives != nil {
 		root = s.inspector.archives.Root
 	}
-	if bare {
-		// A map whose row holds no workspace has no pages or labels beside it;
-		// an edited event text goes into the mod holding the map.
-		maps, grant := s.inspector.mapsFolder()
-		texts := s.eventTextForSave()
-		target, err := writeEditedMapTexts(root, s.source, path, b, texts, overwrite, grant)
-		if errors.As(err, new(textUnwritten)) && target != "" {
-			s.saveNote, err = s.inspector.word("editor.save.eventtext"), nil
-		}
-		if err != nil {
-			return "", s.inspector.fenceRefusal(err, maps)
-		}
-		s.saved, s.source = s.model.Bytes(), target
-		if texts.files != nil && s.saveNote == "" {
-			s.eventFrom, _ = modFolderOf(target)
-			s.savedWorkspace = s.workspaceImage
-		}
-		return target, nil
-	}
 	// A map whose own file holds its pages inside is saved with them or not
 	// at all: the pages go into the record or into the folder, and a save
-	// that can do neither writes nothing.
-	var pages map[string][]byte
+	// that can do neither writes nothing. A map whose row keeps no page files
+	// has no pages, labels or dialogues beside it; its edited text file goes
+	// into the mod holding the map.
+	c := mapCompanions{texts: s.sectionsForSave(), own: !bare}
 	kept := false
-	if !s.TextsInside() {
+	if !bare && !s.TextsInside() {
 		_, kept, _ = s.sourceTexts()
-		if pages, err = s.pagesForSave(); err != nil {
+		if c.pages, err = s.pagesForSave(); err != nil {
 			if kept {
 				return "", s.textsKept(err)
 			}
@@ -1141,9 +1127,14 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 		}
 	}
 	maps, grant := s.inspector.mapsFolder()
-	labels := s.labelsForSave()
-	target, err := writeEditedMapPages(root, s.source, path, b, pages, labels, s.dialogueHeld(), s.inspector.pageLanguage(), overwrite, grant)
-	if errors.As(err, new(labelsUnwritten)) && target != "" {
+	if !bare {
+		c.labels, c.dialogues = s.labelsForSave(), s.dialogueHeld()
+	}
+	labels, pages := c.labels, c.pages
+	target, err := writeEditedMapPages(root, s.source, path, b, c, s.inspector.pageLanguage(), overwrite, grant)
+	if errors.As(err, new(textUnwritten)) && target != "" {
+		s.saveNote, err = s.inspector.word("editor.save.eventtext"), nil
+	} else if errors.As(err, new(labelsUnwritten)) && target != "" {
 		s.noteUnwritten(err)
 		err = nil
 	} else if err != nil && len(pages) > 0 {
@@ -1158,6 +1149,9 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	}
 	s.saved, s.source, s.savedInside = s.model.Bytes(), target, s.TextsInside()
 	s.labelsUnread = s.labelsUnread && overwrite && labels != nil && len(labels) == 0
+	if c.texts.files != nil && s.saveNote == "" {
+		s.eventFrom, _ = modFolderOf(target)
+	}
 	if s.saveNote == "" {
 		s.checkpointPages()
 	}

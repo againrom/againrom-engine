@@ -164,7 +164,7 @@ func TestReleaseDialogueThreeSpeakersTestPlay(t *testing.T) {
 	row := len(e.DropdownChoices()) - 1
 	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlDropdownRow, N: row})
 	messageClick(t, e, r, ok)
-	number := freeMessage(s.workspace.Pages)
+	number := s.freeMessage(s.workspace)
 	for part := 0; part < 3; part++ {
 		if part > 0 {
 			dialogueButton(t, e, -1, 0) // "+"

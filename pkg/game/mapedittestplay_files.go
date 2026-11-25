@@ -502,7 +502,19 @@ type textUnwritten struct{}
 
 func (textUnwritten) Error() string { return "no mod holds the map: its texts are not written" }
 
-func writeMapInMod(root, target string, data []byte, pages map[string][]byte, labels []byte, dialogues map[string][]byte, texts modTexts, overwrite, withLabels bool) (bool, error) {
+// mapCompanions are what a map's save writes with the map: the page tree,
+// labels file and dialogue files beside it when the format keeps them
+// (own), and the install texts that go into the mod holding the map.
+type mapCompanions struct {
+	pages     map[string][]byte
+	labels    []byte
+	dialogues map[string][]byte
+	texts     modTexts
+	own       bool
+}
+
+func writeMapInMod(root, target string, data []byte, c mapCompanions, overwrite bool) (bool, error) {
+	pages, labels, dialogues, texts, withLabels := c.pages, c.labels, c.dialogues, c.texts, c.own
 	folder, ok := modFolderOf(target)
 	if !ok {
 		return false, nil
@@ -686,13 +698,6 @@ func editorProjectSet(folder string, files map[string][]byte, snapshot map[strin
 // writeEditedMap writes a host file, never an input or a preserved install,
 // even through an alias.
 func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
-	return writeEditedMapTexts(root, source, path, data, modTexts{}, overwrite, grants...)
-}
-
-// writeEditedMapTexts is writeEditedMap that also writes texts into the mod
-// holding the map. With no mod there the map alone is written, and the
-// answer is the target and a textUnwritten.
-func writeEditedMapTexts(root, source, path string, data []byte, texts modTexts, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
 	if err := extendedName(data, path); err != nil {
 		return "", err
 	}
@@ -700,7 +705,7 @@ func writeEditedMapTexts(root, source, path string, data []byte, texts modTexts,
 	if err != nil {
 		return "", err
 	}
-	if handled, err := writeMapInMod(root, target, data, nil, nil, nil, texts, overwrite, false); handled {
+	if handled, err := writeMapInMod(root, target, data, mapCompanions{}, overwrite); handled {
 		if err != nil {
 			return "", err
 		}
@@ -712,9 +717,6 @@ func writeEditedMapTexts(root, source, path string, data []byte, texts modTexts,
 	}
 	if _, err := hostfile.Commit(set); err != nil {
 		return "", err
-	}
-	if len(texts.files) > 0 {
-		return target, textUnwritten{}
 	}
 	return target, nil
 }
@@ -839,10 +841,13 @@ func placeMapDialogues(target string, dialogues map[string][]byte, overwrite boo
 	return nil
 }
 
-// writeEditedMapPages writes the map and what the editor keeps beside it: the
-// texts folder of pages, unless the map holds its pages inside, the labels
-// file of labels and the folder of dialogue files.
-func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, labels []byte, dialogues map[string][]byte, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
+// writeEditedMapPages writes the map and its companions c: when the format
+// keeps them, the texts folder of pages, unless the map holds its pages
+// inside, the labels file and the folder of dialogue files; and the install
+// texts into the mod holding the map. With no mod there the texts are not
+// written, and the answer is the target and a textUnwritten.
+func writeEditedMapPages(root, source, path string, data []byte, c mapCompanions, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
+	pages, labels, dialogues := c.pages, c.labels, c.dialogues
 	if err := extendedName(data, path); err != nil {
 		return "", err
 	}
@@ -861,6 +866,9 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	existing, err := os.Lstat(folder)
 	_, inside, _ := alm.TextsOf(data)
 	switch {
+	case !c.own:
+		// No folder of the map's own is written or taken over.
+		pages = nil
 	case inside:
 		// The pages ride in the map's texts record: no folder is written, and
 		// one already beside the map is left as it is.
@@ -874,12 +882,13 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	case !errors.Is(err, os.ErrNotExist):
 		return "", fmt.Errorf(words.For(lang).Text("editor.pages.new-folder"), folder)
 	}
+	c.pages = pages
 	if len(pages) == 0 {
 		_, target, err := editedMapTarget(root, source, path, overwrite, grants...)
 		if err != nil {
 			return "", err
 		}
-		if handled, err := writeMapInMod(root, target, data, pages, labels, dialogues, modTexts{}, overwrite, true); handled {
+		if handled, err := writeMapInMod(root, target, data, c, overwrite); handled {
 			if err != nil {
 				return "", err
 			}
@@ -889,7 +898,15 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		if err != nil {
 			return "", err
 		}
-		return target, placeMapCompanions(target, labels, dialogues, overwrite, lang)
+		if c.own {
+			if err := placeMapCompanions(target, labels, dialogues, overwrite, lang); err != nil {
+				return target, err
+			}
+		}
+		if len(c.texts.files) > 0 {
+			return target, textUnwritten{}
+		}
+		return target, nil
 	}
 	if !locale.Known(lang) {
 		return "", wordErr("editor.err.pagelang", lang)
@@ -917,7 +934,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	if err != nil {
 		return "", err
 	}
-	if handled, err := writeMapInMod(root, target, data, pages, labels, dialogues, modTexts{}, overwrite, true); handled {
+	if handled, err := writeMapInMod(root, target, data, c, overwrite); handled {
 		if err != nil {
 			return "", err
 		}

@@ -514,7 +514,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		inspectScript(d, m, script, limits, x.inspectionUTF8)
 		x.inspectNodeTexts(d.Script, model)
 		d.Script.Labels = liveLabels(script, limits, labels)
-		d.Script.Targets = x.scriptTargets(d, m, script, w)
+		d.Script.Targets = x.scriptTargets(d, m, script, w, rowFor(model).messages)
 		inspectScriptUses(d)
 		d.ScriptNotice = fmt.Sprintf("%d triggers / %d conditions / %d actions / %d registers", len(script.Triggers), len(script.Conditions), len(script.Actions), max(limits.Registers, limits.Variables))
 		if len(script.Triggers) == 0 {

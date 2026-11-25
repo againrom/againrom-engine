@@ -13,76 +13,8 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/herokind"
 	"againrom/pkg/mapedit"
-	"againrom/pkg/mod"
-	"againrom/pkg/render/textfit"
 	"againrom/pkg/ui"
 )
-
-func messageFilename(n uint32) string { return fmt.Sprintf("event%02d.txt", n) }
-
-// addMessagePage puts a new message page holding text into workspace w and
-// returns its number, the first free one. A workspace already at the page
-// bound is refused in the word book's words and left as it is.
-func (s *mapInspectionEdits) addMessagePage(w *editorWorkspaceState, text []byte) (uint32, error) {
-	if len(w.Pages) >= mod.MaxMissionTexts {
-		return 0, fmt.Errorf(s.inspector.word("editor.message.full"), mod.MaxMissionTexts)
-	}
-	n := freeMessage(w.Pages)
-	w.Pages[messageFilename(n)] = bytes.Clone(text)
-	return n, nil
-}
-
-func freeMessage(pages map[string][]byte) uint32 {
-	for n := uint32(1); ; n++ {
-		if n == uint32(ReservedMessageNumber) {
-			continue
-		}
-		if _, used := pages[messageFilename(n)]; !used {
-			return n
-		}
-	}
-}
-
-func (x *MapInspector) messageTargets(targets map[uint32][]ui.InspectionScriptTarget, w *editorWorkspaceState) {
-	var pages map[string][]byte
-	if w != nil {
-		if w.EventText != "" {
-			targets[ui.ScriptMessageParameter] = x.eventTargets(w)
-			return
-		}
-		pages = w.Pages
-	}
-	var ids []uint32
-	for name := range pages {
-		if !strings.HasPrefix(name, "event") || !strings.HasSuffix(name, ".txt") {
-			continue
-		}
-		n, err := strconv.ParseUint(strings.TrimSuffix(strings.TrimPrefix(name, "event"), ".txt"), 10, 32)
-		if err == nil && n > 0 && name == messageFilename(uint32(n)) {
-			ids = append(ids, uint32(n))
-		}
-	}
-	slices.Sort(ids)
-	rows := make([]ui.InspectionScriptTarget, 0, len(ids)+1)
-	for _, n := range ids {
-		body, _ := splitMessage(x.messageUTF8(pages[messageFilename(n)]))
-		lines := messageLines(body)
-		line := ""
-		if len(lines) > 0 {
-			line = lines[0]
-		}
-		if len(lines) > 1 {
-			line += textfit.Mark
-		}
-		label := x.inspectionUTF8(fmt.Sprintf("%d: %s", n, line))
-		for i := range lines {
-			lines[i] = x.inspectionUTF8(lines[i])
-		}
-		rows = append(rows, ui.InspectionScriptTarget{Value: n, Record: -1, Name: label, Choice: label, Text: strings.Join(lines, "\n")})
-	}
-	rows = append(rows, ui.InspectionScriptTarget{Record: -1, Name: x.inspectionUTF8(x.word("editor.message.new")), NewChoice: ui.NewMessageChoice})
-	targets[ui.ScriptMessageParameter] = rows
-}
 
 // messageLines are a message body's lines as the player reads them: markup
 // removed, each line trimmed, the empty lines before the first and after the
@@ -743,11 +675,12 @@ func (s *mapInspectionEdits) NewMessage(owner ui.InspectionMessageOwner) (*ui.In
 // page when fresh, else page n, which the map has.
 func (s *mapInspectionEdits) pointMessage(owner ui.InspectionMessageOwner, n uint32, fresh bool) (_ *ui.InspectionDocument, _ uint32, err error) {
 	w := cloneWorkspace(s.workspace)
+	st := s.row().messages
 	if fresh {
-		if n, err = s.addMessagePage(w, []byte(newMessagePage)); err != nil {
+		if n, err = s.addMessage(w, st.fresh); err != nil {
 			return nil, 0, err
 		}
-	} else if _, exists := w.Pages[messageFilename(n)]; !exists {
+	} else if _, exists := s.inspector.pageText(w, fmt.Sprintf(st.message, n)); !exists {
 		return nil, 0, errors.New(s.inspector.word("editor.message.unavailable"))
 	}
 	d, err := s.pointedMessage(owner, n, w)
@@ -811,6 +744,6 @@ func (s *mapInspectionEdits) pointedMessage(owner ui.InspectionMessageOwner, n u
 	}
 	s.rememberWorkspace(!bytes.Equal(s.model.Bytes(), next.Bytes()))
 	s.model, s.workspace, s.workspaceImage = next, w, workspaceBytes(w)
-	s.inspector.messageTargets(d.Script.Targets, w)
+	s.inspector.messageTargets(d.Script.Targets, w, s.row().messages)
 	return d, nil
 }
