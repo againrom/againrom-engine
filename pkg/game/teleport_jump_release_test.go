@@ -390,7 +390,12 @@ placements:
 		// still holds while the caster waits out the countdown standing on
 		// its cast cell; a creature that walks on reaches the cell by a step.
 		still := false
+		start := releaseEntity(t, mw, creature.ID)
+		stepped := false
 		for range 1500 {
+			if now := releaseEntity(t, mw, creature.ID); now.X != start.X || now.Y != start.Y {
+				stepped = true
+			}
 			mw.tickWithCastSink(func(released []sim.CastEvent) {
 				for _, event := range released {
 					if event.Caster == creature.ID && event.Spell == 26 {
@@ -402,6 +407,13 @@ placements:
 			})
 			for _, event := range admitted {
 				delta := image.Pt(int(event.ToX-event.FromX), int(event.ToY-event.FromY))
+				// The cell is chosen at the draw, next to the caster (MAGIC-238), and the
+				// order holds it (MAGIC-428). A caster that walked on after the draw can
+				// release from that very cell, so a zero distance after a step tests no
+				// adjacent landing.
+				if delta == (image.Point{}) && stepped {
+					continue placements
+				}
 				if max(intmath.Abs(int32(delta.X)), intmath.Abs(int32(delta.Y))) != 1 {
 					t.Fatal("installed creature Teleport is not aimed at an adjacent cell", event)
 				}
