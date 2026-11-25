@@ -13,7 +13,7 @@ func TestSecondGameCellMoveWaitsForTheStepsCentre(t *testing.T) {
 		t.Fatal(err)
 	}
 	wakeGroups(w)
-	if err := w.DeclareCellTails([]CellTail{{X: 10, Y: 10, Bytes: [cellTailLen]byte{cellEventRelocate, 0, 10, 10, 30, 40}}}); err != nil {
+	if err := w.DeclareCellTails([]CellTail{{X: 10, Y: 10, Bytes: [cellTailLen]byte{secondCellEvent, 0, 10, 10, 30, 40}}}); err != nil {
 		t.Fatal(err)
 	}
 	cmds := []Command{MoveTo(1, CellPoint{X: 12, Y: 10})}
@@ -57,7 +57,7 @@ func TestSecondGameCellMoveReadsTheUnitsOwnCell(t *testing.T) {
 		t.Fatal(err)
 	}
 	wakeGroups(w)
-	if err := w.DeclareCellTails([]CellTail{{X: 10, Y: 10, Bytes: [cellTailLen]byte{cellEventRelocate, 0, 10, 10, 30, 40}}}); err != nil {
+	if err := w.DeclareCellTails([]CellTail{{X: 10, Y: 10, Bytes: [cellTailLen]byte{secondCellEvent, 0, 10, 10, 30, 40}}}); err != nil {
 		t.Fatal(err)
 	}
 	cmds := []Command{MoveTo(1, CellPoint{X: 13, Y: 9})}

@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM1] In the map editor a first-game trap of the Teleport spell now reads as a teleport from its cell to its target cell, and its cell, target and power are set and saved as before.
 - [ROM2] In the map editor a second-game unit, structure and sack now name every field and mark the ones no game reader was found for, a sack item's word says whether the owner takes the item in hand or into the bag, and the passability view and brush show and set which move kinds each cell closes.
 - [ROM2] In the map editor the trigger wizard now offers the teleport as its own ready action under the cells heading, asking for the entry cell and the exit cell, and the action line reads as the teleport with those two cells; the event number, the default power and a source equal to the entry cell are no longer shown.
 - [BASE] In the map editor the unit window's spellcaster caption now looks and reacts like a button, spells that are off in the unit's spell book are drawn dimmed, and a spell given to a unit no longer shows as a label beside it on the map.
@@ -29,6 +30,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] A walking unit that reaches the middle of a map's Teleport trap cell is now moved to the trap's target cell and stands there; a unit that was following a move order then walks on to that order's destination; before, the trap did nothing. A flying unit is not moved.
 - [ROM1] Fire Sacrifice, Acid Stream and Meteor Storm now strike their first cells one tick after the cast, as in the original; before, the first cells were hit on the cast's own tick.
 - [ROM2] A mage's automatic Heal set to allies now also heals the player's own units, and one set to neutral units alone does not, as in the original.
 - [ROM2] Hired and placed humans no longer start a mission ready to back off or flee by their class; they fight on until a Retreat setting tells them otherwise, as in the original.

@@ -193,7 +193,7 @@ func TestRuleRowsAgreeWithTheirGates(t *testing.T) {
 		p := newGameProfile(d)
 		second := d == ScriptROM2
 		for name, ok := range map[string]bool{
-			"cellTail":  (p.cellTail == cellTailTargeted) == (p.cellEvent == cellEventRelocating),
+			"cellEvent": (p.cellEvent == cellEventRelocating) == (p.cellMoveEvent() != 0),
 			"activity":  (p.groupActivity == groupActivityByMask) == p.activityMask,
 			"tickClock": (p.tickClock == nativeTickClock) == second,
 			"decayWalk": (p.decayWalk == nativeDecayWalk) == second,

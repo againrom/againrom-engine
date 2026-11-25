@@ -8,7 +8,7 @@ import "testing"
 func TestSecondGameLoadedCellMoveRecordMovesEveryUnitOnItsCell(t *testing.T) {
 	w := trapWorld(t, Entity{ID: 1, HP: 50, MaxHP: 50, X: 10, Y: 10, Domain: DomainGround},
 		Entity{ID: 2, HP: 50, MaxHP: 50, X: 20, Y: 20, Domain: DomainGround})
-	tail := CellTail{X: 10, Y: 10, Bytes: [cellTailLen]byte{cellEventRelocate, 0, 10, 10, 30, 40}}
+	tail := CellTail{X: 10, Y: 10, Bytes: [cellTailLen]byte{secondCellEvent, 0, 10, 10, 30, 40}}
 	if err := w.DeclareCellTails([]CellTail{tail}); err != nil {
 		t.Fatal(err)
 	}

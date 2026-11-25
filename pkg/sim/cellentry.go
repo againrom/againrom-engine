@@ -89,18 +89,23 @@ func (w *World) cellTailOf(cx, cy int32) ([cellTailLen]byte, bool) {
 // event that waits for the centre acts there (R2-ENGINE-1778).
 func (w *World) stepCentred(i int) { cellEventBodies[w.game.cellEvent].centred(w, i) }
 
-// cellEventRelocate is the second game's cell event that moves the unit on it
-// to the event's target cell (R2-ENGINE-1778); the editor names the same
-// event a teleport.
-const cellEventRelocate = scriptprofile.CellMoveEvent
+// cellMoveEvent is the cell event that moves the unit on it to the event's
+// target cell: the game's script vocabulary names it, 23 in the second game
+// (R2-ENGINE-1778) and 26 in the first (MOVE-129); the editor names it a
+// teleport.
+func (w *World) cellMoveEvent() uint8 { return w.game.cellMoveEvent() }
+
+func (g gameProfile) cellMoveEvent() uint8 {
+	return uint8(scriptprofile.VocabularyOf(g.scriptLimits().Ops).CellMove)
+}
 
 // relocatesOnCellEvent says whether a pending record is that event. A unit
 // cast an instant authors never holds a target cell, so the two cannot meet.
 func (w *World) relocatesOnCellEvent(c scriptCast) bool {
-	return cellEventBodies[w.game.cellEvent].relocates(c)
+	return cellEventBodies[w.game.cellEvent].relocates(w, c)
 }
 
-// cellEventRule selects whether cell event 0x17 moves the entering unit.
+// cellEventRule selects whether the cell move event moves the entering unit.
 type cellEventRule uint8
 
 const (
@@ -114,7 +119,7 @@ const (
 type cellEventBody struct {
 	entry     func(w *World, e Entity, cx, cy int32, b [cellTailLen]byte) bool
 	centred   func(w *World, i int)
-	relocates func(c scriptCast) bool
+	relocates func(w *World, c scriptCast) bool
 	repair    func(w *World)
 }
 
@@ -123,15 +128,16 @@ var cellEventBodies = [...]cellEventBody{
 	cellEventIgnored: {
 		entry:     func(*World, Entity, int32, int32, [cellTailLen]byte) bool { return false },
 		centred:   func(*World, int) {},
-		relocates: func(scriptCast) bool { return false },
+		relocates: func(*World, scriptCast) bool { return false },
 		repair:    func(*World) {},
 	},
 	// Entering the cell casts nothing; the step that ends centred on the
-	// unit's own cell passes the unit to the move with the target
-	// (R2-ENGINE-1778). Air units stay outside both, as on entry.
+	// unit's own cell passes the unit to the move with the target, tail
+	// bytes 4 and 5 (R2-ENGINE-1778, MOVE-129). Air units stay outside both,
+	// as on entry.
 	cellEventRelocating: {
 		entry: func(w *World, e Entity, cx, cy int32, b [cellTailLen]byte) bool {
-			return b[0] == cellEventRelocate
+			return b[0] == w.cellMoveEvent()
 		},
 		centred: func(w *World, i int) {
 			e := w.entities[i]
@@ -139,14 +145,20 @@ var cellEventBodies = [...]cellEventBody{
 				return
 			}
 			b, ok := w.cellTailOf(e.X, e.Y)
-			if !ok || b[0] != cellEventRelocate {
+			if !ok || b[0] != w.cellMoveEvent() {
+				return
+			}
+			// Where the profile's cellMoveSkipsOrigin holds, a target (0,0)
+			// queues nothing; elsewhere the record is queued and relocates
+			// refuses it.
+			if w.game.cellMoveSkipsOrigin && b[4]|b[5] == 0 {
 				return
 			}
 			w.casts = append(w.casts, scriptCast{FromX: uint8(e.X), FromY: uint8(e.Y), ToX: b[4], ToY: b[5],
 				Spell: b[0], Power: uint16(b[1]), Target: e.ID, AtUnit: true})
 		},
-		relocates: func(c scriptCast) bool {
-			return c.AtUnit && c.Spell == cellEventRelocate && c.ToX|c.ToY != 0
+		relocates: func(w *World, c scriptCast) bool {
+			return c.AtUnit && c.Spell == w.cellMoveEvent() && c.ToX|c.ToY != 0
 		},
 		repair: (*World).repairRelocatingCellEvents,
 	},
@@ -154,7 +166,9 @@ var cellEventBodies = [...]cellEventBody{
 
 // relocateOnCellEvent moves the unit whose step ended on the event's cell,
 // held in the record's source. A unit off that cell when the record runs
-// stays; a refused target leaves the unit in place (R2-ENGINE-705).
+// stays; a refused target leaves the unit in place (R2-ENGINE-705, MOVE-129).
+// Where the profile's cellMoveStands holds, a moved unit then stands at its
+// new cell with state 0xc and no order (MOVE-129, AI-535, DIV-5176).
 func (w *World) relocateOnCellEvent(c scriptCast, obs *castObs) {
 	i := indexOfEntity(w.entities, c.Target)
 	if i < 0 || !w.entities[i].Alive() || w.entities[i].OffMap {
@@ -164,7 +178,9 @@ func (w *World) relocateOnCellEvent(c scriptCast, obs *castObs) {
 	if cx, cy := int32(c.FromX), int32(c.FromY); cx < e.X || cy < e.Y || cx >= e.X+n || cy >= e.Y+n {
 		return
 	}
-	w.relocateActor(i, int32(c.ToX), int32(c.ToY), obs)
+	if w.relocateActor(i, int32(c.ToX), int32(c.ToY), obs) && w.game.cellMoveStands {
+		w.standScriptedUnit(i, actorStateAcquire)
+	}
 }
 
 // relocateActor puts the actor at index i on another cell at once, ending its

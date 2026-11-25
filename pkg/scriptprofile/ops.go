@@ -224,6 +224,11 @@ const (
 // R2-ENGINE-1778).
 const CellMoveEvent = 23
 
+// FirstCellMoveEvent is the first game's cell record spell 26: a unit whose
+// step ends centred on the cell moves to tail bytes 4 and 5 (TRIG-CELLTAIL-035,
+// MOVE-129). A type-9 record writes it; instant 25 stores x 0 there.
+const FirstCellMoveEvent = 26
+
 // NameRule is how an operation's name is written where no claim reads it.
 type NameRule uint8
 
@@ -265,7 +270,7 @@ func (v Vocabulary) Undecoded(condition bool) string {
 
 var vocabularies = [...]Vocabulary{
 	OpsFirst: {CheckWord: "editor.check.unnamed", ActionWord: "editor.action.unnamed", Kinds: FirstKinds,
-		Unknown: Noted, Region: Noted, Edges: Noted},
+		Unknown: Noted, Region: Noted, Edges: Noted, CellMove: FirstCellMoveEvent},
 	// A type-9 value is a type-4 id of the map (R2-ENGINE-1725). The loader
 	// tests no node or trigger word and the compiler reads a node's word
 	// +0x48 nowhere found, so a new node holds zero there and in its texts

@@ -11,8 +11,8 @@ import (
 // packs the addressed cell, and hands a helper six bytes that the helper stores
 // at the cell's own dynamic record, `+0x2c..+0x31`. The helper creates the record
 // where the cell has none. UNIT-M10ENTRY-055 adds the ground-footprint reader:
-// spell bytes other than 0 and 26 request a cast at the entering actor. The
-// separate relocation operation for spell 26 remains unimplemented.
+// spell bytes other than 0 and 26 request a cast at the entering actor. Spell
+// 26 is the first game's cell move (cellMoveEvent, MOVE-129).
 //
 // IT IS ITS OWN RECORD AND NOT AN AREA EFFECT (D-5). celleffect.go holds the
 // six-slot area-effect array instants 21, 24 and 29 work on. This is the dynamic
@@ -153,7 +153,7 @@ func targetedCellTailBytes(a [scriptParams]int32) [cellTailLen]byte {
 func (w *World) RepairCellEvents() { cellEventBodies[w.game.cellEvent].repair(w) }
 
 func (w *World) repairRelocatingCellEvents() {
-	if w.script == nil {
+	if w.script == nil || w.game.cellTail == cellTailLegacy {
 		return
 	}
 	for _, in := range w.script.instants {

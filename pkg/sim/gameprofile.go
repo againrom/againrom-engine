@@ -207,9 +207,15 @@ type gameProfile struct {
 	keepsHealthAboveMaximum bool
 	// cellTail: how instant 25 encodes its six tail bytes (cellTailEncoders).
 	cellTail cellTailRule
-	// cellEvent: cell event 0x17 moves the unit whose step ends centred
-	// on the cell (R2-ENGINE-1778, DIV-4700).
+	// cellEvent: the cell move event (cellMoveEvent) moves the unit whose
+	// step ends centred on the cell (R2-ENGINE-1778, DIV-4700, MOVE-129).
 	cellEvent cellEventRule
+	// cellMoveStands: a unit the cell move moved stands at its new cell
+	// (MOVE-129, AI-535).
+	cellMoveStands bool
+	// cellMoveSkipsOrigin: a cell move whose target is (0,0) queues nothing
+	// (DIV-5176).
+	cellMoveSkipsOrigin bool
 	// bookListsScrolls: the book shows a carried scroll at its spell's cell
 	// (R2-ENGINE-766, R2-SESSION-229, DIV-4732).
 	bookListsScrolls bool
@@ -284,11 +290,14 @@ const secondGameDiaryCountCap = 14
 func newGameProfile(d ScriptDialect) gameProfile {
 	if d != ScriptROM2 {
 		return gameProfile{
-			dialect:          ScriptROM1,
-			dropsEmptyScript: true,
-			scoreEffectSpell: 20,
-			skillAward:       firstGameSkillAward,
-			computerSupport:  supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, pick: supportPicksDrawn, hold: supportHeldInCombat, shield: shieldNone},
+			dialect:             ScriptROM1,
+			dropsEmptyScript:    true,
+			scoreEffectSpell:    20,
+			skillAward:          firstGameSkillAward,
+			computerSupport:     supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, pick: supportPicksDrawn, hold: supportHeldInCombat, shield: shieldNone},
+			cellEvent:           cellEventRelocating,
+			cellMoveStands:      true,
+			cellMoveSkipsOrigin: true,
 		}
 	}
 	return gameProfile{
