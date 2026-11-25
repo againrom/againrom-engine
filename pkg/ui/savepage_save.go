@@ -24,6 +24,7 @@ type savePageState struct {
 }
 
 func (s *savePageState) view() pageView {
+	s.row()
 	return pageView{page: s.page, ui: &s.ui, list: s.list, saves: s.saves, save: s}
 }
 
@@ -120,10 +121,7 @@ func (f *flow) refreshSavePage() {
 }
 
 func (s *savePageState) nameField() *string {
-	if s.page.fileNames {
-		return &s.request.Name
-	}
-	return &s.request.Label
+	return s.row().nameField(s)
 }
 
 func (s *savePageState) pick() {

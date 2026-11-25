@@ -103,9 +103,8 @@ func (v pageView) buttonAt(p image.Point) (int, bool) {
 // name; Delete while no save can be deleted or a deletion awaits
 // confirmation in the page's body.
 func (f *flow) pageButtonDisabled(v pageView, i int) bool {
-	if v.save != nil {
-		controls := [...]saveControl{saveWriteControl, saveDeleteControl, saveCancelControl}
-		return i >= 0 && i < len(controls) && f.saveControlDisabled(v.save, controls[i])
+	if disabled := v.ui.openRole().buttonDisabled; disabled != nil {
+		return disabled(f, v, i)
 	}
 	switch i {
 	case loadOKButton:
@@ -127,18 +126,11 @@ func (f *flow) canDeletePage(v pageView) bool {
 }
 
 func (f *flow) pageCanDelete(v pageView, e SaveEntry) bool {
-	if v.save != nil {
-		s := f.saveDialogSeams
-		return s.CanDelete != nil && s.PrepareDelete != nil && s.CanDelete(v.save.directory.Path, e.Name)
-	}
 	can, prepare := f.deleteSeams(v)
 	return can != nil && prepare != nil && can(e.Name)
 }
 
 func (f *flow) pagePrepareDelete(v pageView, e SaveEntry) (func() error, error) {
-	if v.save != nil {
-		return f.saveDialogSeams.PrepareDelete(v.save.directory.Path, e.Name)
-	}
 	_, prepare := f.deleteSeams(v)
 	return prepare(e.Name)
 }
@@ -155,12 +147,11 @@ func (f *flow) deleteSeams(v pageView) (func(string) bool, func(string) (func() 
 // acceptPage is Ok: load or save the selection, or delete it once confirmed.
 func (a *App) acceptPage(v pageView) {
 	f := a.flow
-	if v.save != nil {
-		v.ui.resetPointer()
-		f.activateSaveControl(saveWriteControl)
+	v.ui.resetPointer()
+	if write := v.ui.openRole().write; write != nil {
+		write(f)
 		return
 	}
-	v.ui.resetPointer()
 	if !v.ui.confirm {
 		a.activatePicker(v.list, f.chooseLoad)
 		a.syncViewerLayout()
@@ -186,8 +177,8 @@ func (a *App) acceptPage(v pageView) {
 }
 
 func (f *flow) confirmDeletePage(v pageView) {
-	if v.save != nil {
-		f.confirmSaveDelete()
+	if confirm := v.ui.openRole().confirmDelete; confirm != nil {
+		confirm(f)
 		return
 	}
 	entry, _, ok := v.selected()
@@ -227,8 +218,8 @@ func (a *App) stepPageQuestion(v pageView, in appInput) {
 
 // cancelPage is Cancel: it leaves a confirmation, else closes the page.
 func (f *flow) cancelPage(v pageView) {
-	if v.save != nil {
-		f.cancelSavePage()
+	if cancel := v.ui.openRole().cancel; cancel != nil {
+		cancel(f)
 		return
 	}
 	if v.ui.confirm {
@@ -242,8 +233,8 @@ func (f *flow) cancelPage(v pageView) {
 func (a *App) stepLoadWindow(in appInput, now time.Time) { a.stepPage(a.flow.loadView(), in) }
 
 func (a *App) stepPage(v pageView, in appInput) {
-	if v.save != nil {
-		a.stepSaveScreen(in)
+	if step := v.ui.openRole().step; step != nil {
+		step(a, in)
 		return
 	}
 	f := a.flow

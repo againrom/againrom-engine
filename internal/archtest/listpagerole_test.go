@@ -42,6 +42,13 @@ func listPageRoleBranches(t *testing.T, files map[string]string) []string {
 					}
 				}
 			}
+			if be, ok := n.(*ast.BinaryExpr); ok && name != "pkg/ui/savepage.go" && (be.Op == token.EQL || be.Op == token.NEQ) {
+				if sel, ok := be.X.(*ast.SelectorExpr); ok && sel.Sel.Name == "save" {
+					if id, ok := be.Y.(*ast.Ident); ok && id.Name == "nil" {
+						at(sel, "save state tested")
+					}
+				}
+			}
 			if fd, ok := n.(*ast.FuncDecl); ok && fd.Body != nil && fd.Name.Name != "CharacterList" {
 				ast.Inspect(fd.Body, func(m ast.Node) bool {
 					if sel, ok := m.(*ast.SelectorExpr); ok && sel.Sel.Name == "roleName" {
@@ -64,10 +71,11 @@ func TestListPageRoleScanNamesEachBranch(t *testing.T) {
 	got := listPageRoleBranches(t, map[string]string{
 		"pkg/ui/a.go": "package ui\ntype w struct {\n\tcharacters bool\n}\n" +
 			"func (a *App) CharacterList() bool { return r.roleName == \"x\" }\n" +
-			"func (f *flow) loadPage() { if r.roleName == \"x\" {} }\n",
+			"func (f *flow) loadPage() { if r.roleName == \"x\" {} }\n" +
+			"func (f *flow) cancel(v pageView) { if v.save != nil {} }\n",
 		"pkg/game/b.go": "package game\nfunc l() { os.ReadDir(\"d\") }\n",
 	})
-	want := []string{"pkg/game/b.go: os.ReadDir", "pkg/ui/a.go:3:field characters", "pkg/ui/a.go:6:roleName read in loadPage"}
+	want := []string{"pkg/game/b.go: os.ReadDir", "pkg/ui/a.go:3:field characters", "pkg/ui/a.go:6:roleName read in loadPage", "pkg/ui/a.go:7:save state tested"}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("listPageRoleBranches = %q, want %q", got, want)
 	}
