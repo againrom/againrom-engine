@@ -1,6 +1,10 @@
 package scriptprofile
 
-import "strconv"
+import (
+	"fmt"
+	"slices"
+	"strconv"
+)
 
 // The one table of script operations: a row per (game profile, family, id)
 // holding the operation's name, its editor word, its parameter signature and
@@ -35,8 +39,7 @@ type Slot struct {
 // operation does; Offered that the editor lists it, in table order. Again is
 // an Againrom operation. Register is that the operation addresses a variable
 // register in its first parameter. Signature is the parameter slots, nil
-// where none is stated; Commands is the group command list of an operation
-// whose signature follows its first parameter.
+// where none is stated.
 type Op struct {
 	Ops       Ops
 	Condition bool
@@ -48,25 +51,21 @@ type Op struct {
 	Again     bool
 	Register  bool
 	Signature []Slot
-	Commands  []uint32
 	// CopyRefused is the word of the refusal of a trigger copy holding a
 	// node of the operation, which takes the node's id; "" where it copies.
 	CopyRefused string
 	// CopyNamed is that a trigger copy names the operation's node itself
 	// rather than a copy of it.
 	CopyNamed bool
-	// CommandWord is the word key format of a group command's name, "" for
-	// the names the command panel gives.
-	CommandWord string
-	// CommandSignatures are the slots after the command parameter by
-	// command; the target group is added by the signature reader.
-	CommandSignatures map[uint32][]Slot
 	// EffectUnread is that a claim reads the operation's slots but not what
 	// it does: the trigger wizard offers no ready row of it.
 	EffectUnread bool
-	// Forms are the nodes of the operation a claim reads by the value of
-	// their first parameter, each under its own name and slot roles.
-	Forms           []Form
+	// Variants are the readings by the value of the first parameter. With
+	// Grouped they are group commands: slot 0 is the command, a signature
+	// holds the slots after it, and the target group takes the last slot
+	// unless the signature places it. Otherwise a variant holds every slot.
+	Variants        []Variant
+	Grouped         bool
 	Presets         []WizardPreset
 	WizardSignature []Slot // editor-authored slots when the raw signature is unknown
 }
@@ -130,11 +129,10 @@ func (p WizardPreset) Slots(op Op, command uint32) ([10]Slot, [][2]uint32, bool)
 	return slots, fixed, true
 }
 
-// Form is the reading of an operation's node whose first parameter holds
-// Value: its name, its word key and its slots, of the operation's types.
-// Follows maps a cell's X slot to the X slot of the cell it copies while
-// the two hold the same cell.
-type Form struct {
+// Variant is the reading of a node whose first parameter holds Value: its
+// name, word key ("" where the command panel names it) and slots. Follows maps
+// a cell's X slot to the X slot of the cell it copies while they hold one cell.
+type Variant struct {
 	Value     uint32
 	Name      string
 	Word      string
@@ -143,42 +141,42 @@ type Form struct {
 	Follows   map[int]int
 }
 
-// FormOf is the form of a node of the operation whose first parameter is
-// value, false where none is.
-func (o Op) FormOf(value uint32) (Form, bool) {
-	for _, f := range o.Forms {
-		if f.Value == value {
-			return f, true
+// Variant is the variant for first parameter value, false where none is.
+func (o Op) Variant(value uint32) (Variant, bool) {
+	for _, v := range o.Variants {
+		if v.Value == value {
+			return v, true
 		}
 	}
-	return Form{}, false
+	return Variant{}, false
+}
+
+// Values are the variants' first-parameter values, in order.
+func (o Op) Values() []uint32 {
+	var out []uint32
+	for _, v := range o.Variants {
+		out = append(out, v.Value)
+	}
+	return out
 }
 
 // HasSignature reports that a claim states the operation's parameter slots.
 func (o Op) HasSignature() bool { return o.Signature != nil }
 
-// followCommand is the group command whose shipped nodes store the target
-// group in the slot after the command, not in the last slot.
-const followCommand = 15
-
 // Slots are the ten parameter slots of the operation, false where no claim
-// states them. For an operation with group commands, command is its first
-// parameter: a Const slot, the target group in the last slot, and for
-// Follow in the slot after the command.
-func (o Op) Slots(command uint32) ([10]Slot, bool) {
+// states them; value is the first parameter of an operation with variants.
+func (o Op) Slots(value uint32) ([10]Slot, bool) {
 	var out [10]Slot
 	s, ok := o.Signature, o.HasSignature()
-	if len(o.Commands) > 0 {
-		s, ok = o.CommandSignatures[command]
-		head := []Slot{{slotConst, "command"}}
-		if ok && command == followCommand {
-			head = append(head, group...)
-		} else if ok {
+	v, found := o.Variant(value)
+	if o.Grouped {
+		s, ok = v.Signature, found
+		if ok && !slices.ContainsFunc(s, func(x Slot) bool { return x.Type == slotGroup }) {
 			out[9] = group[0]
 		}
-		s = append(head, s...)
-	} else if f, found := o.FormOf(command); found {
-		s = f.Signature
+		s = append([]Slot{{slotConst, "command"}}, s...)
+	} else if found {
+		s = v.Signature
 	}
 	if ok {
 		copy(out[:], s)
@@ -368,23 +366,32 @@ const (
 	AddGlobalOp  = addGlobal
 )
 
-// firstCommandSignatures and secondCommandSignatures are each game's action
-// 6 slots by its command (ALM-TRIG-045, TRIG-GROUPBOUNDS-136; the second
-// game's vectors are R2-ASSET-363's, its operands R2-ENGINE-1726's,
-// selector 2's cell Medium).
-var firstCommandSignatures = map[uint32][]Slot{
-	1: number("value"), 2: cell("cell"), 3: {}, 4: cell("cell"), 5: cell("cell"), 10: unit("unit"),
-	11: sig(unit("unit"), number("range")), 14: cell("cell"), 15: sig(unit("unit"), number("range")), 17: {}, 18: {},
+// firstCommandVariants and secondCommandVariants are each game's action 6
+// commands (ALM-TRIG-045, TRIG-GROUPBOUNDS-136; the second game's vectors are
+// R2-ASSET-363's, its operands R2-ENGINE-1726's, selector 2's cell Medium).
+// Follow (15) places the target group right after the command.
+var firstCommandVariants = []Variant{
+	{Value: 1, Signature: number("value")}, {Value: 2, Signature: cell("cell")}, {Value: 3, Signature: sig()},
+	{Value: 4, Signature: cell("cell")}, {Value: 5, Signature: cell("cell")}, {Value: 10, Signature: unit("unit")},
+	{Value: 11, Signature: sig(unit("unit"), number("range"))}, {Value: 14, Signature: cell("cell")},
+	{Value: 15, Signature: sig(group, unit("unit"), number("range"))}, {Value: 17, Signature: sig()}, {Value: 18, Signature: sig()},
 }
 
-var secondCommandSignatures = map[uint32][]Slot{
-	1: number("value"), 2: cell("cell"), 3: {}, 4: cell("cell"), 5: cell("cell"), 10: unit("unit"),
-	11: sig(unit("unit"), number("value")), 14: cell("cell"), 15: sig(unit("unit"), number("value")), 17: {},
-	18: number("value"),
+var secondCommandVariants = []Variant{
+	{Value: 1, Signature: number("value")}, {Value: 2, Signature: cell("cell")}, {Value: 3, Signature: sig()},
+	{Value: 4, Signature: cell("cell")}, {Value: 5, Signature: cell("cell")}, {Value: 10, Signature: unit("unit")},
+	{Value: 11, Signature: sig(unit("unit"), number("value"))}, {Value: 14, Signature: cell("cell")},
+	{Value: 15, Signature: sig(group, unit("unit"), number("value"))}, {Value: 17, Signature: sig()}, {Value: 18, Signature: number("value")},
 }
 
-// groupCommands are the commands action 6 can be authored with, in order.
-var groupCommands = []uint32{1, 2, 3, 4, 5, 10, 11, 14, 15, 17, 18}
+// worded is variants with the word key format gives each value.
+func worded(variants []Variant, format string) []Variant {
+	out := slices.Clone(variants)
+	for i := range out {
+		out[i].Word = fmt.Sprintf(format, out[i].Value)
+	}
+	return out
+}
 
 // The first game's rows. An operation with no row is read by its raw number.
 var firstChecks = []Op{
@@ -465,7 +472,7 @@ var firstActions = []Op{
 		Presets: []WizardPreset{{Order: 2, Word: "editor.wizard.a.win"}}},
 	{ID: 5, Name: "Lose", Word: "editor.action.op5", Decoded: true, Offered: true, Signature: sig(), // TRIG-ACT-004
 		Presets: []WizardPreset{{Order: 3, Word: "editor.wizard.a.lose"}}},
-	{ID: 6, Name: "Group command", Word: "editor.action.op6", Decoded: true, Offered: true, Commands: groupCommands, CommandSignatures: firstCommandSignatures,
+	{ID: 6, Name: "Group command", Word: "editor.action.op6", Decoded: true, Offered: true, Grouped: true, Variants: firstCommandVariants,
 		Presets: []WizardPreset{
 			{Order: 13, Word: "editor.wizard.a.order", Command: 4, GroupFirst: true},
 			{Order: 30, Word: "editor.wizard.a.order.stand", Command: 3, GroupFirst: true, Variant: true},
@@ -579,8 +586,8 @@ var secondActions = []Op{
 	{Ops: OpsSecond, ID: 3, Name: "Set map register", Word: "editor.second.action.3", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"), number("value"))},
 	{Ops: OpsSecond, ID: 4, Name: "Win: add to win counter", Word: "editor.second.action.4", Decoded: true, Offered: true, Signature: sig()},                    // R2-ENGINE-1729
 	{Ops: OpsSecond, ID: 5, Name: "Lose: store failure reason", Word: "editor.second.action.5", Decoded: true, Offered: true, Signature: sig(number("reason"))}, // R2-ENGINE-1729
-	{Ops: OpsSecond, ID: 6, Name: "Group arm by selector", Word: "editor.second.action.6", Decoded: true, Offered: true, Commands: groupCommands,
-		CommandWord: "editor.second.command.%d", CommandSignatures: secondCommandSignatures}, // R2-ENGINE-1726
+	{Ops: OpsSecond, ID: 6, Name: "Group arm by selector", Word: "editor.second.action.6", Decoded: true, Offered: true, Grouped: true,
+		Variants: worded(secondCommandVariants, "editor.second.command.%d")}, // R2-ENGINE-1726
 	{Ops: OpsSecond, ID: 8, Name: "Increment map register", Word: "editor.second.action.8", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"))},
 	{Ops: OpsSecond, ID: 10, Name: "Set relation", Word: "editor.second.action.10", Decoded: true, Offered: true, Signature: sig(number(""), number(""), number("value"))},
 	{Ops: OpsSecond, ID: 12, Name: "Build item into unit's bag", Word: "editor.second.action.12", Decoded: true, Offered: true, Signature: sig(unit("unit"), item)},                                              // R2-ENGINE-1747
@@ -603,7 +610,7 @@ var secondActions = []Op{
 	// is unread.
 	{Ops: OpsSecond, ID: 25, Name: "Cell descriptor of eight bytes", Word: "editor.second.action.25", Decoded: true, Offered: true, EffectUnread: true, Signature: sig(number(""), number(""), cell("cell"), cell("cell2"), cell("")),
 		Presets: []WizardPreset{{Order: 35, Word: "editor.second.action.25.teleport", Command: CellMoveEvent}},
-		Forms: []Form{{Value: CellMoveEvent, Name: "Teleport", Word: "editor.second.action.25.teleport",
+		Variants: []Variant{{Value: CellMoveEvent, Name: "Teleport", Word: "editor.second.action.25.teleport",
 			Signature: sig(number("event"), number("unreadpower"), cell("entry"), cell("source"), cell("exit")),
 			Defaults:  map[int]uint32{1: 255}, Follows: map[int]int{4: 2}}}},
 	{Ops: OpsSecond, ID: 28, Name: "Move unit's bag into the second unit's bag", Word: "editor.second.action.28", Decoded: true, Offered: true, Signature: sig(unit("unit"), unit("unit2"))},                        // R2-ENGINE-1748

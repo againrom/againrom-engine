@@ -20,7 +20,7 @@ func secondCatalog() InspectionScriptCatalog {
 		return out
 	}
 	group, _ := scriptprofile.OpRow(scriptprofile.OpsSecond, false, scriptGroupCommand)
-	return InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: group.Commands,
+	return InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: group.Values(),
 		Signature: func(condition bool, opcode, command uint32) ([10]InspectionScriptSlot, bool) {
 			var out [10]InspectionScriptSlot
 			op, ok := scriptprofile.OpRow(scriptprofile.OpsSecond, condition, opcode)

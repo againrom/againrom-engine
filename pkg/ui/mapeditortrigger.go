@@ -151,29 +151,29 @@ func (e *MapEditor) nodeOpName(condition bool, opcode, value uint32) string {
 	return e.opName(condition, opcode)
 }
 
-// nodeForm is the form of a node of opcode whose first parameter is value
-// in the shown map's game, false where the row reads none.
-func (e *MapEditor) nodeForm(condition bool, opcode, value uint32) (scriptprofile.Form, bool) {
+// nodeForm is the named form of a node of opcode whose first parameter is
+// value in the shown map's game, false where the row reads none.
+func (e *MapEditor) nodeForm(condition bool, opcode, value uint32) (scriptprofile.Variant, bool) {
 	op, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, condition, opcode)
-	if !ok {
-		return scriptprofile.Form{}, false
+	if !ok || op.Grouped {
+		return scriptprofile.Variant{}, false
 	}
-	return op.FormOf(value)
+	return op.Variant(value)
 }
 
-// formed reports an operation whose first parameter chooses a form.
+// formed reports an operation whose first parameter chooses a named form.
 func (e *MapEditor) formed(condition bool, opcode uint32) bool {
 	op, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, condition, opcode)
-	return ok && len(op.Forms) > 0
+	return ok && !op.Grouped && len(op.Variants) > 0
 }
 
-// nodeCommand is the parameter that chooses a node's slots: a group
-// command's command, or the first parameter of an operation with forms.
+// nodeCommand is the parameter that chooses a node's slots: the first
+// parameter of an operation with variants, else 0.
 func (e *MapEditor) nodeCommand(condition bool, opcode uint32, values [10]uint32) uint32 {
-	if e.formed(condition, opcode) {
+	if op, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, condition, opcode); ok && len(op.Variants) > 0 {
 		return values[0]
 	}
-	return groupCommand(condition, opcode, values)
+	return 0
 }
 
 // formChoice is the operation list's value of the form of opcode whose
@@ -209,7 +209,7 @@ func (e *MapEditor) formKey(condition bool, opcode, command int64, text map[stri
 
 // followed is the X slot of the cell that cell slot s of a form node copies,
 // s itself where it copies none, and whether the two hold the same cell.
-func followed(f scriptprofile.Form, s int, types, values [10]uint32) (int, bool) {
+func followed(f scriptprofile.Variant, s int, types, values [10]uint32) (int, bool) {
 	from, ok := f.Follows[s]
 	if !ok || from == s || from+1 >= len(types) || s+1 >= len(types) {
 		return s, false
@@ -220,7 +220,7 @@ func followed(f scriptprofile.Form, s int, types, values [10]uint32) (int, bool)
 // formSlotHidden reports a slot of a form node the action line leaves out:
 // the value that chose the form, a slot holding its default, and a cell that
 // copies the cell it follows. A value off those still shows.
-func (e *MapEditor) formSlotHidden(f scriptprofile.Form, s int, types, values [10]uint32) bool {
+func (e *MapEditor) formSlotHidden(f scriptprofile.Variant, s int, types, values [10]uint32) bool {
 	if d, ok := f.Defaults[s]; ok && values[s] == d || s == 0 {
 		return true
 	}
@@ -334,28 +334,18 @@ func (e *MapEditor) targetText(t, v uint32) string {
 	return strconv.FormatUint(uint64(v), 10)
 }
 
-// command is a group command node's first parameter.
-func groupCommand(condition bool, opcode uint32, values [10]uint32) uint32 {
-	if !condition && opcode == scriptGroupCommand {
-		return values[0]
-	}
-	return 0
-}
-
 // groupCommandNode reports a group command action, whose first parameter is
 // a command word, in a game whose operation row lists the commands.
 func (e *MapEditor) groupCommandNode(condition bool, opcode uint32) bool {
 	op, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, condition, opcode)
-	return !condition && opcode == scriptGroupCommand && ok && len(op.Commands) > 0
+	return ok && op.Grouped
 }
 
 // nodeParams are a node's parameters by meaning, one "label value" text each.
 func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]uint32) []string {
 	var out []string
 	command := uint32(0)
-	if e.groupCommandNode(condition, opcode) || e.formed(condition, opcode) {
-		command = values[0]
-	}
+	command = e.nodeCommand(condition, opcode, values)
 	form, formOK := e.nodeForm(condition, opcode, command)
 	for s := 0; s < len(types); s++ {
 		t, v := types[s], values[s]
@@ -385,8 +375,9 @@ func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]
 }
 
 func (e *MapEditor) commandName(c uint32) string {
-	if op, _ := scriptprofile.OpRow(e.doc.Script.Profile().Ops, false, scriptGroupCommand); op.CommandWord != "" && slices.Contains(op.Commands, c) {
-		return e.word(fmt.Sprintf(op.CommandWord, c))
+	op, _ := scriptprofile.OpRow(e.doc.Script.Profile().Ops, false, scriptGroupCommand)
+	if v, ok := op.Variant(c); ok && op.Grouped && v.Word != "" {
+		return e.word(v.Word)
 	}
 	if w, ok := e.commandWord(c); ok {
 		return w
@@ -584,8 +575,8 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 	var ops []InspectionChoice
 	for _, op := range e.doc.Script.Catalog.operations(v.condition) {
 		ops = append(ops, InspectionChoice{int64(op.Opcode), e.opName(v.condition, op.Opcode)})
-		if row, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, v.condition, op.Opcode); ok && op.Named {
-			for _, f := range row.Forms {
+		if row, ok := scriptprofile.OpRow(e.doc.Script.Profile().Ops, v.condition, op.Opcode); ok && op.Named && !row.Grouped {
+			for _, f := range row.Variants {
 				ops = append(ops, InspectionChoice{formChoice(op.Opcode, f.Value), e.word(f.Word)})
 			}
 		}
@@ -701,7 +692,7 @@ func (e *MapEditor) retypeNode() {
 	}
 	opcode, _ := strconv.ParseInt(strings.TrimSpace(text["opcode"]), 10, 64)
 	command := int64(0)
-	if !v.condition && opcode == scriptGroupCommand {
+	if e.groupCommandNode(v.condition, uint32(opcode)) {
 		command, _ = strconv.ParseInt(strings.TrimSpace(text["value0"]), 10, 64)
 		if o.types[0] != scriptConst {
 			command = 0

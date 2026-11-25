@@ -197,8 +197,10 @@ func opItems(rows []scriptprofile.Op) []wizItem {
 	var out []wizItem
 	for _, op := range rows {
 		for _, preset := range op.ReadyPresets() {
-			commands := op.Commands
-			if len(commands) == 0 {
+			var commands []uint32
+			if op.Grouped {
+				commands = op.Values()
+			} else {
 				commands = []uint32{0}
 				if preset.Command != 0 {
 					commands = []uint32{preset.Command}
@@ -249,8 +251,8 @@ func opItems(rows []scriptprofile.Op) []wizItem {
 // itself: that parameter, each slot at its default, and the cells that copy
 // another cell; none for an operation without that form.
 func formPins(op scriptprofile.Op, c uint32, slots [10]scriptprofile.Slot) ([]wizPin, map[int]int) {
-	f, ok := op.FormOf(c)
-	if !ok || len(op.Commands) > 0 {
+	f, ok := op.Variant(c)
+	if !ok || op.Grouped {
 		return nil, nil
 	}
 	pins := []wizPin{{0, slots[0].Type, f.Value}}

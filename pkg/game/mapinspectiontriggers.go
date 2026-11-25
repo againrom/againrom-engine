@@ -187,7 +187,7 @@ func scriptCatalog(limits scriptprofile.Profile) ui.InspectionScriptCatalog {
 		return out
 	}
 	commands, _ := scriptprofile.OpRow(limits.Ops, false, mapload.ScriptGroupCommand)
-	return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: commands.Commands,
+	return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: commands.Values(),
 		ParameterKind: func(condition bool, opcode uint32, types [10]uint32, slot int) uint32 {
 			return kindRuleBodies[scriptprofile.VocabularyOf(limits.Ops).Kinds].parameterKind(condition, opcode, types, slot)
 		},

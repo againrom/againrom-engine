@@ -50,7 +50,7 @@ const ScriptConstant = 0x10002
 // (TRIG-GROUP-005), in order.
 var ScriptGroupCommands = func() []uint32 {
 	row, _ := scriptprofile.OpRow(scriptprofile.OpsFirst, false, ScriptGroupCommand)
-	return row.Commands
+	return row.Values()
 }()
 
 // ScriptSignatureIn is the ten parameter slots of operation opcode in the
