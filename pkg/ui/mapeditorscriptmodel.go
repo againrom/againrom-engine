@@ -99,9 +99,6 @@ const (
 	scriptStructure
 )
 
-// scriptGroupCommand is the action whose first parameter is a group command.
-const scriptGroupCommand = 6
-
 // ScriptVariableParameter is a view kind, not an ALM type.
 const ScriptVariableParameter uint32 = 10
 
@@ -157,13 +154,14 @@ func (c InspectionScriptCatalog) signature(condition bool, opcode, command uint3
 }
 
 // nodeSignature is the signature a node of opcode with command takes, and
-// that command: a group command whose command states none takes stand
-// ground, the command without parameters.
-func (c InspectionScriptCatalog) nodeSignature(condition bool, opcode, command uint32) ([10]InspectionScriptSlot, uint32, bool) {
+// that command: a group command whose command states none takes its row's
+// fallback command.
+func (e *MapEditor) nodeSignature(condition bool, opcode, command uint32) ([10]InspectionScriptSlot, uint32, bool) {
+	c := e.doc.Script.Catalog
 	sig, ok := c.signature(condition, opcode, command)
-	if !ok && !condition && opcode == scriptGroupCommand {
-		command = 3
-		sig, ok = c.signature(false, scriptGroupCommand, command)
+	if row, found := scriptprofile.OpRow(e.doc.Script.Profile().Ops, condition, opcode); !ok && found && row.Fallback != 0 {
+		command = row.Fallback
+		sig, ok = c.signature(condition, opcode, command)
 	}
 	return sig, command, ok
 }

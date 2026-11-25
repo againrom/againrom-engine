@@ -76,8 +76,11 @@ type Op struct {
 	// Grouped they are group commands: slot 0 is the command, a signature
 	// holds the slots after it, and the target group takes the last slot
 	// unless the signature places it. Otherwise a variant holds every slot.
-	Variants        []Variant
-	Grouped         bool
+	Variants []Variant
+	Grouped  bool
+	// Fallback is the command a grouped node takes where its own states no
+	// signature; 0 for none.
+	Fallback        uint32
 	Presets         []WizardPreset
 	WizardSignature []Slot // editor-authored slots when the raw signature is unknown
 }
@@ -321,6 +324,17 @@ func OpRow(ops Ops, condition bool, id uint32) (Op, bool) {
 	return o, ok
 }
 
+// GroupRow is the game's action row whose first parameter is a group
+// command, false where it has none.
+func GroupRow(ops Ops) (Op, bool) {
+	for _, o := range opLists[opKey{ops, false, 0}] {
+		if o.Grouped {
+			return o, true
+		}
+	}
+	return Op{}, false
+}
+
 // OpRows are every row of a game's family, in table order.
 func OpRows(ops Ops, condition bool) []Op { return opLists[opKey{ops, condition, 0}] }
 
@@ -489,7 +503,7 @@ var firstActions = []Op{
 		Presets: []WizardPreset{{Order: 2, Word: "editor.wizard.a.win"}}},
 	{ID: 5, Name: "Lose", Word: "editor.action.op5", Decoded: true, Offered: true, Signature: sig(), // TRIG-ACT-004
 		Presets: []WizardPreset{{Order: 3, Word: "editor.wizard.a.lose"}}},
-	{ID: 6, Name: "Group command", Word: "editor.action.op6", Decoded: true, Offered: true, Grouped: true, Variants: firstCommandVariants,
+	{ID: 6, Name: "Group command", Word: "editor.action.op6", Decoded: true, Offered: true, Grouped: true, Fallback: 3, Variants: firstCommandVariants,
 		Presets: []WizardPreset{
 			{Order: 13, Word: "editor.wizard.a.order", Command: 4, GroupFirst: true},
 			{Order: 30, Word: "editor.wizard.a.order.stand", Command: 3, GroupFirst: true, Variant: true},
@@ -603,7 +617,7 @@ var secondActions = []Op{
 	{Ops: OpsSecond, ID: 3, Name: "Set map register", Word: "editor.second.action.3", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"), number("value"))},
 	{Ops: OpsSecond, ID: 4, Name: "Win: add to win counter", Word: "editor.second.action.4", Decoded: true, Offered: true, Signature: sig()},                    // R2-ENGINE-1729
 	{Ops: OpsSecond, ID: 5, Name: "Lose: store failure reason", Word: "editor.second.action.5", Decoded: true, Offered: true, Signature: sig(number("reason"))}, // R2-ENGINE-1729
-	{Ops: OpsSecond, ID: 6, Name: "Group arm by selector", Word: "editor.second.action.6", Decoded: true, Offered: true, Grouped: true,
+	{Ops: OpsSecond, ID: 6, Name: "Group arm by selector", Word: "editor.second.action.6", Decoded: true, Offered: true, Grouped: true, Fallback: 3,
 		Variants: worded(secondCommandVariants, "editor.second.command.%d")}, // R2-ENGINE-1726
 	{Ops: OpsSecond, ID: 8, Name: "Increment map register", Word: "editor.second.action.8", Decoded: true, Offered: true, Register: true, Signature: sig(number("variable"))},
 	{Ops: OpsSecond, ID: 10, Name: "Set relation", Word: "editor.second.action.10", Decoded: true, Offered: true, Signature: sig(number(""), number(""), number("value"))},

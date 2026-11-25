@@ -375,8 +375,8 @@ func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]
 }
 
 func (e *MapEditor) commandName(c uint32) string {
-	op, _ := scriptprofile.OpRow(e.doc.Script.Profile().Ops, false, scriptGroupCommand)
-	if v, ok := op.Variant(c); ok && op.Grouped && v.Word != "" {
+	op, _ := scriptprofile.GroupRow(e.doc.Script.Profile().Ops)
+	if v, ok := op.Variant(c); ok && v.Word != "" {
 		return e.word(v.Word)
 	}
 	if w, ok := e.commandWord(c); ok {
@@ -487,7 +487,7 @@ func (e *MapEditor) secondNodeFields(v scriptView, fields []InspectionField) []I
 		if f.Key == "opcode" {
 			// A node changes only to an operation whose slots a claim states.
 			f.Choices = slices.DeleteFunc(slices.Clone(f.Choices), func(o InspectionChoice) bool {
-				_, _, ok := c.nodeSignature(v.condition, uint32(o.Value), 0)
+				_, _, ok := e.nodeSignature(v.condition, uint32(o.Value), 0)
 				return !ok && uint32(o.Value) != v.node.Opcode
 			})
 		}
@@ -704,7 +704,7 @@ func (e *MapEditor) retypeNode() {
 		return
 	}
 	o.signature = key
-	sig, stated, ok := e.doc.Script.Catalog.nodeSignature(v.condition, uint32(opcode), uint32(command))
+	sig, stated, ok := e.nodeSignature(v.condition, uint32(opcode), uint32(command))
 	if int64(stated) != command {
 		command, o.signature[1] = int64(stated), int64(stated)
 		text["value0"] = strconv.FormatInt(command, 10)

@@ -19,7 +19,7 @@ func secondCatalog() InspectionScriptCatalog {
 		}
 		return out
 	}
-	group, _ := scriptprofile.OpRow(scriptprofile.OpsSecond, false, scriptGroupCommand)
+	group, _ := scriptprofile.GroupRow(scriptprofile.OpsSecond)
 	return InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: group.Values(),
 		Signature: func(condition bool, opcode, command uint32) ([10]InspectionScriptSlot, bool) {
 			var out [10]InspectionScriptSlot
@@ -80,8 +80,9 @@ func TestSecondGameTriggerWizardOffersTheOperationRows(t *testing.T) {
 	if p := checks[2].params; len(p) < 2 || p[1].kind != wpBox || checks[21].params[0].kind != wpStructure {
 		t.Errorf("check 2 parameters %+v, check 21 %+v", p, checks[21].params)
 	}
+	row, _ := scriptprofile.GroupRow(scriptprofile.OpsSecond)
 	for _, c := range e.doc.Script.Catalog.GroupCommands {
-		if e.commandItem(false, slices.IndexFunc(e.wizItems(false), func(it wizItem) bool { return it.opcode == scriptGroupCommand }), c) < 0 {
+		if e.commandItem(false, slices.IndexFunc(e.wizItems(false), func(it wizItem) bool { return it.opcode == row.ID }), c) < 0 {
 			t.Errorf("group command %d has no ready row", c)
 		}
 	}

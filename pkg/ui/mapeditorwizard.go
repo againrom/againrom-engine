@@ -662,8 +662,9 @@ func (e *MapEditor) itemCommands(it wizItem) []uint32 {
 	}
 	want, _, _ := it.itemSlots(false)
 	var out []uint32
+	group, _ := scriptprofile.GroupRow(e.doc.Script.Profile().Ops)
 	for _, c := range e.doc.Script.Catalog.GroupCommands {
-		sig, ok := e.doc.Script.Catalog.signature(false, scriptGroupCommand, c)
+		sig, ok := e.doc.Script.Catalog.signature(false, group.ID, c)
 		var got [10]uint32
 		for s := range sig {
 			got[s] = sig[s].Type
