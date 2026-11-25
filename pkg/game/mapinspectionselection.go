@@ -207,7 +207,7 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 				}
 			}
 		}
-		arms := mapload.GroundArms(after, s.inspector.table)
+		arms := rowFor(m).marks.GroundArms(after, s.inspector.table)
 		plane := mapload.PassabilityWith(after, s.inspector.table)
 		again := refused
 		for n, it := range items {
@@ -250,7 +250,7 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 // armWords are the passability words of the arms that close a cell.
 func (s *mapInspectionEdits) armWords(a mapload.GroundArm) []string {
 	var out []string
-	for _, r := range mapload.GroundArmRows {
+	for _, r := range s.row().marks.Rows {
 		if a&r.Arm != 0 {
 			out = append(out, s.inspector.word(r.Word))
 		}

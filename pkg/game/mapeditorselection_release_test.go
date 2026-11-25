@@ -260,7 +260,7 @@ func TestReleaseMapEditorPasteTakesAShippedFlier(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	arms := mapload.GroundArms(m, x.table)
+	arms := mapload.FirstMarks.GroundArms(m, x.table)
 	flier, ground := -1, -1
 	var at image.Point
 	for i, u := range m.Units {
@@ -409,7 +409,7 @@ func TestReleaseMapEditorGroupNoteFitsTheStatusStrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	arms, feet := mapload.GroundArms(m, x.table), x.feet(m)
+	arms, feet := mapload.FirstMarks.GroundArms(m, x.table), x.feet(m)
 	d, ok := freeOffset(feet.units, units, append(slices.Clone(feet.units), feet.structures...), image.Rect(1, 1, int(m.Width)-1, int(m.Height)-1), func(p image.Point) bool {
 		return arms[p.Y*int(m.Width)+p.X] == 0
 	})

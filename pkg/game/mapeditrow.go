@@ -85,16 +85,10 @@ type editRow struct {
 	storedKeys     bool // each record has a key the model keeps
 	playableRing   bool // a new record is refused in the border ring
 	workspace      bool // the map has pages, labels and a save gate beside it
-	// groundArms are the cells' closing arms the passability and border views read.
-	groundArms func(*MapInspector, *alm.Map) []mapload.GroundArm
-	// armRows name the bits groundArms sets; nil: the table of every ground arm.
-	armRows []mapload.GroundArmRow
+	marks          mapload.MarkTable
 	// passNoteWord is the word given when the passability view is switched on,
 	// and passClosedWord the hover's word for a cell with arms; "": the plain ones.
 	passNoteWord, passClosedWord string
-	// passValues: the passability view shows each cell's value from its arms
-	// (mapload.MarkValue) and the move kinds the value closes.
-	passValues bool
 	// passBrush are the passability brush's rows; nil: block and unblock.
 	passBrush []ui.PassBrushRow
 	// rawHeights: the height numbers show the stored height.
@@ -118,7 +112,7 @@ var editRows = map[alm.Format]*editRow{
 		guestTest:     true,
 		testMission:   func(x *MapInspector, _ string) (mod.Mission, error) { return x.testPlayGuestMission() },
 		unitOverrides: true, spellSets: true, playerRecords: true, structureOwner: true, storedKeys: true, playableRing: true, workspace: true,
-		groundArms: func(x *MapInspector, m *alm.Map) []mapload.GroundArm { return mapload.GroundArms(m, x.table) },
+		marks: mapload.FirstMarks,
 	},
 	alm.SecondFormat: {
 		moves: placedKinds,
@@ -171,9 +165,7 @@ var editRows = map[alm.Format]*editRow{
 		// kinds by the route test (R2-ENGINE-1805, Medium). The brush sets the
 		// values its file bytes reach: 1 and 0; which type-3 value stores 5
 		// with no object drawn is unread (R2-ENGINE-1667).
-		groundArms: func(_ *MapInspector, m *alm.Map) []mapload.GroundArm { return mapload.MarkedArms(m) },
-		armRows:    mapload.MarkArmRows(), passNoteWord: "editor.view.secondpass", passClosedWord: "editor.pass.marked",
-		passValues: true,
+		marks: mapload.SecondMarks, passNoteWord: "editor.view.secondpass", passClosedWord: "editor.pass.marked",
 		passBrush:  []ui.PassBrushRow{{Value: 1, Word: "editor.brush.secondclose"}, {Value: 0, Word: "editor.brush.secondopen"}},
 		rawHeights: true,
 	},

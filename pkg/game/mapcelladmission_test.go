@@ -41,7 +41,7 @@ func TestCellAdmissionRowsAnswerEachCell(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := e.Document().Edits.(*mapInspectionEdits)
-	arms := mapload.GroundArms(view, s.inspector.table)
+	arms := mapload.FirstMarks.GroundArms(view, s.inspector.table)
 	inside, edge, outside := image.Pt(16, 16), image.Pt(7, 7), image.Pt(32, 32)
 	if c := inside.Y*32 + inside.X; arms[c] != 0 {
 		t.Fatalf("the inside cell is closed by %v; the fixture needs an open one", arms[c])

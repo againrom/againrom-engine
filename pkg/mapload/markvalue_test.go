@@ -12,7 +12,7 @@ import (
 // by the move-kind masks 1 closes kind 1, 5 kinds 1 and 2, 0x1f all three.
 func TestMarkValuesCloseMoveKinds(t *testing.T) {
 	kinds := map[uint8]uint8{}
-	for _, r := range mapload.PlaneValueRows() {
+	for _, r := range mapload.SecondMarks.PlaneValueRows {
 		if r.Word == "" {
 			t.Fatalf("value %#x has no word", r.Value)
 		}
@@ -32,12 +32,12 @@ func TestMarkValuesCloseMoveKinds(t *testing.T) {
 	m.Tiles[at(10, 11)] = alm.TileImpassable
 	m.Overlay[at(10, 11)] = 40
 	m.Overlay[at(2, 2)] = 40
-	arms := mapload.MarkedArms(m)
+	arms := mapload.SecondMarks.GroundArms(m, nil)
 	for _, c := range []struct {
 		x, y  int
 		value uint8
 	}{{10, 10, 1}, {11, 10, 1}, {12, 10, 1}, {13, 10, 0}, {14, 10, 0}, {15, 10, 1}, {10, 11, 5}, {2, 2, 0x1f}, {12, 12, 0}} {
-		if got := mapload.MarkValue(arms[at(c.x, c.y)]); got != c.value {
+		if got := mapload.SecondMarks.MarkValue(arms[at(c.x, c.y)]); got != c.value {
 			t.Errorf("cell %d,%d arms %#x value %#x, want %#x", c.x, c.y, arms[at(c.x, c.y)], got, c.value)
 		}
 	}

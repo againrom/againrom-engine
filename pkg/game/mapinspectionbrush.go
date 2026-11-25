@@ -53,45 +53,25 @@ func swatchOf(tiles *terrain.Tileset, w uint16) *image.RGBA {
 	return pic
 }
 
-// passArms is the window's form of the world's ground-block reasons: the
-// same bits, which the document's PassArms names.
-func passArms(arms []mapload.GroundArm) []ui.PassArm {
-	out := make([]ui.PassArm, len(arms))
+func (row *editRow) inspectPassability(d *ui.InspectionDocument, m *alm.Map, t *mapload.Table) {
+	arms := row.marks.GroundArms(m, t)
+	d.Passability = make([]ui.PassArm, len(arms))
 	for i, a := range arms {
-		out[i] = ui.PassArm(a)
+		d.Passability[i] = ui.PassArm(a)
 	}
-	return out
-}
-
-// passValues is, per cell, the value the second game's terrain build leaves
-// for the cell's arms.
-func passValues(arms []mapload.GroundArm) []uint8 {
-	out := make([]uint8, len(arms))
-	for i, a := range arms {
-		out[i] = mapload.MarkValue(a)
+	for _, r := range row.marks.Rows {
+		d.PassArms = append(d.PassArms, ui.PassArmRow{Arm: ui.PassArm(r.Arm), Word: r.Word, Border: r.Arm == mapload.GroundBorder})
 	}
-	return out
-}
-
-// passValueRows is the window's form of mapload's value table.
-func passValueRows() []ui.PassValueRow {
-	var out []ui.PassValueRow
-	for _, r := range mapload.PlaneValueRows() {
-		out = append(out, ui.PassValueRow{Value: r.Value, Kinds: r.Kinds, Word: r.Word})
+	for _, r := range row.marks.PlaneValueRows {
+		d.PassValueRows = append(d.PassValueRows, ui.PassValueRow{Value: r.Value, Kinds: r.Kinds, Word: r.Word})
 	}
-	return out
-}
-
-// passArmRows is the window's form of mapload's arm table.
-func passArmRows(rows []mapload.GroundArmRow) []ui.PassArmRow {
-	if rows == nil {
-		rows = mapload.GroundArmRows[:]
+	if len(row.marks.PlaneValueRows) > 0 {
+		d.PassValues = make([]uint8, len(arms))
+		for i, a := range arms {
+			d.PassValues[i] = row.marks.MarkValue(a)
+		}
 	}
-	out := make([]ui.PassArmRow, len(rows))
-	for i, r := range rows {
-		out[i] = ui.PassArmRow{Arm: ui.PassArm(r.Arm), Word: r.Word, Border: r.Arm == mapload.GroundBorder}
-	}
-	return out
+	d.PassNote, d.PassClosed, d.PassBrush = row.passNoteWord, row.passClosedWord, row.passBrush
 }
 
 // BrushObjects lists the rows of the objects list: the clear row, then each

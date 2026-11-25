@@ -21,7 +21,7 @@ var (
 // arm table as the host reads them.
 func hostPassArms() []PassArmRow {
 	var out []PassArmRow
-	for _, r := range mapload.GroundArmRows {
+	for _, r := range mapload.FirstMarks.Rows {
 		out = append(out, PassArmRow{Arm: PassArm(r.Arm), Word: r.Word, Border: r.Arm == mapload.GroundBorder})
 	}
 	return out

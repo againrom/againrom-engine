@@ -308,13 +308,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	for _, c := range mapload.DropCells(m) {
 		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
 	}
-	arms := rowFor(model).groundArms(x, m)
-	d.Passability, d.PassArms = passArms(arms), passArmRows(rowFor(model).armRows)
-	d.PassNote, d.PassClosed, d.RawHeights = rowFor(model).passNoteWord, rowFor(model).passClosedWord, rowFor(model).rawHeights
-	if rowFor(model).passValues {
-		d.PassValues, d.PassValueRows = passValues(arms), passValueRows()
-	}
-	d.PassBrush = rowFor(model).passBrush
+	row := rowFor(model)
+	row.inspectPassability(d, m, x.table)
+	d.RawHeights = row.rawHeights
 	d.Playable = mapload.Playable(m)
 	feet := x.feet(m)
 	add := func(r ui.InspectionRecord) {
@@ -350,7 +346,6 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	if x.table != nil && x.units != nil && len(m.Units) > 0 {
 		missionArt = x.placedArt(model, m.Units, x.testPlayNumber(w))
 	}
-	row := rowFor(model)
 	fieldEdits := &mapInspectionEdits{inspector: x, model: model}
 	for i, u := range m.Units {
 		cell := image.Pt(int(u.X>>8), int(u.Y>>8))

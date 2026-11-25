@@ -36,11 +36,10 @@ func TestPassValuesFillAndNameTheMoveKinds(t *testing.T) {
 	e.view.passability = true
 	fills := map[color.RGBA]bool{}
 	for c := range cells {
-		_, row, _ := e.passValueAt(c)
-		fills[passValueFill(row)] = true
+		fills[e.passCellAt(c).fill] = true
 	}
-	if _, row, _ := e.passValueAt(image.Pt(20, 20)); passValueFill(row) != passOpenFill || len(fills) != 4 {
-		t.Fatalf("open fill %v, %d distinct fills for the four values", passValueFill(row), len(fills))
+	if fill := e.passCellAt(image.Pt(20, 20)).fill; fill != passOpenFill || len(fills) != 4 {
+		t.Fatalf("open fill %v, %d distinct fills for the four values", fill, len(fills))
 	}
 	e.hoverOK = true
 	for c, want := range map[image.Point]string{{X: 11, Y: 10}: e.word("editor.pass.value.5"), {X: 13, Y: 10}: "9", {X: 20, Y: 20}: e.word("editor.pass.value.0")} {

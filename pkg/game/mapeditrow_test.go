@@ -5,9 +5,11 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/synth"
 	"againrom/pkg/base"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
@@ -87,7 +89,7 @@ func TestHostOffersEverySeamOnTheFirstRow(t *testing.T) {
 // new map's format.
 func TestSecondRowDerivesTheRingAndTheMarksAndNotesThePassabilityView(t *testing.T) {
 	m := &alm.Map{Width: 20, Height: 20, Tiles: make([]uint16, 400), Overlay: make([]uint8, 400)}
-	arms := editRows[alm.SecondFormat].groundArms(nil, m)
+	arms := editRows[alm.SecondFormat].marks.GroundArms(m, nil)
 	for i, a := range arms {
 		want := mapload.GroundArm(0)
 		if mapload.InBorderRing(m, i%20, i/20) {
@@ -103,5 +105,42 @@ func TestSecondRowDerivesTheRingAndTheMarksAndNotesThePassabilityView(t *testing
 	}
 	if filesOf(base.GameROM2).newMapNote == "" || filesOf(base.GameROM1).newMapNote != "" {
 		t.Errorf("new map notes: second %q, first %q", filesOf(base.GameROM2).newMapNote, filesOf(base.GameROM1).newMapNote)
+	}
+}
+
+func TestInspectionReadsMarksAndValuesFromEachFormatRow(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		format alm.Format
+		raw    []byte
+	}{
+		{"first", alm.FirstFormat, synth.ALM(synth.ALMOptions{Width: 32, Height: 32, Type7Payload: make([]byte, 12)})},
+		{"second", alm.SecondFormat, secondFixtureMap()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			original := editRows[tc.format]
+			row := *original
+			ring := row.marks.Rows[0]
+			ring.Word, ring.Value = "ring", 19
+			row.marks.Rows = []mapload.MarkRow{ring}
+			row.marks.PlaneValueRows = []mapload.PlaneValueRow{{Value: 19, Kinds: 4, Word: "edge"}}
+			editRows[tc.format] = &row
+			t.Cleanup(func() { editRows[tc.format] = original })
+
+			x := &MapInspector{tiles: &terrain.Tileset{}}
+			d, err := x.inspect(tc.raw, "marks.alm")
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantArm := ui.PassArmRow{Arm: ui.PassArm(mapload.GroundBorder), Word: "ring", Border: true}
+			wantValue := ui.PassValueRow{Value: 19, Kinds: 4, Word: "edge"}
+			if !slices.Equal(d.PassArms, []ui.PassArmRow{wantArm}) || !slices.Equal(d.PassValueRows, []ui.PassValueRow{wantValue}) {
+				t.Fatalf("arm rows %+v, value rows %+v", d.PassArms, d.PassValueRows)
+			}
+			if len(d.PassValues) != d.Width*d.Height || d.PassValues[0] != 19 || d.Passability[0] != wantArm.Arm ||
+				d.PassValues[16*d.Width+16] != 0 || d.Passability[16*d.Width+16] != 0 {
+				t.Fatal("the ring and interior cells did not read the selected mark")
+			}
+		})
 	}
 }

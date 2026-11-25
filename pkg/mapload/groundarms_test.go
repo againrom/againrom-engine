@@ -26,7 +26,7 @@ func TestGroundArmsNameThePlaneTheWorldIsBuiltFrom(t *testing.T) {
 	m.Overlay[10*w+13] = 5              // an object
 	m.Objects = []alm.Object{place(1, 20, row, nil)}
 
-	arms := mapload.GroundArms(m, tbl)
+	arms := mapload.FirstMarks.GroundArms(m, tbl)
 	plane := mapload.PassabilityWith(m, tbl)
 	if len(arms) != len(plane) {
 		t.Fatalf("%d arms for %d cells", len(arms), len(plane))
@@ -56,11 +56,27 @@ func TestGroundArmsNameThePlaneTheWorldIsBuiltFrom(t *testing.T) {
 		}
 	}
 
-	bare := mapload.GroundArms(m, nil)
+	bare := mapload.FirstMarks.GroundArms(m, nil)
 	if bare[row*w+22] != mapload.GroundObject || bare[row*w+23] != 0 || bare[row*w+20] != mapload.GroundWater {
 		t.Fatalf("with no table the footprint cells read %#x %#x %#x", bare[row*w+20], bare[row*w+22], bare[row*w+23])
 	}
-	if mapload.GroundArms(nil, tbl) != nil {
+	if mapload.FirstMarks.GroundArms(nil, tbl) != nil {
 		t.Fatal("a nil map has arms")
+	}
+}
+
+func TestGroundMarksUseTheFormatsTerrainTable(t *testing.T) {
+	m := passMap(24, 24)
+	i := 12*24 + 12
+	m.Tiles[i] = groupWord(26, 0, 0)
+	table := modTerrainTable()
+	if got := mapload.FirstMarks.GroundArms(m, table)[i]; got != 0 {
+		t.Errorf("mod grass has ground arms %#x", got)
+	}
+	if got := mapload.SecondMarks.GroundArms(m, table)[i]; got != mapload.GroundWater {
+		t.Errorf("raw water word has marks %#x", got)
+	}
+	if len(mapload.FirstMarks.PlaneValueRows) != 0 {
+		t.Error("the first format declares stored plane values")
 	}
 }

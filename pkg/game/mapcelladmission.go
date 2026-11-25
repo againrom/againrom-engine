@@ -176,7 +176,7 @@ func (s *mapInspectionEdits) admitCell(m *mapedit.Editor, cell image.Point, what
 	if a.arms == 0 {
 		return nil
 	}
-	arms := mapload.GroundArms(view, s.inspector.table)
+	arms := rowFor(m).marks.GroundArms(view, s.inspector.table)
 	c := cell.Y*int(view.Width) + cell.X
 	if c < 0 || c >= len(arms) {
 		return nil
