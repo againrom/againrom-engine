@@ -75,13 +75,25 @@ func TestEditorTrapAreaKeepsIdenticalOutsiderAndEditedMember(t *testing.T) {
 	e := cellSpellFixture(t)
 	s := e.Document().Edits.(*mapInspectionEdits)
 	r := trapAreaRequest(image.Rect(10, 10, 12, 12))
-	single := r
-	single.Area = image.Rectangle{}
-	if _, err := s.AddRecord(single); err != nil {
+	// The editor refuses a second trap on a cell, so the byte-identical
+	// outsider is placed on the model after the area, as a loaded map holds it.
+	outsider := s.model.Clone()
+	i, err := outsider.AddSpellFrom(mapedit.SpellConstructor(0), 10, 10, 0)
+	if err != nil {
 		t.Fatal(err)
 	}
-	before := s.model.Bytes()
+	if err := outsider.SetFields(mapedit.KindEnchantment, i, mapedit.FieldSet{Key: "spell", Value: 13}, mapedit.FieldSet{Key: "power", Value: 40}); err != nil {
+		t.Fatal(err)
+	}
+	before := outsider.Bytes()
 	if _, err := s.AddRecord(r); err != nil {
+		t.Fatal(err)
+	}
+	j, err := s.model.AddSpellFrom(mapedit.SpellConstructor(0), 10, 10, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.model.SetFields(mapedit.KindEnchantment, j, mapedit.FieldSet{Key: "spell", Value: 13}, mapedit.FieldSet{Key: "power", Value: 40}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.SetField(ui.KindEnchantment, 5, "power", 99); err != nil {

@@ -180,7 +180,31 @@ func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Ma
 	return r
 }
 
-func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int) error {
+// isTrapKind reports that a type-9 record of kind stands on a cell of its
+// own, as a unit spell or a casting structure (kind 4 and up) stands on an
+// object.
+func isTrapKind(kind uint16) bool { return kind < 4 }
+
+// trapCellFree refuses cell to a trap of kind when another trap, other than
+// record skip (-1: none), already stands on it: the game keeps one cell event
+// per cell. Cell 0,0 is the item-recipe cell and holds no trap.
+func trapCellFree(m *mapedit.Editor, cell image.Point, kind uint16, skip int) error {
+	if cell == (image.Point{}) || !isTrapKind(kind) {
+		return nil
+	}
+	view, err := m.Map()
+	if err != nil {
+		return err
+	}
+	for i, e := range view.Enchantments {
+		if i != skip && isTrapKind(e.A) && int(e.X) == cell.X && int(e.Y) == cell.Y {
+			return wordErr("editor.err.trapcelltaken")
+		}
+	}
+	return nil
+}
+
+func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int, key string) error {
 	rec, err := m.Record(mapedit.KindEnchantment, index)
 	if err != nil {
 		return err
@@ -188,6 +212,11 @@ func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int) erro
 	x, y := binary.LittleEndian.Uint32(rec[4:]), binary.LittleEndian.Uint32(rec[8:])
 	if x == 0 && y == 0 {
 		return wordErr("editor.err.spellcell")
+	}
+	if key == "triggerx" || key == "triggery" {
+		if err := trapCellFree(m, image.Pt(int(x), int(y)), binary.LittleEndian.Uint16(rec[12:]), index); err != nil {
+			return err
+		}
 	}
 	return s.admitCell(m, image.Pt(int(x), int(y)), "spell cell", ui.KindEnchantment, admitField)
 }

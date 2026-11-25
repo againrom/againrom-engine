@@ -1661,6 +1661,7 @@
 "editor.node.followslabel" = "%s (as %s)"
 "editor.cast.teleport" = "Teleport: %d,%d to %d,%d"
 "editor.cast.secondtrap" = "Trap: %s, power %d, source %d,%d, target %d,%d"
+"editor.err.trapcelltaken" = "This cell already holds a trap."
 "editor.err.trapmove" = "Spell %d is the teleport's cell event: a trap takes another spell."
 "editor.second.scenery" = "Type-3 byte %d"
 "editor.second.scenery.detail" = "Inside the edge ring a nonzero byte blocks units of move kinds 1 and 2 and admits kind 3 (Medium). What the value shows is unread: the editor keeps it, and the object brush clears it."

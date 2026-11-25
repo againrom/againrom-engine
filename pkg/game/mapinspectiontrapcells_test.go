@@ -18,8 +18,8 @@ func TestFirstGameTeleportTrapListsSourceAndTargetCells(t *testing.T) {
 	e := spellMap(t)
 	s := e.Document().Edits.(*mapInspectionEdits)
 	cell := int64(mapedit.SpellConstructor(0))
-	for _, spell := range []int64{firstCellMove, 13} {
-		if _, err := s.AddRecord(ui.InspectionNewRecord{Kind: ui.KindEnchantment, Cell: image.Pt(12, 20), HasCell: true, Values: []ui.InspectionFieldValue{
+	for n, spell := range []int64{firstCellMove, 13} {
+		if _, err := s.AddRecord(ui.InspectionNewRecord{Kind: ui.KindEnchantment, Cell: image.Pt(12, 20+n), HasCell: true, Values: []ui.InspectionFieldValue{
 			{Key: "template", Value: cell}, {Key: "spell", Value: spell}, {Key: "power", Value: 9}}}); err != nil {
 			t.Fatal(err)
 		}

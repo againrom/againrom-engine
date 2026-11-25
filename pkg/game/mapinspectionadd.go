@@ -33,7 +33,7 @@ type newRecordKind struct {
 
 var newRecordKinds = map[ui.RecordKind]newRecordKind{
 	ui.KindEnchantment: {edit: ui.KindEnchantment, required: []string{"template"}, optional: []string{"link"}, spatial: true,
-		add: (*mapInspectionEdits).addCellSpell},
+		add: (*mapInspectionEdits).addTrap},
 	ui.KindUnit: {edit: ui.KindUnit, required: []string{"identity"}, spatial: true,
 		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			_, err := s.AddUnitIdentity(r.Cell, recordValue(r, "identity"))
@@ -66,6 +66,17 @@ var newRecordKinds = map[ui.RecordKind]newRecordKind{
 	ui.KindTrigger:   {edit: ui.KindTrigger, add: addScriptOf(ui.KindTrigger)},
 	ui.KindAction:    {edit: ui.KindAction, add: addScriptOf(ui.KindAction)},
 	ui.KindCondition: {edit: ui.KindCondition, add: addScriptOf(ui.KindCondition)},
+}
+
+// addTrap is the add call of a new trap: addCellSpell on a cell no other
+// type-9 record holds.
+func (s *mapInspectionEdits) addTrap(r ui.InspectionNewRecord) (int, error) {
+	if kind, ok := spellTemplateKind(s.batch, recordValue(r, "template")); ok {
+		if err := trapCellFree(s.batch, r.Cell, kind, -1); err != nil {
+			return -1, err
+		}
+	}
+	return s.addCellSpell(r)
 }
 
 // addCellSpell is the add call of a new type-9 record on s.batch: a copy of

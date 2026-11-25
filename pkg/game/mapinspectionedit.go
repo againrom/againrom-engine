@@ -823,7 +823,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 		return false, err
 	}
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") {
-		if err := s.spellCellAllowed(m, index); err != nil {
+		if err := s.spellCellAllowed(m, index, key); err != nil {
 			return false, err
 		}
 	}
