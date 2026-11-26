@@ -66,6 +66,8 @@ type Field struct {
 	CellPair string
 	CellOwn  bool
 	CellWord string
+	// Cell is the role of a type-9 coordinate field; CellNone for the rest.
+	Cell CellRole
 }
 
 // UnitField and UnitFieldCheck are the type-6 names of Field and FieldCheck.

@@ -23,7 +23,7 @@ func (e *Editor) GroupSpellRecords(indices []int) error {
 		}
 		at, n := w.at(i)
 		rec := e.data[at : at+n]
-		if !spellRecordKnown(rec) || binary.LittleEndian.Uint16(rec[12:]) >= 4 || binary.LittleEndian.Uint32(rec[4:]) == 0 && binary.LittleEndian.Uint32(rec[8:]) == 0 {
+		if !spellRecordKnown(rec) || !IsTrapKind(binary.LittleEndian.Uint16(rec[12:])) || binary.LittleEndian.Uint32(rec[4:]) == 0 && binary.LittleEndian.Uint32(rec[8:]) == 0 {
 			return fmt.Errorf("mapedit: a trap set contains a non-trap record")
 		}
 		span := spellSpan{at, at + n}

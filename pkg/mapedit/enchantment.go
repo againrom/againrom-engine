@@ -98,16 +98,16 @@ func enchantmentFields(e *Editor, rec []byte) []Field {
 		if binary.LittleEndian.Uint16(rec[12:]) == 4 {
 			out = append(out, Field{Key: "range", Label: "editor.cast.range", Offset: 0, Width: 4, Min: 0, Max: math.MaxUint8})
 		}
-		if binary.LittleEndian.Uint16(rec[12:]) < 4 {
+		if IsTrapKind(binary.LittleEndian.Uint16(rec[12:])) {
 			cell := []Field{
 				{Key: "link", Label: "editor.cast.link", Offset: 14, Width: 4, Min: 0, Max: math.MaxUint32},
-				{Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
-				{Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
+				{Cell: CellTriggerX, Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
+				{Cell: CellTriggerY, Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
 				{Key: "castkind", Label: "editor.cast.kind", Offset: 12, Width: 2, Min: 0, Max: 3},
-				{Key: "sourcex", Label: "editor.cast.sourcex", Offset: 26, Width: 2, Min: 0, Max: 255},
-				{Key: "sourcey", Label: "editor.cast.sourcey", Offset: 28, Width: 2, Min: 0, Max: 255},
-				{Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
-				{Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255},
+				{Cell: CellSourceX, Key: "sourcex", Label: "editor.cast.sourcex", Offset: 26, Width: 2, Min: 0, Max: 255},
+				{Cell: CellSourceY, Key: "sourcey", Label: "editor.cast.sourcey", Offset: 28, Width: 2, Min: 0, Max: 255},
+				{Cell: CellTargetX, Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
+				{Cell: CellTargetY, Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255},
 			}
 			if move := scriptprofile.VocabularyOf(e.Profile().Ops).CellMove; move != 0 && uint32(binary.LittleEndian.Uint16(rec[18:])) == move {
 				cell = cellMoveFields(cell)
@@ -136,7 +136,7 @@ func enchantmentFields(e *Editor, rec []byte) []Field {
 
 func spellRecordKnown(rec []byte) bool {
 	k := binary.LittleEndian.Uint16(rec[12:])
-	return k == 4 || k == 8 || k < 4 && len(rec) >= enchantmentHead+12
+	return k == 4 || k == 8 || IsTrapKind(k) && len(rec) >= enchantmentHead+12
 }
 
 func notCellSpell(rec []byte) bool {
@@ -163,12 +163,12 @@ func (e *Editor) spellTemplate(template int) ([]byte, bool, error) {
 		return rec, false, err
 	}
 	kind := -template - 1
-	if kind != 4 && kind != 8 && kind > 3 {
+	if kind != 4 && kind != 8 && !IsTrapKind(uint16(kind)) {
 		return nil, false, fmt.Errorf("mapedit: no cell spell kind %d", kind)
 	}
 	rec := make([]byte, enchantmentHead)
 	binary.LittleEndian.PutUint16(rec[12:], uint16(kind))
-	if kind < 4 {
+	if IsTrapKind(uint16(kind)) {
 		rec = append(rec, make([]byte, 12)...)
 		binary.LittleEndian.PutUint32(rec[22:], 2)
 	}
@@ -226,20 +226,20 @@ func (e *Editor) AddSpellFrom(template int, x, y, link uint32) (int, error) {
 	}
 	binary.LittleEndian.PutUint32(rec[4:], x)
 	binary.LittleEndian.PutUint32(rec[8:], y)
-	if fresh && binary.LittleEndian.Uint16(rec[12:]) < 4 {
+	if fresh && IsTrapKind(binary.LittleEndian.Uint16(rec[12:])) {
 		for _, p := range []int{enchantmentHead, enchantmentHead + 6} {
 			binary.LittleEndian.PutUint16(rec[p:], uint16(x))
 			binary.LittleEndian.PutUint16(rec[p+2:], uint16(y))
 		}
 	}
-	if binary.LittleEndian.Uint16(rec[12:]) < 4 {
+	if IsTrapKind(binary.LittleEndian.Uint16(rec[12:])) {
 		binary.LittleEndian.PutUint32(rec[14:], 0)
 	} else {
 		binary.LittleEndian.PutUint32(rec[14:], link)
 	}
 	mark := e.Mark()
 	i, err := e.Place(KindEnchantment, rec)
-	if err == nil && binary.LittleEndian.Uint16(rec[12:]) < 4 && link != 0 {
+	if err == nil && IsTrapKind(binary.LittleEndian.Uint16(rec[12:])) && link != 0 {
 		err = e.SetField(KindEnchantment, i, "link", int64(link))
 		e.Squash(mark)
 	}

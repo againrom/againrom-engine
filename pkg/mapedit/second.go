@@ -136,10 +136,10 @@ func secondEnchantmentFields(e *Editor, rec []byte) []Field {
 		return nil
 	}
 	cell := []Field{
-		{Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
-		{Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
-		{Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
-		{Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255},
+		{Cell: CellTriggerX, Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
+		{Cell: CellTriggerY, Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
+		{Cell: CellTargetX, Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
+		{Cell: CellTargetY, Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255},
 	}
 	spell := Field{Key: "spell", Label: "editor.cast.spell", Offset: 18, Width: 1, Min: 1, Max: secondSpellMax}
 	switch int64(rec[18]) {
@@ -152,8 +152,8 @@ func secondEnchantmentFields(e *Editor, rec []byte) []Field {
 	}
 	return append([]Field{spell, {Key: "power", Label: "editor.cast.castpower", Offset: 20, Width: 1, Min: 0, Max: math.MaxUint8},
 		cell[0], cell[1],
-		{Key: "sourcex", Label: "editor.cast.sourcex", Offset: 26, Width: 2, Min: 0, Max: 255},
-		{Key: "sourcey", Label: "editor.cast.sourcey", Offset: 28, Width: 2, Min: 0, Max: 255}}, cell[2:]...)
+		{Cell: CellSourceX, Key: "sourcex", Label: "editor.cast.sourcex", Offset: 26, Width: 2, Min: 0, Max: 255},
+		{Cell: CellSourceY, Key: "sourcey", Label: "editor.cast.sourcey", Offset: 28, Width: 2, Min: 0, Max: 255}}, cell[2:]...)
 }
 
 // secondCasterFields are a structure caster's spell byte, power byte and the

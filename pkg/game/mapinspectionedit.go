@@ -250,7 +250,7 @@ func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Poin
 	defer s.worded(&said)
 	if kind == ui.KindEnchantment {
 		return s.SetFields(kind, index, []ui.InspectionFieldValue{
-			{Key: "triggerx", Value: int64(cell.X)}, {Key: "triggery", Value: int64(cell.Y)},
+			{Key: mapedit.CellTriggerX.Key(), Value: int64(cell.X)}, {Key: mapedit.CellTriggerY.Key(), Value: int64(cell.Y)},
 		})
 	}
 	if kind == ui.KindScenery {
@@ -843,7 +843,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 		return false, err
 	}
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") {
-		if err := s.spellCellAllowed(m, index, key); err != nil {
+		if err := s.spellCellAllowed(m, index, f); err != nil {
 			return false, err
 		}
 	}

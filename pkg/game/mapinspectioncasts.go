@@ -56,7 +56,7 @@ var cellSpellTemplates = []struct {
 }
 
 func cellSpellTemplateIndex(kind uint16) int {
-	if kind < 4 {
+	if mapedit.IsTrapKind(kind) {
 		kind = 0
 	}
 	for i, t := range cellSpellTemplates {
@@ -119,7 +119,7 @@ func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Ma
 	}
 	r.Label = fmt.Sprintf(word("unknown"), e.A)
 	switch {
-	case e.A < 4 && len(e.Elements) >= 2:
+	case mapedit.IsTrapKind(e.A) && len(e.Elements) >= 2:
 		r.Cell, r.Size, r.Spatial = image.Pt(int(e.X), int(e.Y)), image.Pt(1, 1), true
 		for _, cell := range e.Elements[:2] {
 			r.LinkedCells = append(r.LinkedCells, image.Pt(int(cell.Kind), int(cell.Low)))
@@ -180,16 +180,11 @@ func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Ma
 	return r
 }
 
-// isTrapKind reports that a type-9 record of kind stands on a cell of its
-// own, as a unit spell or a casting structure (kind 4 and up) stands on an
-// object.
-func isTrapKind(kind uint16) bool { return kind < 4 }
-
 // trapCellFree refuses cell to a trap of kind when another trap, other than
 // record skip (-1: none), already stands on it: the game keeps one cell event
 // per cell. Cell 0,0 is the item-recipe cell and holds no trap.
 func trapCellFree(m *mapedit.Editor, cell image.Point, kind uint16, skip int) error {
-	if cell == (image.Point{}) || !isTrapKind(kind) {
+	if cell == (image.Point{}) || !mapedit.IsTrapKind(kind) {
 		return nil
 	}
 	view, err := m.Map()
@@ -197,14 +192,14 @@ func trapCellFree(m *mapedit.Editor, cell image.Point, kind uint16, skip int) er
 		return err
 	}
 	for i, e := range view.Enchantments {
-		if i != skip && isTrapKind(e.A) && int(e.X) == cell.X && int(e.Y) == cell.Y {
+		if i != skip && mapedit.IsTrapKind(e.A) && int(e.X) == cell.X && int(e.Y) == cell.Y {
 			return wordErr("editor.err.trapcelltaken")
 		}
 	}
 	return nil
 }
 
-func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int, key string) error {
+func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int, f mapedit.Field) error {
 	rec, err := m.Record(mapedit.KindEnchantment, index)
 	if err != nil {
 		return err
@@ -213,7 +208,7 @@ func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int, key 
 	if x == 0 && y == 0 {
 		return wordErr("editor.err.spellcell")
 	}
-	if key == "triggerx" || key == "triggery" {
+	if f.Cell.Trigger() {
 		if err := trapCellFree(m, image.Pt(int(x), int(y)), binary.LittleEndian.Uint16(rec[12:]), index); err != nil {
 			return err
 		}
