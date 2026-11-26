@@ -1,6 +1,7 @@
 package a2c
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"math/bits"
@@ -235,15 +236,44 @@ func TestReadIdentityRefusesBadMagicChecksumAndSize(t *testing.T) {
 		want error
 	}{
 		{"magic", magic, ErrMagic},
-		{"stored checksum", sum, ErrChecksum},
-		{"last body byte", body, ErrChecksum},
-		{"length past the file", long, ErrSection},
+		{"stored checksum", sum, ErrBody},
+		{"last body byte", body, ErrBody},
+		{"length past the file", long, ErrBody},
 		{"short header", good[:12], ErrSection},
-		{"short body", good[:20+40], ErrSection},
+		{"short body", good[:20+40], ErrBody},
 		{"empty", nil, ErrMagic},
 	} {
 		if _, err := ReadIdentity(tc.b); !errors.Is(err, tc.want) {
 			t.Errorf("%s: %v, want %v", tc.name, err, tc.want)
 		}
+	}
+}
+
+// A section A outside ASize is refused by the list's read and the whole read
+// with the same error, and a valid file gives both the same identity.
+func TestReadIdentityAndReadShareSectionA(t *testing.T) {
+	magic := binary.LittleEndian.AppendUint32(nil, Magic)
+	for _, n := range []int{NameEnd, ASize - 1, ASize + 1} {
+		b := append(append([]byte(nil), magic...), pageSection(TagA, make([]byte, n))...)
+		_, errI := ReadIdentity(b)
+		_, errR := Read(b)
+		if errI == nil || !errors.Is(errR, errI) {
+			t.Errorf("length %d: ReadIdentity %v, Read %v", n, errI, errR)
+		}
+	}
+	good, err := Write(newCharacter(7, "Ranger", 0x40, [4]uint8{18, 22, 15, 25}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := ReadIdentity(good)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := Read(good)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id.ID0 != c.A.ID0 || id.ID1 != c.A.ID1 || !bytes.Equal(id.Name, c.A.Name) {
+		t.Errorf("identity %v, A %v", id, c.A)
 	}
 }

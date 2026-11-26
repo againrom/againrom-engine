@@ -19,16 +19,23 @@ modder or developer can notice gets no entry.
 
 ### For players
 
-- [BASE] New Character in the multiplayer character list now opens the character generator, and Accept saves the new character in the original's file format and shows it in the list.
-- [BASE] Accepting a character in the multiplayer character list now opens the multiplayer map choice, and Ok starts the chosen map with that character, its statistics, money and experience.
-- [ROM1] A map can trigger an event when a chosen unit leaves its starting cell.
-- [ROM1] A unit moved by a teleport stays where it lands instead of walking back.
-- [ROM1] An armour or a shield with a spell is priced as the original prices it, by the spell's power, and no longer at a weapon's spell price.
-- [ROM1] Experience from a blow, a kill or a cast is scaled by Mind as the original computes it, so some awards are one point lower.
-- [ROM1] A weapon with Fire Ball now throws its ball after every blow, even one that fells the target, as in the original.
-- [ROM2] A second-game map can carry the engine's extended script, so its triggers can fire when a chosen unit leaves its starting cell.
-- [ROM2] A weapon with Fire Ball now throws its ball after every blow, even one that fells the target, as in the original.
-- [ROM2] A monster felled to exactly -10 health now drops its gold and item once, instead of rolling again on every tick until its body decays further.
+- [BASE] The multiplayer map choice page now exists in both games but is not yet reached from the menu: it lists the multiplayer maps of the map folder (with each map's level shown in the second game) and leaves out unreadable files without crashing; choosing a map and pressing OK returns it to the caller, and Cancel returns with nothing chosen.
+- [BASE] The Multiplayer character list now shows each game's character files from the player profile by name, newest first, ends with a New Character row, says how many unreadable files it left out, and in the first game deletes the chosen character after the Load page's question.
+- [ROM1] A first-game map trigger can now run a Teleport action that moves any living unit standing on its source cell to its target cell, or to the nearest free cell when the target is occupied, and repeats whenever the trigger fires again; maps that use it save as extended maps, and the map editor sets both cells by typing or clicking on the map.
+- [BASE] The main menu's Multiplayer button now opens an empty character list page with Accept and Cancel (and Delete in the first game); Cancel returns to the menu. Before, the button did nothing.
+- [ROM1] A walking unit that reaches the middle of a map's Teleport trap cell is now moved to the trap's target cell and stands there; a unit that was following a move order then walks on to that order's destination; before, the trap did nothing. A flying unit is not moved.
+- [ROM1] Fire Sacrifice, Acid Stream and Meteor Storm now strike their first cells one tick after the cast, as in the original; before, the first cells were hit on the cast's own tick.
+- [ROM2] On a map that sets up Outposts, a computer group that is wiped out now comes back from its Outpost when the countdown runs out, and a map script can set that countdown; a loaded game's Outposts bring no group back.
+- [ROM2] A mage's automatic Heal set to allies now also heals the player's own units, and one set to neutral units alone does not, as in the original.
+- [ROM2] Hired and placed humans no longer start a mission ready to back off or flee by their class; they fight on until a Retreat setting tells them otherwise, as in the original.
+- [ROM1] A unit placed on a map now knows the spells the map's unit spell records give it, so a spell given to a unit in the map editor's spell book is in its spell bar in the game; before, it knew only the spells of its kind.
+- [ROM2] Shop prices of armour, shields and weapons with magic effects now follow the original: the effects' surcharge is 8750 gold for a size of 70 rather than 7000, a spell on an armour or a shield adds to that size, and an item with a price effect costs that price.
+- [ROM2] A negative protection now raises the damage of a spell or of a weapon's magic part, and a protection above 100 stops it whole, as in the original; before, protection counted only from 0 to 100.
+- [ROM2] The experience a mage gets for killing a unit with a spell now goes to the skill the original picks, which the spell's sphere number chooses, rather than always to the spell's own sphere.
+- [ROM2] A corpse now turns to bones only below -10 health, and reaches its later stages below -20 and -40, as in the original; a dead hero's body stops decaying at -61 health and, in the Russian version, is never removed by decay.
+- [ROM2] In the Russian version, a unit that dies on a cell whose sack already holds 1024 or more items adds only its gold to that sack and its items are lost, as in the original.
+- [ROM2] A unit that kills with its weapon's spell now gets the experience for the kill, as in the original.
+- [ROM2] A multiplayer character file that the character list shows now also opens; a file with a damaged first section is left out of the list instead of failing on open.
 
 ### For map makers and modders
 
@@ -46,25 +53,6 @@ modder or developer can notice gets no entry.
 - [ROM1] In the map editor a first-game map's message text now goes through the second game's letter check too, so both games refuse a letter the game would show as another, and a NUL, with the same words; the pages window lists the map's pages with the actions that show each.
 - [ROM2] In the map editor a second-game send-event action now offers New dialog: it adds the next free event section to the mission text, points the action at it and opens the section's text in the pages window.
 - [BASE] In the map editor a node only an extended map runs (an interactive dialogue, a mod global, Unit left its cell, Teleport) now asks to extend the map at the edit that adds it, and again when a map in the original format that already holds one is saved; a refused fold names the reason in the editor's language.
-
-### For players
-
-- [BASE] The multiplayer map choice page now exists in both games but is not yet reached from the menu: it lists the multiplayer maps of the map folder (with each map's level shown in the second game) and leaves out unreadable files without crashing; choosing a map and pressing OK returns it to the caller, and Cancel returns with nothing chosen.
-- [BASE] The Multiplayer character list now shows each game's character files from the player profile by name, newest first, ends with a New Character row, says how many unreadable files it left out, and in the first game deletes the chosen character after the Load page's question.
-- [ROM1] A first-game map trigger can now run a Teleport action that moves any living unit standing on its source cell to its target cell, or to the nearest free cell when the target is occupied, and repeats whenever the trigger fires again; maps that use it save as extended maps, and the map editor sets both cells by typing or clicking on the map.
-- [BASE] The main menu's Multiplayer button now opens an empty character list page with Accept and Cancel (and Delete in the first game); Cancel returns to the menu. Before, the button did nothing.
-- [ROM1] A walking unit that reaches the middle of a map's Teleport trap cell is now moved to the trap's target cell and stands there; a unit that was following a move order then walks on to that order's destination; before, the trap did nothing. A flying unit is not moved.
-- [ROM1] Fire Sacrifice, Acid Stream and Meteor Storm now strike their first cells one tick after the cast, as in the original; before, the first cells were hit on the cast's own tick.
-- [ROM2] On a map that sets up Outposts, a computer group that is wiped out now comes back from its Outpost when the countdown runs out, and a map script can set that countdown; a loaded game's Outposts bring no group back.
-- [ROM2] A mage's automatic Heal set to allies now also heals the player's own units, and one set to neutral units alone does not, as in the original.
-- [ROM2] Hired and placed humans no longer start a mission ready to back off or flee by their class; they fight on until a Retreat setting tells them otherwise, as in the original.
-- [ROM1] A unit placed on a map now knows the spells the map's unit spell records give it, so a spell given to a unit in the map editor's spell book is in its spell bar in the game; before, it knew only the spells of its kind.
-- [ROM2] Shop prices of armour, shields and weapons with magic effects now follow the original: the effects' surcharge is 8750 gold for a size of 70 rather than 7000, a spell on an armour or a shield adds to that size, and an item with a price effect costs that price.
-- [ROM2] A negative protection now raises the damage of a spell or of a weapon's magic part, and a protection above 100 stops it whole, as in the original; before, protection counted only from 0 to 100.
-- [ROM2] The experience a mage gets for killing a unit with a spell now goes to the skill the original picks, which the spell's sphere number chooses, rather than always to the spell's own sphere.
-- [ROM2] A corpse now turns to bones only below -10 health, and reaches its later stages below -20 and -40, as in the original; a dead hero's body stops decaying at -61 health and, in the Russian version, is never removed by decay.
-- [ROM2] In the Russian version, a unit that dies on a cell whose sack already holds 1024 or more items adds only its gold to that sack and its items are lost, as in the original.
-- [ROM2] A unit that kills with its weapon's spell now gets the experience for the kill, as in the original.
 
 ## 0.160.0
 

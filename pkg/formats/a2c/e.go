@@ -152,11 +152,7 @@ func appendE(out []byte, e E) []byte {
 	d := e.fields()
 	plain := ePlain(&d)
 	key := sectionKey(plain)
-	out = binary.LittleEndian.AppendUint32(out, TagE)
-	out = binary.LittleEndian.AppendUint32(out, uint32(ESize+bits.OnesCount16(key)))
-	out = binary.LittleEndian.AppendUint16(out, 0)
-	out = binary.LittleEndian.AppendUint16(out, key)
-	out = binary.LittleEndian.AppendUint32(out, Checksum(plain))
+	out = appendHeader(out, TagE, ESize+bits.OnesCount16(key), key, plain)
 	for i, f := range eFields {
 		if key&(1<<f.pad) != 0 {
 			out = append(out, 0)

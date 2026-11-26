@@ -95,40 +95,84 @@ type Character struct {
 }
 
 var (
-	ErrMagic    = errors.New("a2c: not a character file")
-	ErrSection  = errors.New("a2c: section A header missing or out of bounds")
-	ErrChecksum = errors.New("a2c: section A checksum mismatch")
-	ErrBody     = errors.New("a2c: a section is out of bounds or fails its checksum")
-	ErrTag      = errors.New("a2c: unknown section tag")
-	ErrMissing  = errors.New("a2c: section A or E missing")
-	ErrName     = errors.New("a2c: the name does not fit section A")
+	ErrMagic   = errors.New("a2c: not a character file")
+	ErrSection = errors.New("a2c: the first section is not section A")
+	ErrBody    = errors.New("a2c: a section is out of bounds or fails its checksum")
+	ErrTag     = errors.New("a2c: unknown section tag")
+	ErrMissing = errors.New("a2c: section A or E missing")
+	ErrName    = errors.New("a2c: the name does not fit section A")
 )
 
-// ReadIdentity checks the magic, section A's tag and length against the
-// file's size, descrambles A and checks its checksum, then answers its
-// identity and name.
+// ReadIdentity checks the magic, reads the first section as section A and
+// answers its identity and name. It refuses what Read refuses in section A.
 func ReadIdentity(b []byte) (Identity, error) {
 	if len(b) < 4 || binary.LittleEndian.Uint32(b) != Magic {
 		return Identity{}, ErrMagic
 	}
-	h := b[4:]
-	if len(h) < HeaderSize || binary.LittleEndian.Uint32(h) != TagA {
+	h, ok := readHeader(b[4:])
+	if !ok || h.tag != TagA {
 		return Identity{}, ErrSection
 	}
-	n := binary.LittleEndian.Uint32(h[4:])
-	if n < NameEnd || n > MaxBody || uint64(n) > uint64(len(h)-HeaderSize) {
-		return Identity{}, ErrSection
+	plain, _, err := readBody(b[4:], h)
+	if err != nil {
+		return Identity{}, err
 	}
-	key := binary.LittleEndian.Uint16(h[10:])
-	body := Descramble(h[HeaderSize:HeaderSize+int(n)], key)
-	if Checksum(body) != binary.LittleEndian.Uint32(h[12:]) {
-		return Identity{}, ErrChecksum
+	a, err := decodeA(plain)
+	if err != nil {
+		return Identity{}, err
 	}
-	return Identity{
-		ID0:  binary.LittleEndian.Uint32(body),
-		ID1:  binary.LittleEndian.Uint32(body[4:]),
-		Name: cutName(body[NameStart:NameEnd]),
-	}, nil
+	return Identity{ID0: a.ID0, ID1: a.ID1, Name: a.Name}, nil
+}
+
+// sectionHeader is the 16-byte header every section starts with: tag,
+// length, a zero word, the key and the checksum of the plain body.
+type sectionHeader struct {
+	tag, n uint32
+	key    uint16
+	sum    uint32
+}
+
+// readHeader reads the header at the start of b; ok is false when b is
+// shorter than a header.
+func readHeader(b []byte) (sectionHeader, bool) {
+	if len(b) < HeaderSize {
+		return sectionHeader{}, false
+	}
+	return sectionHeader{
+		tag: binary.LittleEndian.Uint32(b), n: binary.LittleEndian.Uint32(b[4:]),
+		key: binary.LittleEndian.Uint16(b[10:]), sum: binary.LittleEndian.Uint32(b[12:]),
+	}, true
+}
+
+// readBody descrambles the body h states after its header at the start of b,
+// checks the length against b and the checksum, and answers the plain body
+// and the bytes the header and body take.
+func readBody(b []byte, h sectionHeader) ([]byte, int, error) {
+	if h.n > MaxBody || uint64(h.n) > uint64(len(b)-HeaderSize) {
+		return nil, 0, ErrBody
+	}
+	plain := Descramble(b[HeaderSize:HeaderSize+int(h.n)], h.key)
+	if Checksum(plain) != h.sum {
+		return nil, 0, ErrBody
+	}
+	return plain, HeaderSize + int(h.n), nil
+}
+
+// decodeA is section A's fields from its plain body, which is exactly ASize
+// bytes.
+func decodeA(p []byte) (A, error) {
+	if len(p) != ASize {
+		return A{}, ErrBody
+	}
+	a := A{
+		ID0:     binary.LittleEndian.Uint32(p),
+		ID1:     binary.LittleEndian.Uint32(p[4:]),
+		ListKey: binary.LittleEndian.Uint32(p[8:]),
+		Name:    cutName(p[NameStart:NameEnd]),
+		Unit:    p[NameEnd],
+	}
+	copy(a.Rest[:], p[NameEnd+1:])
+	return a, nil
 }
 
 func cutName(field []byte) []byte {
@@ -148,37 +192,31 @@ func Read(b []byte) (Character, error) {
 	}
 	var haveA, haveE bool
 	for at := 4; at < len(b); {
-		if len(b)-at < HeaderSize {
+		h, ok := readHeader(b[at:])
+		if !ok {
 			return c, ErrBody
 		}
-		h := b[at:]
-		tag, n := binary.LittleEndian.Uint32(h), binary.LittleEndian.Uint32(h[4:])
-		key, sum := binary.LittleEndian.Uint16(h[10:]), binary.LittleEndian.Uint32(h[12:])
-		at += HeaderSize
-		if tag == TagE {
-			e, used, err := readE(b[at:], key, sum)
+		if h.tag == TagE {
+			e, used, err := readE(b[at+HeaderSize:], h.key, h.sum)
 			if err != nil {
 				return c, err
 			}
 			c.E, haveE = e, true
-			at += used
+			at += HeaderSize + used
 			continue
 		}
-		if n > MaxBody || uint64(n) > uint64(len(b)-at) {
-			return c, ErrBody
+		plain, used, err := readBody(b[at:], h)
+		if err != nil {
+			return c, err
 		}
-		plain := Descramble(b[at:at+int(n)], key)
-		at += int(n)
-		if Checksum(plain) != sum {
-			return c, ErrBody
-		}
-		switch tag {
+		at += used
+		switch h.tag {
 		case TagA:
-			if len(plain) != ASize {
-				return c, ErrBody
+			a, err := decodeA(plain)
+			if err != nil {
+				return c, err
 			}
-			c.A = readA(plain)
-			haveA = true
+			c.A, haveA = a, true
 		case TagB:
 			kills, err := runDecode(plain)
 			if err != nil {
@@ -199,18 +237,6 @@ func Read(b []byte) (Character, error) {
 		return c, ErrMissing
 	}
 	return c, nil
-}
-
-func readA(p []byte) A {
-	a := A{
-		ID0:     binary.LittleEndian.Uint32(p),
-		ID1:     binary.LittleEndian.Uint32(p[4:]),
-		ListKey: binary.LittleEndian.Uint32(p[8:]),
-		Name:    cutName(p[NameStart:NameEnd]),
-		Unit:    p[NameEnd],
-	}
-	copy(a.Rest[:], p[NameEnd+1:])
-	return a
 }
 
 // Write is the file of c with the sections in the writer's order A, B, C, D,
@@ -262,13 +288,19 @@ func writeA(a A) ([]byte, error) {
 // sectionKey is the key a plain body is stored under.
 func sectionKey(plain []byte) uint16 { return uint16(Checksum(plain) & 0x7fff) }
 
-func appendSection(out []byte, tag uint32, plain []byte) []byte {
-	key := sectionKey(plain)
+// appendHeader is the header of a section: tag, the stored length n, a zero
+// word, the key and the checksum of the plain body.
+func appendHeader(out []byte, tag uint32, n int, key uint16, plain []byte) []byte {
 	out = binary.LittleEndian.AppendUint32(out, tag)
-	out = binary.LittleEndian.AppendUint32(out, uint32(len(plain)))
+	out = binary.LittleEndian.AppendUint32(out, uint32(n))
 	out = binary.LittleEndian.AppendUint16(out, 0)
 	out = binary.LittleEndian.AppendUint16(out, key)
-	out = binary.LittleEndian.AppendUint32(out, Checksum(plain))
+	return binary.LittleEndian.AppendUint32(out, Checksum(plain))
+}
+
+func appendSection(out []byte, tag uint32, plain []byte) []byte {
+	key := sectionKey(plain)
+	out = appendHeader(out, tag, len(plain), key, plain)
 	return append(out, Descramble(plain, key)...)
 }
 
