@@ -109,7 +109,7 @@ func TestCyrillicScriptNamesReadBackAsTyped(t *testing.T) {
 // per-rune encoder stays where one typed rune is asked about: the name field's
 // and the words' rune encoders, and the mod text check.
 func TestInstallTextGoesThroughTheOneCodec(t *testing.T) {
-	allowed := map[string]bool{"ChargenSetup": true, "App": true, "ModTextDropped": true}
+	allowed := map[string]bool{"chargenSetup": true, "App": true, "ModTextDropped": true}
 	files, err := filepath.Glob("*.go")
 	if err != nil {
 		t.Fatal(err)
