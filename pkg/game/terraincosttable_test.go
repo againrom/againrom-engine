@@ -18,7 +18,8 @@ func TestTerrainCostTable(t *testing.T) {
 	good := synth.Reg(0, []synth.RegNode{{Name: "Terrain", Kind: 0x01, Children: []synth.RegNode{
 		{Name: "CostLand", Kind: 0x02, Int: 3}, {Name: "CostRoad", Kind: 0x02, Int: 5},
 	}}})
-	costs, ok, err := terrainCostTable(memorySource{terrainCostsAddress: good}, terrainCostsAddress)
+	registry, ok, err := mapRegistry(memorySource{terrainCostsAddress: good}, terrainCostsAddress)
+	costs := registry.Costs
 	if err != nil || !ok || costs[1] != 3 || costs[10] != 5 || costs[2] != 8 {
 		t.Fatalf("installed table: %v %t %v", costs, ok, err)
 	}
@@ -33,7 +34,7 @@ func TestTerrainCostTable(t *testing.T) {
 		"read error":  {failingSource{errors.New("disk")}, terrainCostsAddress, false, "original terrain parameters: disk"},
 		"malformed":   {memorySource{terrainCostsAddress: []byte("not a registry")}, terrainCostsAddress, false, "original terrain parameters: "},
 	} {
-		_, ok, err := terrainCostTable(tc.src, tc.addr)
+		_, ok, err := mapRegistry(tc.src, tc.addr)
 		if ok != tc.ok || (err == nil) != (tc.wantErr == "") || (err != nil && !strings.HasPrefix(err.Error(), tc.wantErr)) {
 			t.Errorf("%s: ok=%t err=%v", name, ok, err)
 		}

@@ -19,17 +19,6 @@ type PursuitSearch struct {
 	AimX, AimY int32
 }
 
-// staticIsntNeeded is the shipped StaticIsntNeeded value: a previous static
-// count above it re-searches in full, at or below it rebuilds the route end
-// as one node, and a near search aims at the route end while the static list
-// holds at most this many nodes (MOVE-PARAM-006, AI-384).
-const staticIsntNeeded = 5
-
-// dynamicByStaticLookup is the shipped DynamicByStaticLookup value: a head
-// node farther than it from the mover is the near search's goal, and one
-// within it is removed after the search (MOVE-PARAM-006, AI-373).
-const dynamicByStaticLookup = 3
-
 // pursue is one pursuit pass of attacker i on its unit victim ti, run for a
 // mover on its cell centre and outside its stop distance (AI-414). A changed
 // victim starts afresh (AI-413). Passes above a third of the static count plus
@@ -51,7 +40,7 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 		w.routes[i] = nil
 	}
 	if int(p.Passes) > len(w.routes[i])/3+1 {
-		if p.Count > staticIsntNeeded {
+		if int32(p.Count) > w.pathFinding().StaticIsntNeeded {
 			route, ok := w.searchRoute(s, i, terrainRelation, noWindow, w.farBudgetFor(i), settleOrdered, victim.x, victim.y)
 			if s.missed {
 				w.stampMissedApproach(i, s.sub, victim)
@@ -85,7 +74,7 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 
 	route := w.routes[i]
 	goal := cell{x: p.EndX, y: p.EndY}
-	goalAt, aimsAtEnd := routeEndGoal(route, cell{x: e.X, y: e.Y})
+	goalAt, aimsAtEnd := routeEndGoal(w.pathFinding(), route, cell{x: e.X, y: e.Y})
 	if !aimsAtEnd {
 		goal = route[goalAt]
 	}
@@ -121,12 +110,12 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 }
 
 // countPursuitPass counts one near search of pursuer i and removes the head
-// node of its static list when the head lay within dynamicByStaticLookup of
+// node of its static list when the head lay within DynamicByStaticLookup of
 // the cell the search started from, before any step (AI-373, AI-384, AI-417).
 func (w *World) countPursuitPass(i int, from cell) {
 	e := &w.entities[i]
 	e.Pursuit.Passes++
-	if route := w.routes[i]; len(route) > 0 && from.chebyshevTo(route[0]) <= dynamicByStaticLookup {
+	if route := w.routes[i]; len(route) > 0 && from.chebyshevTo(route[0]) <= int64(w.pathFinding().DynamicByStaticLookup) {
 		w.routes[i] = route[1:]
 	}
 }
@@ -143,16 +132,19 @@ func (w *World) cancelPursuit(s *routeScratch, i int) {
 }
 
 // routeEndGoal is where a near search aims along a stored route from the cell
-// from: the route end while at most staticIsntNeeded cells remain (aimsAtEnd,
-// index of the last cell), else the head when from lies more than
-// dynamicByStaticLookup off it, else the cell lookAhead along. It is the one
-// builder of this rule for the pursuit and for a walk that applies it.
-func routeEndGoal(route []cell, from cell) (index int, aimsAtEnd bool) {
+// from: the route end while at most p.StaticIsntNeeded cells remain
+// (aimsAtEnd, index of the last cell), else the head when from lies more than
+// p.DynamicByStaticLookup off it, else the cell lookAhead along. It is the one
+// builder of this rule for the pursuit and for a walk that applies it. The
+// index never leaves the route, whatever the file says: an empty route aims
+// at its end (index -1, as the shipped value does) and the look-ahead stops
+// at the last cell.
+func routeEndGoal(p PathFinding, route []cell, from cell) (index int, aimsAtEnd bool) {
 	switch {
-	case len(route) <= staticIsntNeeded:
+	case len(route) == 0 || int64(len(route)) <= int64(p.StaticIsntNeeded):
 		return len(route) - 1, true
-	case from.chebyshevTo(route[0]) > dynamicByStaticLookup:
+	case from.chebyshevTo(route[0]) > int64(p.DynamicByStaticLookup):
 		return 0, false
 	}
-	return lookAhead, false
+	return min(lookAhead, len(route)-1), false
 }

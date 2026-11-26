@@ -1056,7 +1056,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			w.restAt(scratch, i)
 			continue
 		}
-		if serves && e.Walk.Searches > staticRefreshRate {
+		if serves && int32(e.Walk.Searches) > w.pathFinding().StaticRefreshRate {
 			serves = false
 		}
 		if !serves {
@@ -1126,7 +1126,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// Every cell of a fresh route is at most its own index of steps from
 			// the mover, so this sub-goal is at most four cells off and cannot be
 			// outside the window that has just been tested against.
-			sub = route[walkGoalIndex(e, route)]
+			sub = route[w.walkGoalIndex(e, route)]
 		}
 
 		// The near search keeps the scaled rule, and keeps its relation and its
@@ -1159,7 +1159,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		// search until the step takes it or the dynamic counter passes 32
 		// (MOVE-REFRESH-012). Admission without one first asks the wait gate.
 		next, listed := w.walkNext(i)
-		if !listed || e.Walk.Age > dynamicRefreshRate {
+		if !listed || int32(e.Walk.Age) > w.pathFinding().DynamicRefreshRate {
 			if w.waitsBehind(scratch, i) {
 				continue
 			}
@@ -1391,12 +1391,12 @@ func (w *World) subGoal(s *routeScratch, i int) (cell, bool) {
 	// mover would circle it, and the route is replaced by one far search.
 	// A closed cell further along stays in the route until it comes within that
 	// reach. DIV-2048.
-	for k := 0; k <= max(walkGoalIndex(e, route), subGoalIndex(len(route))); k++ {
+	for k := 0; k <= max(w.walkGoalIndex(e, route), subGoalIndex(len(route))); k++ {
 		if !w.terrainOpenFootprint(*e, route[k].x, route[k].y) {
 			return cell{}, false
 		}
 	}
-	sub := route[walkGoalIndex(e, route)]
+	sub := route[w.walkGoalIndex(e, route)]
 	win := window{centre: cell{x: e.X, y: e.Y}, half: dynamicWindow}
 	if !win.holds(sub.x, sub.y) {
 		return cell{}, false
@@ -2414,7 +2414,7 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 
 // walkGoalIndex is the index of the cell of route that entity e's near search
 // aims at: routeEndGoal's, the same choice the pursuit makes.
-func walkGoalIndex(e *Entity, route []cell) int {
-	index, _ := routeEndGoal(route, cell{x: e.X, y: e.Y})
+func (w *World) walkGoalIndex(e *Entity, route []cell) int {
+	index, _ := routeEndGoal(w.pathFinding(), route, cell{x: e.X, y: e.Y})
 	return index
 }

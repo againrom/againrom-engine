@@ -58,6 +58,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] Both games now read the [Path Finding] route values (route refresh rates, scan-ahead, and the route-end distances) from the data/map.reg of the install, and use the old built-in value for a key the file lacks; an unchanged install plays as before; a StaticIsntNeeded below 3 is used as written and never reaches past the end of a route.
 - [ROM2] In the map editor a second-game map's message pages (the event sections of its mission text) now show their text and speaker and take edits to the message and its parts; before, they were reported as unavailable.
 - [ROM1] In the map editor a first-game trap of the Teleport spell now reads as a teleport from its cell to its target cell, and its cell, target and power are set and saved as before.
 - [ROM1] In the map editor a placed or changed Teleport trap now shows its Source and Target as two cells, each with an On map button whose click sets the cell and Esc keeps the old one; a new Source moves the trap to that cell.

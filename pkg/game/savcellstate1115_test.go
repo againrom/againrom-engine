@@ -139,12 +139,12 @@ func cellStateFrontWith(t *testing.T, edit func([]byte) []byte) *FrontEnd {
 		t.Fatal(err)
 	}
 	f.Archives.Containers = fsys
-	costs, ok, err := terrainCostTable(fsys, terrainCostsAddress)
+	registry, ok, err := mapRegistry(fsys, terrainCostsAddress)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ok {
-		f.Table.TerrainCosts = &costs
+		f.Table.TerrainCosts = &registry.Costs
 	}
 	return f
 }

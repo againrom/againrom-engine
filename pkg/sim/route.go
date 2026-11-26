@@ -333,19 +333,6 @@ const (
 	noWindow      int32 = -1
 )
 
-// nearSlack is the near search's budget slack, the term the scaled rule carries
-// under the quarter of the Chebyshev distance: 3, the value read for the search
-// aimed at a waypoint a few cells off.
-//
-// staticSlack is the far search's, 5, and it is read again because the flat
-// budget is an OVERRIDE with a gate rather than that search's whole rule: a far
-// search whose goal is not open falls through to the computed form, and the
-// computed form the far arm carries is this slack's, not the near arm's.
-const (
-	nearSlack   int64 = 3
-	staticSlack int64 = 5
-)
-
 // flatGenerations is the far search's whole budget when a human participant
 // owns a one-cell mover: a thousand generations, whatever the distance to the
 // target.
@@ -700,7 +687,8 @@ func (w *World) label(s *routeScratch, start cell, x, y int32) (uint64, bool) {
 }
 
 // generationBudget is how many generations a search from start toward target may
-// run under the rule it is given.
+// run under the rule it is given. nearSlack and staticSlack are p's
+// DynamicScanAhead and StaticScanAhead.
 //
 // Under flatBudget with an open goal it is a thousand, whatever the two cells
 // are. Under scaledBudget it is max(nearSlack, D>>2) + D, D being the Chebyshev
@@ -726,11 +714,12 @@ func (w *World) label(s *routeScratch, start cell, x, y int32) (uint64, bool) {
 //
 // The subtraction is in int64 because a target may name any cell, so the
 // difference of two int32 coordinates does not fit in one.
-func generationBudget(start, target cell, rule budgetRule, goalOpen bool) int64 {
+func (p PathFinding) generationBudget(start, target cell, rule budgetRule, goalOpen bool) int64 {
 	if rule == flatBudget && goalOpen {
 		return flatGenerations
 	}
 	d := start.chebyshevTo(target)
+	staticSlack, nearSlack := int64(p.StaticScanAhead), int64(p.DynamicScanAhead)
 	if rule == largeBudget {
 		return staticSlack + d
 	}
@@ -832,7 +821,7 @@ func (w *World) canonicalRoute(s *routeScratch, self int, r relation, half int32
 	}
 	s.frontier = append(s.frontier, start)
 
-	budget := generationBudget(start, target, rule, goalOpen)
+	budget := w.pathFinding().generationBudget(start, target, rule, goalOpen)
 	// Whether a labelled goal ENDS the wave. A start that is its own target
 	// answers immediately, and a search that may not settle stops on the label
 	// alone -- which is every search this package ran before the term above

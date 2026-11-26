@@ -334,7 +334,8 @@ func (x *MapInspector) terrainCosts() (costs [11]byte, ok bool, err error) {
 	if x == nil || x.archives == nil || x.archives.Containers == nil {
 		return costs, false, nil
 	}
-	return terrainCostTable(x.archives.Containers, filesOf(x.archives.Game()).planeCosts)
+	registry, ok, err := mapRegistry(x.archives.Containers, filesOf(x.archives.Game()).planeCosts)
+	return registry.Costs, ok, err
 }
 
 func (c *mapCheck) terrainPlanes() []mapHit {

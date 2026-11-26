@@ -12,6 +12,41 @@ type BuildRules struct {
 	// this many entries or more, and its items are lost while its gold is
 	// still added; 0 is no bound (R2-ENGINE-1828).
 	DeathSackCap int
+	// Path is the install's [Path Finding] route values; nil runs the shipped
+	// ones (ShippedPathFinding). Like the rest it is input: it is not in the
+	// world hash or the save, so a save loads under the values of the install
+	// that opens it.
+	Path *PathFinding
+}
+
+// PathFinding is the route values of the install's map.reg section [Path
+// Finding] that the walk and the search read. A key the file lacks holds its
+// shipped value.
+type PathFinding struct {
+	// StaticScanAhead and DynamicScanAhead are the budget slacks of the far
+	// and the near search.
+	StaticScanAhead, DynamicScanAhead int32
+	// StaticRefreshRate and DynamicRefreshRate are the counts above which a
+	// stored route and a listed near step are searched again.
+	StaticRefreshRate, DynamicRefreshRate int32
+	// DynamicByStaticLookup is the head distance past which the near search
+	// aims at the head; StaticIsntNeeded the route length up to which it aims
+	// at the route end.
+	DynamicByStaticLookup, StaticIsntNeeded int32
+}
+
+// ShippedPathFinding is the values both installs ship and the original's
+// defaults when a key is missing.
+func ShippedPathFinding() PathFinding {
+	return PathFinding{StaticScanAhead: 5, DynamicScanAhead: 3, StaticRefreshRate: 16, DynamicRefreshRate: 32, DynamicByStaticLookup: 3, StaticIsntNeeded: 5}
+}
+
+// pathFinding is the route values the world runs under.
+func (w *World) pathFinding() PathFinding {
+	if w.build.Path == nil {
+		return ShippedPathFinding()
+	}
+	return *w.build.Path
 }
 
 // SetBuildRules sets the build's rules (base.Profile, through the table).

@@ -20,13 +20,6 @@ type WalkRefresh struct {
 	NextX, NextY  int32
 }
 
-// dynamicRefreshRate and staticRefreshRate are the shipped DynamicRefreshRate
-// and StaticRefreshRate, compared strictly (MOVE-130, MOVE-PARAM-006).
-const (
-	dynamicRefreshRate = 32
-	staticRefreshRate  = 16
-)
-
 // walkNext is the listed step of entity i while it is still one cell off.
 func (w *World) walkNext(i int) (cell, bool) {
 	e := &w.entities[i]

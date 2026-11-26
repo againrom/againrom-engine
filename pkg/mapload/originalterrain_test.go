@@ -45,7 +45,8 @@ func TestOriginalTerrainCostTable1115DefaultsAndNarrowing(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			before := slices.Clone(tc.raw)
-			got, err := data.OriginalTerrainCostTable(tc.raw)
+			registry, err := data.OriginalMapRegistry(tc.raw)
+			got := registry.Costs
 			if err != nil || got != tc.want {
 				t.Fatalf("cost table = %v, %v; want %v", got, err, tc.want)
 			}
@@ -79,7 +80,7 @@ func TestOriginalTerrainCostTable1115MalformedRegistry(t *testing.T) {
 		{"unsupported value type", synth.RegRaw(0, 1, 0, 1, []synth.RegRawNode{{Name: []byte("Terrain"), Kind: 8}}, nil)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := data.OriginalTerrainCostTable(tc.raw); err == nil {
+			if _, err := data.OriginalMapRegistry(tc.raw); err == nil {
 				t.Fatal("malformed registry was accepted as constructor defaults")
 			}
 		})

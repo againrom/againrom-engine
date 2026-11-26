@@ -48,9 +48,9 @@ func readOriginalCellPlanes(m *alm.Map, source entrySource, groups *mod.TerrainD
 	if source == nil {
 		return nil, nil
 	}
-	costs, ok, err := terrainCostTable(source, filesOf("").planeCosts)
+	registry, ok, err := mapRegistry(source, filesOf("").planeCosts)
 	if err != nil || !ok {
 		return nil, err // Preserve absent authority on partial/custom inputs.
 	}
-	return mapload.OriginalTerrainPlanesWith(m, costs, groups)
+	return mapload.OriginalTerrainPlanesWith(m, registry.Costs, groups)
 }

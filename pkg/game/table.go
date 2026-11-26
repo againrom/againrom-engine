@@ -65,7 +65,7 @@ func LoadDefinitionsOf(fsys *vfs.FS, p base.Profile) (*Definitions, error) {
 	if err == nil {
 		d.Table.StraightCone = sim.StraightCone(p.StraightCone)
 		d.Table.OutpostSpread = p.OutpostSpread
-		d.Table.Build = sim.BuildRules{HeroBodyRaise: p.HeroBodyRaise, DeathSackCap: p.DeathSackCap}
+		d.Table.Build.HeroBodyRaise, d.Table.Build.DeathSackCap = p.HeroBodyRaise, p.DeathSackCap
 	}
 	return d, err
 }
@@ -113,12 +113,15 @@ func loadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 		Magic:      f.Collection(databin.Magic),
 		MagicItems: f.Collection(databin.MagicItems),
 	})}
-	costs, haveCosts, err := terrainCostTable(fsys, filesOf(g).terrainCosts)
+	registry, haveRegistry, err := mapRegistry(fsys, filesOf(g).planeCosts)
 	if err != nil {
 		return nil, err
 	}
-	if haveCosts {
-		d.Table.TerrainCosts = &costs
+	if haveRegistry {
+		if filesOf(g).terrainCosts != "" {
+			d.Table.TerrainCosts = &registry.Costs
+		}
+		d.Table.Build.Path = &registry.Path
 	}
 	d.StartWeapon, d.StartWeaponErr = resolveStartingWeapon(f, PartySkillSlot())
 	// Not fatal, and reported by nothing beyond the field itself — see
@@ -156,27 +159,28 @@ func loadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	return d, nil
 }
 
-// terrainCostTable is the installed Terrain cost table at addr, the one every
-// first-game World prices cells with (ALM-TERR-043); the sim, the cell planes
-// and the map checker read it here. ok is false for an install without the
-// file, and for a game naming no address: they keep the compiled table
-// (DIV-3093).
-func terrainCostTable(src entrySource, addr string) (costs [11]byte, ok bool, err error) {
+// mapRegistry is the installed map.reg at addr: the Terrain cost table every
+// first-game World prices cells with (ALM-TERR-043) and the [Path Finding]
+// route values both games' Worlds run (DIV-5280). It is the one reader of the
+// file: the sim, the cell planes and the map checker read it here. ok is false
+// for an install without the file, and for a game naming no address: they
+// keep the compiled values (DIV-3093).
+func mapRegistry(src entrySource, addr string) (registry data.MapRegistry, ok bool, err error) {
 	if addr == "" {
-		return costs, false, nil
+		return registry, false, nil
 	}
 	raw, err := src.ReadFile(addr)
 	if errors.Is(err, fs.ErrNotExist) {
-		return costs, false, nil
+		return registry, false, nil
 	}
 	if err != nil {
-		return costs, false, fmt.Errorf("original terrain parameters: %w", err)
+		return registry, false, fmt.Errorf("original terrain parameters: %w", err)
 	}
-	costs, err = data.OriginalTerrainCostTable(raw)
+	registry, err = data.OriginalMapRegistry(raw)
 	if err != nil {
-		return costs, false, fmt.Errorf("original terrain parameters: %w", err)
+		return registry, false, fmt.Errorf("original terrain parameters: %w", err)
 	}
-	return costs, true, nil
+	return registry, true, nil
 }
 
 // parseDefinitionTable parses the bytes of the placeable-definition table

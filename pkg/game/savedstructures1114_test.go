@@ -66,12 +66,12 @@ func structureFront(t *testing.T, generated ...bool) *FrontEnd {
 	}
 	f.Archives.Containers = fs
 	// The Table carries the install's cost table as the production Table does.
-	costs, ok, err := terrainCostTable(fs, terrainCostsAddress)
+	registry, ok, err := mapRegistry(fs, terrainCostsAddress)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ok {
-		f.Table.TerrainCosts = &costs
+		f.Table.TerrainCosts = &registry.Costs
 	}
 	f.Units = &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{35: worldFixtureArt(16, 16, 8, 16, 3, 3, 1)}}
 	f.Structures = &terrain.StructureSet{}
