@@ -201,9 +201,12 @@ var skillRaises = [...]func(r Rules, xp, level int32) bool{
 // dialect d: the lowest level the award's raise test does not raise, at most
 // the cap. A load repairs a stored level below it.
 func HeldSkillLevel(d ScriptDialect, r Rules, xp int32) int32 {
-	award := newGameProfile(d).skillAward
+	return newGameProfile(d).skillAward.heldLevel(r, xp)
+}
+
+func (p skillAwardProfile) heldLevel(r Rules, xp int32) int32 {
 	level := int32(0)
-	for level < r.SkillCap() && award.raises(r, xp, level) {
+	for level < r.SkillCap() && p.raises(r, xp, level) {
 		level++
 	}
 	return level

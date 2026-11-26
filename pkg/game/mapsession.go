@@ -211,7 +211,10 @@ func (f *FrontEnd) endSession(s *mapSession, ms *Mission) string {
 		return fmt.Sprintf("the character was not written: %v", err)
 	}
 	party := carriedParty(ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster)
-	if len(party) == 0 || party[0].Carry == nil {
+	if len(party) == 0 || party[0].Carry == nil || len(ms.Start.IDs) == 0 {
+		return ""
+	}
+	if hero, ok := ms.World.Entity(ms.Start.IDs[0]); !ok || !hero.Alive() {
 		return ""
 	}
 	gains := s.character

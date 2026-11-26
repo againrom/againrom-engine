@@ -24,7 +24,8 @@ type actorCreationProfile struct {
 	pooled bool
 	// reuse is the taken unit's id, which the creature keeps; 0 mints the
 	// next id.
-	reuse EntityID
+	reuse   EntityID
+	keepsID bool
 	// ungrouped: no new Group; the caller puts the actor in its Group.
 	ungrouped bool
 }
@@ -43,7 +44,7 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 		p = profiles[0]
 	}
 	id, available := w.NextEntityID()
-	if p.reuse != 0 {
+	if p.reuse != 0 || p.keepsID {
 		id, available = p.reuse, true
 	}
 	if !available || id >= 1<<28 {

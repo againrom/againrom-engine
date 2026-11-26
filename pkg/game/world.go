@@ -890,6 +890,12 @@ type missionNotices struct {
 	// Native residue carries this membership across a cold load.
 	departed map[sim.EntityID]bool
 
+	heroReturn    bool
+	returnCell    mapload.Cell
+	hasReturnCell bool
+	returnOffered bool
+	returning     []sim.EntityID
+
 	// announced is whether the outcome has been latched, outcome which way it
 	// went, and outcomeShown whether its notice has reached the screen.
 	//
@@ -1859,7 +1865,7 @@ func (mw *mapWorld) guardedCharacterLost() (sim.EntityID, bool) {
 			if mw.mission.departed[id] {
 				continue
 			}
-			if !ok || (!e.Alive() && !e.Dying() && !e.Restorable()) {
+			if !ok || !mw.mission.heroReturn && !e.Alive() && !e.Dying() && !e.Restorable() {
 				return id, true
 			}
 		}
@@ -4290,6 +4296,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.rearmEquipped(equipped)
 	mw.redressEquipped(equipped)
 	mw.redressLifeChanges(lives)
+	mw.settleHeroReturn()
 	mw.observeWeapons()
 	mw.skillRises()
 	// THE NOTICES ARE SETTLED HERE, once per step and immediately after it.

@@ -33,6 +33,12 @@ func (v *Viewer) swapWeapons() {
 	}
 }
 
+type MapHeroReturn func() bool
+
+func (v *Viewer) SetHeroReturnSink(fn MapHeroReturn) { v.heroReturnSink = fn }
+
+func (v *Viewer) returnHero() bool { return v.heroReturnSink != nil && v.heroReturnSink() }
+
 // defaultMapZoom is the zoom a mission opens at: the base viewport across the
 // authored start columns, or native scale when no column count is set.
 func defaultMapZoom() float64 {

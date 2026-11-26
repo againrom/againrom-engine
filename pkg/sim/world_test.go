@@ -164,6 +164,8 @@ func init() {
 	worldWriters = append(worldWriters, "RefreshPlayerBooks")
 	worldMethods = append(worldMethods, "DeclareOutposts", "AdoptLoadedOutposts", "Outposts")
 	worldWriters = append(worldWriters, "DeclareOutposts", "AdoptLoadedOutposts")
+	worldMethods = append(worldMethods, "FillReturnedPools")
+	worldWriters = append(worldWriters, "FillReturnedPools")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")
 }

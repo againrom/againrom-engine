@@ -114,6 +114,9 @@
 "mapchoice.level" = "Level %d"
 "mapchoice.empty" = "No maps"
 
+# Multiplayer map message line while the fallen hero waits for a return.
+"session.return" = "Your hero has fallen. Press Space to return to the game."
+
 # Load page: the window listing a refusal over the mods. {mod}, {setting},
 # {saved} and {current} are the row's values; text in [ ] is drawn in red.
 "load.mods.title" = "The save does not match the active mods"

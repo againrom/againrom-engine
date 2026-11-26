@@ -805,6 +805,8 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				w.leaveSupport(i)
 				claim(e.ID)
 			}
+		case KindReturnHero:
+			w.returnHero(i, CellPoint{X: c.X, Y: c.Y})
 		}
 		// A kind this build does not define reaches no arm and is ignored,
 		// exactly as an absent entity is. A default that errored would make the

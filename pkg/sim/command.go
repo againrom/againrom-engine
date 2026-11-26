@@ -237,6 +237,10 @@ func SetVariable(register, value int32) Command {
 	return Command{Kind: KindSetVariable, X: register, Y: value}
 }
 
+func ReturnHero(hero EntityID, at CellPoint) Command {
+	return Command{Kind: KindReturnHero, Entity: hero, X: at.X, Y: at.Y}
+}
+
 // RunInstant asks the world to run compiled instant k of its script, the
 // action a trigger runs when it fires. The constructor assigns fields only;
 // an instant the program does not have is ignored by the arm.

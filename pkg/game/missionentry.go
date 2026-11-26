@@ -36,7 +36,8 @@ type mapEntry struct {
 	// hires is true when a fresh entry runs the campaign's hire moment.
 	hires bool
 	// loose is true when the map is a loose file rather than a container entry.
-	loose bool
+	loose      bool
+	heroReturn bool
 	// advance wraps the driver's notices with what the map's end does next.
 	advance func(ports missionPorts, n int, ms *Mission, driver ui.MapAdvance) ui.MapAdvance
 	// seatCandidate seats a new game's candidate before the entry builds over it.
@@ -73,7 +74,8 @@ func sessionEntry(s *mapSession) mapEntry {
 			diff, err := campaignDifficulty(int64(r.difficulty))
 			return s.entry.Source, diff, err
 		},
-		loose: true,
+		loose:      true,
+		heroReturn: true,
 		advance: func(_ missionPorts, _ int, ms *Mission, driver ui.MapAdvance) ui.MapAdvance {
 			return s.advance(ms, driver)
 		},
@@ -226,6 +228,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	mw.projectileCounter = ports.projectiles
 	mw.cheats.difficulty = diff
 	mw.cheats.campaign = ports.rules().chatCampaign(r.town)
+	mw.mission.heroReturn = r.fill.heroReturn
 	mv.Viewer.SetGameMenuContext(func() ui.GameMenuContext {
 		ctx := gameMenuContext(mw, true, ports.install.missionBriefing(r.n))
 		ctx.LeaveToTown = ports.session.canLeaveMission(r.n, mw.world)
@@ -287,6 +290,7 @@ func (p missionPorts) bindSeams(mw *mapWorld, v *ui.Viewer) ui.MapTick {
 	p.audio.wireEffects(mw, v)
 	v.SetAutocastSink(mw.setAutocast)
 	v.SetWeaponSwapSink(mw.swapWeapons)
+	v.SetHeroReturnSink(mw.returnHero)
 	v.SetQuickSpells(&p.session.quickSpells)
 	v.SetFormationSink(mw.cycleFormation)
 	v.SetDefendSink(mw.defend)

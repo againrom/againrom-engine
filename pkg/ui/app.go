@@ -1965,7 +1965,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			// deliberately NOT `in.Inventory && in.Book` -- that reading opens
 			// the closed half of a mixed pair, which is the one case the two
 			// rows of the table exist to separate.
-			if in.Panels {
+			if in.Panels && !v.returnHero() {
 				pack, book := v.hudShown(hudPanelPack), v.hudShown(hudPanelBook)
 				switch {
 				case !pack && !book:

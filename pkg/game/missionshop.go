@@ -26,6 +26,7 @@ func (mw *mapWorld) observeShopUses(uses []sim.StructureUse) {
 	}
 	for _, u := range uses {
 		if mw.managedMember(u.Entity) >= 0 {
+			mw.noteReturnCell(u.Entity)
 			mw.shop.customer, mw.shop.waiting = u.Entity, true
 			mw.view.RaiseCover(ui.CoverShop)
 		}

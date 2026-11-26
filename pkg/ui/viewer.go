@@ -1122,6 +1122,7 @@ type Viewer struct {
 	autocastSink MapAutocast
 	// weaponSwapSink is SetWeaponSwapSink's own value (qolkeys.go).
 	weaponSwapSink MapWeaponSwap
+	heroReturnSink MapHeroReturn
 	// formationSink is SetFormationSink's own value (formationcommand.go):
 	// where Ctrl+F leaves this package, nil for a standalone viewer.
 	formationSink    MapFormation

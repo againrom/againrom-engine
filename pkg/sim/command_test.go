@@ -78,6 +78,7 @@ func constructorCases() []constructorCase {
 			Command{Kind: KindPlayerParameter, Player: SelfSlot, X: int32(PlayerParameterRetreat), Y: RetreatModeHigh}},
 		{"SetVariable", SetVariable(10, -3), Command{Kind: KindSetVariable, X: 10, Y: -3}},
 		{"RunInstant", RunInstant(4), Command{Kind: KindRunInstant, X: 4}},
+		{"ReturnHero", ReturnHero(7, CellPoint{X: 12, Y: 13}), Command{Kind: KindReturnHero, Entity: 7, X: 12, Y: 13}},
 	}
 }
 
@@ -107,7 +108,7 @@ func TestEveryCommandKindHasAConstructor(t *testing.T) {
 		KindReadBook, KindTerminalKill, KindAttackStructure, KindGroupDefend,
 		KindGroupRetreat, KindUsePotion, KindUseScroll, KindUseScrollAt,
 		KindUseStructure, KindPickUp, KindPlayerParameter,
-		KindRearrangeCarried, KindSetVariable, KindRunInstant,
+		KindRearrangeCarried, KindSetVariable, KindRunInstant, KindReturnHero,
 	}
 	for _, k := range kinds {
 		if !built[k] {
