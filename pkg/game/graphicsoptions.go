@@ -35,16 +35,15 @@ func (f *FrontEnd) setGraphicsOption(onMap bool, option ui.GameOption, value int
 	v[option] = value
 	v = v.Constrained()
 	if f.Options.Path != "" {
-		m, err := f.Options.readAll()
-		if err != nil {
-			return err
-		}
-		for o, r := range gameOptionRows {
-			if r.graphics != nil {
-				m[gameOptionKeys[o]] = strconv.Itoa(v[o])
+		err := f.Options.update(func(m map[string]string) error {
+			for o, r := range gameOptionRows {
+				if r.graphics != nil {
+					m[gameOptionKeys[o]] = strconv.Itoa(v[o])
+				}
 			}
-		}
-		if err := f.Options.writeAll(m); err != nil {
+			return nil
+		})
+		if err != nil {
 			return err
 		}
 	}

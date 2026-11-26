@@ -52,20 +52,18 @@ func (s OptionsStore) EncounterCutscene(key string) error {
 	if !validMovieDirectory(key) {
 		return fmt.Errorf("invalid movie group %q", key)
 	}
-	m, err := s.readAll()
-	if err != nil {
-		return err
-	}
-	for _, existing := range strings.Split(m[seenMoviesKey], ",") {
-		if existing == key {
-			return nil
+	return s.update(func(m map[string]string) error {
+		for _, existing := range strings.Split(m[seenMoviesKey], ",") {
+			if existing == key {
+				return errOptionsUnchanged
+			}
 		}
-	}
-	if m[seenMoviesKey] != "" {
-		m[seenMoviesKey] += ","
-	}
-	m[seenMoviesKey] += key
-	return s.writeAll(m)
+		if m[seenMoviesKey] != "" {
+			m[seenMoviesKey] += ","
+		}
+		m[seenMoviesKey] += key
+		return nil
+	})
 }
 
 func (f *FrontEnd) movieCatalog() []ui.CutsceneEntry {

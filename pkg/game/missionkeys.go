@@ -17,20 +17,18 @@ func (s OptionsStore) MissionKeys(profile string) (ui.PlayerMissionKeys, error) 
 
 // SetMissionKeys replaces the game's layout; the other game's stays.
 func (s OptionsStore) SetMissionKeys(profile string, keys ui.PlayerMissionKeys) error {
-	m, err := s.readAll()
-	if err != nil {
-		return err
-	}
-	prefix := ui.MissionKeyPrefix(profile)
-	for k := range m {
-		if strings.HasPrefix(k, prefix) {
-			delete(m, k)
+	return s.update(func(m map[string]string) error {
+		prefix := ui.MissionKeyPrefix(profile)
+		for k := range m {
+			if strings.HasPrefix(k, prefix) {
+				delete(m, k)
+			}
 		}
-	}
-	for k, v := range keys.Entries(profile) {
-		m[k] = v
-	}
-	return s.writeAll(m)
+		for k, v := range keys.Entries(profile) {
+			m[k] = v
+		}
+		return nil
+	})
 }
 
 func (p *PersistenceContext) wireMissionKeys(a *ui.App, profile string) {

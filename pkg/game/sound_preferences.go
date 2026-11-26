@@ -41,14 +41,12 @@ func (s OptionsStore) SetSoundOptions(sound SoundOptions) error {
 	if sound.Volume < 0 || sound.Volume > audio.MasterUnit {
 		return fmt.Errorf("master volume %d outside [0,%d]", sound.Volume, audio.MasterUnit)
 	}
-	m, err := s.readAll()
-	if err != nil {
-		return err
-	}
-	m[soundEnabledKey] = "0"
-	if sound.Enabled {
-		m[soundEnabledKey] = "1"
-	}
-	m[masterVolumeKey] = strconv.Itoa(sound.Volume)
-	return s.writeAll(m)
+	return s.update(func(m map[string]string) error {
+		m[soundEnabledKey] = "0"
+		if sound.Enabled {
+			m[soundEnabledKey] = "1"
+		}
+		m[masterVolumeKey] = strconv.Itoa(sound.Volume)
+		return nil
+	})
 }

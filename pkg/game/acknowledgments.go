@@ -17,12 +17,11 @@ func (s OptionsStore) Acknowledgments() (bool, error) {
 
 func (f *FrontEnd) setAcknowledgments(on bool) error {
 	if f.Options.Path != "" {
-		m, err := f.Options.readAll()
+		err := f.Options.update(func(m map[string]string) error {
+			m[acknowledgmentKey] = strconv.Itoa(boolOption(on))
+			return nil
+		})
 		if err != nil {
-			return err
-		}
-		m[acknowledgmentKey] = strconv.Itoa(boolOption(on))
-		if err := f.Options.writeAll(m); err != nil {
 			return err
 		}
 	}

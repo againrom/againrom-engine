@@ -22,13 +22,11 @@ func (s OptionsStore) MusicPreferences() (ui.MusicPreferences, error) {
 }
 
 func (s OptionsStore) SetMusicPreferences(p ui.MusicPreferences) error {
-	values, err := s.readAll()
-	if err != nil {
-		return err
-	}
-	values["MusicEnabled"] = strconv.Itoa(boolOption(p.Enabled))
-	values["RandomOrder"] = strconv.Itoa(boolOption(p.RandomOrder))
-	return s.writeAll(values)
+	return s.update(func(values map[string]string) error {
+		values["MusicEnabled"] = strconv.Itoa(boolOption(p.Enabled))
+		values["RandomOrder"] = strconv.Itoa(boolOption(p.RandomOrder))
+		return nil
+	})
 }
 
 func musicTitles(table *TextTable) map[string]string {

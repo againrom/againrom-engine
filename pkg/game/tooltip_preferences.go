@@ -25,10 +25,8 @@ func (s OptionsStore) SetTooltipDelay(ms int) error {
 	if !ui.ValidTooltipDelay(ms) {
 		return fmt.Errorf("invalid tooltip delay %d", ms)
 	}
-	m, err := s.readAll()
-	if err != nil {
-		return err
-	}
-	m[tooltipDelayKey] = strconv.Itoa(ms)
-	return s.writeAll(m)
+	return s.update(func(m map[string]string) error {
+		m[tooltipDelayKey] = strconv.Itoa(ms)
+		return nil
+	})
 }

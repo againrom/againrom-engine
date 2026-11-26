@@ -38,14 +38,12 @@ func (s OptionsStore) SetSoundChannelVolumes(volumes audio.ChannelVolumes) error
 	if !volumes.Valid() {
 		return fmt.Errorf("sound channel volume outside [0,%d]", audio.MasterUnit)
 	}
-	values, err := s.readAll()
-	if err != nil {
-		return err
-	}
-	for channel, key := range soundChannelKeys {
-		values[key] = strconv.Itoa(volumes[channel])
-	}
-	return s.writeAll(values)
+	return s.update(func(values map[string]string) error {
+		for channel, key := range soundChannelKeys {
+			values[key] = strconv.Itoa(volumes[channel])
+		}
+		return nil
+	})
 }
 
 func (f *FrontEnd) setSoundChannel(channel audio.Channel, volume int) error {

@@ -28,16 +28,14 @@ func (s OptionsStore) setTimedAutosave(v ui.TimedAutosaveSettings) error {
 	if v.Minutes < 1 || v.Minutes > ui.MaxAutosaveMinutes {
 		return fmt.Errorf("autosave minutes outside valid duration")
 	}
-	m, err := s.readAll()
-	if err != nil {
-		return err
-	}
-	m["TimedAutosave"] = "0"
-	if v.Enabled {
-		m["TimedAutosave"] = "1"
-	}
-	m["TimedAutosaveMinutes"] = strconv.Itoa(v.Minutes)
-	return s.writeAll(m)
+	return s.update(func(m map[string]string) error {
+		m["TimedAutosave"] = "0"
+		if v.Enabled {
+			m["TimedAutosave"] = "1"
+		}
+		m["TimedAutosaveMinutes"] = strconv.Itoa(v.Minutes)
+		return nil
+	})
 }
 
 func timedSavePosition(kind ownedSlotKind, dir string) (int, uint64, error) {

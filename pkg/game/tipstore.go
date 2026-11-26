@@ -44,12 +44,40 @@ func DefaultOptionsPath(saveDirOverride string) (string, error) {
 	return filepath.Join(filepath.Dir(dir), optionsFileName), nil
 }
 
+// optionsReadFile is the read seam of readAll.
+var optionsReadFile = os.ReadFile
+
+// errOptionsUnchanged is returned by an update callback that changed nothing,
+// so update writes nothing and reports success.
+var errOptionsUnchanged = errors.New("options unchanged")
+
+// update is the one read-modify-write of the options file. A missing file
+// starts from an empty map. A file that exists and cannot be read is left as
+// it is and the read error is returned: writing from an empty map would drop
+// every other preference.
+func (s OptionsStore) update(change func(m map[string]string) error) error {
+	if s.Path == "" {
+		return errors.New("no options path configured")
+	}
+	m, err := s.readAll()
+	if err != nil {
+		return err
+	}
+	if err := change(m); err != nil {
+		if errors.Is(err, errOptionsUnchanged) {
+			return nil
+		}
+		return err
+	}
+	return s.writeAll(m)
+}
+
 func (s OptionsStore) readAll() (map[string]string, error) {
 	m := map[string]string{}
 	if s.Path == "" {
 		return m, nil
 	}
-	b, err := os.ReadFile(s.Path)
+	b, err := optionsReadFile(s.Path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return m, nil
@@ -204,37 +232,16 @@ func (s OptionsStore) SetFrameSmoothing(on bool) error {
 }
 
 func (s OptionsStore) setSwitch(key string, on bool) error {
-	if s.Path == "" {
-		return errors.New("no options path configured")
-	}
-	m, err := s.readAll()
-	if err != nil {
-		m = map[string]string{}
-	}
-	if on {
-		m[key] = "1"
-	} else {
-		m[key] = "0"
-	}
-	return s.writeAll(m)
+	return s.update(func(m map[string]string) error {
+		m[key] = strconv.Itoa(boolOption(on))
+		return nil
+	})
 }
 
 // SetTipsMode writes the preference, keeping every other key already in the
 // file untouched.
 func (s OptionsStore) SetTipsMode(on bool) error {
-	if s.Path == "" {
-		return errors.New("no options path configured")
-	}
-	m, err := s.readAll()
-	if err != nil {
-		m = map[string]string{}
-	}
-	if on {
-		m[tipsModeKey] = "1"
-	} else {
-		m[tipsModeKey] = "0"
-	}
-	return s.writeAll(m)
+	return s.setSwitch(tipsModeKey, on)
 }
 
 // GameSpeed reads the normal deadline-paced cadence rung. A missing store,
@@ -267,19 +274,14 @@ func (s OptionsStore) GameSpeed() (int, error) {
 // corrupted value here would make a later process treat an unintended ladder
 // edge as a deliberate player choice.
 func (s OptionsStore) SetGameSpeed(rung int) error {
-	if s.Path == "" {
-		return errors.New("no options path configured")
-	}
 	if rung < terrain.CadenceRungMin || rung > terrain.CadenceRungMax {
 		return fmt.Errorf("game speed rung %d outside [%d,%d]", rung,
 			terrain.CadenceRungMin, terrain.CadenceRungMax)
 	}
-	m, err := s.readAll()
-	if err != nil {
-		m = map[string]string{}
-	}
-	m[gameSpeedKey] = strconv.Itoa(rung)
-	return s.writeAll(m)
+	return s.update(func(m map[string]string) error {
+		m[gameSpeedKey] = strconv.Itoa(rung)
+		return nil
+	})
 }
 
 // WimpyMode reads Ctrl+W's current persisted label. Missing, malformed and
@@ -309,18 +311,13 @@ func (s OptionsStore) WimpyMode() (int, error) {
 // other option. Invalid values are refused rather than folded onto a real
 // label.
 func (s OptionsStore) SetWimpyMode(mode int) error {
-	if s.Path == "" {
-		return errors.New("no options path configured")
-	}
 	if mode < wimpyModeOff || mode > wimpyModeHigh {
 		return fmt.Errorf("wimpy mode %d outside [%d,%d]", mode, wimpyModeOff, wimpyModeHigh)
 	}
-	m, err := s.readAll()
-	if err != nil {
-		m = map[string]string{}
-	}
-	m[wimpyModeKey] = strconv.Itoa(mode)
-	return s.writeAll(m)
+	return s.update(func(m map[string]string) error {
+		m[wimpyModeKey] = strconv.Itoa(mode)
+		return nil
+	})
 }
 
 // LoadOptions reads the process preferences cached by FrontEnd. Called once

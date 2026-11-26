@@ -277,12 +277,10 @@ func (s OptionsStore) setGameOption(o ui.GameOption, value int) error {
 	if value < 0 || value >= o.Choices() {
 		return fmt.Errorf("invalid game option %d value %d", o, value)
 	}
-	m, err := s.readAll()
-	if err != nil {
-		return err
-	}
-	m[gameOptionKeys[o]] = strconv.Itoa(value)
-	return s.writeAll(m)
+	return s.update(func(m map[string]string) error {
+		m[gameOptionKeys[o]] = strconv.Itoa(value)
+		return nil
+	})
 }
 
 // sessionValue is the row's value without the profile or the live map.
