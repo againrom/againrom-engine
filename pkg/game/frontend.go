@@ -1343,11 +1343,11 @@ func (f *FrontEnd) loadMap(index int) (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.M
 // The loose read folds its name, which is DirMaps' note in full: the row a scan
 // listed in the case the host stores it under is read in the folded one (0027 C-3,
 // R-2).
-func (f *FrontEnd) mapBytes(e MapEntry) ([]byte, error) {
+func (in *InstallResources) mapBytes(e MapEntry) ([]byte, error) {
 	if e.FromArchive {
-		return f.Archives.Containers.ReadFile(scenarioPrefix + e.Source)
+		return in.Archives.Containers.ReadFile(scenarioPrefix + e.Source)
 	}
-	return f.Archives.Loose.ReadFile(e.Source)
+	return in.Archives.Loose.ReadFile(e.Source)
 }
 
 // PartyClass, the class key the one party member a mission starts with carried,
@@ -1443,20 +1443,26 @@ func (f *FrontEnd) missionOpener(n int, party []mapload.PartyMember, snap *Snaps
 func (f *FrontEnd) missionOpenerMode(n int, party []mapload.PartyMember, snap *Snapshot,
 	initialPurse *uint32, prepare func(*alm.Map) (*originalFog, error), activate *func(),
 	candidateUnits *terrain.UnitSet, difficulty mapload.Difficulty, town *Town) ui.MapOpener {
+	return f.requestOpener(missionRequest{n: n, party: party, snap: snap, initialPurse: initialPurse, prepare: prepare,
+		activate: activate, units: candidateUnits, difficulty: difficulty, town: town})
+}
+
+// requestOpener is the mission door over one request: a campaign mission, a
+// resume, or a session's loose map (missionRequest.session). A request with
+// no units opens over the front end's own.
+func (f *FrontEnd) requestOpener(req missionRequest) ui.MapOpener {
 	// The opener owns the roster at creation time. A later town/selection/save
 	// write therefore cannot change the members this door will construct, and
 	// legacy callers that did not yet carry stable IDs gain them here.
-	party = mapload.OwnParty(party)
-	units := f.Units
-	if candidateUnits != nil {
-		units = candidateUnits
+	req.party = mapload.OwnParty(req.party)
+	if req.units == nil {
+		req.units = f.Units
 	}
-	req := missionRequest{n: n, party: party, snap: snap, initialPurse: initialPurse, prepare: prepare,
-		activate: activate, units: units, difficulty: difficulty, town: town}
+	n := req.n
 	return func() (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.MapCadence, ui.MapAffect, ui.MapAdvance, ui.MapAttack, ui.MapGrab, ui.MapStance, ui.MapMarch, error) {
 		request := req
 		previousGuest := f.missionIdentity(n).record
-		if request.fresh() {
+		if request.fresh() && request.session == nil {
 			id := request.town.missionIdentity(n, tableMissions(f.Table))
 			if m := id.declared(); m != nil {
 				if !id.guest {

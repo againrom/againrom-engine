@@ -799,12 +799,9 @@ func (f *flow) loadPrepared(open MapOpener, town bool) error {
 	if open == nil {
 		return fmt.Errorf("the save named no game")
 	}
-	v, tick, order, cadence, affect, advance, attack, grab, stance, march, err := open()
-	if err != nil {
+	if err := f.enterOpened(open); err != nil {
 		return err
 	}
-	f.leaveMap()
-	f.enter(v, tick, order, cadence, affect, advance, attack, grab, stance, march)
 	f.loadUI.completed++
 	return nil
 }

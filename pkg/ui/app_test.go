@@ -252,7 +252,7 @@ func TestAppDispatch(t *testing.T) {
 	t.Run("the remaining unbound buttons are consumed and do nothing", func(t *testing.T) {
 		n := 0
 		for b := 1; b <= menu.ButtonCount; b++ {
-			if b == menu.NewGameButton || b == menu.ExitButton || b == menu.LoadGameButton || b == menu.CutscenesButton || b == menu.CreditsButton {
+			if b == menu.NewGameButton || b == menu.ExitButton || b == menu.LoadGameButton || b == menu.CutscenesButton || b == menu.CreditsButton || b == menu.MultiplayerButton {
 				continue
 			}
 			n++
@@ -266,9 +266,9 @@ func TestAppDispatch(t *testing.T) {
 				t.Errorf("activating button %d moved to %v, want the menu unchanged", b, a.Screen())
 			}
 		}
-		if n != menu.ButtonCount-5 {
-			t.Errorf("checked %d unbound buttons, want %d — five are bound in this fixture",
-				n, menu.ButtonCount-5)
+		if n != menu.ButtonCount-6 {
+			t.Errorf("checked %d unbound buttons, want %d — six are bound in this fixture",
+				n, menu.ButtonCount-6)
 		}
 	})
 

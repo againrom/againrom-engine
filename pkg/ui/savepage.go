@@ -163,12 +163,16 @@ func defaultCharacterPage() CharacterPage {
 // rows and the message line, which counts the files it left out; CanDelete
 // and PrepareDelete are the Load page's delete seams for a row's name. New
 // is the generator the New row opens, whose accept stores the character; nil
-// leaves the New row doing nothing.
+// leaves the New row doing nothing. Maps are the rows of the map choice a
+// character row opens, and Enter opens the chosen map with that character;
+// either nil leaves a character row doing nothing.
 type CharacterFiles struct {
 	List          func() ([]SaveEntry, string)
 	CanDelete     func(string) bool
 	PrepareDelete func(string) (func() error, error)
 	New           func() *ChargenEntry
+	Maps          func() []MapChoiceItem
+	Enter         func(character, mapSource string) (MapOpener, error)
 }
 
 // SetCharacterPage installs a game's character role data.

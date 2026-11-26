@@ -24,8 +24,14 @@ func (s installMission) constructCurrentBuildings(ms *Mission) error {
 	return constructCurrentBuildings(ms, s.in.Archives.Containers, s.in.Table.ModTerrain())
 }
 
-func (s installMission) decodeMission(addr string) (*MapView, error) {
-	mapBytes, err := s.in.Archives.Containers.ReadFile(addr)
+func (s installMission) decodeMission(addr string, loose bool) (*MapView, error) {
+	var mapBytes []byte
+	var err error
+	if loose {
+		mapBytes, err = s.in.mapBytes(MapEntry{Source: addr})
+	} else {
+		mapBytes, err = s.in.Archives.Containers.ReadFile(addr)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", addr, err)
 	}

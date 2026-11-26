@@ -23,10 +23,23 @@ type missionRequest struct {
 	difficulty        mapload.Difficulty
 	town              *Town
 	projectileCounter uint16
+	// session is the multiplayer session whose loose map this request enters
+	// in place of a campaign mission; nil is a campaign mission.
+	session *mapSession
 }
 
 // fresh is a mission started rather than resumed.
 func (r missionRequest) fresh() bool { return r.snap == nil && r.prepare == nil }
+
+// admit names the map r enters and its difficulty: a session's loose map,
+// else what the campaign admits for mission n.
+func (r missionRequest) admit(rules campaignService) (string, mapload.Difficulty, error) {
+	if r.session != nil {
+		diff, err := campaignDifficulty(int64(r.difficulty))
+		return r.session.entry.Source, diff, err
+	}
+	return admitMission(rules, r.town, r.n, !r.fresh(), r.difficulty)
+}
 
 // missionPorts are the services a mission entry reaches, each through the
 // narrowest thing that names it, so the entry sequence is the same whichever
@@ -73,8 +86,9 @@ type missionInstall interface {
 	// missionTable is the definition table the mission is started over.
 	missionTable() *mapload.Table
 	constructCurrentBuildings(ms *Mission) error
-	// decodeMission reads and decodes the map at addr into a viewer.
-	decodeMission(addr string) (*MapView, error)
+	// decodeMission reads and decodes the map at addr into a viewer: a
+	// loose map file when loose, else a container entry.
+	decodeMission(addr string, loose bool) (*MapView, error)
 	// nameJoinedRoster resolves the displayed names and bodies of the roster
 	// a map supplies.
 	nameJoinedRoster(ms *Mission)
@@ -116,17 +130,17 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	if r.fresh() {
 		r.projectileCounter = ports.projectiles.value()
 	}
-	addr, diff, err := admitMission(ports.rules(), r.town, r.n, !r.fresh(), r.difficulty)
+	addr, diff, err := r.admit(ports.rules())
 	if err != nil {
 		return preparedMap{}, err
 	}
-	if r.fresh() {
+	if r.fresh() && r.session == nil {
 		r.party, err = enterHires(ports.rules(), r.party, r.town, ports.install.missionTable())
 		if err != nil {
 			return preparedMap{}, err
 		}
 	}
-	mv, err := ports.install.decodeMission(addr)
+	mv, err := ports.install.decodeMission(addr, r.session != nil)
 	if err != nil {
 		return preparedMap{}, err
 	}
@@ -210,8 +224,14 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	}
 	pace := ports.bindSeams(mw, mv.Viewer)
 	audioReady = true
+	// A session's map has no campaign successor: its notices take the
+	// driver's own advance.
+	advance := mw.advanceNotice
+	if r.session == nil {
+		advance = ports.advance(r.n, ms, mw.advanceNotice)
+	}
 	return preparedMap{viewer: mv.Viewer, tick: pace, order: mw.enqueue, cadence: mw.setCadenceMode,
-		affect: mw.affect, advance: ports.advance(r.n, ms, mw.advanceNotice), attack: mw.attackOrCast,
+		affect: mw.affect, advance: advance, attack: mw.attackOrCast,
 		grab: mw.grab, stance: mw.stance, march: mw.march}, nil
 }
 

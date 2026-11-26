@@ -24,6 +24,10 @@ const characterFolder = "characters"
 // decoders need only the header.
 const maxCharacterRead = 1 << 16
 
+// maxCharacterFile bounds a whole file a map entry reads: six sections of
+// at most a2c.MaxBody bytes each fit below it.
+const maxCharacterFile = 1 << 20
+
 // CharacterStore is the player profile's character folder. Each game's
 // files are in the subfolder its row names; the install is never read
 // (DIV-5194).
@@ -49,6 +53,8 @@ type characterStoreRow struct {
 	// last; record is the file of a generated character under that name.
 	fileName func(at int) (string, bool)
 	record   func(f *FrontEnd, res ui.ChargenResult, at int) ([]byte, error)
+	// read decodes a whole file as the character a map entry takes.
+	read func(f *FrontEnd, b []byte) (storedCharacter, error)
 }
 
 // characterStats are the generator's four statistics in the order both
@@ -87,7 +93,7 @@ var firstCharacterFiles = characterStoreRow{dir: "rom1", ext: ".chr", order: new
 	// The name's prefix text is unread and the original numbers by the
 	// selected row; this is the lowest free number (DIV-5242).
 	fileName: func(at int) (string, bool) { return fmt.Sprintf("char%04d.chr", at), at <= lastCharacterName },
-	record:   firstCharacterRecord}
+	record:   firstCharacterRecord, read: firstStoredCharacter}
 
 // secondCharacterFiles reads the .a2c files (R2-SESSION-022, R2-ENGINE-1840).
 var secondCharacterFiles = characterStoreRow{dir: "rom2", ext: ".a2c", order: newestFirst, newEntry: "characters.new",
@@ -98,7 +104,7 @@ var secondCharacterFiles = characterStoreRow{dir: "rom2", ext: ".a2c", order: ne
 	// The name is the identity pair's two numbers, as the original's; the
 	// pair is (1, at) in place of a counter reading (DIV-5242).
 	fileName: func(at int) (string, bool) { return fmt.Sprintf("1%d.a2c", at), at <= lastCharacterName },
-	record:   secondCharacterRecord}
+	record:   secondCharacterRecord, read: secondStoredCharacter}
 
 // firstCharacterRecord is the short AlCh file: flag bit 0, the name and the
 // four statistics, every other span zero (HERO-213, DIV-5240).
@@ -151,19 +157,7 @@ func listCharacters(dir string, row characterStoreRow) ([]characterFile, int, er
 }
 
 func readCharacter(path string, row characterStoreRow) (characterFile, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return characterFile{}, err
-	}
-	defer f.Close()
-	info, err := f.Stat()
-	if err != nil {
-		return characterFile{}, err
-	}
-	if !info.Mode().IsRegular() {
-		return characterFile{}, fmt.Errorf("character file is not a regular file")
-	}
-	b, err := io.ReadAll(io.LimitReader(f, maxCharacterRead))
+	b, info, err := readCharacterBytes(path, maxCharacterRead, false)
 	if err != nil {
 		return characterFile{}, err
 	}
@@ -174,8 +168,47 @@ func readCharacter(path string, row characterStoreRow) (characterFile, error) {
 	return characterFile{File: filepath.Base(path), Name: name, Time: info.ModTime()}, nil
 }
 
-// characterDeletePath is the listed file name inside dir, or a refusal.
-func characterDeletePath(dir, name string, row characterStoreRow, fences []string, profile *runtimeProfileAccess) (string, error) {
+// readCharacterBytes reads at most limit bytes of the regular file at path;
+// with whole set a longer file is refused.
+func readCharacterBytes(path string, limit int64, whole bool) ([]byte, os.FileInfo, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return nil, nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, nil, fmt.Errorf("character file is not a regular file")
+	}
+	if whole && info.Size() > limit {
+		return nil, nil, fmt.Errorf("character file is larger than %d bytes", limit)
+	}
+	b, err := io.ReadAll(io.LimitReader(f, limit))
+	return b, info, err
+}
+
+// readStoredCharacter reads the listed file name of the game's row in store
+// as the character a map entry takes.
+func (f *FrontEnd) readStoredCharacter(store CharacterStore, row characterStoreRow, name string) (storedCharacter, error) {
+	if row.read == nil {
+		return storedCharacter{}, errors.New(f.Words.Engine.Text("characters.unstored"))
+	}
+	path, err := characterFilePath(store.path(row), name, row, f.characterFences(), store.profile)
+	if err != nil {
+		return storedCharacter{}, err
+	}
+	b, _, err := readCharacterBytes(path, maxCharacterFile, true)
+	if err != nil {
+		return storedCharacter{}, err
+	}
+	return row.read(f, b)
+}
+
+// characterFilePath is the listed file name inside dir, or a refusal.
+func characterFilePath(dir, name string, row characterStoreRow, fences []string, profile *runtimeProfileAccess) (string, error) {
 	if dir == "" || !namefold.HostEqual(filepath.Ext(name), row.ext) {
 		return "", fmt.Errorf("invalid character file name")
 	}
@@ -299,6 +332,19 @@ func (f *FrontEnd) characterFiles(store CharacterStore) ui.CharacterFiles {
 			}
 			return rows, fmt.Sprintf(left, skipped)
 		},
+		// A character row opens the game's multiplayer map choice, and the
+		// chosen map is entered with that character (DIV-5196, DIV-2369).
+		Maps: func() []ui.MapChoiceItem {
+			items, _ := f.MultiplayerMapChoice()
+			return items
+		},
+		Enter: func(character, source string) (ui.MapOpener, error) {
+			s, err := f.newMapSession(store, row, character, source)
+			if err != nil {
+				return nil, err
+			}
+			return f.sessionOpener(s)
+		},
 	}
 	if !f.directNewGame() {
 		// The new entry runs the campaign's generator pages and stores the
@@ -314,11 +360,11 @@ func (f *FrontEnd) characterFiles(store CharacterStore) ui.CharacterFiles {
 		return out
 	}
 	out.CanDelete = func(name string) bool {
-		_, err := characterDeletePath(dir, name, row, fences, store.profile)
+		_, err := characterFilePath(dir, name, row, fences, store.profile)
 		return err == nil
 	}
 	out.PrepareDelete = func(name string) (func() error, error) {
-		path, err := characterDeletePath(dir, name, row, fences, store.profile)
+		path, err := characterFilePath(dir, name, row, fences, store.profile)
 		if err != nil {
 			return nil, err
 		}

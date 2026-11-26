@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] New Character in the multiplayer character list now opens the character generator, and Accept saves the new character in the original's file format and shows it in the list.
+- [BASE] Accepting a character in the multiplayer character list now opens the multiplayer map choice, and Ok starts the chosen map with that character, its statistics, money and experience.
 - [ROM1] A map can trigger an event when a chosen unit leaves its starting cell.
 - [ROM1] A unit moved by a teleport stays where it lands instead of walking back.
 - [ROM1] An armour or a shield with a spell is priced as the original prices it, by the spell's power, and no longer at a weapon's spell price.

@@ -585,6 +585,21 @@ func (f *FrontEnd) generatorTemplateName(res ui.ChargenResult) string {
 	return heroTemplate(f.generator(), female, mage)
 }
 
+// generatorChoices is the sex and class choices whose preset names the unit
+// row template, or false where none does.
+func (f *FrontEnd) generatorChoices(template string) ([]int, bool) {
+	choices := make([]int, chargenChoiceCount)
+	for _, mage := range []bool{false, true} {
+		for _, female := range []bool{false, true} {
+			if heroTemplate(f.generator(), female, mage) == template {
+				choices[chargenChoiceSex], choices[chargenChoiceClass] = int(boolInt32(female)), int(boolInt32(mage))
+				return choices, true
+			}
+		}
+	}
+	return choices, false
+}
+
 // generatorParty is the party a result makes under its game's generator row.
 // The chosen sex and class pick the base row; with campaignOutfit the weapon
 // is the campaign part's for the chosen skill, the school skills are cleared

@@ -239,7 +239,9 @@ func TestMissionEntryRefusedByTheCampaignTouchesNoAudio(t *testing.T) {
 // that refuses the decode stops the entry before audio, start or commit.
 type refusingInstall struct{ missionInstall }
 
-func (refusingInstall) decodeMission(string) (*MapView, error) { return nil, errors.New("no map") }
+func (refusingInstall) decodeMission(string, bool) (*MapView, error) {
+	return nil, errors.New("no map")
+}
 
 func (refusingInstall) constructCurrentBuildings(*Mission) error { return nil }
 

@@ -1,5 +1,7 @@
 package ui
 
+import "fmt"
+
 // listRole is one role of the list page on the load screen: its page, where
 // its rows come from, what Ok does, whom closing answers and which rows
 // Delete may remove. The page reads the open role's fields and never asks
@@ -61,14 +63,14 @@ func loadListRole() *listRole {
 
 // characterListRole is the character list the menu's Multiplayer button
 // opens: the store's character rows, then the New row. Ok on the New row
-// opens the store's generator; Ok on a character row does nothing yet
-// (DIV-2369).
+// opens the store's generator; Ok on a character row opens the map choice
+// (DIV-2369, DIV-5196).
 func characterListRole() *listRole {
 	return &listRole{
 		roleName: characterRoleName,
 		page:     func(f *flow) SavePage { return f.installedLoadPage().asCharacterList(f.characterPage()) },
 		list:     (*flow).characterRows,
-		accept:   (*flow).newCharacter,
+		accept:   (*flow).acceptCharacter,
 		deletes:  (*flow).characterDeletes,
 	}
 }
@@ -193,14 +195,38 @@ func (f *flow) characterRows() ([]SaveEntry, []PickerRow, string) {
 	return saves, rows, message
 }
 
-// newCharacter is Ok on the character list: on the New row it shows the
-// store's generator over the list (R2-ENGINE-1840, MENU-169). The
-// generator's accept stores the character and opens the list again with
-// the new file's row selected; its Back and Escape return to the list.
-func (f *flow) newCharacter() {
+// acceptCharacter is Ok on the character list: the New row runs
+// newCharacter, a character row chooseCharacterMap.
+func (f *flow) acceptCharacter() {
 	i, ok := f.loadList.Choose()
+	switch {
+	case !ok:
+	case i == len(f.saves):
+		f.newCharacter()
+	case i >= 0 && i < len(f.saves):
+		f.chooseCharacterMap(f.saves[i].Name)
+	}
+}
+
+// showCharacters opens the character list over back with the first row pick
+// accepts selected.
+func (f *flow) showCharacters(back Screen, pick func(SaveEntry) bool) {
+	f.openListPage(back, characterListRole())
+	for j, s := range f.saves {
+		if pick(s) {
+			f.loadList.Select(j)
+			break
+		}
+	}
+}
+
+// newCharacter shows the store's generator over the list (R2-ENGINE-1840,
+// MENU-169). The generator's accept stores the character and opens the list
+// again with the new file's row selected; its Back and Escape return to the
+// list.
+func (f *flow) newCharacter() {
 	create := f.pages.characterFiles.New
-	if !ok || i != len(f.saves) || create == nil {
+	if create == nil {
 		return
 	}
 	e := create()
@@ -216,16 +242,57 @@ func (f *flow) newCharacter() {
 		if open, err := e.Begin(res); err != nil || open != nil {
 			return open, err
 		}
-		f.openListPage(back, characterListRole())
-		for j, s := range f.saves {
-			if !listed[s.Name] {
-				f.loadList.Select(j)
-				break
-			}
-		}
+		f.showCharacters(back, func(s SaveEntry) bool { return !listed[s.Name] })
 		return nil, nil
 	}
 	f.armChargen(e.Model, begin, ScreenLoad)
+}
+
+// chooseCharacterMap opens the map choice for the character file named
+// character, with no connection step (DIV-5196). Cancel and Escape show the
+// character list again with that row selected; Ok enters the chosen map with
+// the character, and a refusal shows the list with the reason on its message
+// line.
+func (f *flow) chooseCharacterMap(character string) {
+	c := f.pages.characterFiles
+	if c.Maps == nil || c.Enter == nil {
+		return
+	}
+	back := f.loadBack
+	again := func(message string) {
+		f.showCharacters(back, func(s SaveEntry) bool { return s.Name == character })
+		if message != "" {
+			f.msg = message
+		}
+	}
+	f.openListPage(back, mapListRole(c.Maps(), func(res MapChoiceResult) {
+		if !res.OK {
+			again("")
+			return
+		}
+		open, err := c.Enter(character, res.Chosen)
+		if err == nil {
+			err = f.enterOpened(open)
+		}
+		if err != nil {
+			again(err.Error())
+		}
+	}))
+}
+
+// enterOpened runs open and shows the map it opens in place of the current
+// screen.
+func (f *flow) enterOpened(open MapOpener) error {
+	if open == nil {
+		return fmt.Errorf("no map to enter")
+	}
+	v, tick, order, cadence, affect, advance, attack, grab, stance, march, err := open()
+	if err != nil {
+		return err
+	}
+	f.leaveMap()
+	f.enter(v, tick, order, cadence, affect, advance, attack, grab, stance, march)
+	return nil
 }
 
 // characterDeletes are the character store's delete seams where the game's
