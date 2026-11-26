@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.161.0
+
 ### For players
 
 - [BASE] A quick load that the active mods refuse now opens the same mod mismatch window as the Load page, and the quick save and quick load messages are now shown in the game's language instead of English.
