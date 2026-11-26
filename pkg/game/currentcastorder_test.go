@@ -54,6 +54,61 @@ func castOrderHP(w *sim.World, id sim.EntityID) int32 {
 	return 0
 }
 
+func TestCurrentSAVFireBallAimedAtMovingUnit(t *testing.T) {
+	f := castOrderFront(t)
+	const fireBall = 2
+	p := f.Table.Spells.(dbCollection)[fireBall].params
+	p[1], p[2], p[5], p[6], p[7] = 5, 1, 2, 20, 16
+	p[8], p[9], p[16], p[17] = 3, 1, 5, 5
+	actors := f.live.world.Entities()
+	actors[0].KnownSpells, actors[0].Mana, actors[0].ManaRegenPeriod = 1<<fireBall, 5, 0
+	actors[1].HP = actors[1].MaxHP
+	live, err := sim.NewSpelledWorld(1, f.live.world.Bounds(), sim.ModeCanonical, nil, actors, nil, mapload.SpellRules(f.Table))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.live.world, f.live.mission.state.World = insertFixtureRuntimeIDs(live), live
+	sim.Step(live, []sim.Command{sim.MoveTo(2, sim.CellPoint{X: 27, Y: 10})})
+	sim.Step(live, []sim.Command{sim.Cast(1, 2, fireBall)})
+	for step := 0; step < 64 && live.PendingSpellDeliveries() == 0; step++ {
+		sim.Step(live, nil)
+	}
+	sim.Step(live, nil)
+	rows := live.NativeSpellDeliverySaveStates()
+	if len(rows) != 1 || rows[0].Area.Spell != fireBall || rows[0].Released || rows[0].Remaining == 0 {
+		t.Fatal("expected one Fire Ball in flight", rows)
+	}
+	aimX, aimY := int32(byte(rows[0].Area.Key)), int32(rows[0].Area.Key>>8)
+	raw, _, _ := saveCurrentEffect(t, f)
+	cold := openCurrentEffectSave(t, f, raw).live.world
+	for range int(rows[0].Remaining) + 1 {
+		sim.Step(live, nil)
+		sim.Step(cold, nil)
+	}
+	for _, w := range []*sim.World{live, cold} {
+		target, ok := w.Entity(2)
+		if !ok || target.X <= aimX+1 || target.HP != actors[1].HP {
+			t.Fatalf("target did not escape the blast at (%d,%d): position (%d,%d), HP %d", aimX, aimY, target.X, target.Y, target.HP)
+		}
+		bursts := 0
+		for _, p := range w.SavedProjectiles().Items {
+			if p.Picture == 13 {
+				bursts++
+				if p.X != aimX*256+128 || p.Y != aimY*256+128 {
+					t.Fatalf("burst at (%d,%d), want centre of (%d,%d)", p.X, p.Y, aimX, aimY)
+				}
+			}
+		}
+		if bursts != 1 {
+			t.Fatalf("got %d Fire Ball bursts, want one", bursts)
+		}
+	}
+	if live.Hash() != cold.Hash() {
+		t.Fatalf("post-impact World.Hash live=%016x loaded=%016x", live.Hash(), cold.Hash())
+	}
+	t.Logf("SAV bytes=%d, impact=(%d,%d), post-impact hashes %016x / %016x", len(raw), aimX, aimY, live.Hash(), cold.Hash())
+}
+
 func castOrderRecord(t *testing.T, doc sav.DocumentData, a *currentActionData, id sim.EntityID) sav.DocumentRecordData {
 	t.Helper()
 	for _, b := range a.Bindings {

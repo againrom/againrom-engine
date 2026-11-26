@@ -163,6 +163,51 @@ func TestCurrentDeliveryUsesOrdinaryMutationsWithoutChangingPolicy(t *testing.T)
 	}
 }
 
+func TestCurrentDeliveryFireBallAimedAtMovingUnit(t *testing.T) {
+	caster := effectMage(1, 1, 1, 1<<fireBallSpell)
+	runner, bystander := spEnt(2, 5, 1), spEnt(3, 6, 2)
+	runner.Owner, bystander.Owner = 2, 2
+	rule := SpellRule{ID: fireBallSpell, Area: true, Distribution: distributionDiamond, Radius: 1,
+		Damaging: true, DamageMin: 5, DamageMax: 5, MaxRange: 15, Delivery: 2, EffectSpeed: 128}
+	live := spWorld(t, 1, []SpellRule{rule}, caster, runner, bystander)
+	Step(live, []Command{MoveTo(2, CellPoint{X: 14, Y: 1})})
+	aim := live.entities[1]
+	if !aim.HasTarget || !live.castSpell(0, aim.ID, fireBallSpell, nil) {
+		t.Fatal("could not cast Fire Ball at the moving unit")
+	}
+	Step(live, nil)
+	rows := live.NativeSpellDeliverySaveStates()
+	if len(rows) != 1 || rows[0].Released || rows[0].Remaining == 0 {
+		t.Fatal("expected one transport in flight", rows)
+	}
+	cold := transferCurrentDelivery(t, live, nil)
+	for step := 0; step <= int(rows[0].Remaining); step++ {
+		Step(live, nil)
+		Step(cold, nil)
+		if step < int(rows[0].Remaining) && (len(live.SavedProjectiles().Items) != 0 || len(cold.SavedProjectiles().Items) != 0) {
+			t.Fatalf("burst before landing on step %d", step+1)
+		}
+	}
+	for _, world := range []*World{live, cold} {
+		target, _ := world.Entity(aim.ID)
+		bursts := world.SavedProjectiles().Items
+		if world.PendingSpellDeliveries() != 0 || len(bursts) != 1 || bursts[0].Picture != fireBallBurstPicture() {
+			t.Fatalf("expected one Fire Ball impact, got %+v", bursts)
+		}
+		if bursts[0].X != aim.X*256+128 || bursts[0].Y != aim.Y*256+128 || target.X <= aim.X+1 || target.HP != aim.HP {
+			t.Fatalf("aim (%d,%d), burst (%d,%d), target (%d,%d) HP %d/%d", aim.X, aim.Y, bursts[0].X, bursts[0].Y, target.X, target.Y, target.HP, aim.HP)
+		}
+		if occupant, _ := world.Entity(bystander.ID); occupant.HP >= bystander.HP {
+			t.Fatalf("bystander in blast radius kept %d HP", occupant.HP)
+		}
+	}
+	if live.Hash() != cold.Hash() {
+		t.Fatalf("post-impact World.Hash live=%016x restored=%016x", live.Hash(), cold.Hash())
+	}
+	t.Logf("impact=(%d,%d) in both worlds; target=(%d,%d) HP %d; bystander HP %d -> %d; post-impact hashes %016x / %016x",
+		aim.X, aim.Y, live.entities[1].X, live.entities[1].Y, live.entities[1].HP, bystander.HP, live.entities[2].HP, live.Hash(), cold.Hash())
+}
+
 func TestCurrentDeliveryAreaKeepsAimRadiusPayloadAndCloudLife(t *testing.T) {
 	for _, spell := range []uint16{2, 3} {
 		w := deliveryTestWorld(t, spell)
