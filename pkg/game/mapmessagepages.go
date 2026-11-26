@@ -104,16 +104,16 @@ func (s *mapInspectionEdits) MessageFields(page uint32, source ...int) []ui.Insp
 	if s.prepareWorkspace() != nil {
 		return nil
 	}
-	raw := []byte(newMessagePage)
+	raw := s.inspector.messageUTF8([]byte(newMessagePage))
 	if page != ui.NewMessagePage {
 		var exists bool
-		if raw, exists = s.workspace.Pages[messageFilename(page)]; !exists {
+		if raw, exists = s.messagePage(page); !exists {
 			return nil
 		}
 	}
-	body, speaker := splitMessage(s.inspector.messageUTF8(raw))
+	body, speaker := splitMessage(raw)
 	if len(source) == 0 {
-		d := decodeMessageMarkup(s.inspector.messageUTF8(raw))
+		d := decodeMessageMarkup(raw)
 		if open, _, _, ok := eventPartRange([]byte(d.Raw), 1, EventAudience{}); ok {
 			for _, tag := range d.Tags {
 				if tag.Open == open {
@@ -231,7 +231,7 @@ func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64)
 	if fields[0].TextValue == body && fields[1].Value == speaker {
 		return nil, nil
 	}
-	raw := s.inspector.messageUTF8(s.workspace.Pages[messageFilename(page)])
+	raw, _ := s.messagePage(page)
 	d := decodeMessageMarkup(raw)
 	parts := s.MessageParts(page)
 	if open, _, _, ok := eventPartRange([]byte(raw), 1, EventAudience{}); ok {
@@ -349,14 +349,14 @@ func (s *mapInspectionEdits) MessageParts(page uint32) []ui.InspectionMessagePar
 	if s.prepareWorkspace() != nil {
 		return nil
 	}
-	raw, exists := s.workspace.Pages[messageFilename(page)]
+	raw, exists := s.messagePage(page)
 	if page == ui.NewMessagePage {
 		return []ui.InspectionMessagePart{{Source: -1, Number: 1, Speaker: -1}}
 	}
 	if !exists {
 		return nil
 	}
-	d := decodeMessageMarkup(s.inspector.messageUTF8(raw))
+	d := decodeMessageMarkup(raw)
 	out := messageCells(d, s.heroAudiences())
 	if len(out) == 0 {
 		out = append(out, ui.InspectionMessagePart{Source: -1, Number: 1, Body: d.Raw, Speaker: -1})
@@ -373,11 +373,11 @@ func (s *mapInspectionEdits) SetMessageParts(page uint32, parts []ui.InspectionM
 	if s.prepareWorkspace() != nil || len(parts) == 0 {
 		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
 	}
-	raw, exists := s.workspace.Pages[messageFilename(page)]
+	raw, exists := s.messagePage(page)
 	if !exists {
 		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
 	}
-	d := decodeMessageMarkup(s.inspector.messageUTF8(raw))
+	d := decodeMessageMarkup(raw)
 	for _, part := range parts {
 		fields := s.MessageFields(page, part.Source)
 		valid := false
@@ -407,7 +407,7 @@ func (s *mapInspectionEdits) SetMessageParts(page uint32, parts []ui.InspectionM
 		return nil, errors.New(s.inspector.word("editor.message.unreached"))
 	}
 	previous := s.page
-	s.page = messageFilename(page)
+	s.page = s.messagePageName(page)
 	defer func() { s.page = previous }()
 	return s.SetWorkspaceField("pages", "body", value)
 }

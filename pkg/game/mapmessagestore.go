@@ -48,8 +48,6 @@ type messageStore struct {
 // messagePageForm is the first game's message page name.
 const messagePageForm = "event%02d.txt"
 
-func messageFilename(n uint32) string { return fmt.Sprintf(messagePageForm, n) }
-
 // missionPageNamed is a typed name as a mission page file.
 func missionPageNamed(value string) (string, error) {
 	name := strings.ToLower(value)
@@ -468,4 +466,15 @@ func (s *mapInspectionEdits) sectionsForSave() modTexts {
 	}
 	rel := path.Join(mod.FilesDir, s.inspector.eventTextLanguage(), w.Sections)
 	return modTexts{files: map[string][]byte{rel: bytes.Clone(text)}, base: map[string][]byte{rel: s.eventBase}, from: s.eventFrom}
+}
+
+// messagePageName is the name message page n has in the row's store.
+func (s *mapInspectionEdits) messagePageName(n uint32) string {
+	return fmt.Sprintf(s.row().messages.message, n)
+}
+
+// messagePage is message page n of the workspace as the pages window reads
+// it, UTF-8, and whether the workspace holds it.
+func (s *mapInspectionEdits) messagePage(n uint32) (string, bool) {
+	return s.inspector.pageText(s.workspace, s.messagePageName(n))
 }

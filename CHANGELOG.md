@@ -53,6 +53,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM2] In the map editor a second-game map's message pages (the event sections of its mission text) now show their text and speaker and take edits to the message and its parts; before, they were reported as unavailable.
 - [ROM1] In the map editor a first-game trap of the Teleport spell now reads as a teleport from its cell to its target cell, and its cell, target and power are set and saved as before.
 - [ROM1] In the map editor a placed or changed Teleport trap now shows its Source and Target as two cells, each with an On map button whose click sets the cell and Esc keeps the old one; a new Source moves the trap to that cell.
 - [ROM2] In the map editor a second-game map's pages window now shows the sections of the mission text the game reads for the map, names the actions that send each event, edits a section or adds one, and saves the edited text into the map's mod, where the game shows it.
