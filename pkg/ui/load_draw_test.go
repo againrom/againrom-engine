@@ -94,7 +94,7 @@ func TestLoadDrawsUnicodeInsideFramedListAndKeepsExactLoadToken(t *testing.T) {
 		}
 		loaded := ""
 		a := unicodeLoadApp(t, font, &loaded)
-		pix, err := a.composeLoadScreen()
+		pix, err := a.composeListPage()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -118,7 +118,7 @@ func TestComposeScreenSelectsLoadComposer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := a.composeLoadScreen()
+	want, err := a.composeListPage()
 	if err != nil {
 		t.Fatal(err)
 	}

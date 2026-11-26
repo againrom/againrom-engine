@@ -682,32 +682,54 @@ func (f *flow) openCharacters() { f.openListPage(ScreenMenu, characterListRole()
 
 // openListPage shows the list page in role over back: the role's rows and
 // message line, with the previous page's pointer, question and removal
-// cleared.
+// cleared. It is the one builder of the page's list: the Load, Characters,
+// Maps and Save roles all open and list again through it.
 func (f *flow) openListPage(back Screen, role *listRole) {
-	saves, rows, message := role.list(f)
-	f.loadUI.resetPointer()
-	f.loadUI.confirm = false
-	f.loadUI.mismatch, f.loadUI.mismatchTown = nil, false
-	f.loadUI.remove = nil
-	f.loadUI.role = role
-	f.saves = saves
-	f.loadList = NewPicker(rows).SetWindow(loadVisibleRows)
+	f.setScreen(role.shownOn)
+	v, _ := f.openPage()
+	v.ui.role = role
+	v, _ = f.openPage()
+	if !v.page.preserveListPointer {
+		v.ui.resetPointer()
+	}
+	v.ui.confirm, v.ui.remove = false, nil
+	v.ui.mismatch, v.ui.mismatchTown = nil, false
+	v.edit.prepared, v.edit.removePath = nil, ""
+	if !role.named {
+		v.edit.listFocus = true
+	}
+	l := role.list(f, v)
+	rows := v.page.Rows
+	if rows <= 0 {
+		rows = loadVisibleRows
+	}
+	*v.slots.saves = l.saves
+	*v.slots.list = NewPicker(l.rows).SetWindow(rows)
+	v.edit.lead = l.lead
 	f.loadBack = back
-	f.setScreen(ScreenLoad)
 	f.menuPlacement().underlay.raise(f)
-	f.msg = message
+	f.msg = l.message
 }
 
 // closeLoad returns to the screen that opened the load window.
 func (f *flow) closeLoad() { f.leaveLoad("", false) }
 
 // leaveLoad closes the page and gives the open role's answer the chosen
-// entry and ok once the screen behind is back.
+// entry and ok once the screen behind is back. A role that reports shows the
+// chosen text on the menu's message line.
 func (f *flow) leaveLoad(chosen string, ok bool) {
-	answer := f.loadUI.openRole().answer
-	f.leaveLoadScreen()
-	if answer != nil {
-		answer(chosen, ok)
+	v, open := f.openPage()
+	if !open {
+		v = f.loadView()
+	}
+	role := v.role()
+	message := ""
+	if role.reports {
+		message = chosen
+	}
+	f.leaveLoadScreen(v, message)
+	if role.answer != nil {
+		role.answer(f, chosen, ok)
 	}
 }
 
@@ -717,9 +739,10 @@ func (f *flow) leaveLoad(chosen string, ok bool) {
 // may have changed while the list was visible. Restore both before
 // ScreenGameMenu can be driven again so its first visible frame holds, rather
 // than repays, the elapsed map and ambient-animation span.
-func (f *flow) leaveLoadScreen() {
-	f.loadUI.resetPointer()
-	f.loadUI.role = nil
+func (f *flow) leaveLoadScreen(v pageView, message string) {
+	keepsRow := v.role().keepsMenuRow
+	v.ui.resetPointer()
+	v.ui.role = nil
 	back := f.loadBack
 	if back == ScreenGameMenu && f.pages.menu.WindowsCloseMenu {
 		f.closeGameMenu()
@@ -727,14 +750,14 @@ func (f *flow) leaveLoadScreen() {
 	}
 	if back == ScreenGameMenu {
 		selection := 0
-		if f.menuList != nil {
+		if keepsRow && f.menuList != nil {
 			selection = f.menuList.Selection()
 		}
 		f.rebuildGameMenu(gameMenuRoot, selection)
 		f.setMenuUp(true)
 	}
 	f.setScreen(back)
-	f.msg = ""
+	f.msg = message
 }
 
 // chooseLoad is Ok on the open list page: the open role's accept.

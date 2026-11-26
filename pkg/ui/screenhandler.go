@@ -13,10 +13,13 @@ import (
 //     should exit.
 //   - Compose builds the screen's CPU frame, or reports that it has none.
 //   - Draw paints the screen onto the application canvas.
+//   - Page answers the list page the screen shows; nil for a screen that
+//     shows none.
 type ScreenHandler struct {
 	Step    func(a *App, in appInput, now time.Time) (exit bool)
 	Compose func(a *App) (*image.RGBA, error)
 	Draw    func(a *App)
+	Page    func(f *flow) (pageView, bool)
 }
 
 // screenHandlers is the registry, keyed by Screen. Step and composeScreen look a
@@ -78,24 +81,10 @@ func init() {
 		Compose: (*App).composeTownScreen,
 		Draw:    (*App).drawTown,
 	}
-	screenHandlers[ScreenLoad] = ScreenHandler{
-		Step: func(a *App, in appInput, now time.Time) bool {
-			a.flow.menuPlacement().underlay.hold(a, in, now)
-			a.stepLoadWindow(in, now)
-			return false
-		},
-		Compose: (*App).composeLoadScreen,
-		Draw:    func(a *App) { a.drawList(a.loadHeader(), a.flow.loadList) },
-	}
-	screenHandlers[ScreenSave] = ScreenHandler{
-		Step: func(a *App, in appInput, now time.Time) bool {
-			a.holdMapUnderMenu(in, now)
-			a.stepSaveScreen(in)
-			return false
-		},
-		Compose: (*App).composeSaveScreen,
-		Draw:    (*App).drawSaveScreen,
-	}
+	screenHandlers[ScreenLoad] = listPageHandler(
+		func(a *App, in appInput, now time.Time) { a.flow.menuPlacement().underlay.hold(a, in, now) },
+		func(f *flow) (pageView, bool) { return f.loadView(), true })
+	screenHandlers[ScreenSave] = listPageHandler((*App).holdMapUnderMenu, (*flow).saveView)
 	screenHandlers[ScreenDocuments] = ScreenHandler{
 		Step: func(a *App, in appInput, now time.Time) bool {
 			a.holdMapUnderCover(in, now)
@@ -110,6 +99,24 @@ func init() {
 			a.hasMenu = false
 			a.writeCanvas(composeDocumentsPanel(a.flow.docPanel))
 		},
+	}
+}
+
+// listPageHandler is a list page screen: what the screen holds under the
+// page, and the page it shows. Every list page screen steps, composes and
+// draws through the page's one builder.
+func listPageHandler(hold func(a *App, in appInput, now time.Time), page func(f *flow) (pageView, bool)) ScreenHandler {
+	return ScreenHandler{
+		Step: func(a *App, in appInput, now time.Time) bool {
+			hold(a, in, now)
+			if v, ok := page(a.flow); ok {
+				a.stepPage(v, in)
+			}
+			return false
+		},
+		Compose: (*App).composeListPage,
+		Draw:    (*App).drawList,
+		Page:    page,
 	}
 }
 

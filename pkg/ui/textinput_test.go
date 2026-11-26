@@ -24,7 +24,7 @@ func TestGameFieldsUseSharedTextModel(t *testing.T) {
 	})
 	t.Run("dialog name and directory", func(t *testing.T) {
 		for _, focus := range []saveControl{saveNameControl, saveDirectoryControl} {
-			d := &savePageState{page: firstSavePage(), focus: focus, caret: 1}
+			d := savePageOf(firstSavePage(), pageEdit{focus: focus, caret: 1})
 			*d.editField() = "абВ"
 			f := &flow{saveScreen: d}
 			f.editSaveText(appInput{SelectText: true})
@@ -36,7 +36,7 @@ func TestGameFieldsUseSharedTextModel(t *testing.T) {
 		}
 	})
 	t.Run("page sticky selection", func(t *testing.T) {
-		s := &savePageState{request: SaveRequest{Label: "абВ"}, caret: 1, page: SavePage{NameLimit: 4}}
+		s := savePageOf(SavePage{NameLimit: 4}, pageEdit{request: SaveRequest{Label: "абВ"}, caret: 1})
 		s.edit(appInput{SelectText: true})
 		s.edit(appInput{Right: true})
 		if s.caret != 2 || !s.selectedText {
@@ -114,8 +114,8 @@ func TestSaveNameAdaptersKeepControlArrowsLiteral(t *testing.T) {
 			name = "page"
 		}
 		t.Run(name, func(t *testing.T) {
-			s := &savePageState{request: SaveRequest{Label: "one two"}, caret: 7, page: SavePage{NameLimit: 20}}
-			d := &savePageState{page: firstSavePage(), focus: saveNameControl, caret: 7}
+			s := savePageOf(SavePage{NameLimit: 20}, pageEdit{request: SaveRequest{Label: "one two"}, caret: 7})
+			d := savePageOf(firstSavePage(), pageEdit{focus: saveNameControl, caret: 7})
 			*d.editField() = "one two"
 			f := &flow{saveScreen: d}
 			for _, left := range []bool{true, false} {

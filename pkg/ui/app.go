@@ -4380,13 +4380,25 @@ func (a *App) drawMenu() {
 // list agree about where a row is by construction rather than by three pieces of
 // code sharing a taste, and a drawn row is a clickable one here for the reason
 // it is there.
-func (a *App) drawList(header string, list *Picker) {
+func (a *App) drawList() {
 	a.hasMenu = false // the canvas no longer holds a composed menu frame
-	if pix, err := a.composeLoadList(header, list); err == nil {
+	v, open := a.flow.openPage()
+	if !open {
+		return
+	}
+	if pix, err := a.composePage(v); err == nil {
 		a.writeCanvas(pix)
 		return
 	}
+	if s, err := a.paintPage(v); err == nil {
+		a.writeCanvas(s.pix)
+		for _, label := range s.texts {
+			a.printCanvas(label.text, label.at.X, label.at.Y)
+		}
+		return
+	}
 	a.fillCanvas(pickerBackground)
+	list, header := v.list, a.loadHeader()
 	if list == nil {
 		return
 	}

@@ -12,7 +12,7 @@ const textModelFile = "pkg/ui/widgetkit/editortextmodel.go"
 
 var textInputRoutes = map[string]string{
 	"pkg/ui/chargen.go:Chargen.EditName":              "EditText",
-	"pkg/ui/savepage_save.go:savePageState.edit":      "EditText",
+	"pkg/ui/save_dialog.go:pageView.typeText":         "EditText",
 	"pkg/ui/goldmodal.go:goldState.edit":              "EditText",
 	"pkg/ui/goldmodal.go:goldState.move":              "edit",
 	"pkg/ui/goldmodal.go:goldState.backspace":         "edit",

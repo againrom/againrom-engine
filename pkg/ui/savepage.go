@@ -282,6 +282,30 @@ func (p SavePage) hidden(name string) bool {
 	return false
 }
 
+// pageEdit is what an open page keeps beside its list: the directory and
+// request a name field and a file browser read, the focused control and the
+// caret, the write or deletion awaiting its answer, and where the list
+// stands. A page without a name field leaves most of it zero.
+type pageEdit struct {
+	directory    SaveDirectory
+	request      SaveRequest
+	focus        saveControl
+	caret        int
+	selectedText bool
+	prepared     *PreparedSave
+	removePath   string
+	confirmTop   int
+	listFocus    bool
+	// lead is the number of rows before the first listed save.
+	lead int
+}
+
+// pageSlots are where the open page's list and saves are kept.
+type pageSlots struct {
+	list  **Picker
+	saves *[]SaveEntry
+}
+
 // pageView is one open page: its data, its pointer state, its list and the
 // saves behind the list's rows. Optional empty and directory rows precede
 // the save rows.
@@ -290,40 +314,32 @@ type pageView struct {
 	ui    *loadWindow
 	list  *Picker
 	saves []SaveEntry
-	save  *savePageState
+	edit  *pageEdit
+	slots pageSlots
+}
+
+// role is the page's open role.
+func (v pageView) role() *listRole { return v.ui.openRole() }
+
+// confirming reports whether a write or a deletion awaits its answer.
+func (v pageView) confirming() bool {
+	return v.ui.confirm || v.edit.prepared != nil || v.ui.remove != nil
 }
 
 // asking reports whether a deletion awaits its answer in the page's question
 // window.
-func (v pageView) asking() bool {
-	confirm := v.ui.confirm
-	if v.save != nil {
-		confirm = v.save.confirming()
-	}
-	return confirm && v.page.Confirm.windowed()
-}
+func (v pageView) asking() bool { return v.confirming() && v.page.Confirm.windowed() }
 
-// confirmingInPage reports whether a deletion awaits confirmation in the
+// confirmingInPage reports whether a question awaits its answer in the
 // page's own body.
-func (v pageView) confirmingInPage() bool {
-	confirm := v.ui.confirm
-	if v.save != nil {
-		confirm = v.save.confirming()
-	}
-	return confirm && !v.page.Confirm.windowed()
-}
+func (v pageView) confirmingInPage() bool { return v.confirming() && !v.page.Confirm.windowed() }
 
-// listFocus reports whether the list has the focus: always on a load page,
-// on a save page once a list key or a click in the list set it.
-func (v pageView) listFocus() bool { return v.save == nil || v.save.listFocus }
+// listFocus reports whether the list has the focus: always on a page without
+// a name field, else once a list key or a click in the list set it.
+func (v pageView) listFocus() bool { return v.edit.listFocus }
 
 // first is the list row of saves[0].
-func (v pageView) first() int {
-	if v.save != nil {
-		return v.save.first()
-	}
-	return 0
-}
+func (v pageView) first() int { return v.edit.lead }
 
 // selected is the save behind the selected row.
 func (v pageView) selected() (SaveEntry, int, bool) {
@@ -338,7 +354,17 @@ func (v pageView) selected() (SaveEntry, int, bool) {
 }
 
 func (f *flow) loadView() pageView {
-	return pageView{page: f.loadPage(), ui: &f.loadUI, list: f.loadList, saves: f.saves}
+	return pageView{page: f.loadPage(), ui: &f.loadUI, list: f.loadList, saves: f.saves,
+		edit: &f.loadUI.edit, slots: pageSlots{list: &f.loadList, saves: &f.saves}}
+}
+
+// openPage is the list page the open screen shows, and false while none is
+// open.
+func (f *flow) openPage() (pageView, bool) {
+	if h, ok := screenHandlers[f.screen]; ok && h.Page != nil {
+		return h.Page(f)
+	}
+	return pageView{}, false
 }
 
 // refreshMenuSave asks the front end again whether a save file exists.

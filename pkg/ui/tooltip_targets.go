@@ -538,19 +538,11 @@ func MapListHint(w Words, row PickerRow, column int) ([]string, bool) {
 // page's name hint over its name box, and a listed row's detail where the
 // page gives its rows a hint.
 func (a *App) pageTooltip(p image.Point) tooltipTarget {
-	var v pageView
-	switch {
-	case a.flow.screen == ScreenSave && a.flow.saveScreen != nil:
-		v = a.flow.saveScreen.view()
-	case a.flow.screen == ScreenLoad:
-		v = a.flow.loadView()
-	default:
+	v, open := a.flow.openPage()
+	if !open || v.list == nil || v.ui.confirm || v.ui.mismatch != nil || a.tooltip.baseFont == nil {
 		return tooltipTarget{}
 	}
-	if v.list == nil || v.ui.confirm || v.ui.mismatch != nil || a.tooltip.baseFont == nil {
-		return tooltipTarget{}
-	}
-	if v.save != nil && v.page.NameHint != "" && v.page.layout().holds(pageNameControl, p) {
+	if v.page.NameHint != "" && v.page.layout().holds(pageNameControl, p) {
 		return tooltipTarget{tooltipText, "page/name", tooltipLines(v.page.NameHint), a.tooltip.baseFont}
 	}
 	if !v.page.RowHint {

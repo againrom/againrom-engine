@@ -91,7 +91,7 @@ var screenRegistry = map[Screen]screenEntry{
 		GeometryTests: []string{"TestEndingControlsAndSourceRowsHaveVisibleGeometry"},
 	},
 	ScreenSave: {
-		Composer:      "(*App).composeSaveScreen, selected by (*App).composeScreen",
+		Composer:      "(*App).composeListPage, selected by (*App).composeScreen",
 		Test:          "TestComposeScreenSelectsSaveDialogComposer",
 		GeometryTests: []string{"TestSaveDialogDrawsFieldsAndTitleAtLiteralOrigins"},
 	},
@@ -190,7 +190,7 @@ var screenRegistry = map[Screen]screenEntry{
 		Reason: "ScreenPicker draws only through ebitenutil.DebugPrintAt, no CPU composite (composeScreen's default arm)",
 	},
 	ScreenLoad: {
-		Composer:      "(*App).composeLoadScreen, selected by (*App).composeScreen",
+		Composer:      "(*App).composeListPage, selected by (*App).composeScreen",
 		Test:          "TestComposeScreenSelectsLoadComposer",
 		GeometryTests: []string{"TestLoadDrawsUnicodeInsideFramedListAndKeepsExactLoadToken"},
 	},

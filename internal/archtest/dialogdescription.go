@@ -187,7 +187,7 @@ func namesNoticeStyle(x ast.Expr) bool {
 var dialogPainterBaseline = map[string]string{
 	"pkg/ui/editorpopup.go drawPopupGrid":         "the grid part of the one painter",
 	"pkg/ui/widgetdropdown.go drawDropdown":       "a widget's open list",
-	"pkg/ui/load_draw.go composePage":             "the load page, outside the dialog census",
+	"pkg/ui/load_draw.go paintPage":               "the list page, outside the dialog census",
 	"pkg/ui/media_menu.go composeCutsceneLibrary": "the cutscene library, outside the dialog census",
 	"pkg/ui/questobjectives.go questPicture":      "the objectives window, outside the dialog census",
 	"pkg/ui/tippanel.go ComposeTipPanel":          "the tip panel, outside the dialog census",

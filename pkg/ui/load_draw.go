@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"strings"
 
 	"againrom/pkg/locale"
@@ -12,62 +13,277 @@ import (
 	"againrom/pkg/render/textfit"
 )
 
-// LOAD rows remain UTF-8 until drawing. Its installed font uses the same
-// presentation encoder as the save dialog; names passed to LoadGame stay exact.
-func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) {
-	return a.composePage(a.flow.loadView())
+// savePaint is a screen's picture and the captions held back to be drawn by
+// the font once there is one.
+type savePaint struct {
+	pix   *image.RGBA
+	texts []savePaintText
+}
+
+type savePaintText struct {
+	text  string
+	at    image.Point
+	color color.RGBA
+}
+
+func (s *savePaint) label(value string, x, y int, c color.RGBA) {
+	s.texts = append(s.texts, savePaintText{text: value, at: image.Pt(x, y), color: c})
+}
+
+// composeListPage is the open list page's picture.
+func (a *App) composeListPage() (*image.RGBA, error) {
+	v, ok := a.flow.openPage()
+	if !ok {
+		return nil, fmt.Errorf("no list page is open")
+	}
+	return a.composePage(v)
 }
 
 // composePage draws a page's frame, captions, name box, list or confirmation,
 // message line and buttons. Its host decides whether the backing is transparent.
+// LOAD rows remain UTF-8 until drawing. Its installed font uses the same
+// presentation encoder as the save dialog; names passed to LoadGame stay exact.
 func (a *App) composePage(v pageView) (*image.RGBA, error) {
-	if v.save != nil {
-		return a.composeSaveScreen()
+	s, err := a.paintPage(v)
+	if err != nil {
+		return nil, err
 	}
-	font := a.flow.menuFont
-	if font == nil {
-		return nil, fmt.Errorf("load list has no installed font")
+	if a.flow.menuFont == nil {
+		return nil, fmt.Errorf("list page has no installed font")
 	}
-	pix := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	a.flow.menuPlacement().backdrop.paint(a, pix)
-	drawFrame(pix, windowFrame(v.page.Panel, a.flow.menuArt))
-	for _, t := range v.captions() {
-		if t.Box != (image.Rectangle{}) {
-			drawTownShellText(pix, font, t.Text, t.Box, t.Ink)
+	for _, label := range s.texts {
+		a.flow.menuFont.Draw(s.pix, a.flow.menuDisplayText(label.text), label.at.X, label.at.Y, label.color)
+	}
+	return s.pix, nil
+}
+
+// paintPage paints the page: the backing and frames, the captions, then the
+// name and directory fields, the list or the question, the message line and
+// the buttons, and the window that owns the input.
+func (a *App) paintPage(v pageView) (*savePaint, error) {
+	page, font, e := v.page, a.flow.menuFont, v.edit
+	if font == nil && !page.deferredText {
+		return nil, fmt.Errorf("list page has no installed font")
+	}
+	s := &savePaint{pix: image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))}
+	if page.background.A != 0 {
+		draw.Draw(s.pix, s.pix.Bounds(), image.NewUniform(page.background), image.Point{}, draw.Src)
+	} else {
+		a.flow.menuPlacement().backdrop.paint(a, s.pix)
+	}
+	if page.fill.A != 0 {
+		drawFrame(s.pix, panelFrame(page.Panel, page.fill, page.border))
+	}
+	r := page.frame
+	if r.Empty() {
+		r = page.Panel
+	}
+	if !page.artOnly || a.flow.menuArt != nil {
+		drawFrame(s.pix, windowFrame(r, a.flow.menuArt))
+	}
+	ink := townShellText
+	if page.ink != (color.RGBA{}) {
+		ink = page.ink
+	}
+	label := func(value string, at image.Point, c color.RGBA) {
+		if page.deferredText || font == nil {
+			s.label(value, at.X, at.Y, c)
 		} else {
-			font.Draw(pix, t.Text, t.At.X, t.At.Y, t.Ink)
+			font.Draw(s.pix, value, at.X, at.Y, c)
 		}
+	}
+	caption := func(t PageText) {
+		t = v.captionInk(t)
+		value := a.flow.saveCaption(t.word, t.Text)
+		if !t.Box.Empty() {
+			drawTownShellText(s.pix, font, value, t.Box, t.Ink)
+		} else {
+			label(value, t.At, t.Ink)
+		}
+	}
+	for _, t := range v.captions() {
+		caption(t)
+	}
+	pointer, pointerOK := a.pointerFrame()
+	window := v.ui.mismatch != nil
+	hover := pointerOK && !window && !v.asking()
+	layout := page.saveLayout()
+	button := func(c saveControl, b PageButton) {
+		r := layout.rect(int(c))
+		if r.Empty() {
+			return
+		}
+		value := a.flow.saveCaption(b.word, b.Caption)
+		if page.fitButtons {
+			value = a.flow.menuDisplayText(a.saveTextFit(value, r.Dx()-10))
+		}
+		inside := hover && pointer.In(r)
+		disabled := a.flow.controlDisabled(v, c)
+		bstate := pushButton{Rect: r, Label: value, Hover: inside, Inside: inside, Disabled: disabled,
+			Focus: page.keyboardFocus && e.focus == c, Pressed: v.ui.press.Pressed(v.latchID(c, 0))}
+		if font != nil {
+			drawPushButton(s.pix, font, bstate)
+			return
+		}
+		bstate.Label = ""
+		drawPushButton(s.pix, nil, bstate)
+		cink := ink
+		if disabled {
+			cink = loadDisabledText
+		}
+		s.label(value, r.Min.X+(r.Dx()-a.saveTextWidth(value))/2, r.Min.Y+5, cink)
 	}
 	if v.confirmingInPage() {
-		a.drawPageQuestion(pix, font, v)
-	} else {
-		list := v.list
-		a.drawPageList(pix, font, v, func(row, width int) string {
-			return a.flow.menuDisplayText(a.fitLoadText(list.Rows()[row].Text, width))
-		})
-	}
-	a.drawPageMessage(pix, font, v)
-	pointer, pointerOK := a.pointerFrame()
-	window := v.save == nil && v.ui.mismatch != nil
-	pageHover := pointerOK && !window && !v.asking()
-	layout := v.page.layout()
-	for i, b := range v.page.Buttons {
-		r := layout.rect(i)
-		if r.Empty() {
-			continue
+		if page.confirmRows > 0 {
+			heading := page.confirmHeading
+			if v.ui.remove != nil {
+				heading = page.deleteHeading
+			}
+			caption(heading)
+			a.clampConfirmationScroll(v)
+			lines := a.confirmationLines(v)
+			for i := 0; i < page.confirmRows && e.confirmTop+i < len(lines); i++ {
+				label(lines[e.confirmTop+i], page.confirmAt.Add(image.Pt(0, i*page.confirmPitch)), ink)
+			}
+			if len(lines) > page.confirmRows {
+				caption(page.scrollHint)
+			}
+		} else {
+			a.drawPageQuestion(s.pix, font, v)
 		}
-		inside := pageHover && pointer.In(r)
-		drawPushButton(pix, font, pushButton{Rect: r, Label: b.Caption, Hover: inside, Inside: inside,
-			Pressed: v.ui.press.Pressed(i), Disabled: a.flow.pageButtonDisabled(v, i)})
+	} else {
+		for _, c := range []saveControl{saveDirectoryControl, saveNameControl} {
+			r := layout.rect(int(c))
+			if r.Empty() {
+				continue
+			}
+			value := *v.nameField()
+			if c == saveDirectoryControl {
+				value = e.request.Directory
+			}
+			runes := []rune(value)
+			start := 0
+			textH := listFallbackPitch - listPitchExtra
+			if font != nil {
+				textH = font.Height()
+			}
+			field := editField{Rect: r, TextH: textH, Focus: !page.keyboardFocus || e.focus == c, Phase: a.blink.on()}
+			if field.Focus {
+				caret := min(e.caret, len(runes))
+				for start < caret && a.saveTextWidth(string(runes[start:caret])) > r.Dx()-16 {
+					start++
+				}
+				field.Caret = a.saveTextWidth(string(runes[start:caret]))
+				if e.selectedText {
+					field.SelTo = a.saveTextWidth(string(runes[start:]))
+				}
+			}
+			shown := a.saveTextFit(string(runes[start:]), r.Dx()-12)
+			drawEditField(s.pix, field, func(at image.Point) {
+				if font != nil {
+					font.Draw(s.pix, a.flow.menuDisplayText(shown), at.X, at.Y, ink)
+				} else {
+					s.label(shown, at.X, at.Y, ink)
+				}
+			})
+		}
+		for i, c := range []saveControl{saveOpenControl, saveUpControl} {
+			if !page.Navigation[i].Rect.Empty() {
+				button(c, page.Navigation[i])
+			}
+		}
+		if v.list != nil {
+			box := a.pageListBox(v)
+			if font != nil {
+				a.drawPageList(s.pix, font, v, func(row, width int) string {
+					value := v.list.Rows()[row].Text
+					if page.fileNames {
+						return a.flow.menuDisplayText(a.saveTextFit(value, width))
+					}
+					return a.flow.menuDisplayText(a.fitLoadText(value, width))
+				})
+			} else {
+				drawEditField(s.pix, listWell(box), nil)
+				top, count := v.list.Visible()
+				for i := 0; i < count; i++ {
+					s.label(a.saveTextFit(v.list.Rows()[top+i].Text, box.Rect.Dx()-2*listTextX),
+						box.Row(i).Min.X+listTextX, box.Row(i).Min.Y+listTextY, townShellText)
+				}
+				drawVScrollBar(s.pix, a.media.scroll, listBar(box, v.list).withPointer(pointer, pointerOK))
+			}
+			if v.list.Len() == 0 && page.empty.word != "" {
+				caption(page.empty)
+			}
+			if entry, _, ok := v.selected(); ok && page.detail.At != (image.Point{}) {
+				t := page.detail
+				t.Text = a.saveTextFit(entry.Label, 560)
+				caption(t)
+			}
+		}
+		for _, block := range page.blocks {
+			for i, line := range a.saveLines(a.flow.saveCaption(block.word, ""), block.width) {
+				if i >= block.rows {
+					break
+				}
+				label(line, block.at.Add(image.Pt(0, i*block.pitch)), ink)
+			}
+		}
+	}
+	if !page.Message.Empty() {
+		a.drawPageMessage(s.pix, font, v)
+	}
+	for i, c := range []saveControl{saveWriteControl, saveDeleteControl, saveCancelControl} {
+		b := page.Buttons[i]
+		if v.confirmingInPage() && page.confirmRows > 0 {
+			if c == saveWriteControl && v.ui.remove != nil || c == saveDeleteControl && v.ui.remove == nil {
+				continue
+			}
+			b = page.confirmButtons[i]
+		}
+		button(c, b)
 	}
 	if window {
 		w := v.ui.mismatch
-		w.compose(pix, font, v.page.Panel, a.flow.menuArt, a.media.scroll, a.modMismatchDisplay, pointer, pointerOK)
+		w.compose(s.pix, font, page.Panel, a.flow.menuArt, a.media.scroll, a.modMismatchDisplay, pointer, pointerOK)
 	} else if v.asking() {
 		w := &v.ui.question
-		w.compose(pix, font, v.page.Panel, a.flow.menuArt, a.media.scroll, func(s string) string { return s }, pointer, pointerOK)
+		w.compose(s.pix, font, page.Panel, a.flow.menuArt, a.media.scroll, func(s string) string { return s }, pointer, pointerOK)
 	}
-	return pix, nil
+	return s, nil
+}
+
+// confirmationLines are the lines the page's confirmation lists: the file a
+// deletion removes, or the files a write creates or replaces.
+func (a *App) confirmationLines(v pageView) []string {
+	e := v.edit
+	if v.ui.remove != nil {
+		return a.saveLines(e.removePath, v.page.confirmWidth)
+	}
+	if e.prepared == nil {
+		return nil
+	}
+	w := a.flow.saveWords()
+	var lines []string
+	for _, path := range e.prepared.Paths {
+		verb := w.Create
+		for _, existing := range e.prepared.Existing {
+			if path == existing {
+				verb = w.Replace
+				break
+			}
+		}
+		lines = append(lines, verb)
+		lines = append(lines, a.saveLines(path, v.page.confirmWidth)...)
+		lines = append(lines, "")
+	}
+	return lines
+}
+
+func (a *App) clampConfirmationScroll(v pageView) {
+	if v.page.confirmRows == 0 {
+		return
+	}
+	v.edit.confirmTop = max(0, min(v.edit.confirmTop, len(a.confirmationLines(v))-v.page.confirmRows))
 }
 
 // captionInk gives a caption its default or focus ink.
@@ -125,10 +341,6 @@ func (a *App) drawPageMessage(pix *image.RGBA, font *text.Font, v pageView) {
 		}
 		font.Draw(pix, string(line), v.page.Message.Min.X, y+i*(font.Height()+1), townShellText)
 	}
-}
-
-func (a *App) composeLoadScreen() (*image.RGBA, error) {
-	return a.composeLoadList(a.loadHeader(), a.flow.loadList)
 }
 
 func (a *App) loadMessage() string {

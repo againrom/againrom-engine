@@ -27,7 +27,7 @@ func (a *App) HeadlessSaveState() (HeadlessSaveDialog, bool) {
 	}
 	s := a.flow.saveScreen
 	h := HeadlessSaveDialog{Request: s.request, Entries: append([]SaveEntry(nil), s.saves...),
-		Confirmation: s.confirming(), Focus: saveControlName(s.focus), Message: a.flow.msg}
+		Confirmation: s.view().confirming(), Focus: saveControlName(s.focus), Message: a.flow.msg}
 	if s.page.directories {
 		h.Directories = append([]string(nil), s.directory.Directories...)
 	}
@@ -62,14 +62,14 @@ func (a *App) HeadlessSaveEdit(directory, name string, format SaveFormat) error 
 				return fmt.Errorf("save page: it writes only to %s", s.request.Directory)
 			}
 		} else {
-			s.setFocus(saveDirectoryControl)
+			s.view().setFocus(saveDirectoryControl)
 			if err := a.HeadlessKey("ctrl-a"); err != nil {
 				return err
 			}
 			if err := a.HeadlessType(directory, false); err != nil {
 				return err
 			}
-			a.flow.activateSaveControl(saveOpenControl)
+			a.activateControl(s.view(), saveOpenControl)
 			if a.flow.msg != "" {
 				return fmt.Errorf("save directory: %s", a.flow.msg)
 			}
@@ -77,7 +77,7 @@ func (a *App) HeadlessSaveEdit(directory, name string, format SaveFormat) error 
 	}
 	if name != "" {
 		if s.page.keyboardFocus {
-			s.setFocus(saveNameControl)
+			s.view().setFocus(saveNameControl)
 		}
 		if err := a.HeadlessKey("ctrl-a"); err != nil {
 			return err
@@ -105,7 +105,7 @@ func (a *App) HeadlessSaveAction(action string) error {
 			}
 			return saveDialogError(action)
 		}
-		if !s.page.keyboardFocus && a.flow.saveControlDisabled(s, saveWriteControl) {
+		if !s.page.keyboardFocus && a.flow.controlDisabled(s.view(), saveWriteControl) {
 			return fmt.Errorf("save page: Ok is disabled")
 		}
 		c = saveWriteControl
@@ -126,7 +126,7 @@ func (a *App) HeadlessSaveAction(action string) error {
 			c = saveDeleteControl
 		}
 	case "delete":
-		if h.Confirmation || !a.flow.canDeleteSave() {
+		if h.Confirmation || !a.flow.canDeletePage(s.view()) {
 			return saveDialogError(action)
 		}
 		c = saveDeleteControl
@@ -151,7 +151,7 @@ func (a *App) HeadlessSaveAction(action string) error {
 	if !s.page.keyboardFocus && c == saveWriteControl {
 		a.acceptPage(s.view())
 	} else {
-		a.flow.activateSaveControl(c)
+		a.activateControl(s.view(), c)
 	}
 	if a.flow.screen == ScreenSave && a.flow.msg != "" {
 		return fmt.Errorf("%s: %s", s.errorName(), a.flow.msg)
@@ -180,13 +180,13 @@ func (a *App) HeadlessSaveSelect(index int) error {
 		return fmt.Errorf("%s: row %d is unavailable", s.errorName(), index)
 	}
 	if s.page.activateRows {
-		s.setFocus(saveListControl)
-		a.flow.activateSaveControl(saveListControl)
+		s.view().setFocus(saveListControl)
+		a.activateControl(s.view(), saveListControl)
 		if a.flow.msg != "" {
 			return fmt.Errorf("save directory: %s", a.flow.msg)
 		}
 	} else {
-		s.pick()
+		s.view().pick()
 	}
 	return nil
 }

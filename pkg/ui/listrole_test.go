@@ -14,14 +14,16 @@ func TestListPageOpensARoleRow(t *testing.T) {
 		accepted := 0
 		role := &listRole{
 			roleName: "probe",
+			shownOn:  ScreenLoad,
+			chooses:  true,
 			page: func(f *flow) SavePage {
 				p := f.installedLoadPage()
 				p.Texts = []PageText{{Text: "Probe", Box: p.Texts[0].Box}}
 				return p
 			},
-			list: func(*flow) ([]SaveEntry, []PickerRow, string) {
+			list: func(*flow, pageView) listing {
 				entries := []SaveEntry{{Name: "a.x", Label: "A"}, {Name: "b.x", Label: "B"}}
-				return entries, labelRows(entries), "two rows"
+				return listing{saves: entries, rows: labelRows(entries), message: "two rows"}
 			},
 			accept: func(f *flow) {
 				accepted++
@@ -29,7 +31,7 @@ func TestListPageOpensARoleRow(t *testing.T) {
 					f.leaveLoad(f.saves[i].Name, true)
 				}
 			},
-			answer: func(chosen string, ok bool) {
+			answer: func(_ *flow, chosen string, ok bool) {
 				if ok {
 					answered = append(answered, chosen)
 				}

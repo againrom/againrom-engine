@@ -1551,18 +1551,12 @@ func (f *flow) escape() (exit bool) {
 			f.leaveMenuWindow(0)
 		}
 		return false
-	case ScreenLoad:
-		if f.loadUI.mismatch != nil {
+	case ScreenLoad, ScreenSave:
+		if v, ok := f.openPage(); ok && v.ui.mismatch != nil {
 			f.closeModMismatch()
-		} else if f.loadUI.confirm {
-			f.loadUI.confirm = false
-			f.msg = ""
-		} else {
-			f.closeLoad()
+		} else if ok {
+			f.cancelPage(v)
 		}
-		return false
-	case ScreenSave:
-		f.cancelSavePage()
 		return false
 	case ScreenDocuments:
 		// ESCAPE IS THIS BUILD'S OWN and not the original's (DIV-304).

@@ -3,7 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
-	"time"
+	"path/filepath"
 )
 
 type LoadWindowWords struct{ Title, Subtitle, OK, Delete, Cancel, Confirm string }
@@ -47,6 +47,9 @@ type loadWindow struct {
 	question dialogRun
 	// role is the list page's open role; nil is the Load page (openRole).
 	role *listRole
+	// edit is the edit state of a page the flow holds; the save page keeps
+	// its own beside its list.
+	edit pageEdit
 }
 
 func (w *loadWindow) resetPointer() {
@@ -102,24 +105,11 @@ func (v pageView) buttonAt(p image.Point) (int, bool) {
 	return 0, false
 }
 
-// pageButtonDisabled reports whether page button i is disabled: Ok on a page
-// that needs a listed save while none is, or on a save page with an empty
-// name; Delete while no save can be deleted or a deletion awaits
-// confirmation in the page's body.
+// pageButtonDisabled reports whether page button i is disabled: the controls
+// the buttons stand for, in order Ok, Delete and Cancel.
 func (f *flow) pageButtonDisabled(v pageView, i int) bool {
-	if disabled := v.ui.openRole().buttonDisabled; disabled != nil {
-		return disabled(f, v, i)
-	}
-	switch i {
-	case loadOKButton:
-		if v.confirmingInPage() {
-			return false
-		}
-		return v.page.OKNeedsSave && len(v.saves) == 0
-	case loadDeleteButton:
-		return !f.canDeletePage(v) || v.confirmingInPage()
-	}
-	return false
+	controls := [...]saveControl{saveWriteControl, saveDeleteControl, saveCancelControl}
+	return i >= 0 && i < len(controls) && f.controlDisabled(v, controls[i])
 }
 
 // canDeletePage reports whether the selected row is a save the page may
@@ -142,49 +132,99 @@ func (f *flow) pagePrepareDelete(v pageView, e SaveEntry) (func() error, error) 
 // deleteSeams are the open role's delete seams; a role without them deletes
 // no row.
 func (f *flow) deleteSeams(v pageView) (func(string) bool, func(string) (func() error, error)) {
-	if deletes := v.ui.openRole().deletes; deletes != nil {
+	if deletes := v.role().deletes; deletes != nil {
 		return deletes(f)
 	}
 	return nil, nil
 }
 
-// acceptPage is Ok: load or save the selection, or delete it once confirmed.
+// acceptPage is Ok: the role's accept on the selection, or the deletion or
+// write once confirmed.
 func (a *App) acceptPage(v pageView) {
-	f := a.flow
 	v.ui.resetPointer()
-	if write := v.ui.openRole().write; write != nil {
-		write(f)
-		return
-	}
-	if !v.ui.confirm {
-		a.activatePicker(v.list, f.chooseLoad)
+	a.activateControl(v, saveWriteControl)
+}
+
+// submitPage is Ok with nothing awaiting an answer: the role's accept.
+func (a *App) submitPage(v pageView) {
+	role := v.role()
+	if role.chooses {
+		a.activatePicker(v.list, a.flow.chooseLoad)
 		a.syncViewerLayout()
 		return
 	}
-	if !f.canDeletePage(v) {
-		v.ui.confirm = false
-		return
-	}
-	i := v.list.Selection()
-	if v.ui.remove == nil {
-		return
-	}
-	if err := v.ui.remove(); err != nil {
-		f.msg = err.Error()
-		return
-	}
-	back := f.loadBack
-	f.openListPage(back, v.ui.openRole())
-	if f.loadList != nil {
-		f.loadList.Move(i)
+	if role.accept != nil {
+		role.accept(a.flow)
 	}
 }
 
-func (f *flow) confirmDeletePage(v pageView) {
-	if confirm := v.ui.openRole().confirmDelete; confirm != nil {
-		confirm(f)
+// activateControl runs control c of the open page: with a question awaiting
+// its answer, Cancel leaves it and Ok or Delete answers it; otherwise each
+// control does its own part.
+func (a *App) activateControl(v pageView, c saveControl) {
+	f := a.flow
+	e := v.edit
+	if v.confirming() {
+		deleting := v.ui.confirm || v.ui.remove != nil
+		switch c {
+		case saveCancelControl:
+			f.cancelPage(v)
+		case saveWriteControl:
+			if deleting {
+				f.commitDelete(v)
+			} else {
+				a.submitPage(v)
+			}
+		case saveDeleteControl:
+			if deleting {
+				f.commitDelete(v)
+			}
+		}
 		return
 	}
+	switch c {
+	case saveDirectoryControl, saveOpenControl, saveUpControl:
+		if c == saveUpControl {
+			e.request.Directory = filepath.Dir(e.request.Directory)
+		}
+		f.refreshPage(v)
+		if nv, ok := f.openPage(); ok {
+			nv.setFocus(saveListControl)
+		}
+	case saveListControl:
+		if v.list == nil {
+			return
+		}
+		i, ok := v.list.Choose()
+		if !ok {
+			return
+		}
+		if v.page.directories && i < len(e.directory.Directories) {
+			e.request.Directory = filepath.Join(e.directory.Path, e.directory.Directories[i])
+			f.refreshPage(v)
+			return
+		}
+		v.pick()
+		if v.page.activateRows {
+			v.setFocus(saveNameControl)
+			e.selectedText = true
+			f.msg = ""
+		}
+	case saveDeleteControl:
+		f.confirmDeletePage(v)
+	case saveNameControl, saveWriteControl:
+		a.submitPage(v)
+	case saveCancelControl:
+		f.cancelPage(v)
+	}
+}
+
+// refreshPage lists the open page's rows again.
+func (f *flow) refreshPage(v pageView) { f.openListPage(f.loadBack, v.role()) }
+
+// confirmDeletePage is Delete on the selected row: its deletion is prepared
+// and asked for.
+func (f *flow) confirmDeletePage(v pageView) {
 	entry, _, ok := v.selected()
 	if !ok || !f.pageCanDelete(v, entry) {
 		return
@@ -194,9 +234,51 @@ func (f *flow) confirmDeletePage(v pageView) {
 		f.msg = err.Error()
 		return
 	}
-	v.ui.remove, v.ui.confirm, f.msg = remove, true, ""
+	if remove == nil && v.page.clearDeleteAttempt {
+		return
+	}
+	v.ui.remove, v.ui.confirm = remove, true
+	v.edit.removePath = filepath.Join(v.edit.directory.Path, entry.Name)
+	v.edit.confirmTop = 0
+	if v.page.keyboardFocus {
+		v.setFocus(saveCancelControl)
+	}
 	if c := v.page.Confirm; c.windowed() {
 		v.ui.question = c.question(f.menuDisplayText(entry.Label))
+	}
+	f.msg = ""
+}
+
+// commitDelete removes the confirmed row and lists the page again with the
+// row's place kept, or the first row picked on a page that names its file.
+func (f *flow) commitDelete(v pageView) {
+	if !v.page.clearDeleteAttempt && !f.canDeletePage(v) {
+		v.ui.confirm, v.ui.remove = false, nil
+		return
+	}
+	if v.ui.remove == nil {
+		return
+	}
+	err := v.ui.remove()
+	if v.page.clearDeleteAttempt {
+		v.ui.remove, v.ui.confirm, v.edit.removePath = nil, false, ""
+		v.setFocus(saveListControl)
+	}
+	if err != nil {
+		f.msg = err.Error()
+		return
+	}
+	i := v.list.Selection()
+	if v.page.retainDeletedRow {
+		v.edit.request.Directory = v.edit.directory.Path
+	}
+	f.openListPage(f.loadBack, v.role())
+	nv, _ := f.openPage()
+	if v.page.retainDeletedRow || !v.named() {
+		nv.list.Move(i)
+	} else {
+		nv.list.Select(0)
+		nv.pick()
 	}
 }
 
@@ -220,29 +302,31 @@ func (a *App) stepPageQuestion(v pageView, in appInput) {
 	}
 }
 
-// cancelPage is Cancel: it leaves a confirmation, else closes the page.
+// cancelPage is Cancel: it leaves a question, else closes the page.
 func (f *flow) cancelPage(v pageView) {
-	if cancel := v.ui.openRole().cancel; cancel != nil {
-		cancel(f)
-		return
-	}
-	if v.ui.confirm {
-		v.ui.confirm = false
+	if v.confirming() {
+		deleting := v.ui.confirm || v.ui.remove != nil
+		v.edit.prepared, v.ui.remove, v.ui.confirm, v.edit.removePath = nil, nil, false, ""
+		if v.page.keyboardFocus {
+			focus := saveNameControl
+			if deleting {
+				focus = saveListControl
+			}
+			v.setFocus(focus)
+		}
 		f.msg = ""
 		return
 	}
 	f.closeLoad()
 }
 
-func (a *App) stepLoadWindow(in appInput, now time.Time) { a.stepPage(a.flow.loadView(), in) }
-
+// stepPage drives one frame of the open page: the question or window that
+// owns the input, the keys, the scroll bar, the pointer on the list and the
+// controls, and Ok, Delete and Cancel.
 func (a *App) stepPage(v pageView, in appInput) {
-	if step := v.ui.openRole().step; step != nil {
-		step(a, in)
-		return
-	}
 	f := a.flow
 	l := v.list
+	e := v.edit
 	if v.ui.mismatch != nil {
 		a.stepModMismatch(v, in)
 		return
@@ -252,62 +336,131 @@ func (a *App) stepPage(v pageView, in appInput) {
 		return
 	}
 	if in.Unfocused || l == nil {
-		v.ui.resetPointer()
+		if v.page.preserveListPointer {
+			v.ui.press.Clear()
+		} else {
+			v.ui.resetPointer()
+		}
 		return
 	}
-	if in.Enter {
+	if in.PaneMode && v.page.keyboardFocus {
+		delta := 1
+		if in.ShiftHeld {
+			delta = -1
+		}
+		v.moveFocus(delta)
+		return
+	}
+	before := l.Selection()
+	role := v.role()
+	defer func() {
+		now, ok := f.openPage()
+		if ok && role.named && !v.page.activateRows && f.screen == role.shownOn && now.list.Selection() != before {
+			now.pick()
+		}
+	}()
+	if in.Enter && !v.page.keyboardFocus {
 		a.acceptPage(v)
 		return
 	}
-	if in.Delete && f.canDeletePage(v) {
-		v.ui.resetPointer()
-		f.confirmDeletePage(v)
-		return
-	}
-	if !v.ui.confirm {
-		if pageListKeyed(in) {
-			v.ui.rowPressed = false
+	if v.confirming() {
+		wheel := confirmList.wheelStep(in)
+		if in.Up || wheel < 0 {
+			e.confirmTop -= confirmList.key
 		}
-		stepPageListKeys(l, in, pickerList, true)
-	}
-	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	box := a.pageListBox(v)
-	if !v.ui.confirm && a.stepPageBar(v, l, p, ok, in, nil) {
-		return
-	}
-	if in.PrimaryPressed {
-		button, onButton := v.buttonAt(p)
-		v.ui.press.Press(button, ok && onButton && !f.pageButtonDisabled(v, button))
-		if !ok || onButton || v.ui.confirm {
-			v.ui.rowPressed = false
+		if in.Down || wheel > 0 {
+			e.confirmTop += confirmList.key
+		}
+		a.clampConfirmationScroll(v)
+	} else {
+		if in.Delete && v.editField() == nil && f.canDeletePage(v) {
+			f.confirmDeletePage(v)
 			return
 		}
-		row, onRow := box.RowAt(p)
-		top, count := l.Visible()
-		v.ui.pressRow(l, onRow, onRow && row < count, top+row, in.PrimaryDouble, true)
-		return
-	}
-	if !in.PrimaryReleased {
-		return
-	}
-	if v.ui.doubled {
-		a.acceptPage(v)
-		return
-	}
-	at, inside := v.buttonAt(p)
-	button, activated := v.ui.press.Release(at, ok && inside)
-	if !activated {
-		return
-	}
-	switch button {
-	case loadOKButton:
-		a.acceptPage(v)
-	case loadDeleteButton:
-		if !v.ui.confirm && f.canDeletePage(v) {
-			f.confirmDeletePage(v)
+		f.editText(v, in)
+		if !v.page.keyboardFocus && pageListKeyed(in) {
+			v.ui.rowPressed = false
+			e.listFocus = true
 		}
-	case loadCancelButton:
-		f.cancelPage(v)
+		if !v.page.keyboardFocus || e.focus == saveListControl {
+			rule := v.page.wheel
+			if rule.wheel == 0 {
+				rule = pickerList
+			}
+			stepPageListKeys(l, in, rule, !role.named)
+		}
+		if v.page.keyboardFocus && wheeled(in) && e.focus != saveListControl {
+			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && v.page.saveLayout().holds(int(saveListControl), p) {
+				l.Move(v.page.hoverWheel.wheelStep(in))
+			}
+		}
+	}
+	if in.Enter {
+		a.activateControl(v, e.focus)
+		return
+	}
+	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
+	if !v.confirming() {
+		if a.stepPageBar(v, l, p, ok, in, func() {
+			if v.page.keyboardFocus {
+				v.setFocus(saveListControl)
+			}
+		}) {
+			return
+		}
+	}
+	if !in.PrimaryPressed && !in.PrimaryReleased {
+		return
+	}
+	if in.PrimaryReleased && v.ui.doubled {
+		a.acceptPage(v)
+		return
+	}
+	if !ok {
+		v.ui.press.Clear()
+		v.ui.rowPressed = false
+		return
+	}
+	c, hit := v.controlAt(p)
+	box := a.pageListBox(v)
+	if !v.confirming() && !hit && (p.In(box.Rect) || p.In(box.Bar())) {
+		c, hit = saveListControl, true
+	}
+	row, rowOK := 0, hit && c != saveListControl
+	if hit && c == saveListControl {
+		row, rowOK = a.rowAt(v, p)
+	}
+	if in.PrimaryPressed {
+		if !v.page.keyboardFocus && !v.confirming() {
+			if c == saveNameControl && hit {
+				e.listFocus = false
+			}
+			if p.In(box.Rect) || p.In(box.Bar()) {
+				e.listFocus = true
+			}
+		}
+		if hit && v.page.keyboardFocus {
+			v.setFocus(c)
+		}
+		_, onRow := box.RowAt(p)
+		if !v.confirming() && hit && c == saveListControl {
+			if v.ui.pressRow(l, onRow, rowOK, row, in.PrimaryDouble, !v.page.activateRows) {
+				return
+			}
+		} else {
+			v.ui.rowPressed = false
+		}
+		enabled := rowOK && (v.page.keyboardFocus || !f.controlDisabled(v, c))
+		v.ui.press.Press(v.latchID(c, row), enabled && (c != saveListControl || v.page.activateRows))
+	}
+	if in.PrimaryReleased {
+		_, activate := v.ui.press.Release(v.latchID(c, row), rowOK)
+		if activate && c != saveDirectoryControl && c != saveNameControl {
+			if v.page.controlSound {
+				a.playUISound(UISoundCommonControl)
+			}
+			a.activateControl(v, c)
+		}
 	}
 }
 

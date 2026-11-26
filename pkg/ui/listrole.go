@@ -2,43 +2,46 @@ package ui
 
 import "fmt"
 
-// listRole is one role of the list page on the load screen: its page, where
-// its rows come from, what Ok does, whom closing answers and which rows
+// listRole is one role of the list page: the screen it shows on, its page,
+// where its rows come from, what Ok does, whom closing answers and which rows
 // Delete may remove. The page reads the open role's fields and never asks
 // which role is open; a new role is a new row.
 type listRole struct {
 	// roleName names the row; CharacterList is its one reader.
 	roleName string
+	// shownOn is the screen the role's page shows on.
+	shownOn Screen
 	// page is the role's page data.
 	page func(f *flow) SavePage
 	// list answers the listed entries, their rows and the message line.
-	list func(f *flow) ([]SaveEntry, []PickerRow, string)
+	list func(f *flow, v pageView) listing
 	// accept is Ok on the open page; nil does nothing.
 	accept func(f *flow)
 	// answer hears the role's result once the page has closed: the chosen
 	// entry's name and true from Ok, nothing and false from Cancel; nil
 	// hears nothing.
-	answer func(chosen string, ok bool)
+	answer func(f *flow, chosen string, ok bool)
 	// deletes are the role's delete seams; nil lets Delete remove no row.
 	deletes func(f *flow) (func(string) bool, func(string) (func() error, error))
-	// nameField is the text the page's name field edits on s; nil for a page
-	// without a name field.
-	nameField func(s *savePageState) *string
-	// write is Ok on a page that writes: the name field's file, after the
-	// overwrite question; nil leaves Ok to accept.
-	write func(f *flow)
-	// buttonDisabled answers whether page button i is disabled; nil is the
-	// list rule: Ok needs a listed save, Delete a deletable one.
-	buttonDisabled func(f *flow, v pageView, i int) bool
-	// confirmDelete is Delete on the selected row, with its overwrite and
-	// delete questions; nil is the list's delete question.
-	confirmDelete func(f *flow)
-	// cancel is Cancel and Escape; nil is the list's: leave a question, else
-	// close the page.
-	cancel func(f *flow)
-	// step drives one frame of a page that keeps its own controls; nil is the
-	// list's step.
-	step func(a *App, in appInput)
+	// named: the page has a name field the player edits and a row picks.
+	named bool
+	// chooses: Ok chooses the selected row, which sounds the common control
+	// and lays the viewer out again before the row's accept runs.
+	chooses bool
+	// keepsMenuRow: closing restores the game menu's chosen row, not its
+	// first.
+	keepsMenuRow bool
+	// reports: closing shows the chosen text on the menu's message line.
+	reports bool
+}
+
+// listing is a role's rows: the saves behind them, the rows drawn, the
+// message line and how many rows precede the first save.
+type listing struct {
+	saves   []SaveEntry
+	rows    []PickerRow
+	message string
+	lead    int
 }
 
 const characterRoleName = "characters"
@@ -52,12 +55,15 @@ const characterRoleName = "characters"
 func loadListRole() *listRole {
 	return &listRole{
 		roleName: "load",
+		shownOn:  ScreenLoad,
 		page:     (*flow).installedLoadPage,
 		list:     (*flow).saveRows,
 		accept:   (*flow).loadChosen,
 		deletes: func(f *flow) (func(string) bool, func(string) (func() error, error)) {
 			return f.loadUI.canDelete, f.loadUI.prepareDelete
 		},
+		chooses:      true,
+		keepsMenuRow: true,
 	}
 }
 
@@ -67,11 +73,14 @@ func loadListRole() *listRole {
 // (DIV-2369, DIV-5196).
 func characterListRole() *listRole {
 	return &listRole{
-		roleName: characterRoleName,
-		page:     func(f *flow) SavePage { return f.installedLoadPage().asCharacterList(f.characterPage()) },
-		list:     (*flow).characterRows,
-		accept:   (*flow).acceptCharacter,
-		deletes:  (*flow).characterDeletes,
+		roleName:     characterRoleName,
+		shownOn:      ScreenLoad,
+		page:         func(f *flow) SavePage { return f.installedLoadPage().asCharacterList(f.characterPage()) },
+		list:         (*flow).characterRows,
+		accept:       (*flow).acceptCharacter,
+		deletes:      (*flow).characterDeletes,
+		chooses:      true,
+		keepsMenuRow: true,
 	}
 }
 
@@ -80,8 +89,9 @@ func characterListRole() *listRole {
 func mapListRole(items []MapChoiceItem, onDone func(MapChoiceResult)) *listRole {
 	return &listRole{
 		roleName: "maps",
+		shownOn:  ScreenLoad,
 		page:     func(f *flow) SavePage { return mapChoicePage(f.mapChoiceWords()) },
-		list: func(f *flow) ([]SaveEntry, []PickerRow, string) {
+		list: func(f *flow, _ pageView) listing {
 			entries := make([]SaveEntry, len(items))
 			rows := make([]PickerRow, len(items))
 			for i, item := range items {
@@ -92,34 +102,34 @@ func mapListRole(items []MapChoiceItem, onDone func(MapChoiceResult)) *listRole 
 			if len(items) == 0 {
 				message = f.mapChoiceWords().Empty
 			}
-			return entries, rows, message
+			return listing{saves: entries, rows: rows, message: message}
 		},
 		accept: (*flow).chooseMap,
-		answer: func(chosen string, ok bool) {
+		answer: func(_ *flow, chosen string, ok bool) {
 			if onDone != nil {
 				onDone(MapChoiceResult{Chosen: chosen, OK: ok})
 			}
 		},
+		chooses:      true,
+		keepsMenuRow: true,
 	}
 }
 
-// saveListRole is the Save page: the page keeps its own list, built by
-// refreshSavePage, so the row has no list; its name field, its write, its
-// delete seams, its Delete, its Cancel and its step are the row's.
+// saveListRole is the Save page: the open directory's files after the empty
+// slot and the directories, Ok writes the name field's file, Delete removes
+// a listed file through the save dialog's seams, and closing reports the
+// outcome on the menu.
 func saveListRole() *listRole {
 	return &listRole{
-		roleName:  "save",
-		page:      func(f *flow) SavePage { return f.saveScreen.page },
-		nameField: (*savePageState).fileOrLabel,
-		write:     func(f *flow) { f.activateSaveControl(saveWriteControl) },
-		deletes:   (*flow).saveDeletes,
-		buttonDisabled: func(f *flow, v pageView, i int) bool {
-			controls := [...]saveControl{saveWriteControl, saveDeleteControl, saveCancelControl}
-			return i >= 0 && i < len(controls) && f.saveControlDisabled(v.save, controls[i])
-		},
-		confirmDelete: (*flow).confirmSaveDelete,
-		cancel:        (*flow).cancelSavePage,
-		step:          (*App).stepSaveScreen,
+		roleName: "save",
+		shownOn:  ScreenSave,
+		page:     func(f *flow) SavePage { return f.saveScreen.page },
+		list:     (*flow).saveFileRows,
+		accept:   (*flow).submitSavePage,
+		answer:   func(f *flow, _ string, _ bool) { f.saveScreen = nil },
+		deletes:  (*flow).saveDeletes,
+		named:    true,
+		reports:  true,
 	}
 }
 
@@ -134,21 +144,56 @@ func (f *flow) saveDeletes() (func(string) bool, func(string) (func() error, err
 		func(name string) (func() error, error) { return seams.PrepareDelete(dir, name) }
 }
 
-// row is the page's role row.
-func (s *savePageState) row() *listRole {
-	if s.ui.role == nil {
-		s.ui.role = saveListRole()
+// saveFileRows are the Save page's rows: the empty slot, the directories
+// where the page browses, then the listed files the page does not hide. The
+// open directory and the message line follow the listing's outcome.
+func (f *flow) saveFileRows(v pageView) listing {
+	e, page := v.edit, v.page
+	e.directory = SaveDirectory{Path: e.request.Directory}
+	var rows []PickerRow
+	if !page.fileNames {
+		rows = append(rows, PickerRow{Text: page.EmptySlot, Choosable: true, Ink: page.EmptyInk})
 	}
-	return s.ui.role
-}
-
-// fileOrLabel is the save page's name field: the file name on a page that
-// names files, else the label.
-func (s *savePageState) fileOrLabel() *string {
-	if s.page.fileNames {
-		return &s.request.Name
+	if f.saveDialogSeams.List == nil {
+		return listing{rows: rows, message: f.saveWords().Unavailable, lead: len(rows)}
 	}
-	return &s.request.Label
+	message := f.msg
+	dir, err := f.saveDialogSeams.List(e.request.Directory)
+	if err != nil {
+		message = err.Error()
+		if page.stopListError {
+			return listing{rows: rows, message: message, lead: len(rows)}
+		}
+	}
+	e.directory = dir
+	if dir.Path != "" {
+		e.request.Directory = dir.Path
+	} else if !page.directories {
+		e.directory.Path = e.request.Directory
+	}
+	if page.directories {
+		for _, name := range dir.Directories {
+			rows = append(rows, PickerRow{Text: "[" + name + "]", Choosable: true})
+		}
+	}
+	out := listing{lead: len(rows)}
+	for _, entry := range dir.Entries {
+		if page.hidden(entry.Name) {
+			continue
+		}
+		out.saves = append(out.saves, entry)
+		label := entry.Label
+		if page.fileNames {
+			label = saveListName(entry.Name)
+		}
+		rows = append(rows, PickerRow{Text: label, Choosable: true})
+	}
+	out.rows = rows
+	out.message = message
+	if page.clearListMessage {
+		out.message = ""
+	}
+	return out
 }
 
 // openRole is the role the list page shows; with none opened it is the
@@ -171,28 +216,28 @@ func labelRows(entries []SaveEntry) []PickerRow {
 
 // saveRows are the Load page's rows: the listed saves, or the line saying
 // why none is listed.
-func (f *flow) saveRows() ([]SaveEntry, []PickerRow, string) {
+func (f *flow) saveRows(pageView) listing {
 	if f.saveList == nil {
-		return nil, labelRows(nil), "this build has nowhere to load from"
+		return listing{rows: labelRows(nil), message: "this build has nowhere to load from"}
 	}
 	saves := f.saveList()
 	message := ""
 	if len(saves) == 0 {
 		message = "no saved games"
 	}
-	return saves, labelRows(saves), message
+	return listing{saves: saves, rows: labelRows(saves), message: message}
 }
 
 // characterRows are the character store's rows, then the New row, with the
 // store's message line.
-func (f *flow) characterRows() ([]SaveEntry, []PickerRow, string) {
+func (f *flow) characterRows(pageView) listing {
 	var saves []SaveEntry
 	message := ""
 	if list := f.pages.characterFiles.List; list != nil {
 		saves, message = list()
 	}
 	rows := append(labelRows(saves), PickerRow{Text: f.characterPage().New, Choosable: true})
-	return saves, rows, message
+	return listing{saves: saves, rows: rows, message: message}
 }
 
 // acceptCharacter is Ok on the character list: the New row runs

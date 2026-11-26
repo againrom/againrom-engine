@@ -7,6 +7,13 @@ var (
 	secondMenuProfile = GameMenuProfile{WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
 )
 
+// holdSavePage shows an empty save page over the game menu.
+func holdSavePage(f *flow, page SavePage) {
+	f.saveScreen = &savePageState{page: page, ui: loadWindow{role: saveListRole()}}
+	f.loadBack = ScreenGameMenu
+	f.setScreen(ScreenSave)
+}
+
 // windowLeaves are the ways a window opened from the menu ends: the page it is
 // on, and the step that ends it.
 var windowLeaves = []struct {
@@ -14,9 +21,9 @@ var windowLeaves = []struct {
 	open func(f *flow)
 	end  func(f *flow)
 }{
-	{"save ok", func(f *flow) { f.saveScreen = &savePageState{} }, func(f *flow) { f.closeSavePage("Your character is saved") }},
-	{"save cancel", func(f *flow) { f.saveScreen = &savePageState{} }, func(f *flow) { f.closeSavePage("") }},
-	{"save dialog", func(f *flow) { f.saveScreen = &savePageState{page: firstSavePage()} }, func(f *flow) { f.closeSavePage("") }},
+	{"save ok", func(f *flow) { holdSavePage(f, SavePage{}) }, func(f *flow) { f.leaveLoad("Your character is saved", true) }},
+	{"save cancel", func(f *flow) { holdSavePage(f, SavePage{}) }, func(f *flow) { f.leaveLoad("", false) }},
+	{"save dialog", func(f *flow) { holdSavePage(f, firstSavePage()) }, func(f *flow) { f.leaveLoad("", false) }},
 	{"load cancel", func(f *flow) { f.applyGameMenuAction(gameMenuLoad) }, func(f *flow) { f.closeLoad() }},
 	{"options cancel", func(f *flow) { f.applyGameMenuAction(gameMenuGameOptions) }, func(f *flow) { f.applyGameMenuAction(gameMenuOptionsCancel) }},
 	{"sound escape", func(f *flow) { f.applyGameMenuAction(gameMenuSoundOptions) }, func(f *flow) { f.escape() }},
@@ -56,8 +63,8 @@ func TestWindowLastButtonLeavesByTheGamesProfile(t *testing.T) {
 
 func TestSaveOkKeepsItsLineOnlyWhereTheMenuStays(t *testing.T) {
 	f := openMissionMenu(t)
-	f.saveScreen = &savePageState{}
-	f.closeSavePage("Your character is saved")
+	holdSavePage(f, SavePage{})
+	f.leaveLoad("Your character is saved", true)
 	if f.msg != "Your character is saved" {
 		t.Fatalf("first game msg = %q", f.msg)
 	}

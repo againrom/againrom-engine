@@ -33,7 +33,7 @@ func TestSelectedOriginalSaveDetailIsItsLabel(t *testing.T) {
 			t.Fatalf("selected %s detail = %q, want label %q", row.Name, got, row.Label)
 		}
 		calls := text.Record(func() {
-			if _, err := a.composeLoadScreen(); err != nil {
+			if _, err := a.composeListPage(); err != nil {
 				t.Fatal(err)
 			}
 		})
