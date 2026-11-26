@@ -520,7 +520,7 @@ func (s *mapInspectionEdits) DeleteRecords(refs []ui.RecordRef) (_ ui.SelectionE
 		for _, ref := range order {
 			k, err := selectionKind(ref.Kind)
 			if err == nil {
-				err = deleteObject(m, k, ref.Index)
+				err = deleteRecord(m, k, ref.Index)
 			}
 			if err != nil {
 				refusals = append(refusals, s.refusalNote(ref, err))

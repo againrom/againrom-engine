@@ -327,24 +327,35 @@ func (s *mapInspectionEdits) Delete(kind ui.RecordKind, index int) (_ *ui.Inspec
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := scriptDeleteAllowed(m, k, index); err != nil {
-			return false, err
-		}
-		if k == mapedit.KindEnchantment {
-			if set := m.SpellSet(index); len(set) > 0 {
-				mark := m.Mark()
-				for j := len(set) - 1; j >= 0; j-- {
-					if err := deleteObject(m, k, set[j]); err != nil {
-						return false, err
-					}
-				}
-				m.Squash(mark)
-				return true, nil
-			}
-		}
-		err := deleteObject(m, k, index)
+		err := deleteRecord(m, k, index)
 		return err == nil, err
 	})
+}
+
+// deleteRecord removes record index of kind k as one history entry: a record
+// a script still names is refused, an enchantment goes with its whole spell
+// set, and the rest goes as deleteObject takes it. A refused part leaves m as
+// it was.
+func deleteRecord(m *mapedit.Editor, k mapedit.Kind, index int) error {
+	if err := scriptDeleteAllowed(m, k, index); err != nil {
+		return err
+	}
+	if k == mapedit.KindEnchantment {
+		if set := m.SpellSet(index); len(set) > 0 {
+			mark := m.Mark()
+			for j := len(set) - 1; j >= 0; j-- {
+				if err := deleteObject(m, k, set[j]); err != nil {
+					for m.Mark() > mark {
+						m.Undo()
+					}
+					return err
+				}
+			}
+			m.Squash(mark)
+			return nil
+		}
+	}
+	return deleteObject(m, k, index)
 }
 
 // AddSack places a new ground sack holding one item on cell, as one edit.
