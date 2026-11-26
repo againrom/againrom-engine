@@ -544,10 +544,7 @@ func (f *flow) applyTownAction(act TownAction) {
 	if act.Open == nil {
 		return
 	}
-	v, tick, order, cadence, affect, advance, attack, grab, stance, march, err := act.Open()
-	if err != nil {
+	if err := f.enterOpened(act.Open); err != nil {
 		f.msg = err.Error()
-		return
 	}
-	f.enter(v, tick, order, cadence, affect, advance, attack, grab, stance, march)
 }

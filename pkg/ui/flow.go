@@ -1068,13 +1068,12 @@ func (f *flow) choose() {
 		f.picker.SetUnusable(i)
 		return
 	}
-	v, tick, order, cadence, affect, advance, attack, grab, stance, march, err := f.load(i)
-	if err != nil {
+	if err := f.enterOpened(func() (*Viewer, MapTick, MapOrder, MapCadence, MapAffect, MapAdvance, MapAttack, MapGrab, MapStance, MapMarch, error) {
+		return f.load(i)
+	}); err != nil {
 		f.msg = err.Error()
 		f.picker.SetUnusable(i)
-		return
 	}
-	f.enter(v, tick, order, cadence, affect, advance, attack, grab, stance, march)
 }
 
 // armChargen shows the generation screen over the model c, with begin as the
@@ -1297,13 +1296,10 @@ func (f *flow) goNoticeDest(dest NoticeDest, msg string, open MapOpener) {
 			f.msg = msg
 			return
 		}
-		v, tick, order, cadence, affect, advance, attack, grab, stance, march, err := open()
-		if err != nil {
+		if err := f.enterOpened(open); err != nil {
 			f.setScreen(ScreenPicker)
 			f.msg = err.Error()
-			return
 		}
-		f.enter(v, tick, order, cadence, affect, advance, attack, grab, stance, march)
 	case NoticeToTown:
 		// The map screen is torn down through the SAME leaveMap the other three
 		// arms use, and then the town is shown — with the seam's own sentence
