@@ -381,25 +381,13 @@ func sig(parts ...[]Slot) []Slot {
 	return out
 }
 
-// The Againrom operations' opcodes and the build-time constant operation.
+// The Againrom operations' opcodes both records run and the build-time
+// constant operation; extendedops.go names the extended record's own.
 const (
-	constantOp     = 0x10002
-	formOp         = 0x10003
-	healthBelow    = 0x4101
-	undying        = 0x4100
-	readGlobal     = 0x4102
-	setGlobal      = 0x4103
-	addGlobal      = 0x4104
-	UnitLeftCellOp = 0x4105
-	teleportCell   = 0x4106
-)
-
-// The global and teleport operations, as the wizard lists them.
-const (
-	ReadGlobalOp   = readGlobal
-	SetGlobalOp    = setGlobal
-	AddGlobalOp    = addGlobal
-	TeleportCellOp = teleportCell
+	constantOp  = 0x10002
+	formOp      = 0x10003
+	healthBelow = 0x4101
+	undying     = 0x4100
 )
 
 // firstCommandVariants and secondCommandVariants are each game's action 6
@@ -493,7 +481,7 @@ var firstChecks = []Op{
 	{Condition: true, ID: healthBelow, Name: "Health below (Againrom)", Word: "editor.check.op16641", Decoded: true, Offered: true, Again: true, Signature: sig(unit("unit"), number("health"))}, // DIV-4009
 	{Condition: true, ID: UnitLeftCellOp, Name: "Unit left its cell", Word: "editor.check.op16645", Decoded: true, Again: true, Signature: sig(unit("unit"), cell("cell")),
 		Presets: []WizardPreset{{Order: 25, Word: "editor.wizard.c.leftcell", Fields: map[string]string{"unit": "placement"}, Right: 1}}},
-	{Condition: true, ID: readGlobal, Name: "Read global (Againrom)", Word: "editor.check.op16642", Decoded: true, Again: true, Signature: sig(number("global")), // DIV-5108
+	{Condition: true, ID: ReadGlobalOp, Name: "Read global (Againrom)", Word: "editor.check.op16642", Decoded: true, Again: true, Signature: sig(number("global")), // DIV-5108
 		Presets: []WizardPreset{{Order: 24, Word: "editor.wizard.c.global", Fields: map[string]string{"global": "global"}, ChooseCmp: true, Compared: "count"}}},
 }
 
@@ -570,11 +558,11 @@ var firstActions = []Op{
 		Presets: []WizardPreset{{Order: 12, Word: "editor.wizard.a.drop", SubjectWord: "editor.wizard.s.mission"}}},
 	{ID: formOp, Name: "Object form (build time)", Offered: true},
 	{ID: undying, Name: "Set undying (Againrom)", Word: "editor.action.op16640", Decoded: true, Offered: true, Again: true, Signature: sig(unit("unit"), number("undying"))}, // DIV-4009
-	{ID: setGlobal, Name: "Set global (Againrom)", Word: "editor.action.op16643", Decoded: true, Again: true, Signature: sig(number("global"), number("value")), // DIV-5108
+	{ID: SetGlobalOp, Name: "Set global (Againrom)", Word: "editor.action.op16643", Decoded: true, Again: true, Signature: sig(number("global"), number("value")), // DIV-5108
 		Presets: []WizardPreset{{Order: 17, Word: "editor.wizard.a.setglobal", Fields: map[string]string{"global": "global", "value": "value"}}}},
-	{ID: addGlobal, Name: "Add to global (Againrom)", Word: "editor.action.op16644", Decoded: true, Again: true, Signature: sig(number("global"), number("delta")), // DIV-5108
+	{ID: AddGlobalOp, Name: "Add to global (Againrom)", Word: "editor.action.op16644", Decoded: true, Again: true, Signature: sig(number("global"), number("delta")), // DIV-5108
 		Presets: []WizardPreset{{Order: 18, Word: "editor.wizard.a.addglobal", Fields: map[string]string{"global": "global", "delta": "delta"}}}},
-	{ID: teleportCell, Name: "Teleport (Againrom)", Word: "editor.action.op16646", Decoded: true, Offered: true, Again: true, Signature: sig(cell("source"), cell("cell2")), // DIV-5200
+	{ID: TeleportCellOp, Name: "Teleport (Againrom)", Word: "editor.action.op16646", Decoded: true, Offered: true, Again: true, Signature: sig(cell("source"), cell("cell2")), // DIV-5200
 		Presets: []WizardPreset{{Order: 35, Word: "editor.wizard.a.teleport", Fields: map[string]string{"source": "teleportsource", "cell2": "teleporttarget"}}}},
 }
 

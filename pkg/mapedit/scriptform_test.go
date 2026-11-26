@@ -197,7 +197,7 @@ func TestFoldScriptRefusesAnInteractiveDialogue(t *testing.T) {
 	e := build(1)
 	held := e.Bytes()
 	var limit *mapedit.ScriptLimitError
-	if err := e.FoldScript(); !errors.As(err, &limit) || limit.Limit != mapedit.LimitDialogue || limit.Got != 1 || !limit.Lifted() || !bytes.Equal(e.Bytes(), held) {
+	if err := e.FoldScript(); !errors.As(err, &limit) || limit.Limit != mapedit.LimitExtendedOnly || limit.Op.Name != "dialogue" || limit.Got != 1 || !limit.Lifted() || !bytes.Equal(e.Bytes(), held) {
 		t.Fatalf("a fold with an interactive dialogue answered %v", err)
 	}
 	if err := build(0).FoldScript(); err != nil {
@@ -217,7 +217,7 @@ func TestFoldScriptRefusesAGlobalNode(t *testing.T) {
 	}
 	held := e.Bytes()
 	var limit *mapedit.ScriptLimitError
-	if err := e.FoldScript(); !errors.As(err, &limit) || limit.Limit != mapedit.LimitGlobal || limit.Got != 2 || !limit.Lifted() || !bytes.Equal(e.Bytes(), held) {
+	if err := e.FoldScript(); !errors.As(err, &limit) || limit.Limit != mapedit.LimitExtendedOnly || limit.Op.Name != "global" || limit.Got != 2 || !limit.Lifted() || !bytes.Equal(e.Bytes(), held) {
 		t.Fatalf("a fold with global nodes answered %v", err)
 	}
 }
@@ -233,7 +233,7 @@ func TestFoldScriptRefusesATeleportNode(t *testing.T) {
 	}
 	held := e.Bytes()
 	var limit *mapedit.ScriptLimitError
-	if err := e.FoldScript(); !errors.As(err, &limit) || limit.Limit != mapedit.LimitTeleport || limit.Got != 1 || !limit.Lifted() || !bytes.Equal(e.Bytes(), held) {
+	if err := e.FoldScript(); !errors.As(err, &limit) || limit.Limit != mapedit.LimitExtendedOnly || limit.Op.Name != "teleport" || limit.Got != 1 || !limit.Lifted() || !bytes.Equal(e.Bytes(), held) {
 		t.Fatalf("a fold with a teleport action answered %v", err)
 	}
 }

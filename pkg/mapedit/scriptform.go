@@ -250,56 +250,58 @@ func (f scriptForms) extended(t alm.ScriptTrigger) (alm.ScriptTrigger, error) {
 	return x, nil
 }
 
-// CountInteractive is how many of the action nodes ask for an interactive
-// dialogue, which the original record cannot run.
-func CountInteractive(nodes []alm.ScriptNode) int {
-	n := 0
-	for _, a := range nodes {
-		if a.InteractiveMessage() {
-			n++
-		}
-	}
-	return n
+type extendedNodeKey struct {
+	condition bool
+	id        uint32
+	opcode    uint32
 }
 
-// CountGlobalNodes is how many of the script's nodes name a mod global,
-// which the original record cannot run: the original reads such a check
-// as 0 and skips such an action (DIV-5108).
-func CountGlobalNodes(sc alm.Script) int {
-	n := 0
-	for _, c := range sc.Conditions {
-		if scriptprofile.AddressesGlobal(true, c.Opcode) {
-			n++
-		}
-	}
-	for _, a := range sc.Actions {
-		if scriptprofile.AddressesGlobal(false, a.Opcode) {
-			n++
-		}
-	}
-	return n
+type extendedRowCount struct {
+	total int
+	nodes map[extendedNodeKey]int
 }
 
-// UnitLeftCellLimit checks whether the conditions need the extended machine for a unit's starting cell.
-func UnitLeftCellLimit(nodes []alm.ScriptNode) *ScriptLimitError {
-	for _, c := range nodes {
-		if c.Opcode == scriptprofile.UnitLeftCellOp {
-			return &ScriptLimitError{Limit: LimitUnitLeftCell, Got: 1}
+// ExtendedOnly is the one refusal of script sc in the original record: the
+// first row of scriptprofile.ExtendedOps to which sc adds a node not in held
+// while holding more than o.Held, with Got the nodes in sc. Nil where the
+// original record can hold sc. p supplies the game's binding rule.
+func ExtendedOnly(p scriptprofile.Profile, held, sc alm.Script) *ScriptLimitError {
+	was, now := extendedNodes(p, held), extendedNodes(p, sc)
+	for i, o := range scriptprofile.ExtendedOps {
+		if now[i].total <= o.Held {
+			continue
+		}
+		for k, n := range now[i].nodes {
+			if n > was[i].nodes[k] {
+				return &ScriptLimitError{Limit: LimitExtendedOnly, Max: int64(o.Held), Got: int64(now[i].total), Op: o}
+			}
 		}
 	}
 	return nil
 }
 
-// CountTeleportNodes is how many of the action nodes are the first game's
-// teleport action, which only an extended script runs (DIV-5200).
-func CountTeleportNodes(nodes []alm.ScriptNode) int {
-	n := 0
-	for _, a := range nodes {
-		if a.Opcode == scriptprofile.TeleportCellOp {
-			n++
+// extendedNodes counts sc's nodes per row of scriptprofile.ExtendedOps, in
+// total and by node key, reading message parameters under profile p.
+func extendedNodes(p scriptprofile.Profile, sc alm.Script) []extendedRowCount {
+	rows := make([]extendedRowCount, len(scriptprofile.ExtendedOps))
+	record := func(i int, k extendedNodeKey) {
+		rows[i].total++
+		if rows[i].nodes == nil {
+			rows[i].nodes = map[extendedNodeKey]int{}
+		}
+		rows[i].nodes[k]++
+	}
+	for _, c := range sc.Conditions {
+		if i := scriptprofile.ExtendedOpAt(true, c.Opcode, false); i >= 0 {
+			record(i, extendedNodeKey{condition: true, id: c.ID, opcode: c.Opcode})
 		}
 	}
-	return n
+	for _, a := range sc.Actions {
+		if i := scriptprofile.ExtendedOpAt(false, a.Opcode, a.InteractiveMessage(p.UntypedAsInt)); i >= 0 {
+			record(i, extendedNodeKey{condition: false, id: a.ID, opcode: a.Opcode})
+		}
+	}
+	return rows
 }
 
 // ExtendScript moves the map's type-7 triggers into the Againrom script
@@ -372,17 +374,8 @@ func (e *Editor) FoldScript() error {
 	}
 	if m, err := e.Map(); err == nil {
 		if sc, err := m.Script(); err == nil {
-			if n := CountInteractive(sc.Actions); n > 0 {
-				return &ScriptLimitError{Limit: LimitDialogue, Got: int64(n)}
-			}
-			if limit := UnitLeftCellLimit(sc.Conditions); limit != nil {
+			if limit := ExtendedOnly(first, alm.Script{}, sc); limit != nil {
 				return limit
-			}
-			if n := CountGlobalNodes(sc); n > 0 {
-				return &ScriptLimitError{Limit: LimitGlobal, Got: int64(n)}
-			}
-			if n := CountTeleportNodes(sc.Actions); n > 0 {
-				return &ScriptLimitError{Limit: LimitTeleport, Got: int64(n)}
 			}
 		}
 	}

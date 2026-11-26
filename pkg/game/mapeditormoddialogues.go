@@ -66,8 +66,9 @@ func (s *mapInspectionEdits) dialoguesGate() error {
 		return nil
 	}
 	if _, sc, err := wizardScript(s.model); err == nil {
+		untyped := s.model.Profile().UntypedAsInt
 		for _, a := range sc.Actions {
-			if a.InteractiveMessage() && held[a.Label] == nil {
+			if a.InteractiveMessage(untyped) && held[a.Label] == nil {
 				return wordErr("editor.dialogue.err.nofile", a.Label)
 			}
 		}

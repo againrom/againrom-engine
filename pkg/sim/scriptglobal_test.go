@@ -7,6 +7,13 @@ import (
 	"testing"
 )
 
+// The global operations' opcodes as the extended-op table names them.
+const (
+	readGlobalOp int32 = 0x4102
+	setGlobalOp  int32 = 0x4103
+	addGlobalOp  int32 = 0x4104
+)
+
 // globalProgram is an extended program whose setup trigger sets global 2 to
 // 40, adds 2 to it, adds 1 to global 1, and sets and adds to global 3, which
 // the World does not hold. Its second trigger sets variable 50 to 1 once
@@ -15,17 +22,17 @@ import (
 func globalProgram(t *testing.T) *Script {
 	t.Helper()
 	s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{
-		{Op: ScriptCheckGlobal, Register: 0, Args: [scriptParams]int32{1}},
+		{Op: readGlobalOp, Register: 0, Args: [scriptParams]int32{1}},
 		constCheck(1, 0),
-		{Op: ScriptCheckGlobal, Register: 2, Args: [scriptParams]int32{3}},
-		{Op: ScriptCheckGlobal, Register: 3, Args: [scriptParams]int32{2}},
+		{Op: readGlobalOp, Register: 2, Args: [scriptParams]int32{3}},
+		{Op: readGlobalOp, Register: 3, Args: [scriptParams]int32{2}},
 		constCheck(4, 42),
 	}, []ScriptInstant{
-		{Op: ScriptInstantSetGlobal, Args: [scriptParams]int32{2, 40}},
-		{Op: ScriptInstantAddGlobal, Args: [scriptParams]int32{2, 2}},
-		{Op: ScriptInstantAddGlobal, Args: [scriptParams]int32{1, 1}},
-		{Op: ScriptInstantSetGlobal, Args: [scriptParams]int32{3, 9}},
-		{Op: ScriptInstantAddGlobal, Args: [scriptParams]int32{3, 9}},
+		{Op: setGlobalOp, Args: [scriptParams]int32{2, 40}},
+		{Op: addGlobalOp, Args: [scriptParams]int32{2, 2}},
+		{Op: addGlobalOp, Args: [scriptParams]int32{1, 1}},
+		{Op: setGlobalOp, Args: [scriptParams]int32{3, 9}},
+		{Op: addGlobalOp, Args: [scriptParams]int32{3, 9}},
 		{Op: ScriptInstantSetVariable, Args: [scriptParams]int32{50, 1}},
 		{Op: ScriptInstantSetVariable, Args: [scriptParams]int32{51, 1}},
 	}, []ScriptTrigger{

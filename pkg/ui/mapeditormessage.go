@@ -802,7 +802,9 @@ func (e *MapEditor) applyMessage() {
 			_, err = e.commandWriteMessage(messageWrite{Owner: &owner, Page: e.messagePage, Parts: parts})
 		}
 		if err != nil {
-			e.obj.note = e.editorHostText(err.Error())
+			if !e.askScriptForm(err, e.applyMessage) {
+				e.obj.note = e.editorHostText(err.Error())
+			}
 			return
 		}
 		e.messageFrom = e.messagePage
@@ -841,7 +843,9 @@ func (e *MapEditor) createMessage(parts []InspectionMessagePart) {
 	}
 	ch, err := e.commandWriteMessage(messageWrite{Owner: &owner, Page: NewMessagePage, Parts: parts})
 	if err != nil {
-		e.obj.note = e.editorHostText(err.Error())
+		if !e.askScriptForm(err, e.applyMessage) {
+			e.obj.note = e.editorHostText(err.Error())
+		}
 		return
 	}
 	if ch.doc == nil {
@@ -1211,7 +1215,9 @@ func (e *MapEditor) newPageMessage(host InspectionMessageMaker, owner Inspection
 	}
 	next, err := host.NewMessage(owner)
 	if err != nil {
-		e.obj.note = e.editorHostText(err.Error())
+		if !e.askScriptForm(err, func() { e.newPageMessage(host, owner) }) {
+			e.obj.note = e.editorHostText(err.Error())
+		}
 		return
 	}
 	if next == nil || next.Script == nil {

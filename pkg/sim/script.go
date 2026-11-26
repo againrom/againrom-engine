@@ -68,10 +68,6 @@ const (
 	// ScriptCheckHealthBelow is Againrom's own condition (DIV-4009): 1 iff
 	// the unit's current health is below p0, else 0. ROM1 has no such arm.
 	ScriptCheckHealthBelow int32 = 0x4101
-
-	// ScriptCheckGlobal is Againrom's own condition (DIV-5108): the value of
-	// the mod global p0, 0 for a global the World does not hold.
-	ScriptCheckGlobal int32 = 0x4102
 )
 
 // The instant opcodes this build runs, out of a 34-arm table.
@@ -217,18 +213,6 @@ const (
 	// ScriptInstantUndying is Againrom's own action (DIV-4009): p0 = 1 sets
 	// the unit's undying state, p0 = 0 clears it. ROM1 has no such arm.
 	ScriptInstantUndying int32 = 0x4100
-
-	// ScriptInstantSetGlobal and ScriptInstantAddGlobal are Againrom's own
-	// actions (DIV-5108): mod global p0 becomes p1, or p1 is added to it,
-	// wrapping as a register does. A global the World does not hold takes
-	// no write.
-	ScriptInstantSetGlobal int32 = 0x4103
-	ScriptInstantAddGlobal int32 = 0x4104
-
-	// ScriptInstantTeleport is Againrom's own action (DIV-5200): any living
-	// unit standing on (p0, p1) moves to (p2, p3), or the nearest free cell
-	// when the target is taken.
-	ScriptInstantTeleport int32 = 0x4106
 )
 
 // The three PROPERTY SELECTORS instant 34 defines. They are the arm's own three
@@ -244,7 +228,8 @@ const (
 // what this build can evaluate. They are the ONLY place either answer is given,
 // so the compile-time report and the runtime dispatch cannot come to disagree
 // about which arms exist — a switch with a silent default is exactly how an
-// unimplemented arm becomes an evaluated-false one.
+// unimplemented arm becomes an evaluated-false one. An operation only the
+// extended record runs is answered by its row of scriptprofile.ExtendedOps.
 func scriptCheckSupported(op int32) bool {
 	switch op {
 	case ScriptCheckGroupCount,
@@ -255,10 +240,10 @@ func scriptCheckSupported(op int32) bool {
 		ScriptCheckSackAt, ScriptCheckNearest, ScriptCheckItemDistance, ScriptCheckItemTest,
 		ScriptCheckVIP,
 		ScriptCheckVariable, ScriptCheckStructField, ScriptCheckConstant,
-		ScriptCheckHealthBelow, ScriptCheckGlobal:
+		ScriptCheckHealthBelow:
 		return true
 	}
-	return false
+	return scriptprofile.ExtendedRuns(true, uint32(op), false)
 }
 
 // scriptInstantSupported takes the WHOLE instant, not the bare opcode:
@@ -277,13 +262,12 @@ func scriptInstantSupported(in ScriptInstant) bool {
 		ScriptInstantCastAtCell, ScriptInstantCastAtUnit, ScriptInstantCellEffectAge,
 		ScriptInstantFormation, ScriptInstantDropAll, ScriptInstantCellTail,
 		ScriptInstantUnitEffectAge, ScriptInstantProperty, ScriptInstantStructField,
-		ScriptInstantUndying, ScriptInstantSetGlobal, ScriptInstantAddGlobal,
-		ScriptInstantTeleport:
+		ScriptInstantUndying:
 		return true
 	case ScriptInstantGroupOrder:
 		return groupOrderSupported(in.Args[0])
 	}
-	return false
+	return scriptprofile.ExtendedRuns(false, uint32(in.Op), false)
 }
 
 // groupOrderSupported is opcode 6's own sub-table (SC-2, 1148): true for the
@@ -673,7 +657,11 @@ func (s *Script) Recompile(checks []ScriptCheck, instants []ScriptInstant, trigg
 }
 
 func (m scriptMachine) supportsCheck(op int32) bool {
-	return scriptCheckSupported(op) || m.extended && op == scriptprofile.UnitLeftCellOp
+	return scriptCheckSupported(op) || scriptprofile.ExtendedRuns(true, uint32(op), m.extended)
+}
+
+func (m scriptMachine) supportsInstant(in ScriptInstant) bool {
+	return scriptInstantSupported(in) || scriptprofile.ExtendedRuns(false, uint32(in.Op), m.extended)
 }
 
 // Extended reports whether s runs on the extended machine.
@@ -770,7 +758,7 @@ func newScriptOn(dialect ScriptDialect, m scriptMachine, checks []ScriptCheck, i
 		poisoned[cp[i].Register] = true
 	}
 	for i := range ip {
-		if scriptInstantSupported(ip[i]) || rows.instant[ip[i].Op] != nil {
+		if m.supportsInstant(ip[i]) || rows.instant[ip[i].Op] != nil {
 			continue
 		}
 		g := ScriptGap{Kind: ScriptGapInstant, Op: ip[i].Op, Index: int32(i)}
@@ -1259,6 +1247,11 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 		}
 		return
 	}
+	if !w.scriptMachine().supportsCheck(c.Op) {
+		dispatched, silence = false, ScriptSilenceUnsupported
+		tr.silence(i, c, ScriptSilenceUnsupported)
+		return
+	}
 	switch c.Op {
 	case ScriptCheckConstant:
 		// Preset at build time, never dispatched. Writing it here would
@@ -1315,7 +1308,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 		write(w.registerAt(c.Args[0]))
 		return
 
-	case ScriptCheckGlobal:
+	case scriptprofile.ReadGlobalOp: // DIV-5108: 0 for a global the World does not hold
 		write(w.globalAt(c.Args[0]))
 		return
 
@@ -1432,17 +1425,6 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 
 	case ScriptCheckDead11, ScriptCheckDead13:
 		silence = ScriptSilenceDeadCheck
-		return
-	}
-
-	// An arm this build does not evaluate leaves HERE rather than falling through
-	// the switch below and reaching no case, which is where it used to stop. The
-	// two are the same nothing — scriptEntity only looks an id up — and the early
-	// return is what lets the silence be recorded as unsupported rather than as
-	// an unresolved reference it never got as far as testing.
-	if !w.script.machine.supportsCheck(c.Op) {
-		dispatched, silence = false, ScriptSilenceUnsupported
-		tr.silence(i, c, ScriptSilenceUnsupported)
 		return
 	}
 
@@ -1745,6 +1727,9 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 		body(w, in, obs)
 		return
 	}
+	if !w.scriptMachine().supportsInstant(in) {
+		return
+	}
 	switch in.Op {
 	case ScriptInstantMessage:
 
@@ -1752,9 +1737,9 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 		w.setRegisterAt(in.Args[0], in.Args[1])
 	case ScriptInstantIncVariable:
 		w.setRegisterAt(in.Args[0], w.registerAt(in.Args[0])+1)
-	case ScriptInstantSetGlobal:
+	case scriptprofile.SetGlobalOp: // DIV-5108: wraps as a register does
 		w.setGlobal(in.Args[0], in.Args[1])
-	case ScriptInstantAddGlobal:
+	case scriptprofile.AddGlobalOp:
 		w.setGlobal(in.Args[0], w.globalAt(in.Args[0])+in.Args[1])
 	case ScriptInstantWin:
 		w.won++
@@ -2110,7 +2095,7 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 			w.setUndying(i, in.Args[0] != 0)
 		}
 
-	case ScriptInstantTeleport:
+	case scriptprofile.TeleportCellOp: // DIV-5200: to the nearest free cell when the target is taken
 		w.teleportCellOccupants(in.Args[0], in.Args[1], in.Args[2], in.Args[3], obs)
 
 	case ScriptInstantStructField:
@@ -2877,8 +2862,14 @@ func sortedGaps(gs []ScriptGap) []ScriptGap {
 	return out
 }
 
-// scriptInstantRuns reports whether w's game runs the instant, by the shared
-// table or by the game's own rows.
+func (w *World) scriptMachine() scriptMachine {
+	if w.script != nil {
+		return w.script.machine
+	}
+	return scriptMachine{}
+}
+
+// scriptInstantRuns reports whether w's machine and game run the instant.
 func (w *World) scriptInstantRuns(in ScriptInstant) bool {
-	return scriptInstantSupported(in) || w.game.scriptRows.instant[in.Op] != nil
+	return w.scriptMachine().supportsInstant(in) || w.game.scriptRows.instant[in.Op] != nil
 }

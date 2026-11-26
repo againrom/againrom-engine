@@ -117,7 +117,7 @@ func TestPlainDialogMadeInTheWindowIsWrittenAsPages(t *testing.T) {
 		t.Fatalf("a plain dialog made a dialogue file: %v", s.DialogueNames())
 	}
 	sc := wizScript(t, s.model.Bytes())
-	if len(sc.Actions) != 1 || sc.Actions[0].InteractiveMessage() {
+	if len(sc.Actions) != 1 || sc.Actions[0].InteractiveMessage(false) {
 		t.Fatalf("the action is not a plain message: %+v", sc.Actions)
 	}
 	found := false
@@ -152,7 +152,7 @@ func TestAReplyMakesTheDialogueAFileAndRemovingItFoldsBack(t *testing.T) {
 		t.Fatalf("a reply choice wrote no dialogue file:\n%s", trigLines(e))
 	}
 	sc := wizScript(t, s.model.Bytes())
-	if len(sc.Actions) != 1 || !sc.Actions[0].InteractiveMessage() {
+	if len(sc.Actions) != 1 || !sc.Actions[0].InteractiveMessage(false) {
 		t.Fatalf("the action is not interactive: %+v", sc.Actions)
 	}
 	d, err := s.ReadDialogue(names[0])
@@ -169,7 +169,7 @@ func TestAReplyMakesTheDialogueAFileAndRemovingItFoldsBack(t *testing.T) {
 		t.Fatalf("the file stayed after the last reply went: %v", got)
 	}
 	sc = wizScript(t, s.model.Bytes())
-	if len(sc.Actions) != 1 || sc.Actions[0].InteractiveMessage() {
+	if len(sc.Actions) != 1 || sc.Actions[0].InteractiveMessage(false) {
 		t.Fatalf("the action stayed interactive: %+v", sc.Actions)
 	}
 	if _, err := s.SaveInPlace(); err == nil || !errors.As(err, new(*ui.ScriptFormNeeded)) {
@@ -224,7 +224,7 @@ func TestDialogueFileWithOtherLanguageSurvivesRemovingEveryReply(t *testing.T) {
 		t.Fatalf("the texts were lost: %+v (%v)", got, err)
 	}
 	sc := wizScript(t, s.model.Bytes())
-	if len(sc.Actions) != 1 || !sc.Actions[0].InteractiveMessage() {
+	if len(sc.Actions) != 1 || !sc.Actions[0].InteractiveMessage(false) {
 		t.Fatalf("the action stopped starting the file: %+v", sc.Actions)
 	}
 }

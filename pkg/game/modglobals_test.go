@@ -15,6 +15,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -25,9 +26,9 @@ const globalsMillFolder = "testdata/globals-mill"
 
 // The global nodes' opcodes, as the op table states them.
 const (
-	opReadGlobal = uint32(sim.ScriptCheckGlobal)
-	opSetGlobal  = uint32(sim.ScriptInstantSetGlobal)
-	opAddGlobal  = uint32(sim.ScriptInstantAddGlobal)
+	opReadGlobal = uint32(scriptprofile.ReadGlobalOp)
+	opSetGlobal  = uint32(scriptprofile.SetGlobalOp)
+	opAddGlobal  = uint32(scriptprofile.AddGlobalOp)
 )
 
 // globalsMillMap is the fixture's map: a 40x40 .almx with one unit of side 1.

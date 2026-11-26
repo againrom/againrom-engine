@@ -102,16 +102,46 @@ func limitWords(l *mapedit.ScriptLimitError, word func(string) string) string {
 		return fmt.Sprintf(word("editor.script.limit.checks"), l.Got, l.Max)
 	case mapedit.LimitVariables:
 		return fmt.Sprintf(word("editor.script.limit.variables"), l.Max-1, l.Got)
-	case mapedit.LimitDialogue:
-		return fmt.Sprintf(word("editor.script.limit.dialogue"), l.Got)
-	case mapedit.LimitUnitLeftCell:
-		return word("editor.script.limit.leftcell")
-	case mapedit.LimitGlobal:
-		return fmt.Sprintf(word("editor.script.limit.global"), l.Got)
-	case mapedit.LimitTeleport:
-		return fmt.Sprintf(word("editor.script.limit.teleport"), l.Got)
+	case mapedit.LimitExtendedOnly:
+		key, args := extendedWords(l)
+		return fmt.Sprintf(word(key), args...)
 	}
 	return fmt.Sprintf(word("editor.script.limit.id"), l.Max, l.Got)
+}
+
+// extendedWords is the word key and figures of a refusal of an
+// extended-record operation, as the operation's row gives them.
+func extendedWords(l *mapedit.ScriptLimitError) (string, []any) {
+	if l.Op.Counted {
+		return l.Op.Word, []any{l.Got}
+	}
+	return l.Op.Word, nil
+}
+
+// originalRefusal is the refusal of map next in the original record: one
+// extended-record operation (mapedit.ExtendedOnly) to which next adds a node
+// not held in before, before nil for none. Every edit (change) and the save
+// ask it; nil where next carries the extended record. checkWords gives it
+// the row's words.
+func originalRefusal(before, next *mapedit.Editor) error {
+	if next.Extended() {
+		return nil
+	}
+	_, sc, err := wizardScript(next)
+	p := next.Profile()
+	if err != nil || mapedit.ExtendedOnly(p, alm.Script{}, sc) == nil {
+		return nil
+	}
+	var held alm.Script
+	if before != nil && !before.Extended() {
+		if _, h, err := wizardScript(before); err == nil {
+			held = h
+		}
+	}
+	if limit := mapedit.ExtendedOnly(p, held, sc); limit != nil {
+		return limit
+	}
+	return nil
 }
 
 // wordErr is a refusal that holds a word key and its figures; the host
@@ -481,11 +511,8 @@ func (s *mapInspectionEdits) scriptSaveForm(path string) error {
 		if !s.Offers(reflect.TypeFor[ui.InspectionScriptForm]()) {
 			return nil
 		}
-		_, sc, err := wizardScript(s.model)
-		if err == nil {
-			if limit := mapedit.UnitLeftCellLimit(sc.Conditions); limit != nil {
-				return formNeeded(s.model, limit, s.inspector.word)
-			}
+		if refusal := originalRefusal(nil, s.model); refusal != nil {
+			return formNeeded(s.model, s.checkWords(refusal), s.inspector.word)
 		}
 		return nil
 	}

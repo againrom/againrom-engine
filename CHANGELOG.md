@@ -42,6 +42,7 @@ modder or developer can notice gets no entry.
 - [BASE] In the map editor a trap can no longer be placed on, or have its Source moved to, a cell that already holds a trap: the editor says "This cell already holds a trap." and leaves the map as it was.
 - [ROM1] In the map editor a first-game map's message text now goes through the second game's letter check too, so both games refuse a letter the game would show as another, and a NUL, with the same words; the pages window lists the map's pages with the actions that show each.
 - [ROM2] In the map editor a second-game send-event action now offers New dialog: it adds the next free event section to the mission text, points the action at it and opens the section's text in the pages window.
+- [BASE] In the map editor a node only an extended map runs (an interactive dialogue, a mod global, Unit left its cell, Teleport) now asks to extend the map at the edit that adds it, and again when a map in the original format that already holds one is saved; a refused fold names the reason in the editor's language.
 
 ### For players
 

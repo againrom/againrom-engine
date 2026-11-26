@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
+	"againrom/pkg/scriptprofile"
 	"againrom/pkg/sim"
 )
 
@@ -92,5 +93,42 @@ func TestInteractiveMessageRaisesItsDialogue(t *testing.T) {
 	_, rep, err = mapload.CompileScriptFrom(src, mapload.ScriptRefs{})
 	if err != nil || len(rep.Dialogues) != 0 || len(rep.Raises) != 2 || rep.Raises[0].Event != 4 {
 		t.Errorf("original script: %+v %v", rep, err)
+	}
+}
+
+func TestInteractiveMessageMatchesCompilerInBothGames(t *testing.T) {
+	cases := []struct {
+		name      string
+		types     [alm.ScriptParams]uint32
+		values    [alm.ScriptParams]uint32
+		wantFirst bool
+		wantSec   bool
+	}{
+		{"third-slot-after-unset", [alm.ScriptParams]uint32{1, 0, 1}, [alm.ScriptParams]uint32{7, 0, 1}, true, false},
+		{"unset-second-slot", [alm.ScriptParams]uint32{1, 0}, [alm.ScriptParams]uint32{7, 1}, false, true},
+	}
+	for _, tc := range cases {
+		n := alm.ScriptNode{Label: "elder", Opcode: 2, ID: 1, Type: tc.types, Value: tc.values}
+		src := alm.Script{
+			Actions:    []alm.ScriptNode{n},
+			Conditions: []alm.ScriptNode{node("One", 0x10002, 1, par(1, 1))},
+			Triggers:   []alm.ScriptTrigger{{Name: "T", Left: []uint32{1}, Right: []uint32{1}, Cmp: []uint32{0}, Acts: []uint32{1}}},
+			Extended:   true,
+			Variables:  100,
+		}
+		_, rep1, err := mapload.CompileScriptFrom(src, mapload.ScriptRefs{})
+		if err != nil {
+			t.Fatalf("%s ROM1: %v", tc.name, err)
+		}
+		_, rep2, err := mapload.CompileROM2ScriptFrom(src, mapload.ScriptRefs{})
+		if err != nil {
+			t.Fatalf("%s ROM2: %v", tc.name, err)
+		}
+		if got := len(rep1.Dialogues) > 0; got != tc.wantFirst || n.InteractiveMessage(scriptprofile.First.UntypedAsInt) != got {
+			t.Errorf("%s ROM1: compiler dialogue %v, predicate %v, want %v", tc.name, got, n.InteractiveMessage(scriptprofile.First.UntypedAsInt), tc.wantFirst)
+		}
+		if got := len(rep2.Dialogues) > 0; got != tc.wantSec || n.InteractiveMessage(scriptprofile.Second.UntypedAsInt) != got {
+			t.Errorf("%s ROM2: compiler dialogue %v, predicate %v, want %v", tc.name, got, n.InteractiveMessage(scriptprofile.Second.UntypedAsInt), tc.wantSec)
+		}
 	}
 }

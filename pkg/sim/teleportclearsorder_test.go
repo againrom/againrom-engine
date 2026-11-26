@@ -36,7 +36,7 @@ func TestFirstGameTeleportActionClearsTheMoveOrder(t *testing.T) {
 		{Op: ScriptCheckNearest, Register: 0, Player: SelfSlot, HasPlayer: true, Args: [scriptParams]int32{10, 10}},
 		constCheck(1, 0),
 	}, []ScriptInstant{
-		{Op: ScriptInstantTeleport, Args: [scriptParams]int32{10, 10, 30, 40}},
+		{Op: teleportOp, Args: [scriptParams]int32{10, 10, 30, 40}},
 	}, []ScriptTrigger{
 		{Instants: acts(), Once: true, Latch: 0, Conditions: []ScriptPair{pair(0, 1, ScriptCmpEQ)}, Actions: []int32{0}},
 	})

@@ -40,11 +40,17 @@ func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (_ *ui.InspectionD
 }
 
 // checkWords is a refusal the game words, a check register taken or full
-// among them, in the editor's words; any other error as it is.
+// and an extended-record operation among them, in the editor's words; any
+// other error as it is.
 func (s *mapInspectionEdits) checkWords(err error) error {
 	var taken registerTaken
-	if errors.As(err, &taken) {
+	var limit *mapedit.ScriptLimitError
+	switch {
+	case errors.As(err, &taken):
 		err = lifted(err, "editor.wizard.registers", taken.register, taken.max)
+	case !worded(err) && errors.As(err, &limit) && limit.Limit == mapedit.LimitExtendedOnly:
+		key, args := extendedWords(limit)
+		err = lifted(err, key, args...)
 	}
 	return s.inspector.inLanguage(err)
 }
@@ -115,58 +121,19 @@ func nodeIndex(nodes []alm.ScriptNode, id uint32) int {
 // or actions than the profile's, or on an original map a second group.
 func wizardRoom(t ui.WizardTrigger, limits scriptprofile.Profile, extended bool) error {
 	limit := &mapedit.ScriptLimitError{Limit: mapedit.LimitPairs, Max: int64(limits.Pairs), Got: int64(len(t.Pairs))}
-	plan := planScript(t)
-	globals, dialogues, teleports := mapedit.CountGlobalNodes(plan), mapedit.CountInteractive(plan.Actions), mapedit.CountTeleportNodes(plan.Actions)
 	switch {
 	case len(t.Pairs) > limits.Pairs:
 	case len(t.Actions) > limits.Actions:
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitActions, Max: int64(limits.Actions), Got: int64(len(t.Actions))}
 	case !extended && slices.ContainsFunc(t.Pairs, func(p ui.WizardPair) bool { return p.Group != 0 }):
 		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGroups, Max: 1, Got: 2}
-	case !extended && dialogues > 0:
-		n := dialogues
-		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitDialogue, Got: int64(n)}
-		return lifted(limit, "editor.script.limit.dialogue", n)
-	case !extended && globals > 0:
-		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitGlobal, Got: int64(globals)}
-		return lifted(limit, "editor.script.limit.global", globals)
-	case !extended && teleports > 0:
-		limit = &mapedit.ScriptLimitError{Limit: mapedit.LimitTeleport, Got: int64(teleports)}
-		return lifted(limit, "editor.script.limit.teleport", teleports)
 	default:
-		if !extended {
-			if refusal := mapedit.UnitLeftCellLimit(plan.Conditions); refusal != nil {
-				return refusal
-			}
-		}
 		return nil
 	}
 	if extended {
 		return lifted(limit, "editor.script.triggerfullx", limits.Pairs, limits.Actions)
 	}
 	return lifted(limit, "editor.script.triggerfull")
-}
-
-// planScript holds the plan's nodes as the script the fold counts: each
-// condition side and each action.
-func planScript(t ui.WizardTrigger) alm.Script {
-	var sc alm.Script
-	for _, p := range t.Pairs {
-		sc.Conditions = append(sc.Conditions, planNode(p.Left), planNode(p.Right))
-	}
-	for _, a := range t.Actions {
-		sc.Actions = append(sc.Actions, planNode(a))
-	}
-	return sc
-}
-
-// planNode is the node a wizard row writes; a node kept as it stands has no
-// opcode and counts for nothing.
-func planNode(n ui.WizardNode) alm.ScriptNode {
-	if n.Keep {
-		return alm.ScriptNode{}
-	}
-	return alm.ScriptNode{Opcode: n.Opcode, Label: n.Label, Type: n.Types, Value: n.Values}
 }
 
 func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
@@ -365,18 +332,18 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 		}
 		params = append(params, mapedit.ScriptParam{Type: n.Types[s], Value: n.Values[s]})
 	}
+	limits := m.Profile()
 	if at >= 0 && nodes[at].Opcode == n.Opcode && nodes[at].Type == n.Types && nodes[at].Value == n.Values &&
-		(n.Label == "" && !nodes[at].InteractiveMessage() || n.Label == nodes[at].Label) {
+		(n.Label == "" && !nodes[at].InteractiveMessage(limits.UntypedAsInt) || n.Label == nodes[at].Label) {
 		return n.ID, nil // the row names what the node already says
 	}
-	limits := m.Profile()
 	label := mapload.ScriptOperationNameIn(limits.Ops, condition, n.Opcode)
 	if n.Label != "" {
 		label = n.Label
 	}
 	vars := variableRegisters(sc)
 	if at >= 0 && refs[n.ID] == 1 && planned[[2]uint32{family, n.ID}] == 0x101 && !(condition && vars[uint32(at)]) {
-		if nodes[at].Opcode == n.Opcode && n.Label == "" && !nodes[at].InteractiveMessage() {
+		if nodes[at].Opcode == n.Opcode && n.Label == "" && !nodes[at].InteractiveMessage(limits.UntypedAsInt) {
 			label = ""
 		}
 		if condition && n.Opcode != mapload.ScriptConstant {

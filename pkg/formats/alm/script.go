@@ -374,16 +374,17 @@ func readScriptTriggers(b []byte, off int, n int64) ([]ScriptTrigger, int, error
 }
 
 // InteractiveMessage reports an action node that raises a message and asks for
-// an interactive dialogue: opcode 2 whose second plain parameter is 1. The
-// node's label names the dialogue. Only the Againrom script record honours it.
-func (n ScriptNode) InteractiveMessage() bool {
+// an interactive dialogue: opcode 2 whose second plain parameter is 1. With
+// untypedAsInt set, an unset type slot counts as a plain integer parameter,
+// matching the compiler's bound arguments. The node's label names the
+// dialogue. Only the Againrom script record honours it.
+func (n ScriptNode) InteractiveMessage(untypedAsInt bool) bool {
 	if n.Opcode != 2 {
 		return false
 	}
 	plain := 0
 	for i, t := range n.Type {
-		switch t {
-		case 1, 5, 6, 7:
+		if t == 1 || t == 5 || t == 6 || t == 7 || untypedAsInt && t == 0 {
 			plain++
 			if plain == 2 {
 				return n.Value[i] == 1

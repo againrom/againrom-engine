@@ -329,13 +329,13 @@ func (s *mapInspectionEdits) DialogueUsers(name string) []string {
 	if err != nil {
 		return nil
 	}
-	return dialogueUsers(sc, name)
+	return dialogueUsers(sc, name, s.model.Profile().UntypedAsInt)
 }
 
-func dialogueUsers(sc alm.Script, name string) []string {
+func dialogueUsers(sc alm.Script, name string, untypedAsInt bool) []string {
 	starts := map[uint32]bool{}
 	for _, a := range sc.Actions {
-		if a.InteractiveMessage() && a.Label == name {
+		if a.InteractiveMessage(untypedAsInt) && a.Label == name {
 			starts[a.ID] = true
 		}
 	}

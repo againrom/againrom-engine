@@ -140,6 +140,9 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	if err == nil && changed {
 		err = raiseVariables(next)
 	}
+	if err == nil && changed {
+		err = originalRefusal(s.model, next)
+	}
 	err = s.checkWords(err)
 	// A format with no Againrom script record refuses in its own words.
 	if need := formNeeded(s.model, err, s.inspector.word); need != nil && s.Offers(reflect.TypeFor[ui.InspectionScriptForm]()) {

@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// teleportOp is the teleport action's opcode as the extended-op table names it.
+const teleportOp int32 = 0x4106
+
 func teleportActionWorld(t *testing.T, script *Script, terrain Terrain, ents ...Entity) *World {
 	t.Helper()
 	w, err := NewRelatedWorld(1, engBounds, ModeCanonical, terrain, ents, script, engRel(t))
@@ -15,7 +18,7 @@ func teleportActionWorld(t *testing.T, script *Script, terrain Terrain, ents ...
 	return w
 }
 
-// ScriptInstantTeleport moves any living unit standing on Source (player,
+// The teleport action moves any living unit standing on Source (player,
 // ally, enemy, monster, ground or air) to Target through the trap teleport's
 // one move, stands it there, and reports the Relocation event. When Target is
 // taken, the unit takes the nearest free cell; an empty Source or a dead body
@@ -35,7 +38,7 @@ func TestFirstGameTeleportActionMovesAnyUnitAndFindsNearestFreeCell(t *testing.T
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
-					{Op: ScriptInstantTeleport, Args: [scriptParams]int32{10, 10, 30, 40}},
+					{Op: teleportOp, Args: [scriptParams]int32{10, 10, 30, 40}},
 				}, []ScriptTrigger{
 					{Instants: acts(), Latch: 0, Conditions: []ScriptPair{pair(0, 0, ScriptCmpEQ)}, Actions: []int32{0}},
 				})
@@ -65,7 +68,7 @@ func TestFirstGameTeleportActionMovesAnyUnitAndFindsNearestFreeCell(t *testing.T
 
 	t.Run("taken target gives nearest free cell", func(t *testing.T) {
 		s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
-			{Op: ScriptInstantTeleport, Args: [scriptParams]int32{10, 10, 30, 40}},
+			{Op: teleportOp, Args: [scriptParams]int32{10, 10, 30, 40}},
 		}, []ScriptTrigger{
 			{Instants: acts(), Latch: 0, Conditions: []ScriptPair{pair(0, 0, ScriptCmpEQ)}, Actions: []int32{0}},
 		})
@@ -92,7 +95,7 @@ func TestFirstGameTeleportActionMovesAnyUnitAndFindsNearestFreeCell(t *testing.T
 
 	t.Run("empty source or dead body moves nothing", func(t *testing.T) {
 		s, err := NewExtendedScript(ScriptROM1, 100, []ScriptCheck{constCheck(0, 1)}, []ScriptInstant{
-			{Op: ScriptInstantTeleport, Args: [scriptParams]int32{10, 10, 30, 40}},
+			{Op: teleportOp, Args: [scriptParams]int32{10, 10, 30, 40}},
 		}, []ScriptTrigger{
 			{Instants: acts(), Latch: 0, Conditions: []ScriptPair{pair(0, 0, ScriptCmpEQ)}, Actions: []int32{0}},
 		})
@@ -125,7 +128,7 @@ func TestFirstGameTeleportActionRepeatsAndRoundTripsSave(t *testing.T) {
 		{Op: ScriptCheckNearest, Register: 0, Player: SelfSlot, HasPlayer: true, Args: [scriptParams]int32{10, 10}},
 		constCheck(1, 0),
 	}, []ScriptInstant{
-		{Op: ScriptInstantTeleport, Args: [scriptParams]int32{10, 10, 30, 40}},
+		{Op: teleportOp, Args: [scriptParams]int32{10, 10, 30, 40}},
 	}, []ScriptTrigger{
 		{Instants: acts(), Once: false, Latch: 0, Conditions: []ScriptPair{pair(0, 1, ScriptCmpEQ)}, Actions: []int32{0}},
 	})

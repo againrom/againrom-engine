@@ -646,6 +646,7 @@ func (s *mapInspectionEdits) PointMessageParts(owner ui.InspectionMessageOwner, 
 func (s *mapInspectionEdits) pointMessageParts(owner ui.InspectionMessageOwner, n uint32, fresh bool, parts []ui.InspectionMessagePart) (*ui.InspectionDocument, uint32, error) {
 	saved := *s
 	saved.undoWorkspace = slices.Clone(s.undoWorkspace)
+	before := len(s.undoWorkspace)
 	d, n, err := s.pointMessage(owner, n, fresh)
 	if err != nil {
 		return nil, 0, err
@@ -659,7 +660,9 @@ func (s *mapInspectionEdits) pointMessageParts(owner ui.InspectionMessageOwner, 
 	if text != nil {
 		d = text
 	}
-	s.undoWorkspace = s.undoWorkspace[:steps]
+	if steps > before {
+		s.undoWorkspace = s.undoWorkspace[:steps]
+	}
 	return d, n, nil
 }
 
@@ -687,63 +690,60 @@ func (s *mapInspectionEdits) pointMessage(owner ui.InspectionMessageOwner, n uin
 	return d, n, err
 }
 
-// pointedMessage makes owner name page n of workspace w and adopts w.
-func (s *mapInspectionEdits) pointedMessage(owner ui.InspectionMessageOwner, n uint32, w *editorWorkspaceState) (*ui.InspectionDocument, error) {
-	next := s.model.Clone()
-	mark := next.Mark()
-	kind, index, key := owner.Kind, owner.Index, owner.Key
-	if kind == ui.KindMessage {
-		if _, err := addScriptRecord(next, mapedit.KindAction); err != nil {
-			return nil, err
-		}
-		kind, index, key = ui.KindAction, next.Count(mapedit.KindAction)-1, "value0"
-	}
-	k, err := editKind(kind)
-	if err != nil {
-		return nil, err
-	}
-	view, err := next.Map()
-	if err != nil {
-		return nil, err
-	}
-	sc, err := view.Script()
-	if err != nil {
-		return nil, err
-	}
-	if owner.Trigger != nil {
-		plan := *owner.Trigger
-		if kind != ui.KindTrigger || plan.Index != index || owner.Action < 0 || owner.Action >= len(plan.Actions) {
-			return nil, errors.New(s.inspector.word("editor.message.unavailable"))
-		}
-		plan.Actions = slices.Clone(plan.Actions)
-		node := plan.Actions[owner.Action]
-		if node.Keep {
-			i := nodeIndex(sc.Actions, node.ID)
-			if i < 0 {
-				return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+// pointedMessage makes owner name page n of workspace w through change.
+func (s *mapInspectionEdits) pointedMessage(owner ui.InspectionMessageOwner, n uint32, w *editorWorkspaceState) (_ *ui.InspectionDocument, said error) {
+	defer s.worded(&said)
+	return s.change(func(next *mapedit.Editor) (bool, error) {
+		s.stage.next = w
+		mark := next.Mark()
+		kind, index, key := owner.Kind, owner.Index, owner.Key
+		if kind == ui.KindMessage {
+			if _, err := addScriptRecord(next, mapedit.KindAction); err != nil {
+				return false, err
 			}
-			node.Opcode, node.Types, node.Values = sc.Actions[i].Opcode, sc.Actions[i].Type, sc.Actions[i].Value
+			kind, index, key = ui.KindAction, next.Count(mapedit.KindAction)-1, "value0"
 		}
-		if scriptParameterKind(false, node.Opcode, node.Types, 0) != ui.ScriptMessageParameter {
-			return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+		k, err := editKind(kind)
+		if err != nil {
+			return false, err
 		}
-		node.Keep, node.Values[0] = false, n
-		plan.Actions[owner.Action] = node
-		if err := writeWizardTrigger(next, plan); err != nil {
-			return nil, err
+		view, err := next.Map()
+		if err != nil {
+			return false, err
 		}
-	} else if k != mapedit.KindAction || index < 0 || index >= len(sc.Actions) || key != "value0" || scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) != ui.ScriptMessageParameter {
-		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
-	} else if _, err := s.setFieldOn(next, kind, k, index, key, int64(n)); err != nil {
-		return nil, err
-	}
-	next.Squash(mark)
-	d, err := s.project(next)
-	if err != nil {
-		return nil, err
-	}
-	s.rememberWorkspace(!bytes.Equal(s.model.Bytes(), next.Bytes()))
-	s.model, s.workspace, s.workspaceImage = next, w, workspaceBytes(w)
-	s.inspector.messageTargets(d.Script.Targets, w, s.row().messages)
-	return d, nil
+		sc, err := view.Script()
+		if err != nil {
+			return false, err
+		}
+		if owner.Trigger != nil {
+			plan := *owner.Trigger
+			if kind != ui.KindTrigger || plan.Index != index || owner.Action < 0 || owner.Action >= len(plan.Actions) {
+				return false, wordErr("editor.message.unavailable")
+			}
+			plan.Actions = slices.Clone(plan.Actions)
+			node := plan.Actions[owner.Action]
+			if node.Keep {
+				i := nodeIndex(sc.Actions, node.ID)
+				if i < 0 {
+					return false, wordErr("editor.message.unavailable")
+				}
+				node.Opcode, node.Types, node.Values = sc.Actions[i].Opcode, sc.Actions[i].Type, sc.Actions[i].Value
+			}
+			if scriptParameterKind(false, node.Opcode, node.Types, 0) != ui.ScriptMessageParameter {
+				return false, wordErr("editor.message.unavailable")
+			}
+			node.Keep, node.Values[0] = false, n
+			plan.Actions[owner.Action] = node
+			if err := writeWizardTrigger(next, plan); err != nil {
+				return false, err
+			}
+		} else if k != mapedit.KindAction || index < 0 || index >= len(sc.Actions) || key != "value0" || scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) != ui.ScriptMessageParameter {
+			return false, wordErr("editor.message.unavailable")
+		} else if _, err := s.setFieldOn(next, kind, k, index, key, int64(n)); err != nil {
+			return false, err
+		}
+		changed := next.Mark() != mark
+		next.Squash(mark)
+		return changed, nil
+	})
 }

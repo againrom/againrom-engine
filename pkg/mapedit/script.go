@@ -229,18 +229,15 @@ func patchNode(base []byte, label *string, opcode, id uint32, params []ScriptPar
 type ScriptLimit int
 
 const (
-	LimitPairs     ScriptLimit = iota // condition pairs per trigger
-	LimitActions                      // action ids per trigger
-	LimitCompare                      // the highest comparison code
-	LimitID                           // the highest node id a slot names
-	LimitGroups                       // OR groups: the original record holds one
-	LimitTriggers                     // triggers a map holds; Got is the count held
-	LimitChecks                       // check registers; Got is the checks held
-	LimitVariables                    // the highest variable a node addresses
-	LimitDialogue                     // an interactive dialogue: only the extended record runs one
-	LimitGlobal                       // a mod global: only the extended record runs a node that names one
-	LimitUnitLeftCell
-	LimitTeleport // a cell teleport action: only the extended record runs one
+	LimitPairs        ScriptLimit = iota // condition pairs per trigger
+	LimitActions                         // action ids per trigger
+	LimitCompare                         // the highest comparison code
+	LimitID                              // the highest node id a slot names
+	LimitGroups                          // OR groups: the original record holds one
+	LimitTriggers                        // triggers a map holds; Got is the count held
+	LimitChecks                          // check registers; Got is the checks held
+	LimitVariables                       // the highest variable a node addresses
+	LimitExtendedOnly                    // nodes of an operation only the extended record runs; Op is its row
 )
 
 // Lifted reports a limit the Againrom script record lifts: the value fits
@@ -252,7 +249,7 @@ func (e *ScriptLimitError) Lifted() bool {
 		return e.Got <= int64(x.Pairs)
 	case LimitActions:
 		return e.Got <= int64(x.Actions)
-	case LimitGroups, LimitChecks, LimitDialogue, LimitGlobal, LimitUnitLeftCell, LimitTeleport:
+	case LimitGroups, LimitChecks, LimitExtendedOnly:
 		return true
 	case LimitTriggers:
 		return e.Got < int64(x.Triggers)
@@ -263,10 +260,12 @@ func (e *ScriptLimitError) Lifted() bool {
 }
 
 // ScriptLimitError is a trigger value the original record cannot hold:
-// Limit is the limit passed, Max its value and Got what the value asks.
+// Limit is the limit passed, Max its value and Got what the value asks; Op
+// is the operation's row for LimitExtendedOnly.
 type ScriptLimitError struct {
 	Limit    ScriptLimit
 	Max, Got int64
+	Op       scriptprofile.ExtendedOp
 }
 
 func (e *ScriptLimitError) Error() string {
@@ -285,14 +284,8 @@ func (e *ScriptLimitError) Error() string {
 		return fmt.Sprintf("mapedit: the script already uses %d of %d check registers", e.Got, e.Max)
 	case LimitVariables:
 		return fmt.Sprintf("mapedit: a variable is 0..%d, not %d", e.Max-1, e.Got)
-	case LimitDialogue:
-		return fmt.Sprintf("mapedit: %d message action(s) ask for an interactive dialogue, which only the extended script runs", e.Got)
-	case LimitUnitLeftCell:
-		return "mapedit: unit left its cell requires an extended map"
-	case LimitGlobal:
-		return fmt.Sprintf("mapedit: %d node(s) read or write a mod global, which only the extended script runs", e.Got)
-	case LimitTeleport:
-		return fmt.Sprintf("mapedit: %d teleport action(s), which only the extended script runs", e.Got)
+	case LimitExtendedOnly:
+		return fmt.Sprintf("mapedit: %d %s node(s), which only the extended script runs", e.Got, e.Op.Name)
 	}
 	return fmt.Sprintf("mapedit: a trigger slot names a node id up to %d, not %d", e.Max, e.Got)
 }
