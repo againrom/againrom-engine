@@ -1050,8 +1050,8 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	}
 }
 
-// blowRule is a game's draws and gates in resolveBlow; the zero value is the
-// first game's.
+// blowRule is a game's draws and gates in resolveBlow (firstGameBlow,
+// secondGameBlow).
 type blowRule struct {
 	// draw: the order of the physical pair's draws (blowDraws).
 	draw blowDrawRule
@@ -1065,8 +1065,7 @@ type blowRule struct {
 	// signed and unbounded (R2-ENGINE-1830).
 	signedProtection bool
 	// riderPastCutoff: a weapon rider row that applies without a living hit
-	// still fires when the blow left the target at -10 or below (the owner's
-	// exemption from the ordinary cutoff).
+	// still fires when the blow left the target at -10 or below (MAGIC-475).
 	riderPastCutoff bool
 }
 
@@ -1087,6 +1086,8 @@ var zeroSpreadRules = [...]zeroSpreadRow{
 	zeroSpreadDraws: {draws: func(int64) bool { return true }},
 	zeroSpreadSkips: {draws: func(spread int64) bool { return spread != 0 }},
 }
+
+var firstGameBlow = blowRule{riderPastCutoff: true}
 
 var secondGameBlow = blowRule{draw: blowDrawsEffectsFirst, zeroSpread: zeroSpreadSkips,
 	absorbsPositiveOnly: true, signedProtection: true, riderPastCutoff: true}

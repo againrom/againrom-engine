@@ -643,16 +643,13 @@ func TestWeaponSpellApplyRefusesPrismaticSprayForTheRider(t *testing.T) {
 
 // ---------------------------------------------------------------- R3-B3
 
-// TestTheFightersRiderStopsWhenThePhysicalBlowCrossesMinusTen is R3-B3 at
-// the shape of the shipped carrier (Boulder Thrower, castSpell=Fire_Ball,
-// missions 90/111/140): a fighter's weapon carrying an AREA row lands it at
-// the struck target's own cell (spec.md), and the rider used to fire after
-// any killing blow. The owner-directed boundary now ends the whole ordinary
-// action at -10, before the area rider can affect the bystander (`DIV-442`).
+// TestTheFightersRiderStopsWhenThePhysicalBlowCrossesMinusTen checks that an
+// ordinary area weapon rider stops when the blow crosses -10 (`DIV-442`); Fire
+// Ball alone is exempt (`MAGIC-475`).
 func TestTheFightersRiderStopsWhenThePhysicalBlowCrossesMinusTen(t *testing.T) {
-	rule := SpellRule{ID: 2, Area: true, Radius: 1, School: 1, MaxRange: 5,
+	rule := SpellRule{ID: 3, Area: true, Radius: 1, School: 1, MaxRange: 5,
 		DamageMin: 10, DamageMax: 10, Damaging: true}
-	caster := wpnCaster(1, 0, 0, 2, 40, 1, 0) // level 40: base = 10*(40+30)/30 = 23
+	caster := wpnCaster(1, 0, 0, 3, 40, 1, 0) // level 40: base = 10*(40+30)/30 = 23
 	caster.MaxMana, caster.Mana = 0, 0        // FR-2a: not a mage — the fighter's rider, not the caster's
 	caster.DamageBase, caster.AlwaysHits = 900, true
 	victim := spEnt(2, 1, 0)

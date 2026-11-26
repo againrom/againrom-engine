@@ -308,6 +308,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			dialect:             ScriptROM1,
 			dropsEmptyScript:    true,
 			scoreEffectSpell:    20,
+			blow:                firstGameBlow,
 			skillAward:          firstGameSkillAward,
 			computerSupport:     supportCastPolicy{minimumMana: 11, requiresHeal: true, idleOnly: true, pick: supportPicksDrawn, hold: supportHeldInCombat, shield: shieldNone},
 			cellEvent:           cellEventRelocating,

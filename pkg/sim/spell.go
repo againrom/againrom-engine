@@ -1254,7 +1254,7 @@ func (w *World) releaseWeaponSpell(ai, ti int, rule SpellRule, obs *castObs) {
 // strike that reached it already proved reach and sight, and `L05098`
 // requires only that the weapon carry a spell. The owner-directed -10 cutoff
 // is enforced by resolveBlow before this function is reached (`DIV-442`),
-// except that the second game's Fire Ball rider is called past it.
+// except that the Fire Ball rider is called past it (MAGIC-475).
 //
 // weaponSpellApply's own Area branch needs no second target check: Fire Ball is
 // a blast and the caller has already retained or refused the target. A point row
