@@ -1126,7 +1126,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// Every cell of a fresh route is at most its own index of steps from
 			// the mover, so this sub-goal is at most four cells off and cannot be
 			// outside the window that has just been tested against.
-			sub = route[w.walkGoalIndex(e, route)]
+			sub = route[walkGoalIndex(e, route)]
 		}
 
 		// The near search keeps the scaled rule, and keeps its relation and its
@@ -1357,7 +1357,8 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 // sub-goal and be asked to search from a cell to itself.
 const lookAhead = 3
 
-// subGoalIndex is min(lookAhead, n-1) for a route of n cells.
+// subGoalIndex is min(lookAhead, n-1) for a route of n cells: the last cell the
+// open-terrain test of a stored route reaches.
 func subGoalIndex(n int) int {
 	if n-1 < lookAhead {
 		return n - 1
@@ -1390,12 +1391,12 @@ func (w *World) subGoal(s *routeScratch, i int) (cell, bool) {
 	// mover would circle it, and the route is replaced by one far search.
 	// A closed cell further along stays in the route until it comes within that
 	// reach. DIV-2048.
-	for k := 0; k <= max(w.walkGoalIndex(e, route), subGoalIndex(len(route))); k++ {
+	for k := 0; k <= max(walkGoalIndex(e, route), subGoalIndex(len(route))); k++ {
 		if !w.terrainOpenFootprint(*e, route[k].x, route[k].y) {
 			return cell{}, false
 		}
 	}
-	sub := route[w.walkGoalIndex(e, route)]
+	sub := route[walkGoalIndex(e, route)]
 	win := window{centre: cell{x: e.X, y: e.Y}, half: dynamicWindow}
 	if !win.holds(sub.x, sub.y) {
 		return cell{}, false
@@ -2412,26 +2413,8 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 }
 
 // walkGoalIndex is the index of the cell of route that entity e's near search
-// aims at. The first game aims min(lookAhead, n-1) along it. A profile that
-// aims by the repath rule takes the route end while at most
-// staticIsntNeeded cells remain, else the head when the mover stands more than
-// dynamicByStaticLookup from it, else the cell lookAhead along.
-func (w *World) walkGoalIndex(e *Entity, route []cell) int {
-	return walkGoalBodies[w.game.walkGoal](e, route)
-}
-
-// walkGoalRule is how the near search of a walk picks its cell on the route.
-type walkGoalRule uint8
-
-const (
-	walkGoalAhead walkGoalRule = iota
-	walkGoalRepath
-)
-
-var walkGoalBodies = [...]func(e *Entity, route []cell) int{
-	walkGoalAhead: func(_ *Entity, route []cell) int { return subGoalIndex(len(route)) },
-	walkGoalRepath: func(e *Entity, route []cell) int {
-		index, _ := routeEndGoal(route, cell{x: e.X, y: e.Y})
-		return index
-	},
+// aims at: routeEndGoal's, the same choice the pursuit makes.
+func walkGoalIndex(e *Entity, route []cell) int {
+	index, _ := routeEndGoal(route, cell{x: e.X, y: e.Y})
+	return index
 }

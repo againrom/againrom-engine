@@ -253,12 +253,13 @@ func TestTheCoverEngagementPrefersAirAndThenTheNearest(t *testing.T) {
 	rel := engRel(t, [3]uint32{2, 3, 1}, [3]uint32{3, 2, 1})
 
 	for _, tc := range []struct {
-		name  string
-		reach uint8
-		want  EntityID
+		name         string
+		reach        uint8
+		subjectReach uint8
+		want         EntityID
 	}{
-		{"air over a nearer ground candidate", 4, 4},
-		{"a melee defender passes over the air candidate", 1, 3},
+		{"air over a nearer ground candidate", 4, 4, 4},
+		{"a melee defender passes over the air candidate", 1, 4, 3},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -266,8 +267,10 @@ func TestTheCoverEngagementPrefersAirAndThenTheNearest(t *testing.T) {
 			// ground candidate is 3 cells from the defender and the air candidate 8.
 			defender := laFighter(2, 2, 7, 13, 5)
 			defender.Reach = tc.reach
+			subject := laFighter(1, 2, 7, 5, 5)
+			subject.Reach = tc.subjectReach
 			w := esWorld(t, subCommandDefend, 8, rel,
-				laFighter(1, 2, 7, 5, 5), defender,
+				subject, defender,
 				laFighter(3, 3, 9, 10, 5), laFlier(4, 3, 9, 5, 5+1))
 			esPass(w)
 			if e := laEnt(t, w, 2); !e.HasAttackTarget || e.AttackTarget != tc.want {

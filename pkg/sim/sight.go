@@ -561,6 +561,23 @@ type perception struct {
 	target   int
 	at       cell
 	atCell   bool
+	// detect is how the group purpose measures a member's detector radius.
+	detect detectMeasure
+}
+
+// detectMeasure is the distance a member's See invisible byte is held against.
+type detectMeasure uint8
+
+const (
+	detectCells detectMeasure = iota
+	detectEdge
+)
+
+var detectMeasures = [...]func(w *World, m, t int) bool{
+	detectCells: func(w *World, m, t int) bool { return w.detectsInvisible(m, cellOf(&w.entities[t])) },
+	detectEdge: func(w *World, m, t int) bool {
+		return int64(w.targetEdgeDistance(w.entities[t], w.entities[m])) <= int64(w.entities[m].SeeInvisible)
+	},
 }
 
 // perceptionRow is a purpose's rule. Terrain sight is the first half, an
@@ -673,7 +690,7 @@ func (w *World) setPerceives(q perception, t int, at cell) bool {
 
 // groupDetects reports a member that is the target or detects it.
 func (w *World) groupDetects(q perception, t int, at cell) bool {
-	sees := func(m int) bool { return w.entities[m].ID == w.entities[t].ID || w.detectsInvisible(m, at) }
+	sees := func(m int) bool { return w.entities[m].ID == w.entities[t].ID || detectMeasures[q.detect](w, m, t) }
 	if q.byOwner {
 		for m := range w.entities {
 			if w.entities[m].Owner == q.owner && sees(m) {

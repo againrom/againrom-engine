@@ -80,7 +80,7 @@ func walkSubGoal(t *testing.T, second bool, headX int32, n int) cell {
 
 // The second game's walk aims at the route end while five cells or fewer
 // remain, at the head when the mover is more than three cells off it, else at
-// the fourth cell; the first game aims at the fourth cell or the end.
+// the fourth cell; the first game's walk takes the same rule.
 func TestSecondWalkAimsByTheRepathRule(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
@@ -89,9 +89,9 @@ func TestSecondWalkAimsByTheRepathRule(t *testing.T) {
 		first, second cell
 	}{
 		{"four cells", 3, 4, cell{6, 10}, cell{6, 10}},
-		{"five cells", 3, 5, cell{6, 10}, cell{7, 10}},
+		{"five cells", 3, 5, cell{7, 10}, cell{7, 10}},
 		{"six cells near the head", 3, 6, cell{6, 10}, cell{6, 10}},
-		{"six cells far from the head", 6, 6, cell{9, 10}, cell{6, 10}},
+		{"six cells far from the head", 6, 6, cell{6, 10}, cell{6, 10}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := walkSubGoal(t, false, tc.headX, tc.n); got != tc.first {
@@ -114,7 +114,7 @@ func hideEntity(t *testing.T, w *World, id EntityID) {
 
 // A withdrawing second-game unit keeps an invisible hostile in its list while
 // a member of its Group detects it, wherever the unit itself looks; the first
-// game asks the unit's own sight alone.
+// game asks the same group.
 func TestSecondWithdrawalListAsksTheGroupToDetect(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
@@ -124,7 +124,7 @@ func TestSecondWithdrawalListAsksTheGroupToDetect(t *testing.T) {
 	}{
 		{"second game, no detector", true, 0, false},
 		{"second game, a member detects", true, 3, true},
-		{"first game, a member detects", false, 3, false},
+		{"first game, a member detects", false, 3, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			self := withdrawalFighter(1, 2, 20, 20, 30)
@@ -164,8 +164,8 @@ func coverTarget(t *testing.T, second bool, subjectReach uint8, hidden EntityID,
 }
 
 // A second-game defender whose defended unit has a range below 2 drops the
-// flyers from its list; a longer range keeps them first. The first game keeps
-// them first.
+// flyers from its list; a longer range keeps them first. The first game does
+// the same.
 func TestSecondDefenderDropsFlyersForAShortRangeUnit(t *testing.T) {
 	flyer := engFighter(3, SelfSlot, 22, 20)
 	flyer.Domain = DomainAir
@@ -176,7 +176,7 @@ func TestSecondDefenderDropsFlyersForAShortRangeUnit(t *testing.T) {
 		reach  uint8
 		want   EntityID
 	}{
-		{"first game, short range", false, 1, 3},
+		{"first game, short range", false, 1, 4},
 		{"second game, short range", true, 1, 4},
 		{"second game, range 2", true, 2, 3},
 	} {
@@ -197,7 +197,7 @@ func TestSecondDefenderRanksByEdgeDistance(t *testing.T) {
 	for _, tc := range []struct {
 		second bool
 		want   EntityID
-	}{{false, 4}, {true, 3}} {
+	}{{false, 3}, {true, 3}} {
 		if got := coverTarget(t, tc.second, 1, 0, wide, narrow); got != tc.want {
 			t.Fatalf("second %t: victim %d, want %d", tc.second, got, tc.want)
 		}
@@ -205,14 +205,14 @@ func TestSecondDefenderRanksByEdgeDistance(t *testing.T) {
 }
 
 // An invisible enemy leaves the defender's list unless a unit of the defended
-// unit's Group detects it; the first game's list picks it and the pick is refused.
+// unit's Group detects it, in both games.
 func TestSecondDefenderListDropsAnInvisibleEnemyNoMemberDetects(t *testing.T) {
 	near := engFighter(3, SelfSlot, 22, 20)
 	far := engFighter(4, SelfSlot, 24, 20)
 	for _, tc := range []struct {
 		second bool
 		want   EntityID
-	}{{false, 0}, {true, 4}} {
+	}{{false, 4}, {true, 4}} {
 		if got := coverTarget(t, tc.second, 1, 3, near, far); got != tc.want {
 			t.Fatalf("second %t: victim %d, want %d", tc.second, got, tc.want)
 		}

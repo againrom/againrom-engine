@@ -161,7 +161,7 @@ func TestFirstGameOrderCellsKeepTheirBytes(t *testing.T) {
 			want := map[string]uint64{
 				"body veto": 17157284657881764089, "body flier": 3072154270610456809,
 				"body reserve": 18085316621644716136, "saved acquisition": 16676042835147640960,
-				"joined score": 8019895757929327814, "cover preference": 12196724387676937679,
+				"joined score": 8019895757929327814, "cover preference": 2199002247402380554,
 				"idle escort": 16410490491839632455, "computer support": 4450317173693816472,
 				"empty guard": 522980333038066288, "empty pursuit": 9994414873249793888,
 				"empty none": 11314713690971926999, "repick range": 16341346082256859235,

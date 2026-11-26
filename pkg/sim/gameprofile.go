@@ -123,14 +123,6 @@ type gameProfile struct {
 	// generation of a pair runs after the goal first holds a label
 	// (R2-ENGINE-1876).
 	searchStop searchStopRule
-	// walkGoalByRepath: the near search of a walk aims at the route end while
-	// five cells or fewer remain, else at the head when the mover is more
-	// than three cells off it, else at the fourth cell (R2-ENGINE-1761).
-	walkGoal walkGoalRule
-	// withdrawGroupDetects: the withdrawal's hostile list drops an invisible
-	// hostile unless a member of the unit's Group detects it, and asks the
-	// unit's own sight nothing (R2-ENGINE-1879).
-	withdrawHidden withdrawHiddenRule
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
 	postKeepsDying bool
 	// projectileAim: the point a projectile aims at a unit
@@ -166,6 +158,9 @@ type gameProfile struct {
 	// fleeTeleports: a unit that books Teleport and can pay it casts it
 	// to flee or back off, and walks otherwise (R2-ENGINE-1418).
 	fleeTeleports bool
+	// listDetect: the distance a Group member's See invisible byte is held
+	// against in the withdrawal and cover lists (AI-815).
+	listDetect detectMeasure
 	// keepsSuppressedAcquirer: the engage refuses no suppressed acquirer
 	// (AI-GUARD-007).
 	keepsSuppressedAcquirer bool
@@ -327,6 +322,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			cellEvent:           cellEventRelocating,
 			cellMoveStand:       scriptedOrderReset{state: actorStateAcquire, destination: clearOrderDestination},
 			cellMoveSkipsOrigin: true,
+			listDetect:          detectEdge,
 		}
 	}
 	return gameProfile{
@@ -378,8 +374,6 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		chargeZero:                 chargeZeroWraps,
 		bookWalkNoFallback:         true,
 		searchStop:                 searchStopPairs,
-		walkGoal:                   walkGoalRepath,
-		withdrawHidden:             withdrawHiddenGroup,
 		postKeepsDying:             true,
 		projectileAim:              aimAtSavedPoint,
 		areaHeading:                areaHeadingCells,
@@ -427,7 +421,6 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			emptyRoute:       emptyRouteRepicks,
 			primaryCells:     true,
 			supportOrder:     true,
-			coverList:        true,
 		},
 	}
 }

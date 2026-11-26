@@ -141,6 +141,10 @@ func orderFallbackScene(t *testing.T, second bool, kind string) *World {
 	case "cover preference":
 		self.Reach = 4
 		leader := asFighter(asFoeA, SelfSlot, 30, 41)
+		if !second {
+			// Cover drops fliers below reach 2.
+			leader.Reach = 4
+		}
 		a, b := asFoe(asFoeB, 31, 40), asFoe(4, 32, 41)
 		b.Domain = DomainAir
 		w := asWorld(t, second, self, leader, a, b)

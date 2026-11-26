@@ -135,8 +135,6 @@ func (w *World) stepEscortOrder(s *routeScratch, i int) bool {
 	return false
 }
 
-const coverRadius = 5
-
 func (w *World) escortSubject(i int) (ti int, stop, dist int64, ok bool) {
 	e := w.entities[i]
 	ti = indexOfEntity(w.entities, e.EscortTarget)
@@ -163,25 +161,22 @@ func (w *World) escortClose(i, ti int) {
 
 func (w *World) coverEngage(i, ti int) {
 	subject := w.entities[ti]
+	radius := w.fleeRadius(ti)
 	var live, dead []int
-	filtered := w.game.orders.coverList
-	var group []int
-	if filtered {
-		group = w.groupLivingMembers(subject.Owner, effectiveGroup(&subject))
-	}
+	group := w.groupLivingMembers(subject.Owner, effectiveGroup(&subject))
 	for ci := range w.entities {
 		c := w.entities[ci]
 		if ci == i || ci == ti || c.OffMap {
 			continue
 		}
-		if cellOf(&c).chebyshevTo(cellOf(&subject)) > coverRadius {
+		if cellOf(&c).chebyshevTo(cellOf(&subject)) > radius {
 			continue
 		}
 		if !w.hostileTo(&subject, &c) {
 			continue
 		}
-		if filtered && (lawDomain(c.Domain) == 3 && w.attackRange(ti) < 2 ||
-			!w.perceives(perception{purpose: perceiveGroup, members: group, target: ci})) {
+		if lawDomain(c.Domain) == 3 && w.attackRange(ti) < 2 ||
+			!w.perceives(perception{purpose: perceiveGroup, members: group, target: ci, detect: w.game.listDetect}) {
 			continue
 		}
 		if !c.OrdinaryTargetable() {

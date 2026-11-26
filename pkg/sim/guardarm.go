@@ -20,15 +20,10 @@ package sim
 // WHAT THE ARM DOES NOT DECIDE is who reaches it: the dispatch carries that
 // gate; see actorLayerDecides.
 
-// postRadius is the occupancy block's Chebyshev radius: `mover+0x08`, written
-// once in the image by the mover constructor and read at every block site
-// (`AI-BREAK-041`, `L00587`). It is the same number escort.go's coverRadius
-// names for the defender's cover block, and it is spelled as that constant so
-// a corrected `mover+0x08` remains one edit rather than two that must agree.
-const postRadius = coverRadius
+// The block radius is the actor's own mover byte (fleeRadius, AI-810).
 
 // postEngage is the block scan itself, shared by this arm and by the
-// original-runtime savedGuard: everything within postRadius of post that the
+// original-runtime savedGuard: everything within the actor's block radius of post that the
 // actor at i is hostile to, walked in ascending entity id by chooseTarget's
 // targetFirstEngaged row. It reports whether the actor comes out of it
 // holding a victim.
@@ -55,9 +50,10 @@ func (w *World) postEngage(i int, post cell) bool {
 func (w *World) postCandidates(i int, post cell) []int {
 	var out []int
 	living := !w.game.postKeepsDying
+	radius := w.fleeRadius(i)
 	for ci, candidate := range w.entities {
 		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() || living && candidate.InLife(LifeDecaying) ||
-			!w.hostileTo(&w.entities[i], &candidate) || post.chebyshevTo(cellOf(&candidate)) > postRadius {
+			!w.hostileTo(&w.entities[i], &candidate) || post.chebyshevTo(cellOf(&candidate)) > radius {
 			continue
 		}
 		out = append(out, ci)
