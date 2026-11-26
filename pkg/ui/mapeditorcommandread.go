@@ -437,7 +437,7 @@ func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 				case p.kind == wpGroup:
 					param["choices"] = "groups"
 				}
-				if p.kind == wpUnit && !p.placedCell {
+				if p.kind == wpUnit {
 					param["hero_band"] = "10001..11000"
 				}
 				params = append(params, param)

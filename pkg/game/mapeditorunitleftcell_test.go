@@ -144,3 +144,78 @@ func TestUnitLeftCellMissionSave(t *testing.T) {
 		t.Fatal("once trigger fired again after LOAD")
 	}
 }
+
+func TestUnitLeftCellOffersHeroesAndPlacedUnits(t *testing.T) {
+	for _, lang := range scriptAddLangs {
+		t.Run(lang.name, func(t *testing.T) {
+			e, _, word := scriptAddEditor(t, lang, triggerMap(t))
+			e.Fit()
+			wizNewTrigger(t, e, "Departure")
+			wizPress(t, e, "", 0)
+			trigChoose(t, e, wizField(t, e, "c0.item"), word("editor.wizard.c.leftcell"))
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: wizField(t, e, "c0.p0")})
+			trigClick(t, e, r, ok, "unit field")
+			choices := e.DropdownChoices()
+			if len(choices) != 12 {
+				t.Fatalf("the unit list has %d rows, want 4 placed units and 8 heroes: %q", len(choices), choices)
+			}
+			for i, c := range choices {
+				if placed := strings.Contains(c, ",14"); placed != (i < 4) {
+					t.Errorf("row %d %q: placed unit %t, want %t", i, c, placed, i < 4)
+				}
+			}
+		})
+	}
+}
+
+func heroChoice(t *testing.T, lang scriptAddLang) string {
+	e, _, word := scriptAddEditor(t, lang, triggerMap(t))
+	e.Fit()
+	wizNewTrigger(t, e, "Departure")
+	wizPress(t, e, "", 0)
+	trigChoose(t, e, wizField(t, e, "c0.item"), word("editor.wizard.c.leftcell"))
+	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlField, N: wizField(t, e, "c0.p0")})
+	trigClick(t, e, r, ok, "unit field")
+	return e.DropdownChoices()[4]
+}
+
+func TestUnitLeftCellHeroEditorRoundTrip(t *testing.T) {
+	for _, lang := range scriptAddLangs {
+		t.Run(lang.name, func(t *testing.T) {
+			e, _, word := scriptAddEditor(t, lang, triggerMap(t))
+			e.Fit()
+			wizNewTrigger(t, e, "Departure")
+			wizPress(t, e, "", 0)
+			trigChoose(t, e, wizField(t, e, "c0.item"), word("editor.wizard.c.leftcell"))
+			hero, _, _ := strings.Cut(heroChoice(t, lang), ":")
+			trigChoose(t, e, wizField(t, e, "c0.p0"), hero)
+			wizType(t, e, "c0.p1", "7,9")
+			wizPress(t, e, "+action", 0)
+			trigChoose(t, e, wizField(t, e, "a0.item"), word("editor.wizard.a.win"))
+			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
+			trigClick(t, e, r, ok, "Apply")
+			r, ok = e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
+			trigClick(t, e, r, ok, "Extend")
+			host := formHost(e)
+			path := filepath.Join(t.TempDir(), "hero.almx")
+			if _, err := host.SaveAs(path); err != nil {
+				t.Fatal(err)
+			}
+			b, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sc := wizScript(t, b)
+			tr := sc.Triggers[len(sc.Triggers)-1]
+			n := wizNode(t, sc.Conditions, tr.Left[0])
+			if !sc.Extended || n.Opcode != 0x4105 || n.Type != [10]uint32{4, 5, 6} || n.Value != [10]uint32{10001, 7, 9} {
+				t.Fatalf("saved hero departure: %+v, %+v", tr, n)
+			}
+			reopened, _, _ := scriptAddEditor(t, lang, b)
+			reopened.Select(trigRecord(t, reopened, "Trigger", len(sc.Triggers)-1), true)
+			if lines := trigLines(reopened); !strings.Contains(lines, hero) || !strings.Contains(lines, "7,9") {
+				t.Fatal("reopened row", lines)
+			}
+		})
+	}
+}
