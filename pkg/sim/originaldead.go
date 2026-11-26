@@ -181,7 +181,7 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 		r := originalDeadRecord{OriginalDeadActor: d}
 		if currentIDs[d.ID] {
 			e := &w.entities[indexOfEntity(w.entities, d.ID)]
-			e.Decay, e.Dwell, e.SuppressCorpseLoot = DecayStage(s.Stage), 0, true
+			e.Decay, e.Dwell, e.CorpseDecayed, e.SuppressCorpseLoot = DecayStage(s.Stage), 0, true, true
 			if r.Source.MaxHPPresent {
 				e.MaxHP = r.Source.MaxHP
 			}
@@ -198,7 +198,7 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 		i := indexOfEntity(w.entities, d.ID)
 		e := &w.entities[i]
 		e.X, e.Y = int32(s.Cell&255), int32(s.Cell>>8)
-		e.HP, e.Decay, e.Dwell = int32(s.HP), DecayStage(min(s.Stage, 4)), 0
+		e.HP, e.Decay, e.Dwell, e.CorpseDecayed = int32(s.HP), DecayStage(min(s.Stage, 4)), 0, true
 		if d.Source.MaxHPPresent {
 			e.MaxHP = d.Source.MaxHP
 		}

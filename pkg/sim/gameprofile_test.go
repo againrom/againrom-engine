@@ -25,19 +25,19 @@ func (r gameProfileRow) String() string {
 
 // gameProfileRows pin construction and stepped state for every build path.
 var gameProfileRows = map[string]gameProfileRow{
-	"first decoded":                 {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0xd593e83892201017},
-	"first loaded":                  {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0x55553abfbbf67745},
-	"first loaded decoded":          {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0x55553abfbbf67745},
-	"first loaded script copy":      {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0x55553abfbbf67745},
-	"first script copy":             {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0xd593e83892201017},
+	"first decoded":                 {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0x28c5e3267168af2a},
+	"first loaded":                  {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0xf70277eca4b8ecaa},
+	"first loaded decoded":          {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0xf70277eca4b8ecaa},
+	"first loaded script copy":      {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x9d503846558ecf57, stepped: 0xf70277eca4b8ecaa},
+	"first script copy":             {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0x28c5e3267168af2a},
 	"first script copy other game":  {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x1916bc2a70486da1, stepped: 0x3b5307353b5d45c6},
-	"first start":                   {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0xd593e83892201017},
+	"first start":                   {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0x28c5e3267168af2a},
 	"second decoded":                {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x1916bc2a70486da1, stepped: 0x3b5307353b5d45c6},
 	"second loaded":                 {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0xd4d670c1158ade04},
 	"second loaded decoded":         {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0xd4d670c1158ade04},
 	"second loaded script copy":     {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x687df14b7092c10b, stepped: 0xd4d670c1158ade04},
 	"second script copy":            {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x1916bc2a70486da1, stepped: 0x3b5307353b5d45c6},
-	"second script copy other game": {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0xd593e83892201017},
+	"second script copy other game": {second: false, native: false, route: "first", aim: "first", spell: 0, built: 0x65b50eb30e0d455b, stepped: 0x28c5e3267168af2a},
 	"second start":                  {second: true, native: false, route: "second", aim: "second", spell: 1, built: 0x1916bc2a70486da1, stepped: 0x3b5307353b5d45c6},
 }
 

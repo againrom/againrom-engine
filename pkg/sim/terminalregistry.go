@@ -3,12 +3,13 @@ package sim
 import "encoding/binary"
 
 func terminalRegistryActor(e *Entity) bool {
-	return !e.Alive() && e.Decay >= DecayBones
+	// A standalone Entity from an older caller can supply only its stage.
+	return (e.CorpseDecayed || e.Decay >= DecayBones) && !e.Alive()
 }
 
 func (w *World) detachTerminalRegistry(id EntityID, removed bool) {
 	i := indexOfEntity(w.entities, id)
-	if i < 0 || w.entities[i].Alive() || w.entities[i].Decay < DecayBones && (!removed || w.entities[i].Decay == DecayNone) {
+	if i < 0 || w.entities[i].Alive() || !terminalRegistryActor(&w.entities[i]) && (!removed || w.entities[i].Decay == DecayNone) {
 		return
 	}
 	w.clearTerminalRegistry(map[EntityID]bool{id: true}, map[uint32]bool{w.entities[i].SourceBinding.Identity: true})

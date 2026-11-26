@@ -87,9 +87,9 @@ func TestOriginalDead1100AtomicIndependentScalarsAndNoReplay(t *testing.T) {
 	}
 	// Native round-trip plus continuation must preserve the evolved state,
 	// not overwrite it from the immutable source snapshot.
-	toLadderSubTick(w)
+	w.tick, w.fullTick = 12, 0
 	Step(w, nil)
-	if w.entities[0].Decay != 4 {
+	if w.entities[0].HP != -41 || w.entities[0].Decay != 4 {
 		t.Fatal("current corpse failed to evolve independently")
 	}
 	data, err := w.MarshalBinary()

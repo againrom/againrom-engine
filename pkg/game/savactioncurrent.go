@@ -376,7 +376,7 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	a.Values = make(map[sim.EntityID]sim.ActorValues)
 	for _, e := range w.Entities() {
 		v := e.Values()
-		if policy.GroupCarrier || e.Decay >= sim.DecayBones {
+		if policy.GroupCarrier || e.CorpseDecayed {
 			group := e.Group
 			v.NativeGroup = &group
 		}
@@ -507,7 +507,7 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	}
 	terminal := map[sim.EntityID]bool{}
 	for _, e := range w.Entities() {
-		terminal[e.ID] = !e.Alive() && e.Decay >= 2
+		terminal[e.ID] = !e.Alive() && e.CorpseDecayed
 	}
 	byActor := map[sim.EntityID]uint16{}
 	for _, b := range state.Actors {

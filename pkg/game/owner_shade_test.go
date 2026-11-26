@@ -218,9 +218,9 @@ func TestStoneOwnerClassesFollowTheResearchedDecayGate(t *testing.T) {
 		{name: "live", stage: sim.DecayNone, frame: 0, stone: true},
 		{name: "attack", attacking: true, stage: sim.DecayNone, frame: 0, stone: true},
 		{name: "fallen", damage: 101, stage: sim.DecayFallen, frame: 0, stone: true},
-		{name: "first bone", damage: 110, stage: sim.DecayBones, frame: 0, stone: true},
-		{name: "second bone", damage: 120, stage: 3, frame: 4},
-		{name: "third bone", damage: 140, stage: 4, frame: 5},
+		{name: "first bone", damage: 111, stage: sim.DecayBones, frame: 0, stone: true},
+		{name: "second bone", damage: 121, stage: 3, frame: 4},
+		{name: "third bone", damage: 141, stage: 4, frame: 5},
 	}
 
 	for _, owner := range []uint32{1, 2} {
@@ -321,7 +321,7 @@ func TestStoneDecayGateUsesTheSelectedBodyClass(t *testing.T) {
 				live.Art, live.Stone, live.Frame, hero, hero.Frames[0])
 		}
 
-		sim.Step(w, []sim.Command{{Kind: sim.KindDamage, Entity: 2, X: 120}})
+		sim.Step(w, []sim.Command{{Kind: sim.KindDamage, Entity: 2, X: 121}})
 		if !w.HasEffectSpell(2, 20) {
 			t.Fatal("hero corpse lost the attached Stone effect before stage 3")
 		}
@@ -341,7 +341,7 @@ func TestStoneDecayGateUsesTheSelectedBodyClass(t *testing.T) {
 		live.Corpse = corpse
 		set := stoneOwnerSet(live)
 		w, mw := stoneOwnerWorld(t, set, 2, false)
-		sim.Step(w, []sim.Command{{Kind: sim.KindDamage, Entity: 2, X: 120}})
+		sim.Step(w, []sim.Command{{Kind: sim.KindDamage, Entity: 2, X: 121}})
 		if !w.HasEffectSpell(2, 20) {
 			t.Fatal("non-owner corpse lost the attached Stone effect before stage 3")
 		}
@@ -368,7 +368,7 @@ func TestStoneDecayGateUsesTheSelectedBodyClass(t *testing.T) {
 		set := stoneOwnerSet(class)
 		w, mw := stoneOwnerWorld(t, set, 2, false)
 		mw.tiers = map[sim.EntityID]int{2: 1}
-		sim.Step(w, []sim.Command{{Kind: sim.KindDamage, Entity: 2, X: 120}})
+		sim.Step(w, []sim.Command{{Kind: sim.KindDamage, Entity: 2, X: 121}})
 		if !w.HasEffectSpell(2, 20) {
 			t.Fatal("tier-palette corpse lost the attached Stone effect before stage 3")
 		}

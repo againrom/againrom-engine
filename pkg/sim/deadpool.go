@@ -28,7 +28,7 @@ func (w *World) joinDeadList(i int) {
 func (w *World) corpseList() []int {
 	var out []int
 	for i := range w.entities {
-		if terminalRegistryActor(&w.entities[i]) {
+		if terminalRegistryActor(&w.entities[i]) || w.entities[i].deadRank != 0 {
 			out = append(out, i)
 		}
 	}
@@ -143,7 +143,7 @@ func (w *World) unmarshalDeadRanks(data []byte, proof formProof) error {
 	entities := append([]Entity(nil), next.entities...)
 	for at := 0; at < len(s); at += deadRankIndexLen {
 		index := binary.LittleEndian.Uint32(s[at:])
-		if uint64(index) >= uint64(len(entities)) || !terminalRegistryActor(&entities[index]) || entities[index].deadRank != 0 {
+		if uint64(index) >= uint64(len(entities)) || entities[index].Alive() || entities[index].Dwell != 0 || entities[index].deadRank != 0 {
 			return fail()
 		}
 		entities[index].deadRank = uint32(at/deadRankIndexLen) + 1

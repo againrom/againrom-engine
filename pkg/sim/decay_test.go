@@ -221,11 +221,12 @@ func TestTheStageIsTheLadderOfHealthAndNeverFalls(t *testing.T) {
 		// here, the kill landing on tick 0.
 		{"felled shallow, still at the first stage", 101, DecayFallen},
 		{"one short of the first threshold", 109, DecayFallen},
-		{"at the first threshold exactly", 110, DecayBones},
-		{"one short of the second", 119, DecayBones},
-		{"at the second exactly", 120, 3},
-		{"one short of the third", 139, 3},
-		{"at the third exactly", 140, decayLast},
+		{"at the first threshold exactly", 110, DecayFallen},
+		{"below the first threshold", 111, DecayBones},
+		{"at the second threshold exactly", 120, DecayBones},
+		{"below the second threshold", 121, 3},
+		{"at the third threshold exactly", 140, 3},
+		{"below the third threshold", 141, decayLast},
 		{"far past the third", 300, decayLast},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -31,10 +31,10 @@ func TestHeadlessMutationSeamKeepsCanonicalLifecycleAndPlacement(t *testing.T) {
 	}
 	killed := w.Entities()[1]
 	if killed.HP != decayBonesHP || killed.OrdinaryTargetable() || killed.Alive() ||
-		killed.Dying() || killed.Decay != DecayBones || killed.Dwell != 0 {
-		t.Fatalf("killed entity = HP %d targetable=%v alive=%v dying=%v decay=%d dwell=%d",
+		killed.Dying() || killed.Decay != DecayFallen || !killed.CorpseDecayed || killed.Dwell != 0 {
+		t.Fatalf("killed entity = HP %d targetable=%v alive=%v dying=%v decay=%d decayed=%v dwell=%d",
 			killed.HP, killed.OrdinaryTargetable(), killed.Alive(), killed.Dying(),
-			killed.Decay, killed.Dwell)
+			killed.Decay, killed.CorpseDecayed, killed.Dwell)
 	}
 
 	form, err := w.MarshalBinary()
@@ -125,10 +125,10 @@ func TestHeadlessKillTerminalizesCanonicalFallenBodyExactlyOnce(t *testing.T) {
 				t.Fatalf("first kill_player count = %d, want 1", count)
 			}
 			got := w.Entities()[0]
-			if got.HP != decayBonesHP || got.Decay != DecayBones || got.Dwell != 0 ||
+			if got.HP != decayBonesHP || got.Decay != DecayFallen || !got.CorpseDecayed || got.Dwell != 0 ||
 				got.OrdinaryTargetable() {
-				t.Fatalf("terminal body = HP %d decay %d dwell %d targetable=%v",
-					got.HP, got.Decay, got.Dwell, got.OrdinaryTargetable())
+				t.Fatalf("terminal body = HP %d decay %d decayed=%v dwell %d targetable=%v",
+					got.HP, got.Decay, got.CorpseDecayed, got.Dwell, got.OrdinaryTargetable())
 			}
 			if w.Hash() == before {
 				t.Fatal("terminalization left the canonical hash unchanged")

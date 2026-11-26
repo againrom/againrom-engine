@@ -48,8 +48,8 @@ func TestFallenUnitKeepsItsLoadUntilTerminalDeath(t *testing.T) {
 	}
 
 	Step(w, []Command{{Kind: KindDamage, Entity: 1, X: 1}})
-	if got := w.Entities()[0]; got.HP > decayBonesHP || got.Decay < DecayBones {
-		t.Fatalf("terminal body = HP %d decay %d, want <=%d and bones", got.HP, got.Decay, decayBonesHP)
+	if got := w.Entities()[0]; got.HP > decayBonesHP || !got.CorpseDecayed || got.Decay != DecayFallen {
+		t.Fatalf("terminal body = HP %d decay %d decayed=%v, want <=%d, fallen and decayed", got.HP, got.Decay, got.CorpseDecayed, decayBonesHP)
 	}
 	if sacks := w.Sacks(); len(sacks) != 1 || !equalCodes(sacks[0].Items, []uint16{0x101, 0x201}) {
 		t.Fatalf("terminal sack = %+v, want carried item then worn slot", sacks)
@@ -551,9 +551,9 @@ func TestAWorldWithADeathRoundTripsAndKeepsTheFormVersion(t *testing.T) {
 	}
 
 	form := mustMarshal(t, w)
-	// The dropped Sack holds its runtime id in the runtime-id section.
-	if form[0] != runtimeIDFormVersion {
-		t.Fatalf("the encoded form declares version %d, want %d", form[0], runtimeIDFormVersion)
+	// The torn-down body at -10 holds CorpseDecayed in the outermost wrapper.
+	if form[0] != corpseDecayedFormVersion {
+		t.Fatalf("the encoded form declares version %d, want %d", form[0], corpseDecayedFormVersion)
 	}
 
 	var back World

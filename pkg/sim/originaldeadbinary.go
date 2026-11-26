@@ -146,7 +146,8 @@ func decodeOriginalDead(data []byte, b Bounds, ents []Entity, carried [][]ItemSt
 }
 
 // validHeldDeadContinuation reports a held body's current state that the
-// game's ladder can reach from its source state.
+// game's ladder (or the pre-strict ladder at exact thresholds) can reach from
+// its source state.
 func validHeldDeadContinuation(source, current DeadActorState, ladder decayLadder) bool {
 	if source.Stage == 5 || current == source {
 		return current == source
@@ -158,5 +159,13 @@ func validHeldDeadContinuation(source, current DeadActorState, ladder decayLadde
 	if current.Stage == 5 {
 		return current.HP == -10001 && current.RuntimeID == 0
 	}
-	return current.RuntimeID == source.RuntimeID && current.Stage == max(source.Stage, uint8(ladder.stage(int32(current.HP))))
+	if current.RuntimeID != source.RuntimeID {
+		return false
+	}
+	hp := int32(current.HP)
+	if current.Stage == max(source.Stage, uint8(ladder.stage(hp))) {
+		return true
+	}
+	// At an exact boundary older saves could already hold the next rung.
+	return !LifeGone.Holds(int64(hp), 0, false) && current.Stage == max(source.Stage, uint8(ladder.stage(hp-1)))
 }

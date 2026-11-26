@@ -93,17 +93,17 @@ func firstDeathRollRecord(t *testing.T) string {
 const firstDeathRollWant = `round 0 sack (12,16) gold 68 items []
 round 0 sack (15,16) gold 270 items []
 round 0 sack (21,16) gold 434 items []
-round 0 hash 74ead3e9cda5c042 sav a78bbb0707bf01fd455305ad1445c0dc50243a19789d9a5b7a0a0c635227f099
+round 0 hash 74ead3e9cda5c042 sav a67e156a4150fb96c420e395d13fb1fc5808fdbcb7fa8fcb54a4d51116c64c4d
 round 1 sack (15,16) gold 155 items []
 round 1 sack (21,16) gold 464 items []
-round 1 hash 2785bdbb251cd7dd sav 920da749b076106504fbec5cd1ed666b402140e1a540131d53f446e828120ed1
+round 1 hash 2785bdbb251cd7dd sav 496ff51022b575f2fe4d94aa9cdf128b09985d6c54cd0ea5adab50df284a6d9b
 round 2 sack (12,16) gold 68 items []
 round 2 sack (21,16) gold 464 items []
-round 2 hash e0a823192a8af443 sav 835d030c78eeea6544839f762c27a18d9ddb5cc1f9012a289db98bb4854a39d8
+round 2 hash e0a823192a8af443 sav 4386ab90986811bb0482b86e2e78db2c1854efc949267ad3f95cc59441ff8925
 round 3 sack (12,16) gold 68 items []
 round 3 sack (15,16) gold 270 items []
 round 3 sack (21,16) gold 434 items []
-round 3 hash 46586865d830d9ae sav ee530e5731fcd48f5615bb13dd321211066d8715e45cc78e4455702d58d263d2`
+round 3 hash 46586865d830d9ae sav 8f759e1cbc50f3c6b14374a7976f1ae59552b6dcdda79eaee28370fca716f4c8`
 
 // The first game's death roll keeps its gold, its sacks, its World hash and
 // its SAV bytes: four rounds of four deaths, an orc and an ogre whose rows

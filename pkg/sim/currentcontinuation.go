@@ -41,6 +41,14 @@ func (w *World) RestoreCurrentContinuation(policy *CurrentWorldPolicy, values ma
 		next.entityIDFloor = max(next.entityIDFloor, *policy.EntityIDFloor)
 		next.reserveAbsentEntityIDs(next.ActorIdentityReferences())
 	}
+	if values != nil {
+		for i := range next.entities {
+			e := &next.entities[i]
+			if e.CorpseDecayed && !values[e.ID].CorpseDecayed && e.legacySpentCorpse() {
+				next.finishLegacyTeardown(i)
+			}
+		}
+	}
 	*w = next
 	return nil
 }

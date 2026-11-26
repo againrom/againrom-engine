@@ -78,12 +78,23 @@ func (e Entity) discardsCorpseLoot() bool {
 // tells that drop's repeat visits from a first visit, which draws as ever.
 const spentTreasureMax = -1
 
-// lootSpent reports a body whose first terminal drop has run: the corpse-loot
-// mark, the spent treasure maximum, every other roll column cleared, nothing held.
-func (w *World) lootSpent(i int) bool {
-	e := w.entities[i]
-	return e.SuppressCorpseLoot && e.GoldChance == 0 && e.TreasureMin == 0 && e.TreasureMax == spentTreasureMax &&
-		e.DeathItem == DeathItemRoll{} && !w.holdsSomething(i)
+// Older second-game saves marked a completed drop at -10 in the roll columns.
+func (e *Entity) legacySpentCorpse() bool {
+	return e.Decay == DecayFallen && e.HP == decayBonesHP && e.Dwell == 0 && e.SuppressCorpseLoot &&
+		e.GoldChance == 0 && e.TreasureMin == 0 && e.TreasureMax == spentTreasureMax && e.DeathItem == (DeathItemRoll{})
+}
+
+// The old drop at -10 could leave the body in its group until the next stage.
+// The load completes the teardown decayPass makes at the same point: the
+// footprint release, the group and dead list, and the attachments' expiry.
+func (w *World) finishLegacyTeardown(i int) {
+	id := w.entities[i].ID
+	w.releaseAtTeardown(i)
+	w.detachSavedMember(id)
+	if w.entities[i].deadRank == 0 {
+		w.joinDeadList(i)
+	}
+	w.expireBodyAttachments(id)
 }
 
 func (w *World) hasTerminalLoot(i int) bool {

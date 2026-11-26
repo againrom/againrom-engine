@@ -393,7 +393,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		regenLife:                  LifeStanding,
 		regenBodyLoss:              true,
 		decayWalk:                  nativeDecayWalk,
-		decay:                      decayLadder{strict: true, heroFloor: true},
+		decay:                      decayLadder{heroFloor: true},
 		deadList:                   true,
 		keepsCastRetain:            true,
 		residueOverBookCasts:       true,

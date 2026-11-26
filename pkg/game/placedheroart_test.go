@@ -34,7 +34,7 @@ func TestKilledPlacedHeroKeepsPCBodyBindingThroughDecay(t *testing.T) {
 	if mw.art[id] != want {
 		t.Fatal("living placed Hero does not use its PC resource")
 	}
-	if err := w.HeadlessDamage(id, 20); err != nil {
+	if err := w.HeadlessDamage(id, 21); err != nil {
 		t.Fatal(err)
 	}
 	check := func(stage string) {

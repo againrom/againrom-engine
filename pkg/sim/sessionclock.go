@@ -166,8 +166,6 @@ func (w *World) endSessionTick(tr *ScriptTrace) {
 	}
 }
 
-// The represented Fallen/Bones partition is this build's lifecycle boundary,
-// not a claim that every incoming original actor state is reconstructed.
 // HERO-DECAY-069 gives the still-live negative-health filter; the dead list
 // uses HERO-DEATH-026's separate low-bit filter. Dwell ages only in the body.
 func (w *World) decaySessionActors(c SessionClock) {
@@ -176,7 +174,7 @@ func (w *World) decaySessionActors(c SessionClock) {
 	for i := range w.entities {
 		e := &w.entities[i]
 		beforeHP, beforeStage := e.HP, e.Decay
-		if e.Decay < DecayBones {
+		if !terminalRegistryActor(e) {
 			hp := e.HP
 			if e.CurrentProfileBasis == ProfileOriginalCurrent {
 				hp = int32(int16(hp))

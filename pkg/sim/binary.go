@@ -927,6 +927,12 @@ const formatVersion = 95
 // an unmarked World keeps its existing bytes and hash.
 const rewardMarkFormVersion byte = 132
 
+// Form147 wraps only Worlds with a torn-down corpse whose stage is still
+// DecayFallen (at exactly -10 under HERO-207). Bodies at DecayBones or deeper
+// derive CorpseDecayed from Decay; living and pre-teardown Worlds keep their
+// existing bytes and hash.
+const corpseDecayedFormVersion byte = 147
+
 // originalRandomBit in the routing-mode byte marks a stream on the original's
 // generator; a seeded stream leaves it clear, so its bytes are unchanged.
 const originalRandomBit = 0x40
@@ -1649,7 +1655,56 @@ func (w *World) tailCapacity(body int) int {
 // rows as the outer sections, the mod globals, then the walk counters
 // outermost. Hash digests these bytes.
 func (w *World) encodeInto(b []byte) []byte {
-	return w.appendOutposts(w.appendWalkRefresh(w.appendScriptGlobals(w.appendStructureOwners(w.appendWideRegisters(w.appendAreaHitCounts(w.appendBeyondBooks(w.appendActorKinds(w.appendDeadRanks(w.appendPurses(w.appendVictimKinds(w.appendBuildingCasters(w.appendDeathItems(w.appendExtendedScript(w.appendRewardMarks(w.appendSummonKeys(w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b)))))))))))))))))))))
+	return w.appendCorpseDecayed(w.appendOutposts(w.appendWalkRefresh(w.appendScriptGlobals(w.appendStructureOwners(w.appendWideRegisters(w.appendAreaHitCounts(w.appendBeyondBooks(w.appendActorKinds(w.appendDeadRanks(w.appendPurses(w.appendVictimKinds(w.appendBuildingCasters(w.appendDeathItems(w.appendExtendedScript(w.appendRewardMarks(w.appendSummonKeys(w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b))))))))))))))))))))))
+}
+
+func (w *World) appendCorpseDecayed(b []byte) []byte {
+	ws := beginWrapper(b)
+	for i := range w.entities {
+		if e := &w.entities[i]; e.CorpseDecayed && e.Decay == DecayFallen {
+			b = binary.LittleEndian.AppendUint32(b, uint32(i))
+		}
+	}
+	if len(b) == ws.at {
+		return b
+	}
+	return endWrapper(b, ws, corpseDecayedFormVersion)
+}
+
+func (w *World) unmarshalCorpseDecayed(data []byte, proof formProof) error {
+	fail := func() error { return fmt.Errorf("malformed corpse decayed section") }
+	env, ok := readWrapper(data, corpseDecayedFormVersion)
+	if !ok {
+		return fail()
+	}
+	s := env.section()
+	if len(s) == 0 || len(s)%4 != 0 {
+		return fail()
+	}
+	next := *w
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
+		return err
+	}
+	entities := append([]Entity(nil), next.entities...)
+	prior := int64(-1)
+	for at := 0; at < len(s); at += 4 {
+		index := binary.LittleEndian.Uint32(s[at:])
+		if int64(index) <= prior || uint64(index) >= uint64(len(entities)) {
+			return fail()
+		}
+		prior = int64(index)
+		e := &entities[index]
+		if e.Alive() || e.Decay != DecayFallen || e.Dwell != 0 {
+			return fail()
+		}
+		e.CorpseDecayed = true
+	}
+	next.entities = entities
+	if !next.marshalsTo(data, proof) {
+		return fail()
+	}
+	*w = next
+	return nil
 }
 
 func (w *World) appendRewardMarks(b []byte) []byte {
@@ -2390,8 +2445,20 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 func (w *World) UnmarshalBinary(data []byte) error {
 	digest, zero := w.formDigest(data)
 	proven := zero && provenForms.has(digest)
-	if err := w.unmarshalForm(data, formProof(proven)); err != nil {
+	next := *w
+	if err := next.unmarshalForm(data, formProof(proven)); err != nil {
 		return err
+	}
+	var legacySpent []int
+	for i := range next.entities {
+		e := &next.entities[i]
+		if e.deadRank != 0 && !e.CorpseDecayed {
+			return fmt.Errorf("sim: dead rank on an undecayed body")
+		}
+		if !e.CorpseDecayed && e.legacySpentCorpse() {
+			e.CorpseDecayed = true
+			legacySpent = append(legacySpent, i)
+		}
 	}
 	if zero && !proven {
 		provenForms.add(digest)
@@ -2399,7 +2466,11 @@ func (w *World) UnmarshalBinary(data []byte) error {
 	// The byte form is decoded as written; a form without a carrier then
 	// takes the carrier every first-game World holds. A form without the
 	// session clock is an older engine's (constructGroups).
-	w.constructCarriers(!w.hasSessionClock)
+	next.constructCarriers(!next.hasSessionClock)
+	for _, i := range legacySpent {
+		next.finishLegacyTeardown(i)
+	}
+	*w = next
 	return nil
 }
 
@@ -3037,6 +3108,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 			return fmt.Errorf("sim: entity record %d: a dwell of %d at decay stage %d, which owes none",
 				i, e.Dwell, e.Decay)
 		}
+		e.CorpseDecayed = e.Decay >= DecayBones
 		// THE ACTOR STATE, THE RING AND THE LEG: the same check the
 		// constructor calls to learn what to normalise, called here to
 		// refuse instead — patrolFault's four shapes are residue and

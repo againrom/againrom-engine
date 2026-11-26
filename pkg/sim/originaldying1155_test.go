@@ -80,7 +80,7 @@ func TestNewDamageKeepsSavedGroupUntilTeardown(t *testing.T) {
 		t.Fatalf("stage-one saved Group count=%d, want 3", got)
 	}
 	Step(w, []Command{Damage(10, 2)})
-	if w.entities[0].Decay < DecayBones || w.savedGroupFor(10) != nil || len(g.Members) != 2 || g.AI[0x44] != 7 {
+	if !w.entities[0].CorpseDecayed || w.savedGroupFor(10) != nil || len(g.Members) != 2 || g.AI[0x44] != 7 {
 		t.Fatal("teardown did not detach only its member", g)
 	}
 	w.scriptPass(nil)

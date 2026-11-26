@@ -134,6 +134,15 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 		key, _ := savedStructureValue(&state.Document.Objects[object-1], "Identity")
 		removed[key] = true
 	}
+	for _, a := range state.Actors {
+		if a.Retired || a.ObjectIndex == 0 || int(a.ObjectIndex) > len(state.Document.Objects) {
+			continue
+		}
+		if e, ok := world.Entity(a.EntityID); ok && e.CorpseDecayed && e.Decay == sim.DecayFallen {
+			key, _ := savedStructureValue(&state.Document.Objects[a.ObjectIndex-1], "Identity")
+			removed[key] = true
+		}
+	}
 	if err := projectCurrentCastWire(state, &world); err != nil {
 		return sav.DocumentData{}, err
 	}
@@ -390,19 +399,17 @@ func projectDeadActors(state *SnapshotSAVDocument, world *sim.World, loaded *Sna
 	return nil
 }
 
-// Reconcile dead roots with current actors before Group projection. A bound
-// Stage-1 actor cannot remain a dead root; other roots retain their order and
-// duplicates. Actor records and children stay untouched.
+// A fallen actor leaves the dead roots until teardown. Preserve root order and duplicates.
 func rootDeadActors(state *SnapshotSAVDocument, world *sim.World) error {
-	stageOne := map[sim.EntityID]bool{}
+	awaitingTeardown := map[sim.EntityID]bool{}
 	for _, e := range world.Entities() {
-		if !e.Alive() && e.Decay == sim.DecayFallen {
-			stageOne[e.ID] = true
+		if !e.Alive() && !e.CorpseDecayed {
+			awaitingTeardown[e.ID] = true
 		}
 	}
 	stale := map[uint16]bool{}
 	for _, a := range state.Actors {
-		if !a.Retired && stageOne[a.EntityID] {
+		if !a.Retired && awaitingTeardown[a.EntityID] {
 			stale[a.ObjectIndex] = true
 		}
 	}

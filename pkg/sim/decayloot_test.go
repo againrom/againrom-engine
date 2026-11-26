@@ -97,3 +97,126 @@ func TestFirstGameBodyRollsItsLootOnce(t *testing.T) {
 		}
 	}
 }
+
+// A body felled to exactly -10 drops loot once in both games and does not roll
+// again after a binary save and load, even while its stage stays DecayFallen.
+func TestBothGamesBodyAtMinusTenDropsLootOnceAcrossLoad(t *testing.T) {
+	for _, second := range []bool{false, true} {
+		name := "first"
+		if second {
+			name = "second"
+		}
+		t.Run(name, func(t *testing.T) {
+			var w *World
+			var d *drDraws
+			if second {
+				var err error
+				w, err = NewStockedWorld(7, ddBounds, ModeCanonical, Terrain{}, []Entity{drDragon(1, 4)}, secondGameScript(t, nil, nil, nil), Relations{}, nil, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				w.rng = rng{state: 0x2468ace1}
+				d = &drDraws{}
+				w.SetDeathItemDraw(d.draw)
+			} else {
+				var err error
+				w, err = NewLootWorld(7, ddBounds, ModeCanonical, Terrain{}, []Entity{{
+					ID: 1, X: 4, Y: 5, HP: 10, MaxHP: 10, TypeID: 0x41, GoldChance: 101, TreasureMin: 37,
+				}}, nil, Relations{}, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			Step(w, []Command{Damage(1, 20)})
+			got := w.Entities()[0]
+			if got.HP != -10 || got.Decay != DecayFallen || !got.CorpseDecayed {
+				t.Fatalf("after lethal hit to -10: hp=%d decay=%d decayed=%v, want -10/1/true", got.HP, got.Decay, got.CorpseDecayed)
+			}
+			goldAfterDrop := decayLootGold(w)
+			if second {
+				if goldAfterDrop < 3000 || goldAfterDrop > 9000 || len(d.rolls) != 1 {
+					t.Fatalf("second game initial drop: gold=%d rolls=%d", goldAfterDrop, len(d.rolls))
+				}
+			} else if goldAfterDrop != 37 {
+				t.Fatalf("first game initial drop: gold=%d, want 37", goldAfterDrop)
+			}
+			raw, err := w.MarshalBinary()
+			if err != nil {
+				t.Fatal(err)
+			}
+			var cold World
+			if err := cold.UnmarshalBinary(raw); err != nil {
+				t.Fatal(err)
+			}
+			if second {
+				cold.SetDeathItemDraw(d.draw)
+			}
+			if cold.Hash() != w.Hash() {
+				t.Fatalf("hash changed across load: %#x != %#x", cold.Hash(), w.Hash())
+			}
+			afterDrop := w.RandomState()
+			for range 64 {
+				Step(&cold, nil)
+			}
+			if got := cold.RandomState(); got != afterDrop {
+				t.Errorf("loaded corpse drew again: random state %#x, want %#x", got, afterDrop)
+			}
+			if body, ok := cold.Entity(1); !ok || body.HP >= -10 || body.Decay != DecayBones || !body.CorpseDecayed {
+				t.Fatal("loaded body did not advance to bones")
+			}
+			if decayLootGold(&cold) != goldAfterDrop {
+				t.Errorf("sack gold after load = %d, want %d (no second roll)", decayLootGold(&cold), goldAfterDrop)
+			}
+			if second && len(d.rolls) != 1 {
+				t.Errorf("second game death item rolls after load = %d, want 1", len(d.rolls))
+			}
+		})
+	}
+}
+
+// A body an older second-game save holds at -10 after its drop, with a duration
+// attachment, is torn down at load as a fresh body is: the attachment expires
+// and the later ticks match the fresh run.
+func TestLegacyMinusTenBodyLoadExpiresItsAttachments(t *testing.T) {
+	build := func(legacy bool) *World {
+		w, err := NewStockedWorld(7, ddBounds, ModeCanonical, Terrain{}, []Entity{drDragon(1, 4)}, secondGameScript(t, nil, nil, nil), Relations{}, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		w.rng = rng{state: 0x2468ace1}
+		d := &drDraws{}
+		w.SetDeathItemDraw(d.draw)
+		Step(w, []Command{Damage(1, 20)})
+		if legacy {
+			e := &w.entities[0]
+			e.CorpseDecayed, e.deadRank = false, 0
+			w.attached = append(w.attached, attachedEffect{Target: 1, Spell: 27, Remaining: 3000, Kind: EffectAbsorption, Mode: EffectDuration, Magnitude: 3})
+			raw, err := w.MarshalBinary()
+			if err != nil {
+				t.Fatal(err)
+			}
+			var cold World
+			if err := cold.UnmarshalBinary(raw); err != nil {
+				t.Fatal(err)
+			}
+			cold.SetDeathItemDraw(d.draw)
+			return &cold
+		}
+		return w
+	}
+	fresh, loaded := build(false), build(true)
+	for _, a := range loaded.attached {
+		if a.Target == 1 {
+			t.Fatal("attachment kept on the body at load")
+		}
+	}
+	for range 1000 {
+		Step(fresh, nil)
+		Step(loaded, nil)
+	}
+	f, _ := fresh.Entity(1)
+	l, _ := loaded.Entity(1)
+	if f.HP != l.HP || f.Decay != l.Decay || fresh.RandomState() != loaded.RandomState() || decayLootGold(fresh) != decayLootGold(loaded) {
+		t.Fatalf("loaded run differs: hp %d/%d stage %d/%d", f.HP, l.HP, f.Decay, l.Decay)
+	}
+}

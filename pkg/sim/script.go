@@ -2459,9 +2459,8 @@ const ScriptAliveHeldBody = 1
 func scriptDead(e Entity) bool { return !e.Alive() && !e.Dying() }
 
 // scriptListed reports whether a second-game unit is still on its group's
-// list: a unit leaves it at death, when its body reaches the bones; a living
-// or unconscious unit stays (R2-ENGINE-1696).
-func scriptListed(e Entity) bool { return e.Decay < DecayBones }
+// list. Teardown removes it (R2-ENGINE-1696).
+func scriptListed(e Entity) bool { return !terminalRegistryActor(&e) }
 
 // scriptCountRule selects the unit and member presence predicates of checks 1,
 // 5 and 8 (R2-ENGINE-1696).

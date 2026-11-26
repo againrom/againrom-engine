@@ -402,9 +402,10 @@ type Entity struct {
 	HumanMovement HumanMovement
 	ActorLoad     ActorLoad
 
-	Decay     DecayStage
-	Dwell     uint16
-	DyingTime int32
+	Decay         DecayStage
+	CorpseDecayed bool
+	Dwell         uint16
+	DyingTime     int32
 
 	ActorState uint8
 	Retreat    RetreatContinuation
@@ -1018,11 +1019,11 @@ const (
 // health the build's raise sets one below it to (R2-ENGINE-1825).
 const decayHeroHP = -61
 
-// decayLadder is how a game reads the ladder. strict: a stage begins below
-// its threshold and not at it. heroFloor: a body of class word 0x21..0x24
-// loses health only above decayHeroHP (R2-ENGINE-1825).
+// decayLadder is how a game reads the ladder: every stage begins strictly
+// below its threshold (HERO-207, R2-ENGINE-1825). heroFloor: a body of class
+// word 0x21..0x24 loses health only above decayHeroHP.
 type decayLadder struct {
-	strict, heroFloor bool
+	heroFloor bool
 }
 
 // stage is the stage a torn-down body's health puts it at — the whole of the
@@ -1035,15 +1036,14 @@ type decayLadder struct {
 // A body whose health has not reached the first threshold stays at DecayFallen,
 // so the answer is total over every int32 and no caller needs a floor test.
 func (l decayLadder) stage(hp int32) DecayStage {
-	past := func(threshold int32) bool { return hp < threshold || !l.strict && hp == threshold }
 	switch {
 	case hp < decayGoneHP:
 		return decayLast + 1
-	case past(decayFourthHP):
+	case hp < decayFourthHP:
 		return decayLast
-	case past(decayThirdHP):
+	case hp < decayThirdHP:
 		return 3
-	case past(decayBonesHP):
+	case hp < decayBonesHP:
 		return DecayBones
 	}
 	return DecayFallen
@@ -1099,7 +1099,7 @@ func decayFault(e Entity) error {
 // clearDecay puts e back to the state a living unit is in. It is the entity's
 // own half of the pairing rule, written once so that "a living unit carries no
 // stage and no dwell" cannot come apart into two assignments.
-func (e *Entity) clearDecay() { e.Decay, e.Dwell = DecayNone, 0 }
+func (e *Entity) clearDecay() { e.Decay, e.Dwell, e.CorpseDecayed, e.deadRank = DecayNone, 0, false, 0 }
 
 // moverSpeed is the speed a rate is computed from: the group term when e carries
 // one, and the entity's own otherwise.
@@ -2526,7 +2526,10 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 			// when that world was cut cannot have it halved a second time by
 			// being built from its own entities again.
 			if cp[i].Decay == DecayNone {
-				cp[i].Decay, cp[i].Dwell = DecayFallen, dwellOf(cp[i])
+				cp[i].Decay, cp[i].Dwell, cp[i].CorpseDecayed = DecayFallen, dwellOf(cp[i]), false
+			}
+			if cp[i].Decay >= DecayBones {
+				cp[i].CorpseDecayed = true
 			}
 		} else {
 			// And a LIVING unit carries neither, which is the other half of the
@@ -2534,9 +2537,10 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 			// on a body is, normalised here and refused by the decoder.
 			cp[i].clearDecay()
 		}
-		// A dwell on any stage but the first is residue of a dwell that ran out,
-		// on the rule the target coordinates and the stall count already take.
-		if cp[i].Decay != DecayFallen {
+		// A dwell on any stage but the first, or on a decayed corpse, is
+		// residue of a dwell that ran out, on the rule the target coordinates
+		// and the stall count already take.
+		if cp[i].Decay != DecayFallen || cp[i].CorpseDecayed {
 			cp[i].Dwell = 0
 		}
 		// And the one shape with no value to fold onto is REFUSED, as the stall

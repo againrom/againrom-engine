@@ -36,6 +36,17 @@ modder or developer can notice gets no entry.
 - [ROM2] In the Russian version, a unit that dies on a cell whose sack already holds 1024 or more items adds only its gold to that sack and its items are lost, as in the original.
 - [ROM2] A unit that kills with its weapon's spell now gets the experience for the kill, as in the original.
 - [ROM2] A multiplayer character file that the character list shows now also opens; a file with a damaged first section is left out of the list instead of failing on open.
+- [BASE] Bodies reach the next stage of decay only below -10, -20 and -40 health. Reloading at -10 keeps the loot already dropped, and older saves still load.
+- [BASE] New Character in the multiplayer character list now opens the character generator, and Accept saves the new character in the original's file format and shows it in the list.
+- [BASE] Accepting a character in the multiplayer character list now opens the multiplayer map choice, and Ok starts the chosen map with that character, its statistics, money and experience.
+- [ROM1] A map can trigger an event when a chosen unit leaves its starting cell.
+- [ROM1] A unit moved by a teleport stays where it lands instead of walking back.
+- [ROM1] An armour or a shield with a spell is priced as the original prices it, by the spell's power, and no longer at a weapon's spell price.
+- [ROM1] Experience from a blow, a kill or a cast is scaled by Mind as the original computes it, so some awards are one point lower.
+- [ROM1] A weapon with Fire Ball now throws its ball after every blow, even one that fells the target, as in the original.
+- [ROM2] A second-game map can carry the engine's extended script, so its triggers can fire when a chosen unit leaves its starting cell.
+- [ROM2] A weapon with Fire Ball now throws its ball after every blow, even one that fells the target, as in the original.
+- [ROM2] A monster felled to exactly -10 health now drops its gold and item once, instead of rolling again on every tick until its body decays further.
 
 ### For map makers and modders
 

@@ -48,7 +48,7 @@ func TestNativeTerminalTransitionSynchronizesSavedMotionCellAndAction(t *testing
 			}
 			after := *w.motionFor(actor.ID)
 			current, ok = w.Entity(actor.ID)
-			if !ok || current.Alive() || current.Decay < DecayBones {
+			if !ok || current.Alive() || !current.CorpseDecayed {
 				t.Fatalf("ordinary death did not reach terminal teardown: %+v held=%v", current, ok)
 			}
 			if after.Position.Cell != cell || after.Position.PackedCell != cell {

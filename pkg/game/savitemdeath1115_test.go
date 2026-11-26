@@ -38,7 +38,7 @@ func TestItemDeath1115CurrentOwnersSurviveOrdinarySave(t *testing.T) {
 			current := f.live.world.SavedObjects()
 			row := itemObjectByKey(t, current, itemMutationWeapon1115)
 			dead := newGroupActors1115(t, f.live.world)[newGroupA]
-			if dead.Alive() || dead.Decay < sim.DecayBones || dead.Dwell != 0 || row.Owner.Kind != sim.SavedOwnerSack || row.ID != weapon.ID || row.Spell != 0 || row.Value.SourceEquipment.Spell.Present || !reflect.DeepEqual(current.Effects, registry.Effects) || !itemMutationSpell1115(t, current, weapon.Spell).Retired {
+			if dead.Alive() || !dead.CorpseDecayed || dead.Dwell != 0 || row.Owner.Kind != sim.SavedOwnerSack || row.ID != weapon.ID || row.Spell != 0 || row.Value.SourceEquipment.Spell.Present || !reflect.DeepEqual(current.Effects, registry.Effects) || !itemMutationSpell1115(t, current, weapon.Spell).Retired {
 				t.Fatal("actual source death did not transfer the same Weapon and retire its Spell", dead, row)
 			}
 			after := snapshotCurrentObjects(t, f)

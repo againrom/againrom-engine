@@ -196,7 +196,7 @@ func TestKilledRosterHumanKeepsItsDrawnBodyAfterEquipmentDrops(t *testing.T) {
 	if before != set.Classes[3] {
 		t.Fatalf("opening body = %v, want swordsman", before)
 	}
-	if err := w.HeadlessDamage(id, 20); err != nil {
+	if err := w.HeadlessDamage(id, 21); err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 40; i++ {

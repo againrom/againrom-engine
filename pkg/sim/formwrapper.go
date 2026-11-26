@@ -54,6 +54,7 @@ var formWrappers []formWrapper
 
 func init() {
 	formWrappers = []formWrapper{
+		{corpseDecayedFormVersion, "CRD1", trailerSpan32, baseOlder, (*World).unmarshalCorpseDecayed},
 		{outpostFormVersion, "OPS1", trailerSpan32, baseOlder, (*World).unmarshalOutposts},
 		{walkRefreshFormVersion, "WLK1", trailerSpan32, baseOlder, (*World).unmarshalWalkRefresh},
 		{scriptGlobalFormVersion, "GLB1", trailerSpan32, baseOlder, (*World).unmarshalScriptGlobals},

@@ -90,6 +90,7 @@ type ActorValues struct {
 	Widths                                                   []ActorNumericResidue  `json:",omitempty"`
 	EffectWidths                                             []EffectNumericResidue `json:"-"`
 	Decay                                                    DecayStage             `json:"-"`
+	CorpseDecayed                                            bool                   `json:",omitempty"`
 	Dwell                                                    uint16                 `json:"-"`
 
 	// VictimKinds is the second game's repeated-victim list (DIV-4840); an
@@ -131,7 +132,7 @@ func (e Entity) Values() ActorValues {
 		PotionStats: e.PotionStats, PotionHeadroom: e.PotionHeadroom, SuppressCorpseLoot: e.SuppressCorpseLoot, SuppressRewards: e.SuppressRewards, Purse: e.Purse, SeeInvisible: e.SeeInvisible,
 		AlwaysHits: e.AlwaysHits, Undying: e.Undying, DyingTime: e.DyingTime, XPValue: e.XPValue, GoldChance: e.GoldChance, TreasureMin: e.TreasureMin, TreasureMax: e.TreasureMax,
 		GainsXP: e.GainsXP, LegacyBook: e.Book.State == BookLegacy, ExtraSpells: e.KnownSpells & ^bookIDMask,
-		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, Dwell: e.Dwell,
+		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, CorpseDecayed: terminalRegistryActor(&e), Dwell: e.Dwell,
 		VictimKinds: e.victimKinds.counts(), KindWord: e.KindWord, MainSkill: e.MainSkill, AreaHitCount: e.AreaHitCount}
 	if !e.Humanoid && e.SkillXP != ([skillSlots]int32{}) {
 		xp := e.SkillXP
@@ -332,6 +333,10 @@ func (e *Entity) restoreValues(v ActorValues) error {
 		e.SkillXP = *v.UnitXP
 	}
 	e.Decay, e.Dwell = v.Decay, v.Dwell
+	if v.CorpseDecayed && (e.Alive() || e.Decay == DecayNone || e.Decay > decayLast || e.Dwell != 0) {
+		return fmt.Errorf("sim: decayed corpse state disagrees with living or dwelling actor")
+	}
+	e.CorpseDecayed = v.CorpseDecayed || e.Decay >= DecayBones || e.legacySpentCorpse()
 	e.attackNotice = attackNotice{Cell: v.AttackNoticeCell, Scans: v.AttackNoticeScans}
 	// A SAV without the split operand whose derived word differs from the
 	// speed word predates the split: its mover byte follows the former

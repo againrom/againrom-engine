@@ -99,7 +99,9 @@ func corpseSAVContinuationWitness(t *testing.T, mage bool) {
 			f.live.tick()
 		}
 		want.State.HP -= 4
-		want.State.Stage = 3
+		if want.State.HP < -20 {
+			want.State.Stage = 3
+		}
 		want.Purse, want.Sacks = f.live.world.Purse(sim.SelfSlot), len(f.live.world.Sacks())
 		current := requireCurrentCorpse(t, f, want)
 		if current.SourceBinding != initial.SourceBinding {

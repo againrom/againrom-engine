@@ -282,7 +282,7 @@ var nstPinned = []struct {
 		// The decay ladder: the stage a body is at, the dwell it still owes
 		// before it is torn down, and the dying time a fresh body takes that
 		// dwell from.
-		{"Decay", "sim.DecayStage"}, {"Dwell", "uint16"}, {"DyingTime", "int32"},
+		{"Decay", "sim.DecayStage"}, {"CorpseDecayed", "bool"}, {"Dwell", "uint16"}, {"DyingTime", "int32"},
 		// The actor state and the patrol ring and leg (0099 T1): which state
 		// machine an entity runs when its group is not deciding for it, and
 		// the two cells and the current waypoint of the one arm this build has.

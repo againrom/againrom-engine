@@ -119,7 +119,7 @@ func (w *World) constructedGroups(native bool) *savedGroupState {
 	var keys []key
 	for i := range w.entities {
 		e := &w.entities[i]
-		if k := (key{e.Owner, effectiveGroup(e)}); e.Decay < DecayBones && !slices.Contains(keys, k) {
+		if k := (key{e.Owner, effectiveGroup(e)}); !terminalRegistryActor(e) && !slices.Contains(keys, k) {
 			keys = append(keys, k)
 		}
 	}
@@ -148,7 +148,7 @@ func (w *World) constructedGroups(native bool) *savedGroupState {
 	for _, k := range keys {
 		var members []int
 		for i := range w.entities {
-			if e := &w.entities[i]; e.Owner == k.owner && effectiveGroup(e) == k.group && e.Decay < DecayBones {
+			if e := &w.entities[i]; e.Owner == k.owner && effectiveGroup(e) == k.group && !terminalRegistryActor(e) {
 				members = append(members, i)
 			}
 		}

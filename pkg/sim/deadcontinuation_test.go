@@ -77,9 +77,11 @@ func TestVirtualCorpseSessionPhaseAndTerminalBoundary(t *testing.T) {
 		wantHP    int16
 	}{
 		{"before phase", 11, 0, 2, -19, 2, -19},
-		{"even full tick", 12, 0, 2, -19, 3, -20},
+		{"even full tick at threshold", 12, 0, 2, -19, 2, -20},
+		{"even full tick below threshold", 12, 0, 2, -20, 3, -21},
 		{"odd full tick", 12, 1, 2, -19, 2, -19},
-		{"independent stage", 12, 1, 2, -40, 4, -40},
+		{"independent stage at threshold", 12, 1, 2, -40, 3, -40},
+		{"independent stage below threshold", 12, 1, 2, -41, 4, -41},
 		{"negative signed subtick", 0xfffffffc, 0, 2, -19, 2, -19},
 		{"terminal transition", 12, 0, 4, -600, 5, -10001},
 		{"imported terminal", 12, 0, 5, -10007, 5, -10007},

@@ -46,9 +46,9 @@ func TestAcquiredSavedItem1172TerminalMixedHoldings(t *testing.T) {
 			}
 			e := w.entities[0]
 			if e.WeaponSpell != 0 || e.WeaponSpellLevel != 0 || e.WeaponSpellSource != WeaponSpellNone ||
-				e.Decay != DecayBones || e.Dwell != 0 || len(w.carried[0]) != 0 || e.Load != 0 {
-				t.Fatalf("terminal actor: spell %d/%d/%d, decay %d, dwell %d, pack %d, load %d",
-					e.WeaponSpell, e.WeaponSpellLevel, e.WeaponSpellSource, e.Decay, e.Dwell, len(w.carried[0]), e.Load)
+				!e.CorpseDecayed || e.Dwell != 0 || len(w.carried[0]) != 0 || e.Load != 0 {
+				t.Fatalf("terminal actor: spell %d/%d/%d, decay %d, decayed %v, dwell %d, pack %d, load %d",
+					e.WeaponSpell, e.WeaponSpellLevel, e.WeaponSpellSource, e.Decay, e.CorpseDecayed, e.Dwell, len(w.carried[0]), e.Load)
 			}
 			for _, item := range w.equipment[0] {
 				if !item.Empty() {

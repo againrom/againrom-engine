@@ -1608,13 +1608,12 @@ func (w *World) clearFelled(i int) {
 		// A zero-dwell body that crosses the boundary in a command or blow
 		// transfers immediately, preserving resolution order when several die
 		// in one tick. A body still playing its fall waits for decayPass.
-		if e := &w.entities[i]; e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() {
-			if stage := w.game.decay.stage(e.HP); stage > DecayFallen && stage <= decayLast {
-				if w.dropTerminalLoot(i) {
-					w.entities[i].Decay = stage
-					w.detachSavedMember(w.entities[i].ID)
-					w.joinDeadList(i)
-				}
+		if e := &w.entities[i]; e.readyForTeardown() {
+			if stage := w.game.decay.stage(e.HP); stage <= decayLast && w.dropTerminalLoot(i) {
+				w.markCorpseDecayed(i)
+				w.entities[i].Decay = stage
+				w.detachSavedMember(w.entities[i].ID)
+				w.joinDeadList(i)
 			}
 		}
 		w.clearInvalidTargetReferences(w.entities[i].ID)
@@ -2005,9 +2004,23 @@ const (
 	nativeDecayWalk
 )
 
+func (e *Entity) readyForTeardown() bool {
+	return !e.CorpseDecayed && e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable()
+}
+
+// Keep the existing spent-loot columns for a body that remains fallen.
+func (w *World) markCorpseDecayed(i int) {
+	e := &w.entities[i]
+	e.CorpseDecayed = true
+	if w.game.decay.stage(e.HP) == DecayFallen {
+		e.SuppressCorpseLoot = true
+		e.GoldChance, e.TreasureMin, e.TreasureMax, e.DeathItem = 0, 0, spentTreasureMax, DeathItemRoll{}
+	}
+}
+
 type decayWalk struct {
 	beforeWalk func(w *World)
-	takesStage func(stage DecayStage) bool
+	takesBody  func(e *Entity) bool
 	stepBody   func(w *World, e *Entity)
 	atTeardown func(w *World, e *Entity)
 }
@@ -2015,21 +2028,21 @@ type decayWalk struct {
 var decayWalks = [...]decayWalk{
 	sessionDecayWalk: {
 		beforeWalk: sessionDecayBefore,
-		takesStage: sessionDecayStage,
+		takesBody:  sessionDecayBody,
 		stepBody:   sessionDecayStep,
 		atTeardown: sessionDecayTeardown,
 	},
 	nativeDecayWalk: {
 		beforeWalk: nativeDecayBefore,
-		takesStage: nativeDecayStage,
+		takesBody:  nativeDecayBody,
 		stepBody:   nativeDecayStep,
 		atTeardown: nativeDecayTeardown,
 	},
 }
 
-func sessionDecayBefore(*World)               {}
-func sessionDecayStage(stage DecayStage) bool { return stage != DecayNone && stage < DecayBones }
-func sessionDecayStep(*World, *Entity)        {}
+func sessionDecayBefore(*World)        {}
+func sessionDecayBody(e *Entity) bool  { return e.Decay == DecayFallen && !e.CorpseDecayed }
+func sessionDecayStep(*World, *Entity) {}
 
 // sessionDecayTeardown calls the dead ladder once at teardown, independently of
 // the ordinary dead-list walk.
@@ -2039,8 +2052,8 @@ func sessionDecayTeardown(w *World, e *Entity) {
 	}
 }
 
-func nativeDecayBefore(w *World)             { w.decayHeldDead(w.tick%decayCycle == decayPhase) }
-func nativeDecayStage(stage DecayStage) bool { return stage != DecayNone }
+func nativeDecayBefore(w *World)     { w.decayHeldDead(w.tick%decayCycle == decayPhase) }
+func nativeDecayBody(e *Entity) bool { return e.Decay != DecayNone }
 
 // nativeDecayStep takes one health on the walk tick; it saturates at the
 // representation's floor rather than wrapping. A hero body takes none at
@@ -2088,10 +2101,11 @@ func (w *World) decayPass() {
 	for i := range w.entities {
 		e := &w.entities[i]
 		beforeHP, beforeStage := e.HP, e.Decay
-		if !rule.takesStage(e.Decay) {
+		if !rule.takesBody(e) {
 			continue
 		}
 		wasTargetable := e.OrdinaryTargetable()
+		wasDecayed := terminalRegistryActor(e)
 		if e.Dwell > 0 {
 			e.Dwell--
 			if e.Dwell > 0 {
@@ -2107,19 +2121,13 @@ func (w *World) decayPass() {
 			}
 		}
 		rule.stepBody(w, e)
-		if e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() && !w.lootSpent(i) {
+		if e.readyForTeardown() {
 			if !w.dropTerminalLoot(i) {
 				continue
 			}
 			e = &w.entities[i]
 			rule.atTeardown(w, e)
-			// A body the ladder still reads as Fallen (the strict ladder at
-			// exactly -10) is met here again next tick; its loot is marked
-			// gone so that visit rolls and drops nothing.
-			if w.game.decay.stage(e.HP) == DecayFallen {
-				e.SuppressCorpseLoot = true
-				e.GoldChance, e.TreasureMin, e.TreasureMax, e.DeathItem = 0, 0, spentTreasureMax, DeathItemRoll{}
-			}
+			w.markCorpseDecayed(i)
 		}
 		if s := w.game.decay.stage(e.HP); s > decayLast {
 			// A downed body whose walk crosses below zero and leaves in the same
@@ -2127,20 +2135,16 @@ func (w *World) decayPass() {
 			if LifeNonNegative.Holds(int64(beforeHP), 0, false) {
 				w.recordDiaryKill(i)
 			}
-			if e.Decay < DecayBones {
+			if !wasDecayed {
 				w.releaseAtTeardown(i)
 			}
 			gone = append(gone, e.ID)
 			expiring = append(expiring, e.ID)
-		} else if s > e.Decay {
-			// The stage never falls, and this test is what says so rather than a
-			// comment: health only falls and the ladder is monotone in it, so
-			// this can only ever be an advance — and written this way a body
-			// whose health has not reached the first threshold stays where the
-			// death put it instead of being rewritten to the same value.
-			teardown := e.Decay < DecayBones && s >= DecayBones
-			e.Decay = s
-			if teardown {
+		} else {
+			if s > e.Decay {
+				e.Decay = s
+			}
+			if !wasDecayed && e.CorpseDecayed {
 				w.releaseAtTeardown(i)
 				expiring = append(expiring, e.ID)
 				w.detachSavedMember(e.ID)
