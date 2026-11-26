@@ -102,6 +102,8 @@
 "characters.ok" = "Принять"
 "characters.new" = "Новый персонаж"
 "characters.left" = "Не прочитаны и пропущены файлы персонажей: %d"
+"characters.full" = "Свободных имен файлов персонажей не осталось. Сначала удалите персонажа."
+"characters.unstored" = "У этой игры нет папки персонажей, куда можно сохранить персонажа."
 
 # Multiplayer map choice page: title, buttons, level column and empty label.
 "mapchoice.title" = "Выбор карты"

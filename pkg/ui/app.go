@@ -3722,6 +3722,10 @@ func (a *App) playChargen(c *Chargen) {
 		return
 	}
 	if open == nil {
+		if a.flow.screen != ScreenChargen {
+			a.preCreateSounds.Stop()
+			a.detailedSounds.Stop()
+		}
 		if a.flow.screen == ScreenTown {
 			a.flow.resetTimedAutosave()
 		}

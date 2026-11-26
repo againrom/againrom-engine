@@ -244,7 +244,6 @@ func (a *App) HeadlessRows() []PickerRow {
 	if a == nil || a.flow == nil {
 		return nil
 	}
-	var p *Picker
 	switch a.flow.screen {
 	case ScreenCutsceneLibrary:
 		var rows []PickerRow
@@ -258,6 +257,30 @@ func (a *App) HeadlessRows() []PickerRow {
 			rows = append(rows, PickerRow{Text: label, Choosable: true})
 		}
 		return rows
+	}
+	p := a.headlessList()
+	if p == nil {
+		return nil
+	}
+	return append([]PickerRow(nil), p.Rows()...)
+}
+
+// HeadlessListSelection is the selected row of the visible screen's list,
+// or -1 when the screen shows no list or the list is empty.
+func (a *App) HeadlessListSelection() int {
+	if a == nil || a.flow == nil {
+		return -1
+	}
+	if p := a.headlessList(); p != nil {
+		return p.Selection()
+	}
+	return -1
+}
+
+// headlessList is the visible screen's list, or nil.
+func (a *App) headlessList() *Picker {
+	var p *Picker
+	switch a.flow.screen {
 	case ScreenPicker:
 		p = a.flow.picker
 	case ScreenTown:
@@ -271,10 +294,7 @@ func (a *App) HeadlessRows() []PickerRow {
 			p = a.flow.saveScreen.list
 		}
 	}
-	if p == nil {
-		return nil
-	}
-	return append([]PickerRow(nil), p.Rows()...)
+	return p
 }
 
 // HeadlessGameplayScreen reports the map or town behind a game/load menu. It

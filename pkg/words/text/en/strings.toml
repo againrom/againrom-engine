@@ -104,6 +104,8 @@
 "characters.ok" = "Accept"
 "characters.new" = "New Character"
 "characters.left" = "Unreadable character files left out: %d"
+"characters.full" = "No free character file name is left. Delete a character first."
+"characters.unstored" = "This game has no character folder to store the character in."
 
 # Multiplayer map choice page: title, buttons, level column and empty label.
 "mapchoice.title" = "Select Map"

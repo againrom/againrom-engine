@@ -148,7 +148,8 @@ type pageSeams struct {
 // Multiplayer button opens (MENU-168, R2-ENGINE-1844). It keeps the game's
 // load page window, list and Cancel, with its own title and Ok caption;
 // Delete shows only where the game's original page has it. New is the
-// list's last row, after the character files; choosing it does nothing yet.
+// list's last row, after the character files; Ok on it opens the store's
+// generator.
 type CharacterPage struct {
 	Title, OK, New string
 	Delete         bool
@@ -160,11 +161,14 @@ func defaultCharacterPage() CharacterPage {
 
 // CharacterFiles is the character role's store. List answers the character
 // rows and the message line, which counts the files it left out; CanDelete
-// and PrepareDelete are the Load page's delete seams for a row's name.
+// and PrepareDelete are the Load page's delete seams for a row's name. New
+// is the generator the New row opens, whose accept stores the character; nil
+// leaves the New row doing nothing.
 type CharacterFiles struct {
 	List          func() ([]SaveEntry, string)
 	CanDelete     func(string) bool
 	PrepareDelete func(string) (func() error, error)
+	New           func() *ChargenEntry
 }
 
 // SetCharacterPage installs a game's character role data.
@@ -180,6 +184,10 @@ func (f *flow) characterPage() CharacterPage {
 	}
 	return defaultCharacterPage()
 }
+
+// OpenCharacters shows the character list over the menu, as the menu's
+// Multiplayer button does.
+func (a *App) OpenCharacters() { a.flow.openCharacters() }
 
 // CharacterList reports whether the list page shows its character role.
 func (a *App) CharacterList() bool {

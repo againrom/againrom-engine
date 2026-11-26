@@ -3,6 +3,7 @@ package alch
 import (
 	"encoding/binary"
 	"errors"
+	"reflect"
 	"testing"
 )
 
@@ -33,6 +34,52 @@ func TestReadHeaderDecodesAPageFile(t *testing.T) {
 	full := pageFile("Thirty-two letters fill the box!")
 	if h, err := ReadHeader(full); err != nil || len(h.Name) != 32 {
 		t.Fatalf("full name %q, %v", h.Name, err)
+	}
+}
+
+// A short file of a name and four statistics is the page file with the
+// statistics as the first four dwords of the first 28-byte block at +0x54.
+func TestWriteShortFileMatchesThePageFile(t *testing.T) {
+	want := pageFile("Gwendolyn")
+	for i, v := range []uint32{18, 22, 15, 25} {
+		binary.LittleEndian.PutUint32(want[0x54+4*i:], v)
+	}
+	got, err := Write(Character{Name: []byte("Gwendolyn"), Flags: FlagShort, Stats: [4]uint32{18, 22, 15, 25}})
+	if err != nil || string(got) != string(want) {
+		t.Fatalf("write %x, %v\nwant  %x", got, err, want)
+	}
+}
+
+// Every field survives a write and a read, the bytes after the header too;
+// a name with no room for its NUL is refused.
+func TestWriteThenReadEqualsTheInput(t *testing.T) {
+	in := Character{Name: []byte("Bors"), Flags: 6, Store74: 0x01020304, Stats: [4]uint32{1, 2, 3, 4},
+		Long: []byte{9, 8, 7}}
+	for i := range in.Store08 {
+		in.Store08[i] = byte(0x10 + i)
+	}
+	for i := range in.Store30 {
+		in.Store30[i] = byte(0x30 + i)
+	}
+	for i := range in.Store90 {
+		in.Store90[i] = byte(0x90 + i)
+	}
+	for i := range in.StoreAC {
+		in.StoreAC[i] = byte(0xac + i)
+	}
+	b, err := Write(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := Read(b)
+	if err != nil || !reflect.DeepEqual(out, in) {
+		t.Fatalf("read %+v, %v\nwant %+v", out, err, in)
+	}
+	if _, err := Write(Character{Name: []byte("Thirty-two letters fill the box!")}); !errors.Is(err, ErrName) {
+		t.Errorf("full name: %v", err)
+	}
+	if _, err := Write(Character{Name: []byte("A\x00B")}); !errors.Is(err, ErrName) {
+		t.Errorf("NUL name: %v", err)
 	}
 }
 

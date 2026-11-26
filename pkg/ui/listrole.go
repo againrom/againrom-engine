@@ -60,13 +60,15 @@ func loadListRole() *listRole {
 }
 
 // characterListRole is the character list the menu's Multiplayer button
-// opens: the store's character rows, then the New row. Ok does nothing: no
-// character is played and no creation runs from the New row yet (DIV-2369).
+// opens: the store's character rows, then the New row. Ok on the New row
+// opens the store's generator; Ok on a character row does nothing yet
+// (DIV-2369).
 func characterListRole() *listRole {
 	return &listRole{
 		roleName: characterRoleName,
 		page:     func(f *flow) SavePage { return f.installedLoadPage().asCharacterList(f.characterPage()) },
 		list:     (*flow).characterRows,
+		accept:   (*flow).newCharacter,
 		deletes:  (*flow).characterDeletes,
 	}
 }
@@ -189,6 +191,41 @@ func (f *flow) characterRows() ([]SaveEntry, []PickerRow, string) {
 	}
 	rows := append(labelRows(saves), PickerRow{Text: f.characterPage().New, Choosable: true})
 	return saves, rows, message
+}
+
+// newCharacter is Ok on the character list: on the New row it shows the
+// store's generator over the list (R2-ENGINE-1840, MENU-169). The
+// generator's accept stores the character and opens the list again with
+// the new file's row selected; its Back and Escape return to the list.
+func (f *flow) newCharacter() {
+	i, ok := f.loadList.Choose()
+	create := f.pages.characterFiles.New
+	if !ok || i != len(f.saves) || create == nil {
+		return
+	}
+	e := create()
+	if e == nil || e.Begin == nil {
+		return
+	}
+	listed := make(map[string]bool, len(f.saves))
+	for _, s := range f.saves {
+		listed[s.Name] = true
+	}
+	back := f.loadBack
+	begin := func(res ChargenResult) (MapOpener, error) {
+		if open, err := e.Begin(res); err != nil || open != nil {
+			return open, err
+		}
+		f.openListPage(back, characterListRole())
+		for j, s := range f.saves {
+			if !listed[s.Name] {
+				f.loadList.Select(j)
+				break
+			}
+		}
+		return nil, nil
+	}
+	f.armChargen(e.Model, begin, ScreenLoad)
 }
 
 // characterDeletes are the character store's delete seams where the game's

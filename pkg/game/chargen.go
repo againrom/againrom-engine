@@ -57,6 +57,12 @@ const (
 // "The spread"), decoded and not a taste, and the order chargenStatBody
 // through chargenStatSpirit names above.
 func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
+	return f.chargenSetup(f.generatorRow().start)
+}
+
+// chargenSetup is the generation screen's setup for an accept that begins
+// start.
+func (f *FrontEnd) chargenSetup(start generatorStart) ui.ChargenSetup {
 	l := f.generator()
 	st := &l.Detail.Stats
 	cost := make([]int, st.Ceiling+1)
@@ -158,7 +164,7 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		}
 		setup.Preview = f.ChargenPreview
 	}
-	f.generatorSetup(&setup)
+	f.generatorSetup(&setup, start)
 	return setup
 }
 
@@ -220,7 +226,20 @@ const (
 	// generatorStartTown commits a new campaign at its first town and opens no
 	// map, so the generator shows the town (R2-ENGINE-283).
 	generatorStartTown
+	// generatorStartCharacter stores the generated character in the
+	// character store and opens no map: the multiplayer list's new-character
+	// entry, which runs the campaign's generator pages (MENU-169,
+	// R2-ENGINE-1840).
+	generatorStartCharacter
 )
+
+// generatorTarget is where an accepted result goes: mission, which a town
+// start also opens with reach, or the store the character start writes.
+type generatorTarget struct {
+	mission int
+	reach   bool
+	store   CharacterStore
+}
 
 // generatorRow is the generator row of the front end's game.
 func (f *FrontEnd) generatorRow() generatorProfile { return f.campaign().files().generator }
@@ -233,9 +252,9 @@ func (in *InstallResources) roomCardFromGenerator() bool {
 // names, and marks a start in town on the setup. A picture whose source row
 // is missing, or whose archetype holds an illegal spread, keeps the generic
 // start.
-func (f *FrontEnd) generatorSetup(setup *ui.ChargenSetup) {
+func (f *FrontEnd) generatorSetup(setup *ui.ChargenSetup, start generatorStart) {
 	p := f.generatorRow()
-	setup.AcceptShowsTown = p.start == generatorStartTown
+	setup.AcceptShowsTown = start == generatorStartTown
 	for i, h := range f.generator().PreCreate.Heroes {
 		if i >= len(setup.Presets) {
 			break
@@ -524,30 +543,46 @@ func (f *FrontEnd) ChargenParty(res ui.ChargenResult) []mapload.PartyMember {
 // NewGameBegin is what an accepted new-game generator result does: the start
 // its game's generator row names.
 func (f *FrontEnd) NewGameBegin(n int) func(ui.ChargenResult) (ui.MapOpener, error) {
-	return f.generatorBegin(f.generatorRow().start, n, false)
+	return f.generatorBegin(f.generatorRow().start, generatorTarget{mission: n})
 }
 
 // MissionBegin is NewGameBegin for a start the command line names a mission
 // for: a game that starts in a town commits its campaign there, makes mission
 // n reachable from it and opens that mission.
 func (f *FrontEnd) MissionBegin(n int) func(ui.ChargenResult) (ui.MapOpener, error) {
-	return f.generatorBegin(f.generatorRow().start, n, true)
+	return f.generatorBegin(f.generatorRow().start, generatorTarget{mission: n, reach: true})
 }
 
-// generatorBegin is what an accepted result begins under start: mission n
-// opened with the generated party, or a new campaign committed at its first
-// town with no map opened; with reach, the town start then opens mission n.
-func (f *FrontEnd) generatorBegin(start generatorStart, n int, reach bool) func(ui.ChargenResult) (ui.MapOpener, error) {
-	if start == generatorStartTown {
+// generatorBegin is what an accepted result begins under start: the target
+// mission opened with the generated party, or a new campaign committed at its
+// first town with no map opened, the town start then opening the mission with
+// reach; or the character stored in the target store with no map opened.
+func (f *FrontEnd) generatorBegin(start generatorStart, to generatorTarget) func(ui.ChargenResult) (ui.MapOpener, error) {
+	n := to.mission
+	switch start {
+	case generatorStartTown:
 		return func(res ui.ChargenResult) (ui.MapOpener, error) {
-			if err := f.startGeneratedTown(res); err != nil || !reach {
+			if err := f.startGeneratedTown(res); err != nil || !to.reach {
 				return nil, err
 			}
 			f.Town.second.reach(n)
 			return f.MissionOpener(n), nil
 		}
+	case generatorStartCharacter:
+		return func(res ui.ChargenResult) (ui.MapOpener, error) {
+			_, err := f.storeCharacter(to.store, res)
+			return nil, err
+		}
 	}
 	return func(res ui.ChargenResult) (ui.MapOpener, error) { return f.NewGameOpener(n, res), nil }
+}
+
+// generatorTemplateName is the unit row the generator's preset names for the
+// result's sex and class, or "" where it names none.
+func (f *FrontEnd) generatorTemplateName(res ui.ChargenResult) string {
+	female := chargenChoiceIndex(res, chargenChoiceSex) != 0
+	mage := chargenChoiceIndex(res, chargenChoiceClass) != 0
+	return heroTemplate(f.generator(), female, mage)
 }
 
 // generatorParty is the party a result makes under its game's generator row.
@@ -576,7 +611,7 @@ func (f *FrontEnd) generatorParty(res ui.ChargenResult) []mapload.PartyMember {
 	var ok bool
 	if p.templates {
 		humans = missionHumans(f.Table)
-		row, i, ok = generatorTemplate(humans, heroTemplate(f.generator(), female, mage))
+		row, i, ok = generatorTemplate(humans, f.generatorTemplateName(res))
 	} else {
 		row, i, ok = data.ChargenBase(humans, mage, female)
 	}
