@@ -31,6 +31,7 @@ func (a *App) stepQuickSave(save bool) {
 	f := a.flow
 	var err error
 	message := f.words.SaveAcknowledgement
+	failed := f.word("quick.save_failed")
 	if save {
 		if f.loadUI.quick.Save == nil {
 			err = fmt.Errorf("quicksave is unavailable")
@@ -38,7 +39,8 @@ func (a *App) stepQuickSave(save bool) {
 			err = f.loadUI.quick.Save(f.screen == ScreenMap)
 		}
 	} else {
-		message = "Quickload complete"
+		message = f.word("quick.load_done")
+		failed = f.word("quick.load_failed")
 		if f.loadUI.quick.Load == nil {
 			err = fmt.Errorf("quickload is unavailable")
 		} else {
@@ -53,16 +55,17 @@ func (a *App) stepQuickSave(save bool) {
 			if err == nil {
 				err = f.loadPrepared(open, town)
 			}
+			if f.openLoadRefusal(err) {
+				a.syncViewerLayout()
+				return
+			}
 			if err == nil && notice != nil {
 				message = f.word("load.mods.quick_done") + ": " + f.modMismatchWindow(*notice).modMismatchText()
 			}
 		}
 	}
 	if err != nil {
-		message = "Quicksave failed: " + err.Error()
-		if !save {
-			message = "Quickload failed: " + err.Error()
-		}
+		message = failed + ": " + err.Error()
 	}
 	if f.screen == ScreenMap && f.viewer != nil {
 		f.viewer.PostMessage(message, MessageWhite, 15*time.Second)

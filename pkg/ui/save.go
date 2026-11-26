@@ -754,11 +754,7 @@ func (f *flow) loadChosen() {
 	if err == nil && notice != nil {
 		f.msg = f.modMismatchWindow(*notice).modMismatchText()
 	}
-	// A refusal over the mods opens the window that lists every difference;
-	// a build without the installed font keeps the message line.
-	if m, ok := modMismatchOf(err); ok && f.menuFont != nil {
-		f.loadUI.resetPointer()
-		f.loadUI.mismatch = f.modMismatchWindow(m)
+	if f.openLoadRefusal(err) {
 		return
 	}
 	if err != nil {
@@ -773,12 +769,32 @@ func (f *flow) openLoadNotice(notice *ModMismatch, town bool) bool {
 	if notice == nil || !town || f.menuFont == nil {
 		return false
 	}
+	f.openLoadPage()
+	f.loadUI.resetPointer()
+	f.loadUI.mismatch, f.loadUI.mismatchTown = f.modMismatchWindow(*notice), true
+	return true
+}
+
+// openLoadPage shows the Load page, as the Load key does, when another screen
+// is up.
+func (f *flow) openLoadPage() {
 	if f.screen != ScreenLoad {
 		f.openGameMenu(f.screen)
 		f.applyGameMenuAction(gameMenuLoad)
 	}
+}
+
+// openLoadRefusal opens the Load page's mod window over a load refused for the
+// mods, listing every difference. False leaves the failure to its caller: the
+// error is not a refusal over the mods, or the build has no installed font.
+func (f *flow) openLoadRefusal(err error) bool {
+	m, ok := modMismatchOf(err)
+	if !ok || f.menuFont == nil {
+		return false
+	}
+	f.openLoadPage()
 	f.loadUI.resetPointer()
-	f.loadUI.mismatch, f.loadUI.mismatchTown = f.modMismatchWindow(*notice), true
+	f.loadUI.mismatch = f.modMismatchWindow(m)
 	return true
 }
 

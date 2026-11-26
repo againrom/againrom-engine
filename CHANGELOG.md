@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A quick load that the active mods refuse now opens the same mod mismatch window as the Load page, and the quick save and quick load messages are now shown in the game's language instead of English.
 - [BASE] Changing one option no longer erases your other saved options when the options file cannot be read at that moment; the change is refused and the file stays as it was.
 - [BASE] The multiplayer map choice page now exists in both games but is not yet reached from the menu: it lists the multiplayer maps of the map folder (with each map's level shown in the second game) and leaves out unreadable files without crashing; choosing a map and pressing OK returns it to the caller, and Cancel returns with nothing chosen.
 - [BASE] The Multiplayer character list now shows each game's character files from the player profile by name, newest first, ends with a New Character row, says how many unreadable files it left out, and in the first game deletes the chosen character after the Load page's question.
