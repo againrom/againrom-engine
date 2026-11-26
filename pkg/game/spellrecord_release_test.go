@@ -233,13 +233,13 @@ func TestReleaseSecondGameSpellbookPopupStatesTheCastPair(t *testing.T) {
 			if r.School < 6 {
 				e.Mind, e.Skill[r.School] = 30, int32(sum-30)
 			}
-			c := sim.SpellCharacteristicsFor(testFirstGame, sim.Rules{}, e, r)
+			c := sim.SpellCharacteristicsFor(testSecondGame, sim.Rules{}, e, r)
 			base := int64(r.DamageMin) * (power + 30) / 30
 			top := max(int64(r.DamageMax)*(power+30)/30, base)
 			if int64(c.Power) != power || c.DamageMin != base || c.DamageMax != top {
 				t.Fatalf("skill plus Mind %d, spell %d: power %d pair %d-%d, want power %d pair %d-%d", sum, r.ID, c.Power, c.DamageMin, c.DamageMax, power, base, top)
 			}
-			if lo, hi := sim.SpellDamagePair(testFirstGame, sim.Rules{}, r, c.Power); lo != c.DamageMin || hi != c.DamageMax {
+			if lo, hi := sim.SpellDamagePair(testSecondGame, sim.Rules{}, r, c.Power); lo != c.DamageMin || hi != c.DamageMax {
 				t.Fatalf("skill plus Mind %d, spell %d: the cast's pair %d-%d, the popup %d-%d", sum, r.ID, lo, hi, c.DamageMin, c.DamageMax)
 			}
 			if sum < 30 || sum > 285 {

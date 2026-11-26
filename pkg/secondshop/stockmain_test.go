@@ -15,8 +15,9 @@ import (
 // server-order projection. CRT permutations are checked on planted lists.
 func TestReleaseSecondShopStockMatchesMain(t *testing.T) {
 	// R2-ENGINE-941 corrects the shared town/death draw's exits; every
-	// scroll row holds 51..100 (DIV-4870).
-	const mainDigest = "3793e94c31bd9d3e1d0649f172950eee24428e50fad4835cea81f8a51fcdb24d"
+	// scroll row holds 51..100 (DIV-4870). The price rule prices magic equipment
+	// as 1.5^(S/70) with a tag-1 effect setting the price (R2-ENGINE-1824, DIV-5208).
+	const mainDigest = "5ffa6af585a80c74abc02adc748979de4fea1b45831ba0c57a1096eeb0eb32ed"
 	if got := stockDigest(t, installTables(t)); got != mainDigest {
 		t.Fatalf("stock digest %s, want main %s", got, mainDigest)
 	}
