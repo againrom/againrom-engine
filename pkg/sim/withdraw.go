@@ -328,7 +328,7 @@ func (w *World) withdrawalHostiles(i int, radius int64) []int {
 			continue
 		}
 		candidate := w.entities[ci]
-		if candidate.OffMap || !candidate.OrdinaryTargetable() || !w.hostileTo(&self, &candidate) || w.invisibleToActor(i, ci) {
+		if candidate.OffMap || !candidate.OrdinaryTargetable() || !w.hostileTo(&self, &candidate) || w.withdrawalHidden(i, ci) {
 			continue
 		}
 		out = withdrawListBodies[w.game.withdrawList](out, ci, centre, &candidate, radius)
@@ -489,4 +489,29 @@ func (w *World) withdrawFromAny(i int, hostile []int) bool {
 	e.HasTarget = true
 	w.endRetainedCast(i)
 	return true
+}
+
+// withdrawalHidden reports a hostile the withdrawal list drops for being
+// invisible. The first game asks the unit's own sight; a profile that reads
+// the Group's detectors keeps an invisible hostile while a living member of
+// the unit's Group detects it, with no terrain sight asked.
+func (w *World) withdrawalHidden(i, target int) bool {
+	return withdrawHiddenBodies[w.game.withdrawHidden](w, i, target)
+}
+
+// withdrawHiddenRule is whose detectors the withdrawal list asks.
+type withdrawHiddenRule uint8
+
+const (
+	withdrawHiddenOwn withdrawHiddenRule = iota
+	withdrawHiddenGroup
+)
+
+var withdrawHiddenBodies = [...]func(w *World, i, target int) bool{
+	withdrawHiddenOwn: (*World).invisibleToActor,
+	withdrawHiddenGroup: func(w *World, i, target int) bool {
+		self := &w.entities[i]
+		members := w.groupLivingMembers(self.Owner, effectiveGroup(self))
+		return !w.perceives(perception{purpose: perceiveGroup, members: members, target: target})
+	},
 }

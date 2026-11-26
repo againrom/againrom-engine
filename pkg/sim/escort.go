@@ -164,6 +164,11 @@ func (w *World) escortClose(i, ti int) {
 func (w *World) coverEngage(i, ti int) {
 	subject := w.entities[ti]
 	var live, dead []int
+	filtered := w.game.orders.coverList
+	var group []int
+	if filtered {
+		group = w.groupLivingMembers(subject.Owner, effectiveGroup(&subject))
+	}
 	for ci := range w.entities {
 		c := w.entities[ci]
 		if ci == i || ci == ti || c.OffMap {
@@ -173,6 +178,10 @@ func (w *World) coverEngage(i, ti int) {
 			continue
 		}
 		if !w.hostileTo(&subject, &c) {
+			continue
+		}
+		if filtered && (lawDomain(c.Domain) == 3 && w.attackRange(ti) < 2 ||
+			!w.perceives(perception{purpose: perceiveGroup, members: group, target: ci})) {
 			continue
 		}
 		if !c.OrdinaryTargetable() {

@@ -84,13 +84,10 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 	}
 
 	route := w.routes[i]
-	goal, aimsAtEnd := cell{x: p.EndX, y: p.EndY}, true
-	if len(route) > staticIsntNeeded {
-		aimsAtEnd = false
-		goal = route[3]
-		if (cell{x: e.X, y: e.Y}).chebyshevTo(route[0]) > dynamicByStaticLookup {
-			goal = route[0]
-		}
+	goal := cell{x: p.EndX, y: p.EndY}
+	goalAt, aimsAtEnd := routeEndGoal(route, cell{x: e.X, y: e.Y})
+	if !aimsAtEnd {
+		goal = route[goalAt]
 	}
 	from := cell{x: e.X, y: e.Y}
 	step, ok := w.searchRoute(s, i, unitRelation, dynamicWindow, scaledBudget, settleVictim, goal.x, goal.y)
@@ -143,4 +140,19 @@ func (w *World) cancelPursuit(s *routeScratch, i int) {
 	if w.restAt(s, i) {
 		w.answerRefusedPursuit(i, searchNear)
 	}
+}
+
+// routeEndGoal is where a near search aims along a stored route from the cell
+// from: the route end while at most staticIsntNeeded cells remain (aimsAtEnd,
+// index of the last cell), else the head when from lies more than
+// dynamicByStaticLookup off it, else the cell lookAhead along. It is the one
+// builder of this rule for the pursuit and for a walk that applies it.
+func routeEndGoal(route []cell, from cell) (index int, aimsAtEnd bool) {
+	switch {
+	case len(route) <= staticIsntNeeded:
+		return len(route) - 1, true
+	case from.chebyshevTo(route[0]) > dynamicByStaticLookup:
+		return 0, false
+	}
+	return lookAhead, false
 }

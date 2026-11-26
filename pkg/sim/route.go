@@ -839,11 +839,18 @@ func (w *World) canonicalRoute(s *routeScratch, self int, r relation, half int32
 	// existed. Only a settling search asks the rest question, and only a flyer
 	// can answer it no: for every other mover this is the bare label test it was.
 	stopOnGoal := start == target || settle == exactGoal || goalOpen
+	// A profile that tests once per pair of generations asks the three stop
+	// questions only before an even generation, so a goal first labelled in
+	// the first generation of a pair is still relaxed by the second. Only the
+	// far search of a one-cell unit is read that way; the near search and the
+	// larger unit's far search keep a test before every generation.
+	stop := searchStopBodies[w.game.searchStop]
 	for gens := int64(0); ; gens++ {
-		if _, ok := w.label(s, start, target.x, target.y); ok && stopOnGoal {
+		tests := stop(gens, rule)
+		if _, ok := w.label(s, start, target.x, target.y); ok && stopOnGoal && tests {
 			break
 		}
-		if len(s.frontier) == 0 || gens >= budget {
+		if tests && (len(s.frontier) == 0 || gens >= budget) {
 			// The wave is over with the goal unlabelled, which is the one state
 			// a substitute is chosen in. A search that may not settle answers
 			// that there is no route, which is what every search did before
@@ -1120,4 +1127,25 @@ func walkCellRings(centre cell, radius int64, policy cellRingWalk, probe func(in
 		}
 	}
 	return false
+}
+
+// searchStopRule is when the wave asks its three stop questions (goal
+// labelled, frontier empty, budget spent).
+type searchStopRule uint8
+
+const (
+	searchStopEvery searchStopRule = iota
+	searchStopPairs
+)
+
+// searchStopBodies holds whether each searchStopRule asks before generation
+// gens of a search under rule. The pair rule asks before every even generation
+// of the far search of a one-cell unit, so a goal first labelled in the first
+// generation of a pair is still relaxed by the second; the near search and the
+// larger unit's far search ask before every generation.
+var searchStopBodies = [...]func(gens int64, rule budgetRule) bool{
+	searchStopEvery: func(int64, budgetRule) bool { return true },
+	searchStopPairs: func(gens int64, rule budgetRule) bool {
+		return gens&1 == 0 || rule != flatBudget && rule != staticBudget
+	},
 }

@@ -24,6 +24,9 @@ type orderProfile struct {
 	defendStep       defendStepRule
 	// supportOrder admits L's order: programme 0x13 over member order 0x17.
 	supportOrder bool
+	// coverList: the defender's list drops a flyer when the defended unit's range is below 2 and an invisible
+	// hostile no member of the defended unit's Group detects, and ranks by edge distance.
+	coverList bool
 }
 
 // chooseTarget ranks an ordered candidate population without changing it;
@@ -52,6 +55,9 @@ func (w *World) chooseTarget(i int, candidates []int, order uint8, ranking targe
 				continue
 			}
 			cost = int32(cellOf(&w.entities[i]).chebyshevTo(cellOf(&w.entities[ci])))
+			if w.game.orders.coverList {
+				cost = int32(w.targetEdgeDistance(w.entities[i], w.entities[ci]))
+			}
 			if winner >= 0 && coverPreferred(w.entities[winner]) != coverPreferred(w.entities[ci]) {
 				if coverPreferred(w.entities[winner]) {
 					continue

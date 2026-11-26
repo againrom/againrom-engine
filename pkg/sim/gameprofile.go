@@ -118,6 +118,19 @@ type gameProfile struct {
 	chargeZero chargeZeroRule
 	// bookWalkNoFallback: the engage book walk has no fallback row.
 	bookWalkNoFallback bool
+	// searchPairs: the far search of a one-cell unit tests its goal, its
+	// frontier and its budget once per pair of generations, so the second
+	// generation of a pair runs after the goal first holds a label
+	// (R2-ENGINE-1876).
+	searchStop searchStopRule
+	// walkGoalByRepath: the near search of a walk aims at the route end while
+	// five cells or fewer remain, else at the head when the mover is more
+	// than three cells off it, else at the fourth cell (R2-ENGINE-1761).
+	walkGoal walkGoalRule
+	// withdrawGroupDetects: the withdrawal's hostile list drops an invisible
+	// hostile unless a member of the unit's Group detects it, and asks the
+	// unit's own sight nothing (R2-ENGINE-1879).
+	withdrawHidden withdrawHiddenRule
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
 	postKeepsDying bool
 	// projectileAim: the point a projectile aims at a unit
@@ -364,6 +377,9 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		rayReach:                   rayReachKeyed,
 		chargeZero:                 chargeZeroWraps,
 		bookWalkNoFallback:         true,
+		searchStop:                 searchStopPairs,
+		walkGoal:                   walkGoalRepath,
+		withdrawHidden:             withdrawHiddenGroup,
 		postKeepsDying:             true,
 		projectileAim:              aimAtSavedPoint,
 		areaHeading:                areaHeadingCells,
@@ -411,6 +427,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			emptyRoute:       emptyRouteRepicks,
 			primaryCells:     true,
 			supportOrder:     true,
+			coverList:        true,
 		},
 	}
 }
