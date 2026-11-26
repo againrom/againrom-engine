@@ -145,7 +145,7 @@ func TestEquipmentInstanceStoresAggregateOrdinaryAndCastEffectPrices(t *testing.
 	if ring.Price != 29810 {
 		t.Fatalf("air ring stored price = %d, want 29810", ring.Price)
 	}
-	staff := storedItemPrice(30000, []sim.ItemEffect{{Kind: 41, Operand: 7 | uint32(90)<<16}}, table)
+	staff := storedItemPrice(30000, []sim.ItemEffect{{Kind: 41, Operand: 7 | uint32(90)<<16}}, false, table)
 	if staff != 1002460 {
 		t.Fatalf("cast staff stored price = %d, want 1002460", staff)
 	}

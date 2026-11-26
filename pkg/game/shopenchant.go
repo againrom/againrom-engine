@@ -59,6 +59,10 @@ func shopEnchantRules(t *mapload.Table, repeat shopstock.Repeat) shopstock.Encha
 	return e
 }
 
+// shopArmourKind is the candidate item kind of an armour or a shield, whose
+// price sums a cast's power into its points (SHOP-158).
+const shopArmourKind = 1
+
 // shopEnchantedItem is candidate c enchanted under the first game's
 // effect-repeat rule.
 func shopEnchantedItem(c data.ShopCandidate, ceiling int32, t *mapload.Table, r shopDrawSource) (ShopItem, bool) {
@@ -71,7 +75,8 @@ func shopEnchant(c data.ShopCandidate, ceiling int32, t *mapload.Table, r shopDr
 	if t == nil || t.Magic == nil || r == nil {
 		return ShopItem{}, false
 	}
-	base := shopstock.Base{Price: c.Price, Capacity: c.MagCap, Ceiling: ceiling, Slot: c.EffectSlot, Fighter: c.Fighter, Forced: c.ForcedCast}
+	base := shopstock.Base{Price: c.Price, Capacity: c.MagCap, Ceiling: ceiling, Slot: c.EffectSlot, Fighter: c.Fighter, Forced: c.ForcedCast,
+		CastInPoints: c.ItemKind == shopArmourKind}
 	effects, price, ok := shopEnchantRules(t, repeat).Apply(base, r)
 	if !ok {
 		return ShopItem{}, false

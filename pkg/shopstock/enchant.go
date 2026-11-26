@@ -71,11 +71,27 @@ type Enchant struct {
 // Base is the item an enchant starts from: its price, its capacity for effect
 // points, the category's price ceiling, the slot whose weight column it
 // draws from, whether a fighter wears it, and whether its one effect is a
-// cast the item is made for.
+// cast the item is made for. CastInPoints: the item's price sums a cast's
+// power, times the effect table's cost of the cast kind, into the ordinary
+// points and prices no cast apart, as an armour's or a shield's does.
 type Base struct {
 	Price, Capacity, Ceiling int32
 	Slot                     int
 	Fighter, Forced          bool
+	CastInPoints             bool
+}
+
+// castPoints is the points a cast g adds to an item that sums it with the
+// ordinary effects: its power word times the cast row's cost (SHOP-158).
+func (e Enchant) castPoints(g EffectDraw) EffectDraw {
+	cost := int32(0)
+	if e.Effects != nil && castSpell < e.Effects.Len() {
+		if p := e.Effects.EntryParams(castSpell); len(p) > 0 {
+			cost = p[0]
+		}
+	}
+	g.Points, g.Cast = int32(int16(g.Effect.Operand>>16))*cost, 0
+	return g
 }
 
 // EffectDraw is one effect an enchant made: the effect, the points an
@@ -114,6 +130,9 @@ func (e Enchant) Apply(b Base, src Source) ([]Effect, int32, bool) {
 		}
 	}
 	add := func(g EffectDraw) {
+		if b.CastInPoints && g.Effect.Kind == castSpell {
+			g = e.castPoints(g)
+		}
 		mask := e.usableBy(g.Effect.Kind)
 		if mask != 3 {
 			for _, held := range effects {

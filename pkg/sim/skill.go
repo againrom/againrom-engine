@@ -117,11 +117,35 @@ type skillAwardProfile struct {
 	// victimKinds, when positive, is how many victim kinds the kill route
 	// counts per attacker; an award for a counted kind pays 10X / (n + 10).
 	victimKinds int
+	// mind: how an amount is scaled by the actor's Mind (mindScales).
+	mind mindScaleRule
+}
+
+// mindScaleRule selects a Mind scaling of mindScales.
+type mindScaleRule uint8
+
+const (
+	mindInteger mindScaleRule = iota
+	mindBinary64
+)
+
+// mindScales holds each Mind scaling: the integer form and the first game's
+// binary64 form.
+var mindScales = [...]func(amount int64, mind int32) int64{
+	mindInteger:  xpGain,
+	mindBinary64: binaryMindGain,
+}
+
+// binaryMindGain is the first game's Mind scaling in binary64 on the signed
+// Mind word, trunc(X × (Mind/30 + 0.25)), so a product just below a whole
+// number truncates to the one under it (HERO-209).
+func binaryMindGain(amount int64, mind int32) int64 {
+	return doubleFromInt(amount).mul(doubleQuo(int64(int16(mind)), 30).add(doubleQuo(1, 4))).trunc()
 }
 
 // firstGameSkillAward is the first game's award: the refusal reads the
 // victim's owner's relation toward the attacker's.
-var firstGameSkillAward = skillAwardProfile{victimRow: true}
+var firstGameSkillAward = skillAwardProfile{victimRow: true, mind: mindBinary64}
 
 // secondGameSkillAward is the second game's award (R2-ENGINE-480,
 // R2-ENGINE-486, R2-ENGINE-488, R2-ENGINE-1156, R2-ENGINE-1157,
@@ -240,7 +264,7 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 		return false
 	}
 
-	gain := xpGain(amount, a.Mind)
+	gain := mindScales[award.mind](amount, a.Mind)
 	if srcIdx >= 0 && award.victimKinds > 0 {
 		if n, held := a.victimKinds.find(victimKind(w.entities[srcIdx])); held {
 			gain = victimKindCut(gain, n)

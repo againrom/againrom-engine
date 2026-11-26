@@ -217,8 +217,13 @@ func equipmentInstance(code data.ItemCode, effects []sim.ItemEffect, collection 
 	case 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12:
 		item.Kind = 1
 	}
-	item.Price = storedItemPrice(item.Price, effects, table)
+	item.Price = storedItemPrice(item.Price, effects, sumsCast(code, table), table)
 	return item
+}
+
+// sumsCast selects the edition's armour and shield price rule (SHOP-158).
+func sumsCast(code data.ItemCode, table *Table) bool {
+	return code.B() >= 2 && code.B() <= 12 && TableEdition(table).ArmourCastPoints()
 }
 
 // storedItemPrice applies the original object's effect-price walk to a base
@@ -227,7 +232,9 @@ func equipmentInstance(code data.ItemCode, effects []sim.ItemEffect, collection 
 // arithmetic is deliberately on the complete ordered effect list even though
 // price itself is order-independent: this is the same instance list later
 // serialized and shown in inventory, not a parallel enchantment summary.
-func storedItemPrice(base int32, effects []sim.ItemEffect, table *Table) int32 {
+// Under castInPoints a castSpell effect is an ordinary one whose magnitude is
+// its power word.
+func storedItemPrice(base int32, effects []sim.ItemEffect, castInPoints bool, table *Table) int32 {
 	var points int32
 	var cast int64
 	var direct int64
@@ -236,7 +243,7 @@ func storedItemPrice(base int32, effects []sim.ItemEffect, table *Table) int32 {
 			direct += int64(itemEffectScalar(effect))
 			continue
 		}
-		if effect.Kind == 41 {
+		if effect.Kind == 41 && !castInPoints {
 			if table == nil || table.Spells == nil {
 				continue
 			}
@@ -264,19 +271,26 @@ func storedItemPrice(base int32, effects []sim.ItemEffect, table *Table) int32 {
 			continue
 		}
 		magnitude := itemEffectScalar(effect)
-		if effect.Kind >= 44 && effect.Kind <= 48 {
+		switch {
+		case effect.Kind == 41:
+			magnitude = int32(int16(effect.Operand >> 16))
+		case effect.Kind >= 44 && effect.Kind <= 48:
 			magnitude = int32(uint8(effect.Operand)) + int32(uint8(effect.Operand>>8))
 		}
 		points += magnitude * params[0]
 	}
-	var ordinary int64
+	const ceiling = 9_999_999
+	price := int64(base) + direct + cast
 	if points > 0 {
 		n := float64(points)
-		ordinary = int64((math.Pow(1.5, n/70) + 1) * n * 50)
+		surcharge := (math.Pow(1.5, n/70) + 1) * n * 50
+		if castInPoints && surcharge >= float64(ceiling-price) {
+			return ceiling
+		}
+		price += int64(surcharge)
 	}
-	price := int64(base) + direct + ordinary + cast
-	if price >= 9_999_999 {
-		return 9_999_999
+	if price >= ceiling {
+		return ceiling
 	}
 	if price < -1<<31 {
 		return -1 << 31
@@ -381,7 +395,7 @@ func RepriceItemInstance(item sim.ItemInstance, table *Table) int32 {
 		}
 		return base
 	}
-	return storedItemPrice(base, item.Effects, table)
+	return storedItemPrice(base, item.Effects, sumsCast(data.ItemCode(item.Code), table), table)
 }
 
 func itemEquipmentCodes(items [sim.EquipSlots]sim.ItemInstance) (codes [sim.EquipSlots]uint16) {

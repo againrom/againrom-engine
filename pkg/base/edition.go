@@ -56,6 +56,9 @@ type Edition struct {
 	// cast shows the move cursor and a click moves.
 	CastNeedsSight bool
 
+	// ArmourCastInPoints counts spell power toward an armour or shield's magic points.
+	ArmourCastInPoints bool
+
 	// Tips names the tip table: every tip popup the game shows, its text,
 	// rectangle, raising event, once-only rule and pointer owner.
 	Tips string
@@ -169,6 +172,9 @@ func (e Edition) TavernType(id int) bool { return slices.Contains(e.TavernTypes(
 
 func (e Edition) TavernUnit(id int) bool { return slices.Contains(e.PartyProfile.TavernUnits, id) }
 
+// ArmourCastPoints reports whether spell power counts toward an armour or shield's magic points (SHOP-158).
+func (e Edition) ArmourCastPoints() bool { return e.ArmourCastInPoints }
+
 func (e Edition) ComposedCompanion(id int) bool {
 	return slices.Contains(e.PartyProfile.ComposedNPCs, id)
 }
@@ -240,6 +246,7 @@ var firstEdition = Edition{
 	CreatureResistanceHeading: true,
 	FirstData:                 true,
 	CastNeedsSight:            true,
+	ArmourCastInPoints:        true,
 	Tips:                      "rom1",
 	Options:                   "rom1",
 	Spells:                    "rom1",

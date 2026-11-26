@@ -36,7 +36,7 @@ func TestStoredItemPriceUsesThePublishedEffectControls(t *testing.T) {
 		{"upper clamp", 9_999_900, []sim.ItemEffect{cast(1, 10)}, 9_999_999},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := storedItemPrice(tc.base, tc.effects, table); got != tc.want {
+			if got := storedItemPrice(tc.base, tc.effects, false, table); got != tc.want {
 				t.Fatalf("base %d effects %+v stored price = %d, want %d", tc.base, tc.effects, got, tc.want)
 			}
 		})
