@@ -1,8 +1,6 @@
 package game
 
 import (
-	"math"
-
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/shopstock"
@@ -39,13 +37,9 @@ func shopEnchantRules(t *mapload.Table, repeat shopstock.Repeat) shopstock.Encha
 		CastSpells:     shopCastSpells,
 		CastPriceTimes: [2]int64{100, 10},
 		PointsPrice: func(points []int32) int64 {
-			sum := int32(0)
-			for _, p := range points {
-				sum += p
-			}
-			return int64(shopNonCastPrice(sum))
+			return shopstock.PointsSumPrice(points, shopstock.FirstItemPrice.Cap)
 		},
-		PriceCap: 9_999_999,
+		PriceCap: shopstock.FirstItemPrice.Cap,
 		Repeat:   repeat,
 	}
 	if t != nil {
@@ -97,9 +91,5 @@ func shopCastEffect(fighter bool, budget int64, t *mapload.Table, r shopDrawSour
 }
 
 func shopNonCastPrice(points int32) int32 {
-	if points <= 0 {
-		return 0
-	}
-	n := float64(points)
-	return int32((math.Pow(1.5, n/70) + 1) * n * 50)
+	return int32(shopstock.PointsMarkup(int64(points), shopstock.FirstItemPrice.Cap))
 }

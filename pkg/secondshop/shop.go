@@ -144,17 +144,13 @@ const priceCap = 19999999
 // multiplication in that order (R2-ENGINE-1764, R2-ENGINE-1824). A sum past
 // the price cap returns the cap, which the total reaches whatever the base.
 func EffectPrice(s int) int64 {
-	if s <= 0 {
-		return 0
-	}
-	v := float64(s)
-	return int64(min((math.Pow(1.5, v/70)+1)*v*50, priceCap))
+	return shopstock.PointsMarkup(int64(s), shopstock.SecondItemPrice.Cap)
 }
 
 // SpellEffectPrice is the price of an enchanted spell of base c20 at level L:
 // trunc(10*c20*2^(ln(1+L/30)/ln 1.2)) (R2-ENGINE-265).
 func SpellEffectPrice(c20 int32, level int) int64 {
-	return int64(10 * float64(c20) * math.Pow(2, math.Log(1+float64(level)/30)/math.Log(1.2)))
+	return shopstock.SpellPrice(c20, int32(level))
 }
 
 func param(c Collection, row, col int) int32 {
@@ -213,6 +209,18 @@ func (t Tables) NameKey(it Item) (uint16, bool) {
 	return 0, false
 }
 
+func itemClass(k Kind) shopstock.ItemClass {
+	switch k {
+	case Armor:
+		return shopstock.ItemArmor
+	case Shield:
+		return shopstock.ItemShield
+	case Weapon:
+		return shopstock.ItemWeapon
+	}
+	return 0
+}
+
 // Price is the unit price P of an item (R2-ENGINE-267): equipment
 // trunc(base product + 0.5) plus its effects' prices, or the value of its
 // first tag 1 effect; a magic item its column 0, a book its spell's column
@@ -221,11 +229,14 @@ func (t Tables) Price(it Item) int64 {
 	var p int64
 	switch it.Table {
 	case Armor, Shield, Weapon:
-		if v, ok := fixedPrice(it.Effects); ok {
-			p = v
-			break
+		var magic, spells shopstock.Params
+		if t.Magic != nil {
+			magic = t.Magic
 		}
-		p = int64(t.baseProduct(it)+0.5) + t.effectsPrice(it.Table, it.Effects)
+		if t.Spells != nil {
+			spells = t.Spells
+		}
+		return shopstock.EffectsPrice(int64(t.baseProduct(it)+0.5), it.Effects, itemClass(it.Table), magic, spells, shopstock.SecondItemPrice)
 	case Magic:
 		p = int64(param(t.MagicItems, it.Row, colMagic))
 	case Book:

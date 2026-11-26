@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"againrom/pkg/data"
+	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 )
 
@@ -226,76 +227,23 @@ func sumsCast(code data.ItemCode, table *Table) bool {
 	return code.B() >= 2 && code.B() <= 12 && TableEdition(table).ArmourCastPoints()
 }
 
-// storedItemPrice applies the original object's effect-price walk to a base
-// equipment price. Ordinary effects contribute their Magic-row point cost as
-// one aggregate; castSpell contributes its spell-row scalar separately. The
-// arithmetic is deliberately on the complete ordered effect list even though
-// price itself is order-independent: this is the same instance list later
-// serialized and shown in inventory, not a parallel enchantment summary.
-// Under castInPoints a castSpell effect is an ordinary one whose magnitude is
-// its power word.
+// storedItemPrice prices base and effects through the shared effect-price rule
+// using the first game's row.
 func storedItemPrice(base int32, effects []sim.ItemEffect, castInPoints bool, table *Table) int32 {
-	var points int32
-	var cast int64
-	var direct int64
-	for _, effect := range effects {
-		if effect.Kind == 1 {
-			direct += int64(itemEffectScalar(effect))
-			continue
+	var magic, spells shopstock.Params
+	if table != nil {
+		if table.Magic != nil {
+			magic = table.Magic
 		}
-		if effect.Kind == 41 && !castInPoints {
-			if table == nil || table.Spells == nil {
-				continue
-			}
-			spell := int(uint16(effect.Operand))
-			if spell < 0 || spell >= table.Spells.Len() {
-				continue
-			}
-			params := table.Spells.EntryParams(spell)
-			if len(params) <= 20 || params[20] <= 0 {
-				continue
-			}
-			power := int32(int16(effect.Operand >> 16))
-			if power < 0 {
-				continue
-			}
-			rank := math.Log(float64(power)/30+1) / math.Log(1.2)
-			cast += int64(10 * float64(params[20]) * math.Pow(2, rank))
-			continue
+		if table.Spells != nil {
+			spells = table.Spells
 		}
-		if table == nil || table.Magic == nil || int(effect.Kind) >= table.Magic.Len() {
-			continue
-		}
-		params := table.Magic.EntryParams(int(effect.Kind))
-		if len(params) == 0 || params[0] <= 0 {
-			continue
-		}
-		magnitude := itemEffectScalar(effect)
-		switch {
-		case effect.Kind == 41:
-			magnitude = int32(int16(effect.Operand >> 16))
-		case effect.Kind >= 44 && effect.Kind <= 48:
-			magnitude = int32(uint8(effect.Operand)) + int32(uint8(effect.Operand>>8))
-		}
-		points += magnitude * params[0]
 	}
-	const ceiling = 9_999_999
-	price := int64(base) + direct + cast
-	if points > 0 {
-		n := float64(points)
-		surcharge := (math.Pow(1.5, n/70) + 1) * n * 50
-		if castInPoints && surcharge >= float64(ceiling-price) {
-			return ceiling
-		}
-		price += int64(surcharge)
+	class := shopstock.ItemWeapon
+	if castInPoints {
+		class = shopstock.ItemArmor
 	}
-	if price >= ceiling {
-		return ceiling
-	}
-	if price < -1<<31 {
-		return -1 << 31
-	}
-	return int32(price)
+	return int32(shopstock.EffectsPrice(int64(base), effects, class, magic, spells, shopstock.FirstItemPrice))
 }
 
 func baseItemPrice(code data.ItemCode, table *Table) (int32, bool) {

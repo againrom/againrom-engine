@@ -104,7 +104,7 @@ var allow = map[string][]string{
 	"pkg/shopstock": {},
 	// The map tier reads the starting hero in the hero slots a town catalog
 	// names, the town package's type.
-	"pkg/mapload":   {"pkg/formats/alm", "pkg/formats/itempkt", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind", "pkg/town", "pkg/scriptprofile"},
+	"pkg/mapload":   {"pkg/formats/alm", "pkg/formats/itempkt", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind", "pkg/town", "pkg/scriptprofile", "pkg/shopstock"},
 	"pkg/mapedit":   {"pkg/formats/alm", "pkg/intmath", "pkg/scriptprofile"},
 	"pkg/editormcp": {"pkg/hostfile"},
 	"pkg/render":    {"pkg/sim", "pkg/vfs"},

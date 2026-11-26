@@ -318,7 +318,7 @@ func (e Enchant) Cast(fighter bool, budget int64, capacity int32, src Source) (E
 		return EffectDraw{}, false
 	}
 	power, _ := Inclusive(src, 1, int(powerMax))
-	cast := int32(10 * float64(scalar) * math.Pow(2, math.Log(float64(power)/30+1)/math.Log(1.2)))
+	cast := int32(SpellPrice(scalar, int32(power)))
 	return EffectDraw{Effect: Effect{Kind: castSpell,
 		Operand: uint32(id) | uint32(uint16(int16(power)))<<16}, Cast: cast}, true
 }

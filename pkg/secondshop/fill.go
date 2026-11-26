@@ -189,13 +189,9 @@ func (t Tables) enchant() shopstock.Enchant {
 		CastSpells:     castSpells,
 		CastPriceTimes: [2]int64{100, 10},
 		PointsPrice: func(points []int32) int64 {
-			s := 0
-			for _, n := range points {
-				s += int(n)
-			}
-			return EffectPrice(s)
+			return shopstock.PointsSumPrice(points, shopstock.SecondItemPrice.Cap)
 		},
-		PriceCap:       priceCap,
+		PriceCap:       shopstock.SecondItemPrice.Cap,
 		CastInCapacity: true,
 		Repeat:         effectRepeat,
 	}
@@ -227,51 +223,6 @@ func (t Tables) enchantBase(it Item, cat Category) shopstock.Base {
 func (t Tables) fighter(it Item) bool {
 	use := param(t.equipment(it.Table), it.Row, colWeaponUse)
 	return use > 0 && use&1 != 0
-}
-
-// The elemental damage effects, whose value is a base and a spread.
-const (
-	damageFirst = 44
-	damageLast  = 48
-)
-
-// tagFixedPrice is the effect whose value replaces an equipment price.
-const tagFixedPrice = 1
-
-// fixedPrice is the value of an item's first effect of tag 1: the price
-// walk sets the price to it and returns at once (R2-ENGINE-1764).
-func fixedPrice(effects []sim.ItemEffect) (int64, bool) {
-	for _, e := range effects {
-		if e.Kind == tagFixedPrice {
-			return int64(int32(e.Operand)), true
-		}
-	}
-	return 0, false
-}
-
-// effectsPrice is what effects add to an equipment price of table k: a
-// weapon's cast its spell's price at its level (R2-ENGINE-265), an ordinary
-// effect EffectPrice of its points, its value times its group B cost
-// (DIV-4329). An armour or shield cast is an ordinary effect whose value is
-// its level word (R2-ENGINE-1764, R2-ENGINE-1824).
-func (t Tables) effectsPrice(k Kind, effects []sim.ItemEffect) int64 {
-	p := int64(0)
-	var points []int32
-	for _, e := range effects {
-		if e.Kind == tagCastSpell && k == Weapon {
-			p += SpellEffectPrice(param(t.Spells, int(e.Operand&0xffff), colEnchant), int(e.Operand>>16))
-			continue
-		}
-		value := int32(e.Operand)
-		switch {
-		case e.Kind == tagCastSpell:
-			value = int32(e.Operand >> 16)
-		case e.Kind >= damageFirst && e.Kind <= damageLast:
-			value = int32(uint8(e.Operand)) + int32(uint8(e.Operand>>8))
-		}
-		points = append(points, value*param(t.Magic, int(e.Kind), colCost))
-	}
-	return p + t.enchant().PointsPrice(points)
 }
 
 // sortFill supplies the server order that the client permutes among equal
