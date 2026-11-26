@@ -150,7 +150,7 @@ func newEntryFixture(t *testing.T, audio missionAudio) entryFixture {
 }
 
 func (e entryFixture) request() missionRequest {
-	return missionRequest{n: 10, party: MissionParty(nil, data.BodyList{}, nil), town: NewTown(e.campaign)}
+	return missionRequest{n: 10, party: MissionParty(nil, data.BodyList{}, nil), town: NewTown(e.campaign), fill: campaignEntry()}
 }
 
 // A different audio service drives the whole mission entry with no change to

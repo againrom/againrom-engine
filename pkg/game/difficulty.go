@@ -50,13 +50,12 @@ func (f *FrontEnd) prepareNewGame(n int, res ui.ChargenResult) (ui.MapOpener, er
 // prepareNewGameWith is prepareNewGame over a party already built and a
 // difficulty value as campaignDifficulty reads it.
 func (f *FrontEnd) prepareNewGameWith(n int, level int64, party []mapload.PartyMember) (ui.MapOpener, error) {
-	return f.prepareFreshGame(missionRequest{n: n, party: party}, level)
+	return f.prepareFreshGame(missionRequest{n: n, party: party, fill: f.campaignFill()}, level)
 }
 
 // prepareFreshGame opens r as the first map of a new game: a fresh town, a
 // fresh random session and a draft difficulty, committed only on adoption. A
-// campaign request enters over the fresh town; a session's request enters no
-// town (missionRequest.session).
+// campaign fill enters over the fresh town; a session's fill enters no town.
 func (f *FrontEnd) prepareFreshGame(r missionRequest, level int64) (ui.MapOpener, error) {
 	c, err := newCampaignCandidate(f.Campaign.Value(), f.Units, level)
 	if err != nil {
@@ -68,13 +67,8 @@ func (f *FrontEnd) prepareFreshGame(r missionRequest, level int64) (ui.MapOpener
 	c.randomSession = &fresh
 	f.randomService().Prepare(fresh)
 	defer f.randomService().Cancel()
-	if r.session == nil {
-		if m := newMissionIdentity(r.n, nil, tableMissions(f.Table)).declared(); m != nil {
-			if _, refused := f.startGuestMission(r.n, nil, m, r.party, c); refused != "" {
-				return nil, fmt.Errorf("%s", refused)
-			}
-		}
-		r.town = c.town
+	if err := r.fill.seatCandidate(c, &r); err != nil {
+		return nil, err
 	}
 	r.activate, r.units, r.difficulty = &c.activate, c.units, c.difficulty
 	open := f.requestOpener(r)

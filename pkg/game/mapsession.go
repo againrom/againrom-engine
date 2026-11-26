@@ -178,7 +178,7 @@ func (f *FrontEnd) storedParty(c storedCharacter) []mapload.PartyMember {
 // mission, so it advances, hires and saves nothing (DIV-5249).
 func (f *FrontEnd) sessionOpener(s *mapSession) (ui.MapOpener, error) {
 	purse := s.purse
-	return f.prepareFreshGame(missionRequest{party: s.party, initialPurse: &purse, session: s}, 0)
+	return f.prepareFreshGame(missionRequest{party: s.party, initialPurse: &purse, fill: sessionEntry(s)}, 0)
 }
 
 // advance is a session map's advance over the driver's: a won map's notice,

@@ -1444,12 +1444,45 @@ func (f *FrontEnd) missionOpenerMode(n int, party []mapload.PartyMember, snap *S
 	initialPurse *uint32, prepare func(*alm.Map) (*originalFog, error), activate *func(),
 	candidateUnits *terrain.UnitSet, difficulty mapload.Difficulty, town *Town) ui.MapOpener {
 	return f.requestOpener(missionRequest{n: n, party: party, snap: snap, initialPurse: initialPurse, prepare: prepare,
-		activate: activate, units: candidateUnits, difficulty: difficulty, town: town})
+		activate: activate, units: candidateUnits, difficulty: difficulty, town: town, fill: f.campaignFill()})
+}
+
+// campaignFill is the campaign's map-entry fill with this front end's seats:
+// a declared guest mission starts its guest party before the entry, over the
+// new game's candidate or the running town.
+func (f *FrontEnd) campaignFill() mapEntry {
+	e := campaignEntry()
+	e.seatCandidate = func(c *restoreCandidate, r *missionRequest) error {
+		if m := newMissionIdentity(r.n, nil, tableMissions(f.Table)).declared(); m != nil {
+			if _, refused := f.startGuestMission(r.n, nil, m, r.party, c); refused != "" {
+				return fmt.Errorf("%s", refused)
+			}
+		}
+		r.town = c.town
+		return nil
+	}
+	e.seatParty = func(r *missionRequest) error {
+		if !r.fresh() {
+			return nil
+		}
+		id := r.town.missionIdentity(r.n, tableMissions(f.Table))
+		if m := id.declared(); m != nil {
+			if !id.guest {
+				if _, refused := f.startGuestMission(r.n, nil, m, r.party, nil); refused != "" {
+					return fmt.Errorf("%s", refused)
+				}
+			}
+			guestParty, purse, _ := r.town.missionIdentity(r.n, tableMissions(f.Table)).entry()
+			r.party, r.initialPurse = guestParty, &purse
+		}
+		return nil
+	}
+	return e
 }
 
 // requestOpener is the mission door over one request: a campaign mission, a
-// resume, or a session's loose map (missionRequest.session). A request with
-// no units opens over the front end's own.
+// resume, or a session's loose map. A request with no units opens over the
+// front end's own.
 func (f *FrontEnd) requestOpener(req missionRequest) ui.MapOpener {
 	// The opener owns the roster at creation time. A later town/selection/save
 	// write therefore cannot change the members this door will construct, and
@@ -1462,17 +1495,8 @@ func (f *FrontEnd) requestOpener(req missionRequest) ui.MapOpener {
 	return func() (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.MapCadence, ui.MapAffect, ui.MapAdvance, ui.MapAttack, ui.MapGrab, ui.MapStance, ui.MapMarch, error) {
 		request := req
 		previousGuest := f.missionIdentity(n).record
-		if request.fresh() && request.session == nil {
-			id := request.town.missionIdentity(n, tableMissions(f.Table))
-			if m := id.declared(); m != nil {
-				if !id.guest {
-					if _, refused := f.startGuestMission(n, nil, m, request.party, nil); refused != "" {
-						return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("%s", refused)
-					}
-				}
-				guestParty, purse, _ := request.town.missionIdentity(n, tableMissions(f.Table)).entry()
-				request.party, request.initialPurse = guestParty, &purse
-			}
+		if err := request.fill.seatParty(&request); err != nil {
+			return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
 		}
 		p, err := enterMission(request, f.missionPorts())
 		if err != nil {
