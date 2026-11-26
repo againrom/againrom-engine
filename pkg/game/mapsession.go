@@ -1,19 +1,22 @@
 package game
 
 import (
+	"bytes"
 	"fmt"
 	"math"
+	"slices"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/a2c"
 	"againrom/pkg/formats/alch"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 // storedCharacter is what a map entry takes from a character file: the
 // generator answers the record fixes, its purse and its per-skill experience
-// (DIV-5247).
+// (DIV-5247), and the file's bytes as read.
 type storedCharacter struct {
 	result  ui.ChargenResult
 	purse   uint32
@@ -21,6 +24,8 @@ type storedCharacter struct {
 	// hasXP is a record that states experience; a record of zeros keeps the
 	// generator's start skills.
 	hasXP bool
+	// doc is the loaded document a rewrite keeps; nil is a new file.
+	doc []byte
 }
 
 // maxStoredStat bounds a statistic read from a file to the byte the
@@ -84,19 +89,46 @@ func storedFrom(name string, choices []int, stats [4]uint32) (storedCharacter, e
 	return storedCharacter{result: res}, nil
 }
 
+// sessionFile is one listed character file of the game's row in store, and
+// what this process's sessions carried for the row's files.
+type sessionFile struct {
+	store   CharacterStore
+	row     characterStoreRow
+	name    string
+	carried sessionCarries
+}
+
+// sessionCarry is what a session's end leaves for the next entry of its file
+// in this process: the bytes it wrote, and the party and purse they were
+// written from, which also hold what the file cannot (DIV-5259).
+type sessionCarry struct {
+	doc   []byte
+	party []mapload.PartyMember
+	purse uint32
+}
+
+// sessionCarries are the carries by listed file name.
+type sessionCarries map[string]sessionCarry
+
 // mapSession is one multiplayer session the front end runs in-process: the
-// stored character, the party it makes, its purse and the chosen map.
+// stored character, the party it makes, its purse, the chosen map and the
+// file the character came from.
 type mapSession struct {
 	character storedCharacter
 	party     []mapload.PartyMember
 	purse     uint32
 	entry     MapEntry
+	file      sessionFile
+	// end writes the gains of the map's party back to the file (DIV-5258)
+	// and answers the line the character list shows.
+	end func(ms *Mission) string
 }
 
-// newMapSession reads the listed character file name of row in store and
-// pairs it with source, which must be a map of the game's multiplayer map
-// choice.
-func (f *FrontEnd) newMapSession(store CharacterStore, row characterStoreRow, name, source string) (*mapSession, error) {
+// newMapSession reads file and pairs it with source, which must be a map of
+// the game's multiplayer map choice. When this process's last session of the
+// file wrote the bytes it holds, the party and purse are the ones that
+// session carried; otherwise they are the file's.
+func (f *FrontEnd) newMapSession(file sessionFile, source string) (*mapSession, error) {
 	kept, _ := MultiplayerMaps(f.Maps, filesOf(f.savedGame()).multiplayerMaps)
 	at := -1
 	for i, e := range kept {
@@ -107,15 +139,20 @@ func (f *FrontEnd) newMapSession(store CharacterStore, row characterStoreRow, na
 	if at < 0 {
 		return nil, fmt.Errorf("%s is not a multiplayer map", source)
 	}
-	c, err := f.readStoredCharacter(store, row, name)
+	c, err := f.readStoredCharacter(file.store, file.row, file.name)
 	if err != nil {
 		return nil, err
 	}
-	party := f.storedParty(c)
+	party, purse := f.storedParty(c), c.purse
+	if k, ok := file.carried[file.name]; ok && bytes.Equal(k.doc, c.doc) {
+		party, purse = mapload.CloneParty(k.party), k.purse
+	}
 	if len(party) == 0 {
 		return nil, fmt.Errorf("no party for the stored character")
 	}
-	return &mapSession{character: c, party: party, purse: c.purse, entry: kept[at]}, nil
+	s := &mapSession{character: c, party: party, purse: purse, entry: kept[at], file: file}
+	s.end = func(ms *Mission) string { return f.endSession(s, ms) }
+	return s, nil
 }
 
 // storedParty is the generator's party for the stored character. Where the
@@ -142,4 +179,55 @@ func (f *FrontEnd) storedParty(c storedCharacter) []mapload.PartyMember {
 func (f *FrontEnd) sessionOpener(s *mapSession) (ui.MapOpener, error) {
 	purse := s.purse
 	return f.prepareFreshGame(missionRequest{party: s.party, initialPurse: &purse, session: s}, 0)
+}
+
+// advance is a session map's advance over the driver's: a won map's notice,
+// which the driver answers with the map list, and a leave through the game
+// menu end the session for the player on the character list (DIV-5260).
+// Every other answer is the driver's.
+func (s *mapSession) advance(ms *Mission, driver ui.MapAdvance) ui.MapAdvance {
+	return func(actions ...ui.NoticeAction) (ui.NoticeDest, string, ui.MapOpener) {
+		if len(actions) > 0 && actions[0] == ui.NoticeLeave {
+			return ui.NoticeToCharacters, s.end(ms), nil
+		}
+		dest, msg, open := driver(actions...)
+		if dest == ui.NoticeToMapList {
+			return ui.NoticeToCharacters, s.end(ms), nil
+		}
+		return dest, msg, open
+	}
+}
+
+// endSession writes the gains of ms's party back to s's file through the
+// character store: the survivors are normalized and carried as a won
+// mission's are, and the carried character's statistics, the purse and its
+// skill experience become the record over the loaded document. A character
+// that did not survive leaves the file as it was. A refusal is the answer.
+func (f *FrontEnd) endSession(s *mapSession, ms *Mission) string {
+	if ms == nil || ms.World == nil {
+		return ""
+	}
+	if err := ms.World.NormalizeMissionSurvivors(sim.SelfSlot); err != nil {
+		return fmt.Sprintf("the character was not written: %v", err)
+	}
+	party := carriedParty(ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster)
+	if len(party) == 0 || party[0].Carry == nil {
+		return ""
+	}
+	gains := s.character
+	gains.result.Stats = slices.Clone(gains.result.Stats)
+	h := party[0].Hero
+	for i, v := range [4]int32{h.Body, h.Reaction, h.Mind, h.Spirit} {
+		gains.result.Stats[characterStats[i]] = int(v)
+	}
+	gains.purse = ms.World.Purse(sim.SelfSlot)
+	gains.skillXP = party[0].Carry.SkillXP
+	_, doc, err := f.writeCharacter(s.file.row, s.file.store, gains, s.file.name)
+	if err != nil {
+		return fmt.Sprintf("the character was not written: %v", err)
+	}
+	if s.file.carried != nil {
+		s.file.carried[s.file.name] = sessionCarry{doc: doc, party: mapload.CloneParty(party), purse: gains.purse}
+	}
+	return ""
 }

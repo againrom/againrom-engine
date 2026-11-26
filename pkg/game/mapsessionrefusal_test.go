@@ -12,16 +12,16 @@ func TestMapSessionRefusals(t *testing.T) {
 	f, _, stored := sessionApp(t, c)
 	store := CharacterStore{Dir: filepath.Dir(stored)}
 	row := secondCharacterFiles
-	if _, err := f.newMapSession(store, row, c.file, "10.alm"); err == nil {
+	if _, err := f.newMapSession(sessionFile{store: store, row: row, name: c.file}, "10.alm"); err == nil {
 		t.Fatal("a campaign map was entered as a multiplayer map")
 	}
-	if _, err := f.newMapSession(store, row, "../"+c.file, c.mapAt); err == nil {
+	if _, err := f.newMapSession(sessionFile{store: store, row: row, name: "../" + c.file}, c.mapAt); err == nil {
 		t.Fatal("a path outside the store was read")
 	}
 	if _, err := storedFrom("x", nil, [4]uint32{256, 20, 20, 20}); err == nil {
 		t.Fatal("a statistic of 256 was accepted")
 	}
-	if s, err := f.newMapSession(store, row, c.file, c.mapAt); err != nil || s.purse != c.purse {
+	if s, err := f.newMapSession(sessionFile{store: store, row: row, name: c.file}, c.mapAt); err != nil || s.purse != c.purse {
 		t.Fatalf("session %+v, %v", s, err)
 	}
 }

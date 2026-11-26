@@ -252,7 +252,7 @@ func (f *flow) newCharacter() {
 // character, with no connection step (DIV-5196). Cancel and Escape show the
 // character list again with that row selected; Ok enters the chosen map with
 // the character, and a refusal shows the list with the reason on its message
-// line.
+// line. The end of the entered map shows the list again the same way.
 func (f *flow) chooseCharacterMap(character string) {
 	c := f.pages.characterFiles
 	if c.Maps == nil || c.Enter == nil {
@@ -276,7 +276,9 @@ func (f *flow) chooseCharacterMap(character string) {
 		}
 		if err != nil {
 			again(err.Error())
+			return
 		}
+		f.loadUI.session = again
 	}))
 }
 

@@ -1150,6 +1150,7 @@ func (f *flow) enter(v *Viewer, tick MapTick, order MapOrder, cadence MapCadence
 	})
 	f.tick, f.order, f.cadence, f.affect, f.advance, f.attack, f.grab, f.stance, f.march =
 		tick, order, cadence, affect, advance, attack, grab, stance, march
+	f.loadUI.session = nil
 	// The cadence this screen starts on is the last selected normal rung. A
 	// missing preference answers the old shipped default. The owner-loop arm is
 	// deliberately reset to paced on every entry and is never restored from the
@@ -1276,6 +1277,15 @@ func (f *flow) goNoticeDest(dest NoticeDest, msg string, open MapOpener) {
 		f.leaveMap()
 		f.toMenu()
 		f.msg = ""
+	case NoticeToCharacters:
+		list := f.loadUI.session
+		f.leaveMap()
+		if list == nil {
+			f.toMenu()
+			f.msg = msg
+			return
+		}
+		list(msg)
 	case NoticeToMapList:
 		f.leaveMap()
 		f.setScreen(ScreenPicker)
@@ -1352,6 +1362,7 @@ func (f *flow) leaveMap() {
 	f.viewer = nil
 	f.tick, f.order, f.cadence, f.affect, f.advance, f.attack, f.grab, f.stance, f.march =
 		nil, nil, nil, nil, nil, nil, nil, nil, nil
+	f.loadUI.session = nil
 	f.msg = ""
 	// Dropped with the viewer that was carrying the notice: a flag left set
 	// across a teardown would make the NEXT map's first mission dialogue close

@@ -237,7 +237,7 @@ func TestStoredCharacterReadsBackAsGenerated(t *testing.T) {
 	}
 	row := firstCharacterFiles
 	row.fileName = func(at int) (string, bool) { return "char0000.chr", at == 0 }
-	if name, err := first.writeCharacter(row, store, res(0, 0)); err == nil ||
+	if name, _, err := first.writeCharacter(row, store, storedCharacter{result: res(0, 0)}, ""); err == nil ||
 		err.Error() != "No free character file name is left. Delete a character first." || name != "" {
 		t.Fatalf("a folder with no free name stored %q, %v", name, err)
 	}

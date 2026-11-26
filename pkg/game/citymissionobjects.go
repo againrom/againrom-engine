@@ -8,10 +8,16 @@ import (
 	"againrom/pkg/sim"
 )
 
+// carriedParty is the party a finished map carries to the next: its own
+// members and those who joined, as the world leaves them, without the hired.
+func carriedParty(party []mapload.PartyMember, world *sim.World, ids []sim.EntityID, roster map[sim.EntityID]mapload.PartyMember) []mapload.PartyMember {
+	return mapload.DropHired(mapload.CarryRoster(party, world, ids, roster))
+}
+
 // A mission return keeps graph identities separately from the value-only party
 // handles. The parallel runtime IDs are used before that boundary drops them.
 func currentMissionCityParty(world *sim.World, state *SnapshotSAVDocument, party []mapload.PartyMember, ids []sim.EntityID, roster map[sim.EntityID]mapload.PartyMember, table *mapload.Table) ([]mapload.PartyMember, *cityObjectTopology, error) {
-	carried := mapload.DropHired(mapload.CarryRoster(party, world, ids, roster))
+	carried := carriedParty(party, world, ids, roster)
 	if world == nil {
 		return carried, nil, nil
 	}

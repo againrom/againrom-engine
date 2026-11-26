@@ -225,10 +225,12 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	pace := ports.bindSeams(mw, mv.Viewer)
 	audioReady = true
 	// A session's map has no campaign successor: its notices take the
-	// driver's own advance.
-	advance := mw.advanceNotice
+	// driver's own advance, and its end is the session's.
+	var advance ui.MapAdvance
 	if r.session == nil {
 		advance = ports.advance(r.n, ms, mw.advanceNotice)
+	} else {
+		advance = r.session.advance(ms, mw.advanceNotice)
 	}
 	return preparedMap{viewer: mv.Viewer, tick: pace, order: mw.enqueue, cadence: mw.setCadenceMode,
 		affect: mw.affect, advance: advance, attack: mw.attackOrCast,

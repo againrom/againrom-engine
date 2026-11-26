@@ -87,6 +87,8 @@ const (
 	NoticeReply2
 	NoticeReply3
 	NoticeReply4
+	// NoticeLeave leaves a multiplayer session's map through the game menu.
+	NoticeLeave
 )
 
 // NoticeDest is where advancing a notice sends the front-end. It is the
@@ -130,6 +132,9 @@ const (
 	// NoticeToLoad keeps the terminal mission behind the save selection panel.
 	NoticeToLoad   NoticeDest = 5
 	NoticeToEnding NoticeDest = 6
+	// NoticeToCharacters ends a multiplayer session's map: the character list
+	// shows again with the session's character row selected.
+	NoticeToCharacters NoticeDest = 7
 )
 
 func (l Dialog) WithDialogueButtonState(state DialogueButtonState) Dialog {

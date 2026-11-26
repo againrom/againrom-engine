@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	"againrom/pkg/data"
 	"againrom/pkg/formats/a2c"
 	"againrom/pkg/formats/alch"
 	"againrom/pkg/hostfile"
@@ -50,9 +51,11 @@ type characterStoreRow struct {
 	// newEntry is the engine word of the list's last row.
 	newEntry string
 	// fileName is the at-th name a new file may take, or false past the
-	// last; record is the file of a generated character under that name.
+	// last; record is the file of c: a new file under that name when c holds
+	// no loaded document, else the loaded document with the fields the row
+	// writes replaced.
 	fileName func(at int) (string, bool)
-	record   func(f *FrontEnd, res ui.ChargenResult, at int) ([]byte, error)
+	record   func(f *FrontEnd, c storedCharacter, at int) ([]byte, error)
 	// read decodes a whole file as the character a map entry takes.
 	read func(f *FrontEnd, b []byte) (storedCharacter, error)
 }
@@ -106,34 +109,80 @@ var secondCharacterFiles = characterStoreRow{dir: "rom2", ext: ".a2c", order: ne
 	fileName: func(at int) (string, bool) { return fmt.Sprintf("1%d.a2c", at), at <= lastCharacterName },
 	record:   secondCharacterRecord, read: secondStoredCharacter}
 
-// firstCharacterRecord is the short AlCh file: flag bit 0, the name and the
-// four statistics, every other span zero (HERO-213, DIV-5240).
-func firstCharacterRecord(_ *FrontEnd, res ui.ChargenResult, _ int) ([]byte, error) {
-	c := alch.Character{Name: []byte(res.Name), Flags: alch.FlagShort}
-	for i, row := range characterStats {
-		c.Stats[i] = uint32(chargenStatValue(res, row))
+// firstCharacterRecord is the AlCh file's four statistics over the loaded
+// document; a new file is the short form: flag bit 0, the name, every other
+// span zero (HERO-213, DIV-5240). The short form holds no experience, purse
+// or item (DIV-5259).
+func firstCharacterRecord(_ *FrontEnd, c storedCharacter, _ int) ([]byte, error) {
+	file := alch.Character{Name: []byte(c.result.Name), Flags: alch.FlagShort}
+	if c.doc != nil {
+		var err error
+		if file, err = alch.Read(c.doc); err != nil {
+			return nil, err
+		}
 	}
-	return alch.Write(c)
+	stats, err := recordStats(c.result)
+	if err != nil {
+		return nil, err
+	}
+	file.Stats = stats
+	return alch.Write(file)
 }
 
-// secondCharacterRecord is the new .a2c file: A with the identity pair, the
+// secondCharacterRecord is the .a2c file's E statistics, money and skill
+// experience over the loaded document, every other section and field kept
+// (R2-SESSION-517, DIV-5259). A new file is A with the identity pair, the
 // name and the start unit row of the chosen sex and class, B and C empty, E
 // with the start money and the four statistics; D is left out (DIV-5241).
-func secondCharacterRecord(f *FrontEnd, res ui.ChargenResult, at int) ([]byte, error) {
-	unit := slices.Index(a2c.StartRows[:], f.generatorTemplateName(res))
-	if unit < 0 {
-		return nil, fmt.Errorf("no start unit row for the generated character")
+func secondCharacterRecord(f *FrontEnd, c storedCharacter, at int) ([]byte, error) {
+	var file a2c.Character
+	if c.doc == nil {
+		unit := slices.Index(a2c.StartRows[:], f.generatorTemplateName(c.result))
+		if unit < 0 {
+			return nil, fmt.Errorf("no start unit row for the generated character")
+		}
+		file = a2c.Character{
+			A:       a2c.A{ID0: 1, ID1: uint32(at), ListKey: a2c.ListKeyAny, Name: []byte(c.result.Name), Unit: byte(unit) << 6},
+			Kills:   make([]byte, a2c.KillsSize),
+			Hotkeys: make([]byte, a2c.HotkeysSize),
+			E:       a2c.E{Money: secondCharacterMoney},
+		}
+	} else {
+		var err error
+		if file, err = a2c.Read(c.doc); err != nil {
+			return nil, err
+		}
+		file.E.Money = c.purse
+		for i := range file.E.SkillXP {
+			xp := c.skillXP[data.SkillBlade+int32(i)]
+			if xp < 0 {
+				return nil, fmt.Errorf("skill %d experience %d is out of range", i+1, xp)
+			}
+			file.E.SkillXP[i] = uint32(xp)
+		}
 	}
-	c := a2c.Character{
-		A:       a2c.A{ID0: 1, ID1: uint32(at), ListKey: a2c.ListKeyAny, Name: []byte(res.Name), Unit: byte(unit) << 6},
-		Kills:   make([]byte, a2c.KillsSize),
-		Hotkeys: make([]byte, a2c.HotkeysSize),
-		E:       a2c.E{Money: secondCharacterMoney},
+	stats, err := recordStats(c.result)
+	if err != nil {
+		return nil, err
 	}
+	for i, v := range stats {
+		file.E.Base[i] = uint8(v)
+	}
+	return a2c.Write(file)
+}
+
+// recordStats are res's four statistics in characterStats order, refusing
+// one past the byte both files' readers accept.
+func recordStats(res ui.ChargenResult) ([4]uint32, error) {
+	var stats [4]uint32
 	for i, row := range characterStats {
-		c.E.Base[i] = uint8(chargenStatValue(res, row))
+		v := chargenStatValue(res, row)
+		if v < 0 || v > maxStoredStat {
+			return stats, fmt.Errorf("statistic %d is %d, outside 0..%d", i, v, maxStoredStat)
+		}
+		stats[i] = uint32(v)
 	}
-	return a2c.Write(c)
+	return stats, nil
 }
 
 // path is the game's folder of the store.
@@ -204,7 +253,9 @@ func (f *FrontEnd) readStoredCharacter(store CharacterStore, row characterStoreR
 	if err != nil {
 		return storedCharacter{}, err
 	}
-	return row.read(f, b)
+	c, err := row.read(f, b)
+	c.doc = b
+	return c, err
 }
 
 // characterFilePath is the listed file name inside dir, or a refusal.
@@ -225,48 +276,58 @@ func (f *FrontEnd) characterFences() []string {
 
 // storeCharacter writes res as a new file of the game's row in store.
 func (f *FrontEnd) storeCharacter(store CharacterStore, res ui.ChargenResult) (string, error) {
-	return f.writeCharacter(filesOf(f.Archives.Game()).characters, store, res)
+	name, _, err := f.writeCharacter(filesOf(f.Archives.Game()).characters, store, storedCharacter{result: res}, "")
+	return name, err
 }
 
-// writeCharacter writes res as a new file of row in store, under the lowest
-// name the row's file name builder gives that no entry holds, and answers
-// that name. An existing file is never replaced: a file that takes the name
-// before publication refuses the write, and no free name refuses it with the
-// engine's words.
-func (f *FrontEnd) writeCharacter(row characterStoreRow, store CharacterStore, res ui.ChargenResult) (string, error) {
+// writeCharacter writes the record of c as a file of row in store and
+// answers its name and bytes. With file empty it is a new file under the
+// lowest name the row's file name builder gives that no entry holds: an
+// existing file is never replaced, a file that takes the name before
+// publication refuses the write, and no free name refuses it with the
+// engine's words. Otherwise the record replaces the listed file named file
+// whole.
+func (f *FrontEnd) writeCharacter(row characterStoreRow, store CharacterStore, c storedCharacter, file string) (string, []byte, error) {
 	dir, fences := store.path(row), f.characterFences()
 	if dir == "" || row.record == nil {
-		return "", errors.New(f.Words.Engine.Text("characters.unstored"))
+		return "", nil, errors.New(f.Words.Engine.Text("characters.unstored"))
 	}
 	if _, err := namedSaveDirectory(dir, fences, store.profile); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", err
+		return "", nil, err
 	}
 	identity, err := resolveSaveDirectory(dir)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	name, at := "", 0
-	for ; ; at++ {
-		next, ok := row.fileName(at)
-		if !ok {
-			return "", errors.New(f.Words.Engine.Text("characters.full"))
+	name, at, overwrite := file, 0, hostfile.Replace
+	if file != "" {
+		if _, err := characterFilePath(dir, file, row, fences, store.profile); err != nil {
+			return "", nil, err
 		}
-		if _, err := os.Lstat(filepath.Join(identity.path, next)); errors.Is(err, os.ErrNotExist) {
-			name = next
-			break
-		} else if err != nil {
-			return "", err
+	} else {
+		overwrite = hostfile.Refuse
+		for ; ; at++ {
+			next, ok := row.fileName(at)
+			if !ok {
+				return "", nil, errors.New(f.Words.Engine.Text("characters.full"))
+			}
+			if _, err := os.Lstat(filepath.Join(identity.path, next)); errors.Is(err, os.ErrNotExist) {
+				name = next
+				break
+			} else if err != nil {
+				return "", nil, err
+			}
 		}
 	}
-	data, err := row.record(f, res, at)
+	data, err := row.record(f, c, at)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	_, err = hostfile.Commit(hostfile.Set{
-		Files: []hostfile.File{{Path: filepath.Join(identity.path, name), Data: data, Overwrite: hostfile.Refuse}},
+		Files: []hostfile.File{{Path: filepath.Join(identity.path, name), Data: data, Overwrite: overwrite}},
 		Dir:   identity.path, Temp: ".againrom-character-*.tmp", Sync: true, Ops: osNamedSaveFiles{},
 		Check: func(step hostfile.Step, _ int) error {
 			if step != hostfile.StepPublish {
@@ -294,9 +355,9 @@ func (f *FrontEnd) writeCharacter(row characterStoreRow, store CharacterStore, r
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return name, nil
+	return name, data, nil
 }
 
 // ConfigureCharacters gives the character list page the game's character
@@ -317,6 +378,7 @@ func (f *FrontEnd) characterFiles(store CharacterStore) ui.CharacterFiles {
 	selector := f.textSelector()
 	left := f.Words.Engine.Text("characters.left")
 	fences := f.characterFences()
+	carried := sessionCarries{}
 	out := ui.CharacterFiles{
 		List: func() ([]ui.SaveEntry, string) {
 			files, skipped, err := listCharacters(dir, row)
@@ -339,7 +401,7 @@ func (f *FrontEnd) characterFiles(store CharacterStore) ui.CharacterFiles {
 			return items
 		},
 		Enter: func(character, source string) (ui.MapOpener, error) {
-			s, err := f.newMapSession(store, row, character, source)
+			s, err := f.newMapSession(sessionFile{store: store, row: row, name: character, carried: carried}, source)
 			if err != nil {
 				return nil, err
 			}

@@ -14,6 +14,10 @@ func defaultLoadWindowWords() LoadWindowWords {
 
 // loadWindow is one open page's pointer and confirmation state.
 type loadWindow struct {
+	// session shows the character list again with the running multiplayer
+	// session's character row selected and a message on its line; nil while
+	// the map screen runs no session's map.
+	session       func(message string)
 	quick         QuickSaveControls
 	words         LoadWindowWords
 	press         buttonLatch

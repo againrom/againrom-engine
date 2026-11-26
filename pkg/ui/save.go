@@ -528,6 +528,9 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 	case gameMenuVictory:
 		f.finishContinuedMission()
 	case gameMenuExitMain:
+		if f.leaveSession() {
+			return
+		}
 		f.setMenuUp(false)
 		if f.viewer != nil {
 			f.viewer.StopAmbient()
@@ -593,6 +596,22 @@ func defaultMenuKeyEncode(r rune) (byte, bool) {
 
 // closeGameMenu returns to the screen the menu was opened from. It is the
 // return row and it is Escape on this screen, one statement for both.
+// leaveSession takes the game menu's exit from a multiplayer session's map:
+// the map screen's advance seam ends the session and answers the character
+// list. It reports whether the exit was taken so.
+func (f *flow) leaveSession() bool {
+	if f.loadUI.session == nil || f.advance == nil || f.menuBack != ScreenMap {
+		return false
+	}
+	dest, msg, open := f.advance(NoticeLeave)
+	if dest != NoticeToCharacters {
+		return false
+	}
+	f.closeGameMenu()
+	f.goNoticeDest(dest, msg, open)
+	return true
+}
+
 func (f *flow) closeGameMenu() {
 	f.setMenuUp(false)
 	f.setScreen(f.menuBack)
