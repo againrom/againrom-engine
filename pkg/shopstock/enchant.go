@@ -54,16 +54,15 @@ const (
 // slots 1..12 then the others'. Spells is the spell table, whose column 20 is
 // a spell's enchant base. CastSpells are the spells a cast draws from for a
 // mage's item and for a fighter's; CastPriceTimes is, in the same order, the
-// multiple of the price a weighted cast takes as its budget. PointsPrice
-// prices the ordinary effects' points and PriceCap caps the item's price.
-// CastInCapacity keeps a cast's power within the item's capacity left.
+// multiple of the price a weighted cast takes as its budget. Row is the
+// game's effect-price row, by which EffectsPrice prices the item the budget
+// is drawn from. CastInCapacity keeps a cast's power within the item's capacity left.
 // Repeat joins an effect of a kind the item holds.
 type Enchant struct {
 	Effects, Spells Params
 	CastSpells      [2][]uint16
 	CastPriceTimes  [2]int64
-	PointsPrice     func(points []int32) int64
-	PriceCap        int64
+	Row             ItemPriceRow
 	CastInCapacity  bool
 	Repeat          Repeat
 }
@@ -71,14 +70,14 @@ type Enchant struct {
 // Base is the item an enchant starts from: its price, its capacity for effect
 // points, the category's price ceiling, the slot whose weight column it
 // draws from, whether a fighter wears it, and whether its one effect is a
-// cast the item is made for. CastInPoints: the item's price sums a cast's
-// power, times the effect table's cost of the cast kind, into the ordinary
-// points and prices no cast apart, as an armour's or a shield's does.
+// cast the item is made for. Class is the item's class: a class in the row's
+// OrdinaryCastKinds sums a cast's power, times the effect table's cost of the
+// cast kind, into the ordinary points and prices no cast apart.
 type Base struct {
 	Price, Capacity, Ceiling int32
 	Slot                     int
 	Fighter, Forced          bool
-	CastInPoints             bool
+	Class                    ItemClass
 }
 
 // castPoints is the points a cast g adds to an item that sums it with the
@@ -101,20 +100,19 @@ type EffectDraw struct {
 	Points, Cast int32
 }
 
-// Apply enchants b on src and answers the effects and the price, or false
-// when the first effect fails. A forced item takes one cast. Another takes a
+// Apply enchants b on src and answers the effects, or false when the first
+// effect fails; EffectsPrice prices them. A forced item takes one cast. Another takes a
 // weighted first effect; a cast ends it there. Otherwise a second and a third
 // pick are each attempted on a draw of 0..100 below 50 and below 25; a failed
 // pick, or a cast, which is dropped, ends the chain. An effect whose UsableBy
 // mask shares no bit with a held effect's is dropped.
-func (e Enchant) Apply(b Base, src Source) ([]Effect, int32, bool) {
+func (e Enchant) Apply(b Base, src Source) ([]Effect, bool) {
 	if e.Effects == nil || src == nil {
-		return nil, 0, false
+		return nil, false
 	}
 	var effects []Effect
 	var points []int32
-	price, remaining := b.Price, b.Capacity
-	castPrice := int64(0)
+	remaining := b.Capacity
 
 	reprice := func() {
 		sum := int32(0)
@@ -122,15 +120,15 @@ func (e Enchant) Apply(b Base, src Source) ([]Effect, int32, bool) {
 			sum += p
 		}
 		remaining = b.Capacity - sum
-		total := int64(b.Price) + e.PointsPrice(points) + castPrice
-		if total >= e.PriceCap {
-			price = int32(e.PriceCap)
-		} else {
-			price = int32(total)
+	}
+	price := func() int32 {
+		if len(effects) == 0 {
+			return b.Price
 		}
+		return int32(EffectsPrice(int64(b.Price), effects, b.Class, e.Effects, e.Spells, e.Row))
 	}
 	add := func(g EffectDraw) {
-		if b.CastInPoints && g.Effect.Kind == castSpell {
+		if b.Class&e.Row.OrdinaryCastKinds != 0 && g.Effect.Kind == castSpell {
 			g = e.castPoints(g)
 		}
 		mask := e.usableBy(g.Effect.Kind)
@@ -150,13 +148,13 @@ func (e Enchant) Apply(b Base, src Source) ([]Effect, int32, bool) {
 		}
 		effects = append(effects, g.Effect)
 		points = append(points, g.Points)
-		castPrice += int64(g.Cast)
 		reprice()
 	}
 	construct := func(forced bool) (EffectDraw, bool) {
-		budget := int64(2)*int64(b.Ceiling) - int64(price)
+		current := int64(price())
+		budget := int64(2)*int64(b.Ceiling) - current
 		if forced {
-			budget = min(budget, int64(price)*100)
+			budget = min(budget, current*100)
 			for attempt := 1; attempt <= tries; attempt++ {
 				if g, ok := e.Cast(false, budget, remaining, src); ok {
 					return g, attempt < tries
@@ -173,18 +171,18 @@ func (e Enchant) Apply(b Base, src Source) ([]Effect, int32, bool) {
 			if b.Fighter {
 				times = e.CastPriceTimes[1]
 			}
-			return e.Cast(b.Fighter, int64(price)*times, remaining, src)
+			return e.Cast(b.Fighter, current*times, remaining, src)
 		}
 		return e.Ordinary(kind, budget, remaining, src)
 	}
 
 	first, ok := construct(b.Forced)
 	if !ok {
-		return nil, 0, false
+		return nil, false
 	}
 	add(first)
 	if first.Effect.Kind == castSpell {
-		return effects, price, true
+		return effects, true
 	}
 	for _, threshold := range []int{50, 25} {
 		if gate, _ := Inclusive(src, 0, 100); gate >= threshold {
@@ -192,11 +190,11 @@ func (e Enchant) Apply(b Base, src Source) ([]Effect, int32, bool) {
 		}
 		g, ok := construct(false)
 		if !ok || g.Effect.Kind == castSpell {
-			return effects, price, true
+			return effects, true
 		}
 		add(g)
 	}
-	return effects, price, true
+	return effects, true
 }
 
 // usableBy is an effect row's UsableBy mask; a row without one restricts

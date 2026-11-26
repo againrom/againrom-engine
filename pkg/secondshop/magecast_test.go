@@ -30,7 +30,7 @@ func TestSecondShopMageWeightedCastTakesAHundredTimesThePrice(t *testing.T) {
 	for _, fighter := range []bool{false, true} {
 		base := shopstock.Base{Price: 10, Capacity: 100, Ceiling: 100000, Slot: 3, Fighter: fighter}
 		draws := &recordedZeroDraws{}
-		effects, _, ok := tb.enchant().Apply(base, draws)
+		effects, ok := tb.enchant().Apply(base, draws)
 		if fighter {
 			if ok {
 				t.Errorf("fighter's item: weighted cast at ten times the price gave %+v, want no effect", effects)

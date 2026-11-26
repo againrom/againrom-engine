@@ -21,24 +21,19 @@ func TestShopArmourCastEntersThePointsAndAWeaponCastIsPricedApart(t *testing.T) 
 	spells[1] = make([]int32, 21)
 	spells[1][20] = 50
 	e := Enchant{
-		Effects: effects, Spells: spells, CastSpells: [2][]uint16{{1}, {1}}, PriceCap: 9_999_999,
-		PointsPrice: func(points []int32) int64 {
-			n := int32(0)
-			for _, p := range points {
-				n += p
-			}
-			if n <= 0 {
-				return 0
-			}
-			return int64((math.Pow(1.5, float64(n)/70) + 1) * float64(n) * 50)
-		},
+		Effects: effects, Spells: spells, CastSpells: [2][]uint16{{1}, {1}}, Row: FirstItemPrice,
 	}
 	for _, armour := range []bool{false, true} {
-		b := Base{Price: 1000, Capacity: 100, Ceiling: 100000, Slot: 1, Forced: true, CastInPoints: armour}
-		got, price, ok := e.Apply(b, &seq{values: []int{0, 9}})
+		class := ItemWeapon
+		if armour {
+			class = ItemArmor
+		}
+		b := Base{Price: 1000, Capacity: 100, Ceiling: 100000, Slot: 1, Forced: true, Class: class}
+		got, ok := e.Apply(b, &seq{values: []int{0, 9}})
 		if !ok || len(got) != 1 || got[0].Kind != castSpell {
 			t.Fatalf("armour %v: effects %+v ok %v, want one cast", armour, got, ok)
 		}
+		price := int32(EffectsPrice(int64(b.Price), got, class, effects, spells, e.Row))
 		power := float64(int16(got[0].Operand >> 16))
 		want := int32(1000 + int64(10*50*math.Pow(2, math.Log(1+power/30)/math.Log(1.2))))
 		if armour {

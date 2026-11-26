@@ -160,7 +160,7 @@ func (t Tables) make(it Item, cat Category, src shopstock.Source) (Item, bool) {
 	}
 	it.Count = 1
 	if enchant {
-		effects, _, ok := t.enchant().Apply(t.enchantBase(it, cat), src)
+		effects, ok := t.enchant().Apply(t.enchantBase(it, cat), src)
 		if !ok {
 			return it, false
 		}
@@ -188,10 +188,7 @@ func (t Tables) enchant() shopstock.Enchant {
 	e := shopstock.Enchant{
 		CastSpells:     castSpells,
 		CastPriceTimes: [2]int64{100, 10},
-		PointsPrice: func(points []int32) int64 {
-			return shopstock.PointsSumPrice(points, shopstock.SecondItemPrice.Cap)
-		},
-		PriceCap:       shopstock.SecondItemPrice.Cap,
+		Row:            shopstock.SecondItemPrice,
 		CastInCapacity: true,
 		Repeat:         effectRepeat,
 	}
@@ -215,7 +212,7 @@ const effectRepeat = shopstock.RepeatReplace
 func (t Tables) enchantBase(it Item, cat Category) shopstock.Base {
 	fighter := t.fighter(it)
 	return shopstock.Base{Price: int32(t.Price(it)), Capacity: int32(t.levelProduct(it)), Ceiling: cat.Max,
-		Slot: t.Part(it), Fighter: fighter, Forced: !fighter && it.Table == Weapon}
+		Slot: t.Part(it), Fighter: fighter, Forced: !fighter && it.Table == Weapon, Class: itemClass(it.Table)}
 }
 
 // fighter is whether an equipment row sets the fighter bit, bit 0 of its use

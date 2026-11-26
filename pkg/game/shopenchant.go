@@ -36,11 +36,8 @@ func shopEnchantRules(t *mapload.Table, repeat shopstock.Repeat) shopstock.Encha
 	e := shopstock.Enchant{
 		CastSpells:     shopCastSpells,
 		CastPriceTimes: [2]int64{100, 10},
-		PointsPrice: func(points []int32) int64 {
-			return shopstock.PointsSumPrice(points, shopstock.FirstItemPrice.Cap)
-		},
-		PriceCap: shopstock.FirstItemPrice.Cap,
-		Repeat:   repeat,
+		Row:            shopstock.FirstItemPrice,
+		Repeat:         repeat,
 	}
 	if t != nil {
 		if t.Magic != nil {
@@ -69,12 +66,18 @@ func shopEnchant(c data.ShopCandidate, ceiling int32, t *mapload.Table, r shopDr
 	if t == nil || t.Magic == nil || r == nil {
 		return ShopItem{}, false
 	}
+	class := shopstock.ItemWeapon
+	if c.ItemKind == shopArmourKind {
+		class = shopstock.ItemArmor
+	}
 	base := shopstock.Base{Price: c.Price, Capacity: c.MagCap, Ceiling: ceiling, Slot: c.EffectSlot, Fighter: c.Fighter, Forced: c.ForcedCast,
-		CastInPoints: c.ItemKind == shopArmourKind}
-	effects, price, ok := shopEnchantRules(t, repeat).Apply(base, r)
+		Class: class}
+	rules := shopEnchantRules(t, repeat)
+	effects, ok := rules.Apply(base, r)
 	if !ok {
 		return ShopItem{}, false
 	}
+	price := int32(shopstock.EffectsPrice(int64(c.Price), effects, class, rules.Effects, rules.Spells, shopstock.FirstItemPrice))
 	return shopItemFromInstance(sim.ItemInstance{Code: uint16(c.Code), Kind: c.ItemKind, Price: price, Effects: shopstock.EffectsAs[sim.ItemEffect](effects)}, 1), true
 }
 
