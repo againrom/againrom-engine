@@ -19,7 +19,7 @@ func returnSession(t *testing.T, c sessionCase) (*FrontEnd, *ui.App, string, sim
 	t.Helper()
 	f, app, stored := sessionApp(t, c)
 	sessionKey(t, app, "enter", "enter")
-	if app.Screen() != ui.ScreenMap || f.live == nil || !f.live.mission.heroReturn {
+	if app.Screen() != ui.ScreenMap || f.live == nil || f.live.mission.fall != fallReturns {
 		t.Fatalf("no session map entered: %s", app.HeadlessMessage())
 	}
 	xp := sessionGain(t, f)

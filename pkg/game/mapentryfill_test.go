@@ -22,7 +22,7 @@ func TestMapEntryReadsItsFillWhicheverFilledIt(t *testing.T) {
 		{"session", func(admitted, advanced *int) mapEntry {
 			s := &mapSession{entry: MapEntry{Source: address}, end: func(*Mission) string { return "" }}
 			f := sessionEntry(s)
-			f.loose = false
+			f.mapFile = mapInContainer
 			return wrapFill(f, admitted, advanced)
 		}},
 	} {

@@ -2071,10 +2071,9 @@ type World struct {
 	// authoredBuildingCasters is the map's list until the script names the game.
 	authoredBuildingCasters []BuildingCaster
 	// outposts are the map's type-10 Outposts (DeclareOutposts).
-	outposts        []Outpost
-	sessionOutposts bool
-	scorchedCells   []uint16
-	structureUses   []StructureUse
+	outposts      []Outpost
+	scorchedCells []uint16
+	structureUses []StructureUse
 
 	// areaCosts is the stored movement-cost byte of every cell holding an
 	// applied area layer, in cell-key order (areacost.go). areaCostLive is

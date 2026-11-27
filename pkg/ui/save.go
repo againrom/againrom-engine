@@ -600,7 +600,7 @@ func defaultMenuKeyEncode(r rune) (byte, bool) {
 // the map screen's advance seam ends the session and answers the character
 // list. It reports whether the exit was taken so.
 func (f *flow) leaveSession() bool {
-	if f.loadUI.session == nil || f.advance == nil || f.menuBack != ScreenMap {
+	if f.menuContext.Exit != GameMenuExitLeavesMap || f.advance == nil || f.menuBack != ScreenMap {
 		return false
 	}
 	dest, msg, open := f.advance(NoticeLeave)

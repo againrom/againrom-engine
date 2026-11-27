@@ -20,15 +20,20 @@ type Outpost struct {
 	Countdown    int32
 	Counting     bool
 	Members      []PassiveBody
+	KeepsID      bool `json:",omitempty"`
 }
 
 // OutpostMap is what a map gives the type-10 pass: whether the pass runs
 // (type-0 dword 0x84 above 1, R2-ENGINE-509), whether the build keeps the
 // members' spread as the radius (R2-ENGINE-511), and the entries in file order.
+// The other values are the entry's: gate, owners, delay, member ids.
 type OutpostMap struct {
-	Runs, Spread bool
-	Entries      []OutpostEntry
-	Session      bool
+	Runs, Spread  bool
+	Entries       []OutpostEntry
+	IgnoresGate   bool
+	AnyOwner      bool
+	ProfileReturn bool
+	KeepsID       bool
 }
 
 // OutpostEntry is the part of a type-10 entry the pass carries: the group
@@ -57,14 +62,14 @@ const (
 // in file order (R2-ENGINE-510, R2-ENGINE-1816). A game without Outposts and
 // a map whose gate is shut build none.
 func (w *World) DeclareOutposts(in OutpostMap) {
-	w.outposts, w.sessionOutposts = nil, in.Session
-	session := in.Session
-	if !session && (!w.game.outposts || !in.Runs) {
+	w.outposts = nil
+	if !in.IgnoresGate && (!w.game.outposts || !in.Runs) {
 		return
 	}
+	fixed := in.ProfileReturn
 	for _, g := range w.savedGroups.Groups {
 		owner := g.Owner.Owner
-		if owned, human := w.slotControl(owner); g.Owner.Class != 1 || !(owned || session) || human {
+		if owned, human := w.slotControl(owner); g.Owner.Class != 1 || !(owned || in.AnyOwner) || human {
 			continue
 		}
 		var members []int
@@ -76,16 +81,16 @@ func (w *World) DeclareOutposts(in OutpostMap) {
 		if len(members) == 0 {
 			continue
 		}
-		o := Outpost{Owner: owner, Group: g.Selector, Reload: outpostPercent * outpostScale / 100}
+		o := Outpost{Owner: owner, Group: g.Selector, Reload: outpostPercent * outpostScale / 100, KeepsID: in.KeepsID}
 		o.X, o.Y = groupCentroid(w.entities, members, subCellMean)
-		if session {
+		if fixed {
 			o.Reload = w.game.sessionReturn
 		}
 		if in.Spread {
 			o.Radius = memberExtent(w.entities, members)
 		}
 		for _, e := range in.Entries {
-			if session {
+			if fixed {
 				break
 			}
 			if e.Group != o.Group {
@@ -248,7 +253,7 @@ func (w *World) recreateOutpostMember(o Outpost, m PassiveBody) (EntityID, bool)
 		x, y, r = o.X, o.Y, int32(o.Radius)
 	}
 	id, err := w.createActor(body, t.Carried, t.Worn, x, y, outpostPlacement(x, y, r), true,
-		actorCreationProfile{reuse: m.ID, keepsID: w.sessionOutposts, ungrouped: true})
+		actorCreationProfile{reuse: m.ID, keepsID: o.KeepsID, ungrouped: true})
 	return id, err == nil
 }
 

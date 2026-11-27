@@ -32,12 +32,12 @@ type missionRequest struct {
 // The entry reads it and never asks which filler wrote it.
 type mapEntry struct {
 	// admit names the map and its difficulty.
-	admit func(rules campaignService, r missionRequest) (string, mapload.Difficulty, error)
-	// hires is true when a fresh entry runs the campaign's hire moment.
-	hires bool
-	// loose is true when the map is a loose file rather than a container entry.
-	loose      bool
-	heroReturn bool
+	admit    func(rules campaignService, r missionRequest) (string, mapload.Difficulty, error)
+	hire     hireRule
+	mapFile  mapFileRule
+	fall     fallRule
+	exit     ui.GameMenuExit
+	outposts func(w *sim.World) sim.OutpostMap
 	// advance wraps the driver's notices with what the map's end does next.
 	advance func(ports missionPorts, n int, ms *Mission, driver ui.MapAdvance) ui.MapAdvance
 	// seatCandidate seats a new game's candidate before the entry builds over it.
@@ -45,6 +45,27 @@ type mapEntry struct {
 	// seatParty seats the party the entry starts with.
 	seatParty func(r *missionRequest) error
 }
+
+type hireRule uint8
+
+const (
+	hireSkipped hireRule = iota
+	hireRuns
+)
+
+type mapFileRule uint8
+
+const (
+	mapInContainer mapFileRule = iota
+	mapLooseFile
+)
+
+type fallRule uint8
+
+const (
+	fallDefeats fallRule = iota
+	fallReturns
+)
 
 // fresh is a mission started rather than resumed.
 func (r missionRequest) fresh() bool { return r.snap == nil && r.prepare == nil }
@@ -57,7 +78,8 @@ func campaignEntry() mapEntry {
 		admit: func(rules campaignService, r missionRequest) (string, mapload.Difficulty, error) {
 			return admitMission(rules, r.town, r.n, !r.fresh(), r.difficulty)
 		},
-		hires: true,
+		hire: hireRuns,
+		exit: ui.GameMenuExitToMain,
 		advance: func(p missionPorts, n int, ms *Mission, driver ui.MapAdvance) ui.MapAdvance {
 			return p.advance(n, ms, driver)
 		},
@@ -74,8 +96,12 @@ func sessionEntry(s *mapSession) mapEntry {
 			diff, err := campaignDifficulty(int64(r.difficulty))
 			return s.entry.Source, diff, err
 		},
-		loose:      true,
-		heroReturn: true,
+		mapFile: mapLooseFile,
+		fall:    fallReturns,
+		exit:    ui.GameMenuExitLeavesMap,
+		outposts: func(w *sim.World) sim.OutpostMap {
+			return sim.OutpostMap{IgnoresGate: true, AnyOwner: true, KeepsID: true, ProfileReturn: true}
+		},
 		advance: func(_ missionPorts, _ int, ms *Mission, driver ui.MapAdvance) ui.MapAdvance {
 			return s.advance(ms, driver)
 		},
@@ -177,13 +203,13 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	if err != nil {
 		return preparedMap{}, err
 	}
-	if r.fresh() && r.fill.hires {
+	if r.fresh() && r.fill.hire == hireRuns {
 		r.party, err = enterHires(ports.rules(), r.party, r.town, ports.install.missionTable())
 		if err != nil {
 			return preparedMap{}, err
 		}
 	}
-	mv, err := ports.install.decodeMission(addr, r.fill.loose)
+	mv, err := ports.install.decodeMission(addr, r.fill.mapFile == mapLooseFile)
 	if err != nil {
 		return preparedMap{}, err
 	}
@@ -198,8 +224,8 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	if err != nil {
 		return preparedMap{}, err
 	}
-	if r.fill.heroReturn && r.fresh() {
-		ms.World.DeclareOutposts(sim.OutpostMap{Session: true})
+	if r.fill.outposts != nil && r.fresh() {
+		ms.World.DeclareOutposts(r.fill.outposts(ms.World))
 	}
 	err = seatWorld(r, ports.rules(), ports.install.missionTable(), ms, mv.Viewer)
 	if err != nil {
@@ -231,9 +257,10 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	mw.projectileCounter = ports.projectiles
 	mw.cheats.difficulty = diff
 	mw.cheats.campaign = ports.rules().chatCampaign(r.town)
-	mw.mission.heroReturn = r.fill.heroReturn
+	mw.mission.fall = r.fill.fall
 	mv.Viewer.SetGameMenuContext(func() ui.GameMenuContext {
 		ctx := gameMenuContext(mw, true, ports.install.missionBriefing(r.n))
+		ctx.Exit = r.fill.exit
 		ctx.LeaveToTown = ports.session.canLeaveMission(r.n, mw.world)
 		return ctx
 	})

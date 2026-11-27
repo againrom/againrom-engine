@@ -11,7 +11,7 @@ import (
 const returnLineLife = 30 * time.Second
 
 func (mw *mapWorld) waitingHero() (sim.EntityID, bool) {
-	if mw == nil || mw.mission == nil || !mw.mission.heroReturn || mw.world == nil {
+	if mw == nil || mw.mission == nil || mw.mission.fall != fallReturns || mw.world == nil {
 		return 0, false
 	}
 	for _, id := range mw.mission.guarded {
@@ -38,7 +38,7 @@ func (mw *mapWorld) returnHero() bool {
 }
 
 func (mw *mapWorld) noteReturnCell(id sim.EntityID) {
-	if m := mw.mission; m != nil && m.heroReturn {
+	if m := mw.mission; m != nil && m.fall == fallReturns {
 		if e, ok := mw.entity(id); ok {
 			m.returnCell, m.hasReturnCell = mapload.Cell{X: e.X, Y: e.Y}, true
 		}
@@ -47,7 +47,7 @@ func (mw *mapWorld) noteReturnCell(id sim.EntityID) {
 
 func (mw *mapWorld) settleHeroReturn() {
 	m := mw.mission
-	if m == nil || !m.heroReturn {
+	if m == nil || m.fall != fallReturns {
 		return
 	}
 	for _, id := range m.returning {

@@ -49,7 +49,7 @@ func monsterSession(t *testing.T, c sessionCase) (*FrontEnd, []monster) {
 	t.Helper()
 	f, app, _ := sessionApp(t, c)
 	sessionKey(t, app, "enter", "enter")
-	if app.Screen() != ui.ScreenMap || f.live == nil || !f.live.mission.heroReturn {
+	if app.Screen() != ui.ScreenMap || f.live == nil || f.live.mission.fall != fallReturns {
 		t.Fatalf("no session map entered: %s", app.HeadlessMessage())
 	}
 	var out []monster

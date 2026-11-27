@@ -18,6 +18,14 @@ type QuestObjective struct {
 
 const NoObjectiveMark = -1
 
+// GameMenuExit is what the menu's exit row does on a map.
+type GameMenuExit uint8
+
+const (
+	GameMenuExitToMain GameMenuExit = iota
+	GameMenuExitLeavesMap
+)
+
 // GameMenuContext is the campaign/session projection read when the in-game menu
 // opens. Campaign selects the decoded Load/Diplomacy and Quest gates. Objective
 // and Relations supply the two owner-directed information pages; Objectives
@@ -32,6 +40,7 @@ type GameMenuContext struct {
 	// LeaveToTown says the running mission was entered from the town and is
 	// still undecided, so a mod entry may abandon or restart it.
 	LeaveToTown bool
+	Exit        GameMenuExit
 	Objective   string
 	Objectives  []QuestObjective
 	Relations   []GameMenuRelation

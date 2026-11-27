@@ -890,7 +890,7 @@ type missionNotices struct {
 	// Native residue carries this membership across a cold load.
 	departed map[sim.EntityID]bool
 
-	heroReturn    bool
+	fall          fallRule
 	returnCell    mapload.Cell
 	hasReturnCell bool
 	returnOffered bool
@@ -1865,7 +1865,7 @@ func (mw *mapWorld) guardedCharacterLost() (sim.EntityID, bool) {
 			if mw.mission.departed[id] {
 				continue
 			}
-			if !ok || !mw.mission.heroReturn && !e.Alive() && !e.Dying() && !e.Restorable() {
+			if !ok || mw.mission.fall == fallDefeats && !e.Alive() && !e.Dying() && !e.Restorable() {
 				return id, true
 			}
 		}

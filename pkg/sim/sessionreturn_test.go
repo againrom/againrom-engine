@@ -11,6 +11,10 @@ func sessionMonster(id EntityID, owner, group uint32, x, y int32) Entity {
 	return e
 }
 
+func sessionOutpostValues() OutpostMap {
+	return OutpostMap{IgnoresGate: true, AnyOwner: true, KeepsID: true, ProfileReturn: true}
+}
+
 type sessionReturnCase struct {
 	name  string
 	world func(t *testing.T, ents []Entity) *World
@@ -59,7 +63,7 @@ func TestSessionOutpostsReturnAGroupOnceEveryMemberIsDown(t *testing.T) {
 	for _, c := range sessionReturnCases() {
 		t.Run(c.name, func(t *testing.T) {
 			w := c.world(t, sessionReturnEntities())
-			w.DeclareOutposts(OutpostMap{Session: true})
+			w.DeclareOutposts(sessionOutpostValues())
 			if o := outpostOf(t, w, 2, 7); o.Reload != sessionReturnPasses || len(o.Members) != 2 || o.Radius != 0 {
 				t.Fatalf("Outpost %+v", o)
 			}
@@ -82,7 +86,7 @@ func TestSessionOutpostsKeepAGroupWithOneMemberAlive(t *testing.T) {
 	for _, c := range sessionReturnCases() {
 		t.Run(c.name, func(t *testing.T) {
 			w := c.world(t, sessionReturnEntities())
-			w.DeclareOutposts(OutpostMap{Session: true})
+			w.DeclareOutposts(sessionOutpostValues())
 			felledSteps(w, 2)
 			if n := stepsUntilBack(w, (sessionReturnPasses+4)*scriptCycle*3, 2); n <= (sessionReturnPasses+4)*scriptCycle*3 {
 				t.Fatalf("member 2 came back after %d steps while member 3 stood", n)
@@ -95,7 +99,7 @@ func TestSessionOutpostsReturnOnTheNearestFreeCellWhenTheCellIsTaken(t *testing.
 	for _, c := range sessionReturnCases() {
 		t.Run(c.name, func(t *testing.T) {
 			w := c.world(t, sessionReturnEntities())
-			w.DeclareOutposts(OutpostMap{Session: true})
+			w.DeclareOutposts(sessionOutpostValues())
 			felledSteps(w, 4)
 			for n := 0; n < 4000; n++ {
 				if i := indexOfEntity(w.entities, 4); i < 0 || w.entities[i].Decay >= decayDarkStage {
@@ -156,7 +160,7 @@ func TestCampaignOutpostGivesAnIDZeroMemberANewID(t *testing.T) {
 	if slices.Contains(campaign, 0) || len(campaign) != 3 {
 		t.Fatalf("campaign ids %v, want a new id for member 0", campaign)
 	}
-	if session := returnedIDs(t, OutpostMap{Session: true}); !slices.Contains(session, 0) {
+	if session := returnedIDs(t, sessionOutpostValues()); !slices.Contains(session, 0) {
 		t.Fatalf("session ids %v, want member 0 kept", session)
 	}
 }
