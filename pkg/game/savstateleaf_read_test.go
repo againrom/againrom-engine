@@ -8,6 +8,7 @@ import (
 
 	"againrom/internal/cityfixture"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/ui"
 )
 
 func readLeafFixture(path, variant string, kind uint32, value sav.CityStateValueData) sav.DocumentStateData {
@@ -151,7 +152,7 @@ func TestStateLeafReadQuickSpells(t *testing.T) {
 	for _, variant := range []string{"exact", "case", "missing", "duplicate"} {
 		t.Run("city/"+variant, func(t *testing.T) {
 			state := readLeafFixture("/SpellBook/Shortcuts", variant, 1, value)
-			got, err := quickSpellsFromState(state)
+			got, err := quickSpellsFromState(state, ui.FirstShortcutLayout)
 			wantErr := variant == "duplicate" || variant == "missing"
 			if (err != nil) != wantErr {
 				t.Fatal(err)
@@ -171,7 +172,7 @@ func TestStateLeafReadQuickSpells(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := originalCityQuickSpells(city)
+		got, err := originalCityQuickSpells(city, ui.FirstShortcutLayout)
 		if err != nil || got != (spellSlots(0, 1, 2, 3, 0)) {
 			t.Fatal(got, err)
 		}

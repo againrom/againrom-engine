@@ -614,7 +614,7 @@ func TestReleaseImportedReturn1169LossControls(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		state, err := originalCityFromSnapshot(current)
+		state, err := originalCityFromSnapshot(current, f.campaign())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -659,7 +659,7 @@ func TestReleaseImportedReturn1169LossControls(t *testing.T) {
 				t.Fatal(err)
 			}
 			test.mutate(&current)
-			_, err = originalCityFromSnapshot(current)
+			_, err = originalCityFromSnapshot(current, f.campaign())
 			if err == nil {
 				t.Fatal("forged source identity admitted")
 			}

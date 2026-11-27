@@ -212,7 +212,7 @@ func (f *FrontEnd) citySnapshotFromMission(captured Snapshot) (*FrontEnd, Snapsh
 		screen.worldSelectedOnce, _ = worldSelectedOnceFromSnapshot(captured.WorldSelectedOnce)
 		screen.worldSelectedOrder = append([]int(nil), captured.WorldSelectedOnce...)
 	}
-	n.originalCity, err = originalCityFromSnapshot(captured)
+	n.originalCity, err = originalCityFromSnapshot(captured, n.campaign())
 	if err != nil {
 		return nil, Snapshot{}, nil, err
 	}

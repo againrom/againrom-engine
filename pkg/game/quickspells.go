@@ -107,7 +107,7 @@ func fileQuickSpells(file *sav.File, campaign campaignService, numbering uint8) 
 	return quickSpellsFromOriginalIndices(value.Ints, loadedShortcutLayout(campaign, numbering))
 }
 
-func quickSpellsFromState(state sav.DocumentStateData) (ui.ShortcutSlots, error) {
+func quickSpellsFromState(state sav.DocumentStateData, layout ui.ShortcutLayout) (ui.ShortcutSlots, error) {
 	value, present, err := state.ReadLeaf("/SpellBook/Shortcuts")
 	if err != nil {
 		return ui.ShortcutSlots{}, err
@@ -122,7 +122,7 @@ func quickSpellsFromState(state sav.DocumentStateData) (ui.ShortcutSlots, error)
 	for i := range indices {
 		indices[i] = int32(binary.LittleEndian.Uint32(value.Bytes[4*i:]))
 	}
-	return quickSpellsFromOriginalIndices(indices, firstCampaignRules{}.shortcutLayout())
+	return quickSpellsFromOriginalIndices(indices, layout)
 }
 
 func writeQuickSpellLeaf(doc *sav.DocumentData, shortcuts sav.CityShortcuts) {
@@ -136,9 +136,9 @@ func writeQuickSpellLeaf(doc *sav.DocumentData, shortcuts sav.CityShortcuts) {
 	})
 }
 
-func originalCityQuickSpells(document *sav.CityProvenance) (ui.ShortcutSlots, error) {
+func originalCityQuickSpells(document *sav.CityProvenance, layout ui.ShortcutLayout) (ui.ShortcutSlots, error) {
 	data := document.Data().State
-	return quickSpellsFromState(sav.DocumentStateData{RootKind: data.RootKind, DirectoryRecords: data.DirectoryRecords, ValueRecords: data.ValueRecords})
+	return quickSpellsFromState(sav.DocumentStateData{RootKind: data.RootKind, DirectoryRecords: data.DirectoryRecords, ValueRecords: data.ValueRecords}, layout)
 }
 
 // Native snapshots carry real uint16 spell IDs, not original signed indices.

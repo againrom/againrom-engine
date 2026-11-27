@@ -49,7 +49,7 @@ func TestReleaseImportedLoot1172SingleCauseAdmission(t *testing.T) {
 		"missing persisted return graph": func(r *SnapshotCityReturn) { r.Holdings = nil },
 	} {
 		t.Run(name, func(t *testing.T) {
-			state, err := originalCityFromSnapshot(source)
+			state, err := originalCityFromSnapshot(source, releaseFront(t).campaign())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -59,7 +59,7 @@ func TestReleaseImportedLoot1172SingleCauseAdmission(t *testing.T) {
 			edit(s.OriginalCity.Bindings[at].Returned)
 			f := releaseFront(t)
 			before := f.originalCity
-			if _, err := originalCityFromSnapshot(s); err == nil || f.originalCity != before {
+			if _, err := originalCityFromSnapshot(s, f.campaign()); err == nil || f.originalCity != before {
 				t.Fatal("loss was admitted or changed the live front end", err)
 			}
 		})

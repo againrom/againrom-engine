@@ -83,7 +83,7 @@ func (state *originalCitySaveState) snapshot() *SnapshotOriginalCity {
 // originalCityFromSnapshot prepares bounded structural provenance for current
 // city capture and SAVE. Source bindings and return history are checked before
 // the detached city state is used.
-func originalCityFromSnapshot(s Snapshot) (*originalCitySaveState, error) {
+func originalCityFromSnapshot(s Snapshot, campaign campaignService) (*originalCitySaveState, error) {
 	dto := s.OriginalCity
 	if dto == nil {
 		return nil, nil
@@ -122,7 +122,7 @@ func originalCityFromSnapshot(s Snapshot) (*originalCitySaveState, error) {
 	if err != nil {
 		return nil, fmt.Errorf("original city provenance: %w", err)
 	}
-	state.baselineQuickSpells, err = originalCityQuickSpells(document)
+	state.baselineQuickSpells, err = originalCityQuickSpells(document, campaign.shortcutLayout())
 	if err != nil {
 		return nil, err
 	}
