@@ -100,7 +100,7 @@ func TestWidescreenBookKeepsClosingSeamAtOuterEdge(t *testing.T) {
 	art.BookLeft[1] = solidPic(192, 85, gold)
 	art.BookRight[1] = image.NewRGBA(image.Rect(0, 0, 208, 85))
 	blit(art.BookRight[1], solidPic(192, 85, gold), 0, 0)
-	// A 1920x1080 window uses a 1366-pixel native frame. Repeating the
+	// A 1366-pixel native frame leaves 1206 book pixels. Repeating the
 	// full 208-pixel right bitmap put a black gap at native x=1019..1035,
 	// exactly one closing seam before the second ornamental section.
 	for _, width := range []int{864, 1206, 1888} {

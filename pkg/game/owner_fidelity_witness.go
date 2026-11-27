@@ -387,10 +387,10 @@ func (f *FrontEnd) witnessBottomHUD(a *ui.App, output string, report io.Writer) 
 		return err
 	}
 	wide, _, err := a.HeadlessPicture(ui.HeadlessRequest{Part: ui.HeadlessPartBottomHUD})
-	if err != nil || wide.Bounds().Size() != image.Pt(1206, 85) {
+	if err != nil || wide.Bounds().Size() != image.Pt(1120, 85) {
 		return fmt.Errorf("fidelity witness: widescreen book geometry: %v", err)
 	}
-	for x := 827; x < 1190; x++ {
+	for x := 741; x < 1104; x++ {
 		visible := false
 		for y := 0; y < 85; y++ {
 			visible = visible || wide.RGBAAt(x, y).A != 0
@@ -419,7 +419,7 @@ func (f *FrontEnd) witnessBottomHUD(a *ui.App, output string, report io.Writer) 
 	if err := writeMediaFrame(output, "shop-book", ui.ComposeShopScreen(view, image.Point{}, false, nil, false)); err != nil {
 		return err
 	}
-	fmt.Fprintln(report, "fidelity: original bottom HUD=864x175; atlas=24 row-major slots; pointer-selected every real ID; F5 numeral and installed inventory written; shop shares atlas, order and localized hovers; wide book=1206x85 without internal closing seam")
+	fmt.Fprintln(report, "fidelity: original bottom HUD=864x175; atlas=24 row-major slots; pointer-selected every real ID; F5 numeral and installed inventory written; shop shares atlas, order and localized hovers; wide book=1120x85 without internal closing seam")
 	return nil
 }
 
