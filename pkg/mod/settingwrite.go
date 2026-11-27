@@ -22,8 +22,15 @@ func writeSettings(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", rel, err)
 	}
-	after := settingSourceRows(d.Settings.Settings)
-	out, err := writeRows(source, settingSourceRows(before), after, func(key string) string { return key })
+	was, err := settingSourceRows(before)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", rel, err)
+	}
+	after, err := settingSourceRows(d.Settings.Settings)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", rel, err)
+	}
+	out, err := writeRows(source, was, after, func(key string) string { return key })
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", rel, err)
 	}
@@ -31,7 +38,11 @@ func writeSettings(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", rel, err)
 	}
-	if !sameRows(settingSourceRows(back), after) {
+	again, err := settingSourceRows(back)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", rel, err)
+	}
+	if !sameRows(again, after) {
 		return nil, fmt.Errorf("%s: the written rows do not read back as the rows given", rel)
 	}
 	return out, nil
@@ -39,14 +50,22 @@ func writeSettings(rel string, source []byte, d Data) ([]byte, error) {
 
 // settingSourceRows is the settings as the row writer sees them: a setting is
 // a plain table named by its key.
-func settingSourceRows(list []Setting) []sourceRow {
+func settingSourceRows(list []Setting) ([]sourceRow, error) {
 	rows := make([]sourceRow, len(list))
 	for i, s := range list {
 		var pairs []missionPair
-		if v := settingLabelValue(s.Labels); v != "" {
-			pairs = append(pairs, missionPair{"label", v})
+		label, err := settingLabelValue(s.Labels)
+		if err != nil {
+			return nil, fmt.Errorf("setting %s: label: %w", s.Key, err)
 		}
-		pairs = append(pairs, missionPair{"type", writeString(s.Kind.String())})
+		if label != "" {
+			pairs = append(pairs, missionPair{"label", label})
+		}
+		typ, err := writeString(s.Kind.String())
+		if err != nil {
+			return nil, fmt.Errorf("setting %s: type: %w", s.Key, err)
+		}
+		pairs = append(pairs, missionPair{"type", typ})
 		switch s.Kind {
 		case KindInt:
 			pairs = append(pairs, missionPair{"default", strconv.FormatInt(s.Default.Int, 10)},
@@ -54,32 +73,40 @@ func settingSourceRows(list []Setting) []sourceRow {
 		case KindBool:
 			pairs = append(pairs, missionPair{"default", strconv.FormatBool(s.Default.Bool)})
 		case KindChoice:
-			quoted := make([]string, len(s.Choices))
-			for j, c := range s.Choices {
-				quoted[j] = writeString(c)
+			def, err := writeString(s.Default.Str)
+			if err != nil {
+				return nil, fmt.Errorf("setting %s: default: %w", s.Key, err)
 			}
-			pairs = append(pairs, missionPair{"default", writeString(s.Default.Str)}, missionPair{"choices", "[" + strings.Join(quoted, ", ") + "]"})
+			choices, err := writeStringList(s.Choices)
+			if err != nil {
+				return nil, fmt.Errorf("setting %s: choices: %w", s.Key, err)
+			}
+			pairs = append(pairs, missionPair{"default", def}, missionPair{"choices", choices})
 		}
 		rows[i] = sourceRow{table: s.Key, identity: s.Key, plain: true, pairs: pairs}
 	}
-	return rows
+	return rows, nil
 }
 
 // settingLabelValue is the label pair's value: a string for a label of the
 // reference language alone, else a table of the languages' labels; "" for
 // none.
-func settingLabelValue(labels map[string]string) string {
+func settingLabelValue(labels map[string]string) (string, error) {
 	var parts []string
 	for _, l := range locale.All() {
 		if v := labels[l.Code]; v != "" {
-			parts = append(parts, l.Code+" = "+writeString(v))
+			q, err := writeString(v)
+			if err != nil {
+				return "", fmt.Errorf("%s: %w", l.Code, err)
+			}
+			parts = append(parts, l.Code+" = "+q)
 		}
 	}
 	switch {
 	case len(parts) == 0:
-		return ""
+		return "", nil
 	case len(parts) == 1 && labels[locale.Fallback] != "":
 		return writeString(labels[locale.Fallback])
 	}
-	return "{ " + strings.Join(parts, ", ") + " }"
+	return "{ " + strings.Join(parts, ", ") + " }", nil
 }

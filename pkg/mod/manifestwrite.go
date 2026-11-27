@@ -28,13 +28,17 @@ func WriteManifest(source []byte, values map[string]any) ([]byte, error) {
 		}
 		switch v := value.(type) {
 		case string:
-			encoded[key] = writeString(v)
-		case []string:
-			var list []string
-			for _, s := range v {
-				list = append(list, writeString(s))
+			q, err := writeString(v)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", key, err)
 			}
-			encoded[key] = "[" + strings.Join(list, ", ") + "]"
+			encoded[key] = q
+		case []string:
+			q, err := writeStringList(v)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", key, err)
+			}
+			encoded[key] = q
 		case int:
 			encoded[key] = strconv.Itoa(v)
 		default:

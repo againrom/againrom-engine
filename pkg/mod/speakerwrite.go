@@ -38,8 +38,15 @@ func writeSpeakers(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	after := speakerSourceRows(d.Speakers.Speakers)
-	out, err := writeRows(source, speakerSourceRows(before.Speakers), after, func(key string) string { return key })
+	was, err := speakerSourceRows(before.Speakers)
+	if err != nil {
+		return nil, err
+	}
+	after, err := speakerSourceRows(d.Speakers.Speakers)
+	if err != nil {
+		return nil, err
+	}
+	out, err := writeRows(source, was, after, func(key string) string { return key })
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +54,11 @@ func writeSpeakers(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !sameRows(speakerSourceRows(back.Speakers), after) {
+	again, err := speakerSourceRows(back.Speakers)
+	if err != nil {
+		return nil, err
+	}
+	if !sameRows(again, after) {
 		return nil, fmt.Errorf("%s: the written rows do not read back as the rows given", rel)
 	}
 	return out, nil
@@ -55,21 +66,35 @@ func writeSpeakers(rel string, source []byte, d Data) ([]byte, error) {
 
 // speakerSourceRows is the records as the row writer sees them: a record is
 // named by its number and writes the keys it sets.
-func speakerSourceRows(list []Speaker) []sourceRow {
+func speakerSourceRows(list []Speaker) ([]sourceRow, error) {
 	rows := make([]sourceRow, len(list))
 	for i, s := range list {
 		sets := func(name string) bool {
 			return slices.ContainsFunc(s.Fields, func(f PatchField) bool { return f.Name == name })
 		}
 		pairs := []missionPair{{"id", strconv.Itoa(int(s.ID))}}
+		add := func(key, value string) error {
+			q, err := writeString(value)
+			if err != nil {
+				return fmt.Errorf("speaker %d: %s: %w", s.ID, key, err)
+			}
+			pairs = append(pairs, missionPair{key, q})
+			return nil
+		}
 		if sets("name") {
-			pairs = append(pairs, missionPair{"name", writeString(s.Name)})
+			if err := add("name", s.Name); err != nil {
+				return nil, err
+			}
 		}
 		if sets("picture") && s.Picture != "" {
-			pairs = append(pairs, missionPair{"picture", writeString(s.Picture)})
+			if err := add("picture", s.Picture); err != nil {
+				return nil, err
+			}
 		}
 		if sets("map") {
-			pairs = append(pairs, missionPair{"map", writeString(s.Map)})
+			if err := add("map", s.Map); err != nil {
+				return nil, err
+			}
 		}
 		if sets("unit") {
 			pairs = append(pairs, missionPair{"unit", strconv.Itoa(int(s.Unit))})
@@ -79,5 +104,5 @@ func speakerSourceRows(list []Speaker) []sourceRow {
 		}
 		rows[i] = sourceRow{table: "speaker", identity: strconv.Itoa(int(s.ID)), pairs: pairs}
 	}
-	return rows
+	return rows, nil
 }

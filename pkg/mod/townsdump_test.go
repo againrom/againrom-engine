@@ -115,15 +115,17 @@ func TestWriteTownsForms(t *testing.T) {
 	}
 }
 
-// An entry the file cannot give back is refused: a name with a line break,
-// a name that is not UTF-8, and a comment line with a line break.
+// An entry the file cannot give back is refused: a blank name, non-UTF-8
+// bytes, and a comment line with a line break.
 func TestWriteTownsRefusesWhatDoesNotReadBack(t *testing.T) {
-	for _, name := range []string{"a\nb", "\x87\xa0"} {
-		e := eastEntry
-		e.Name = name
-		if _, err := WriteTowns(nil, []town.Entry{e}); err == nil || !strings.Contains(err.Error(), "does not read back") {
-			t.Errorf("name %q: %v", name, err)
-		}
+	e := eastEntry
+	e.Name = "   "
+	if _, err := WriteTowns(nil, []town.Entry{e}); err == nil || !strings.Contains(err.Error(), "does not read back") {
+		t.Errorf("blank name: %v", err)
+	}
+	e.Name = "\x87\xa0"
+	if _, err := WriteTowns(nil, []town.Entry{e}); err == nil {
+		t.Error("non-UTF-8 name was written")
 	}
 	if _, err := WriteTowns([]string{"a\nb"}, []town.Entry{eastEntry}); err == nil {
 		t.Error("a comment line with a line break was written")

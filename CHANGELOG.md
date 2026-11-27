@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] A mod saved from the editor with a line break or a control character in a town, mission, item or other text now opens again instead of failing to load.
+
 ## 0.162.0
 
 ### For players

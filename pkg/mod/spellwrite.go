@@ -21,8 +21,15 @@ func writeSpells(_ string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	after := spellSourceRows(d.Spells)
-	out, err := writeRows(source, spellSourceRows(before), after, func(key string) string { return key })
+	was, err := spellSourceRows(before)
+	if err != nil {
+		return nil, err
+	}
+	after, err := spellSourceRows(d.Spells)
+	if err != nil {
+		return nil, err
+	}
+	out, err := writeRows(source, was, after, func(key string) string { return key })
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +37,11 @@ func writeSpells(_ string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !sameRows(spellSourceRows(back), after) {
+	again, err := spellSourceRows(back)
+	if err != nil {
+		return nil, err
+	}
+	if !sameRows(again, after) {
 		return nil, fmt.Errorf("%s: the written rows do not read back as the rows given", SpellsFile)
 	}
 	return out, nil
@@ -52,12 +63,24 @@ func settingOf(values []SettingValue) func(string) (int64, bool) {
 // them, in their file order and a new one after them: the global table
 // while the file holds it or it sets a key, each row by its target, a
 // repeat numbered.
-func spellSourceRows(d SpellData) []sourceRow {
+func spellSourceRows(d SpellData) ([]sourceRow, error) {
 	type record struct {
 		line int
 		row  sourceRow
 	}
 	var out []record
+	var firstErr error
+	str := func(key, value string) string {
+		if firstErr != nil {
+			return ""
+		}
+		q, err := writeString(value)
+		if err != nil {
+			firstErr = fmt.Errorf("%s: %w", key, err)
+			return ""
+		}
+		return q
+	}
 	num := func(v int32) string { return strconv.Itoa(int(v)) }
 	list := func(vals []int32) string {
 		parts := make([]string, len(vals))
@@ -93,7 +116,7 @@ func spellSourceRows(d SpellData) []sourceRow {
 		out = append(out, record{g.Line, sourceRow{table: "global", identity: "global", plain: true, pairs: pairs}})
 	}
 	for _, r := range d.Rows {
-		pairs := []missionPair{{"target", strconv.Quote(r.Target)}}
+		pairs := []missionPair{{"target", str("target", r.Target)}}
 		ints := func(key string, v SpellInt) {
 			if v.Set {
 				pairs = append(pairs, missionPair{key, num(v.Val)})
@@ -115,10 +138,10 @@ func spellSourceRows(d SpellData) []sourceRow {
 		if e := r.Effect; e != nil {
 			var parts []string
 			if e.Kind != "" {
-				parts = append(parts, "kind = "+strconv.Quote(e.Kind))
+				parts = append(parts, "kind = "+str("effect.kind", e.Kind))
 			}
 			if e.Mode != "" {
-				parts = append(parts, "mode = "+strconv.Quote(e.Mode))
+				parts = append(parts, "mode = "+str("effect.mode", e.Mode))
 			}
 			if e.Magnitude.Set {
 				parts = append(parts, "magnitude = "+num(e.Magnitude.Val))
@@ -131,14 +154,14 @@ func spellSourceRows(d SpellData) []sourceRow {
 		bools("heal_hostile", r.HealHostile)
 		bools("self_cast", r.SelfCast)
 		if r.AreaHits.Set {
-			pairs = append(pairs, missionPair{"area_hits", strconv.Quote(r.AreaHits.Val)})
+			pairs = append(pairs, missionPair{"area_hits", str("area_hits", r.AreaHits.Val)})
 		}
 		ints("rays", r.Rays)
 		pairs = tables(pairs, r.Formulas())
 		bools(OffField, r.Off)
 		ints("book_position", r.BookPosition)
 		for _, p := range r.Pictures() {
-			pairs = append(pairs, missionPair{p.Field, strconv.Quote(p.Picture.Path)})
+			pairs = append(pairs, missionPair{p.Field, str(p.Field, p.Picture.Path)})
 			if p.Row == nil {
 				continue
 			}
@@ -153,6 +176,9 @@ func spellSourceRows(d SpellData) []sourceRow {
 			}
 		}
 		bools("imported", r.Imported)
+		if firstErr != nil {
+			return nil, firstErr
+		}
 		out = append(out, record{r.Line, sourceRow{table: "spell", identity: "spell " + rules.SpellKey(r.Target), pairs: pairs}})
 	}
 	slices.SortStableFunc(out, func(a, b record) int {
@@ -169,5 +195,5 @@ func spellSourceRows(d SpellData) []sourceRow {
 		rows[i], lines[i] = r.row, r.line
 	}
 	numberRows(rows, lines)
-	return rows
+	return rows, nil
 }

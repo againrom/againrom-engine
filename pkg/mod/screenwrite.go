@@ -48,19 +48,26 @@ func writeScreens(rel string, source []byte, d Data) ([]byte, error) {
 func screenSourceRows(list []Screen) ([]sourceRow, error) {
 	rows, lines := make([]sourceRow, len(list)), make([]int, len(list))
 	for i, s := range list {
-		strs := func(keys []string) string {
-			quoted := make([]string, len(keys))
-			for j, k := range keys {
-				quoted[j] = writeString(k)
-			}
-			return "[" + strings.Join(quoted, ", ") + "]"
-		}
 		row := sourceRow{table: "screen", identity: "screen"}
+		add := func(key, value string) error {
+			q, err := writeString(value)
+			if err != nil {
+				return fmt.Errorf("screen %q: %s: %w", s.Key, key, err)
+			}
+			row.pairs = append(row.pairs, missionPair{key, q})
+			return nil
+		}
 		if IsAction(s.Kind) {
 			row.table = "action"
-			row.pairs = []missionPair{{"key", writeString(s.Key)}, {"action", writeString(s.Kind)}, {"menu", writeString(s.MenuKey)}}
+			for _, f := range []missionPair{{"key", s.Key}, {"action", s.Kind}, {"menu", s.MenuKey}} {
+				if err := add(f.key, f.value); err != nil {
+					return nil, err
+				}
+			}
 			if s.ConfirmKey != "" {
-				row.pairs = append(row.pairs, missionPair{"confirm", writeString(s.ConfirmKey)})
+				if err := add("confirm", s.ConfirmKey); err != nil {
+					return nil, err
+				}
 			}
 		} else {
 			place := ""
@@ -74,17 +81,32 @@ func screenSourceRows(list []Screen) ([]sourceRow, error) {
 			default:
 				return nil, fmt.Errorf("screen %q has no menu to open from", s.Key)
 			}
-			row.pairs = []missionPair{{"key", writeString(s.Key)}, {"kind", writeString(s.Kind)}, {"title", writeString(s.TitleKey)},
-				{"menu", writeString(s.MenuKey)}, {"place", writeString(place)}}
+			for _, f := range []missionPair{{"key", s.Key}, {"kind", s.Kind}, {"title", s.TitleKey}, {"menu", s.MenuKey}, {"place", place}} {
+				if err := add(f.key, f.value); err != nil {
+					return nil, err
+				}
+			}
 			switch s.Kind {
 			case ScreenInfo:
-				row.pairs = append(row.pairs, missionPair{"text", strs(s.TextKeys)})
+				q, err := writeStringList(s.TextKeys)
+				if err != nil {
+					return nil, fmt.Errorf("screen %q: text: %w", s.Key, err)
+				}
+				row.pairs = append(row.pairs, missionPair{"text", q})
 			case ScreenList:
-				row.pairs = append(row.pairs, missionPair{"items", strs(s.ItemKeys)})
+				q, err := writeStringList(s.ItemKeys)
+				if err != nil {
+					return nil, fmt.Errorf("screen %q: items: %w", s.Key, err)
+				}
+				row.pairs = append(row.pairs, missionPair{"items", q})
 			case ScreenTable:
 				pairs := make([]string, len(s.RowKeys))
 				for j, r := range s.RowKeys {
-					pairs[j] = "[" + writeString(r[0]) + ", " + writeString(r[1]) + "]"
+					q, err := writeStringList(r[:])
+					if err != nil {
+						return nil, fmt.Errorf("screen %q: rows: %w", s.Key, err)
+					}
+					pairs[j] = q
 				}
 				row.pairs = append(row.pairs, missionPair{"rows", "[" + strings.Join(pairs, ", ") + "]"})
 			}

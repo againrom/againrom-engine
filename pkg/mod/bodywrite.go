@@ -15,8 +15,15 @@ func writeBodies(_ string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	after := bodySourceRows(d.Bodies.Bodies)
-	out, err := writeRows(source, bodySourceRows(before), after, func(key string) string { return key })
+	was, err := bodySourceRows(before)
+	if err != nil {
+		return nil, err
+	}
+	after, err := bodySourceRows(d.Bodies.Bodies)
+	if err != nil {
+		return nil, err
+	}
+	out, err := writeRows(source, was, after, func(key string) string { return key })
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +31,11 @@ func writeBodies(_ string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !sameRows(bodySourceRows(back), after) {
+	again, err := bodySourceRows(back)
+	if err != nil {
+		return nil, err
+	}
+	if !sameRows(again, after) {
 		return nil, fmt.Errorf("%s: the written rows do not read back as the rows given", BodiesFile)
 	}
 	return out, nil
@@ -37,8 +48,15 @@ func writeWeaponBodies(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	after := weaponSourceRows(d.Bodies.Weapons)
-	out, err := writeRows(source, weaponSourceRows(before), after, func(key string) string { return key })
+	was, err := weaponSourceRows(before)
+	if err != nil {
+		return nil, err
+	}
+	after, err := weaponSourceRows(d.Bodies.Weapons)
+	if err != nil {
+		return nil, err
+	}
+	out, err := writeRows(source, was, after, func(key string) string { return key })
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +64,11 @@ func writeWeaponBodies(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !sameRows(weaponSourceRows(back), after) {
+	again, err := weaponSourceRows(back)
+	if err != nil {
+		return nil, err
+	}
+	if !sameRows(again, after) {
 		return nil, fmt.Errorf("%s: the written rows do not read back as the rows given", rel)
 	}
 	return out, nil
@@ -54,17 +76,29 @@ func writeWeaponBodies(rel string, source []byte, d Data) ([]byte, error) {
 
 // bodySourceRows is the sheets as the row writer sees them: a kept sheet is
 // matched by its line, so a rename changes one key and moves no table.
-func bodySourceRows(bodies []BodySheet) []sourceRow {
+func bodySourceRows(bodies []BodySheet) ([]sourceRow, error) {
 	rows, lines := make([]sourceRow, len(bodies)), make([]int, len(bodies))
 	for i, b := range bodies {
-		pairs := []missionPair{{"name", strconv.Quote(b.Name)}}
+		name, err := writeString(b.Name)
+		if err != nil {
+			return nil, fmt.Errorf("body %q: name: %w", b.Name, err)
+		}
+		pairs := []missionPair{{"name", name}}
 		switch {
 		case b.Off:
 			pairs = append(pairs, missionPair{OffField, "true"})
 		default:
+			heroes, err := writeString(b.Heroes)
+			if err != nil {
+				return nil, fmt.Errorf("body %q: heroes: %w", b.Name, err)
+			}
+			heroesLight, err := writeString(b.HeroesLight)
+			if err != nil {
+				return nil, fmt.Errorf("body %q: heroes_l: %w", b.Name, err)
+			}
 			pairs = append(pairs,
-				missionPair{"heroes", strconv.Quote(b.Heroes)},
-				missionPair{"heroes_l", strconv.Quote(b.HeroesLight)},
+				missionPair{"heroes", heroes},
+				missionPair{"heroes_l", heroesLight},
 				missionPair{"frame", fmt.Sprintf("[%d, %d]", b.Width, b.Height)},
 				missionPair{"origin", fmt.Sprintf("[%d, %d]", b.OriginX, b.OriginY)},
 				missionPair{"directions", strconv.Itoa(b.Directions)},
@@ -83,7 +117,7 @@ func bodySourceRows(bodies []BodySheet) []sourceRow {
 		rows[i], lines[i] = sourceRow{table: "body", pairs: pairs}, b.Line
 	}
 	numberRows(rows, lines)
-	return rows
+	return rows, nil
 }
 
 // bodyActionValue is an action as the file writes it: ticks is one count when
@@ -106,19 +140,27 @@ func bodyActionValue(a BodyAction) string {
 }
 
 // weaponSourceRows is the weapon bodies as the row writer sees them.
-func weaponSourceRows(weapons []WeaponBody) []sourceRow {
+func weaponSourceRows(weapons []WeaponBody) ([]sourceRow, error) {
 	rows, lines := make([]sourceRow, len(weapons)), make([]int, len(weapons))
 	for i, w := range weapons {
 		var pairs []missionPair
 		if w.Weapon != "" {
-			pairs = append(pairs, missionPair{"weapon", strconv.Quote(w.Weapon)})
+			q, err := writeString(w.Weapon)
+			if err != nil {
+				return nil, fmt.Errorf("weapon: %w", err)
+			}
+			pairs = append(pairs, missionPair{"weapon", q})
 		}
 		if w.Row != 0 {
 			pairs = append(pairs, missionPair{"row", strconv.Itoa(w.Row)})
 		}
-		pairs = append(pairs, missionPair{"body", strconv.Quote(w.Body)})
+		body, err := writeString(w.Body)
+		if err != nil {
+			return nil, fmt.Errorf("body: %w", err)
+		}
+		pairs = append(pairs, missionPair{"body", body})
 		rows[i], lines[i] = sourceRow{table: "weapon", pairs: pairs}, w.Line
 	}
 	numberRows(rows, lines)
-	return rows
+	return rows, nil
 }

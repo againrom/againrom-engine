@@ -22,7 +22,11 @@ func WriteDialogue(d Dialogue) ([]byte, error) {
 		}
 		b.WriteString("[[node]]\nid = " + strconv.Itoa(n.ID) + "\n")
 		if n.Name != "" {
-			b.WriteString("name = " + writeString(n.Name) + "\n")
+			q, err := writeString(n.Name)
+			if err != nil {
+				return nil, fmt.Errorf("dialogue %s: name: %w", d.File, err)
+			}
+			b.WriteString("name = " + q + "\n")
 		}
 		if n.Speaks {
 			b.WriteString("speaker = " + strconv.Itoa(n.Speaker) + "\n")
@@ -30,17 +34,25 @@ func WriteDialogue(d Dialogue) ([]byte, error) {
 		if n.Next != 0 {
 			b.WriteString("next = " + strconv.Itoa(n.Next) + "\n")
 		}
-		writeDialogueText(&b, n.Text)
+		if err := writeDialogueText(&b, n.Text); err != nil {
+			return nil, fmt.Errorf("dialogue %s: %w", d.File, err)
+		}
 		for _, key := range DialogueVariantKeys() {
 			for _, l := range locale.All() {
 				if s, ok := n.Variants[key][l.Code]; ok {
-					b.WriteString(l.Code + "_" + key + " = " + writeString(s) + "\n")
+					q, err := writeString(s)
+					if err != nil {
+						return nil, fmt.Errorf("dialogue %s: %s_%s: %w", d.File, l.Code, key, err)
+					}
+					b.WriteString(l.Code + "_" + key + " = " + q + "\n")
 				}
 			}
 		}
 		for _, r := range n.Replies {
 			b.WriteString("\n[[reply]]\n")
-			writeDialogueText(&b, r.Text)
+			if err := writeDialogueText(&b, r.Text); err != nil {
+				return nil, fmt.Errorf("dialogue %s: %w", d.File, err)
+			}
 			if r.Next != 0 {
 				b.WriteString("next = " + strconv.Itoa(r.Next) + "\n")
 			}
@@ -78,12 +90,17 @@ func WriteDialogue(d Dialogue) ([]byte, error) {
 }
 
 // writeDialogueText writes the languages of t in the table's order.
-func writeDialogueText(b *strings.Builder, t DialogueText) {
+func writeDialogueText(b *strings.Builder, t DialogueText) error {
 	for _, l := range locale.All() {
 		if s, ok := t[l.Code]; ok {
-			b.WriteString(l.Code + " = " + writeString(s) + "\n")
+			q, err := writeString(s)
+			if err != nil {
+				return fmt.Errorf("%s: %w", l.Code, err)
+			}
+			b.WriteString(l.Code + " = " + q + "\n")
 		}
 	}
+	return nil
 }
 
 // SameDialogue reports that a and b hold the same nodes and replies, leaving

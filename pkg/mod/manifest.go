@@ -31,6 +31,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"againrom/pkg/base"
 )
@@ -270,22 +271,36 @@ func onlyComment(rest string) error {
 // backslash and the byte it stands for.
 var stringEscapes = [...][2]byte{{'"', '"'}, {'\\', '\\'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}}
 
-// writeString is s as a basic string readString reads back: the bytes
-// stringEscapes names escaped, every other byte as it stands.
-func writeString(s string) string {
+// writeString is s as a basic string readString reads back.
+func writeString(s string) (string, error) {
+	if !utf8.ValidString(s) {
+		return "", errors.New("string is not valid UTF-8")
+	}
 	var b strings.Builder
 	b.WriteByte('"')
 	for i := 0; i < len(s); i++ {
-		k := slices.IndexFunc(stringEscapes[:], func(e [2]byte) bool { return e[1] == s[i] })
-		if k >= 0 {
+		c := s[i]
+		if k := slices.IndexFunc(stringEscapes[:], func(e [2]byte) bool { return e[1] == c }); k >= 0 {
 			b.WriteByte('\\')
 			b.WriteByte(stringEscapes[k][0])
 			continue
 		}
-		b.WriteByte(s[i])
+		b.WriteByte(c)
 	}
 	b.WriteByte('"')
-	return b.String()
+	return b.String(), nil
+}
+
+func writeStringList(list []string) (string, error) {
+	parts := make([]string, len(list))
+	for i, s := range list {
+		q, err := writeString(s)
+		if err != nil {
+			return "", err
+		}
+		parts[i] = q
+	}
+	return "[" + strings.Join(parts, ", ") + "]", nil
 }
 
 // readString reads a basic or literal string at the start of v.
@@ -299,13 +314,21 @@ func readString(v string) (value, rest string, err error) {
 		if end < 0 {
 			return "", "", errors.New("unterminated string")
 		}
-		return v[1 : 1+end], v[2+end:], nil
+		out := v[1 : 1+end]
+		if !utf8.ValidString(out) {
+			return "", "", errors.New("string is not valid UTF-8")
+		}
+		return out, v[2+end:], nil
 	case '"':
 		var b strings.Builder
 		for i := 1; i < len(v); i++ {
 			switch c := v[i]; c {
 			case '"':
-				return b.String(), v[i+1:], nil
+				out := b.String()
+				if !utf8.ValidString(out) {
+					return "", "", errors.New("string is not valid UTF-8")
+				}
+				return out, v[i+1:], nil
 			case '\\':
 				i++
 				if i >= len(v) {

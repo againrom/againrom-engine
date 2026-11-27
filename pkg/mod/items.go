@@ -250,7 +250,17 @@ func writeStrings(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, fileError(rel, err)
 	}
-	pair := func(key, value, eol string) string { return writeString(key) + " = " + writeString(value) + eol }
+	pair := func(key, value, eol string) (string, error) {
+		qk, err := writeString(key)
+		if err != nil {
+			return "", err
+		}
+		qv, err := writeString(value)
+		if err != nil {
+			return "", err
+		}
+		return qk + " = " + qv + eol, nil
+	}
 	var added []string
 	for k := range want {
 		if err := CheckTextKey(k); err != nil {
@@ -277,11 +287,19 @@ func writeStrings(rel string, source []byte, d Data) ([]byte, error) {
 				_, rest, _ := readString(t)
 				end = len(line) - len(rest)
 			}
-			if _, err := rewritePair(lines, p.line-1, len(bom)+end, writeString(v)); err != nil {
+			q, err := writeString(v)
+			if err != nil {
+				return nil, fileError(rel, fmt.Errorf("line %d: %w", p.line, err))
+			}
+			if _, err := rewritePair(lines, p.line-1, len(bom)+end, q); err != nil {
 				return nil, fileError(rel, fmt.Errorf("line %d: %w", p.line, err))
 			}
 		case len(added) > 0:
-			lines[p.line-1], added = bom+pair(added[0], want[added[0]], eol), added[1:]
+			row, err := pair(added[0], want[added[0]], eol)
+			if err != nil {
+				return nil, &ItemFileError{File: rel, Msg: err.Error()}
+			}
+			lines[p.line-1], added = bom+row, added[1:]
 		default:
 			lines[p.line-1] = bom
 		}
@@ -291,7 +309,11 @@ func writeStrings(rel string, source []byte, d Data) ([]byte, error) {
 		if out != "" && !strings.HasSuffix(out, "\n") {
 			out += "\n"
 		}
-		out += pair(k, want[k], "\n")
+		row, err := pair(k, want[k], "\n")
+		if err != nil {
+			return nil, &ItemFileError{File: rel, Msg: err.Error()}
+		}
+		out += row
 	}
 	back, err := ParseStrings(rel, []byte(out))
 	if err != nil {

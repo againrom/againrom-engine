@@ -15,8 +15,15 @@ func writeCompanions(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	after := companionSourceRows(d.Companions.Joins)
-	out, err := writeRows(source, companionSourceRows(before.Joins), after, func(key string) string { return key })
+	was, err := companionSourceRows(before.Joins)
+	if err != nil {
+		return nil, err
+	}
+	after, err := companionSourceRows(d.Companions.Joins)
+	if err != nil {
+		return nil, err
+	}
+	out, err := writeRows(source, was, after, func(key string) string { return key })
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +31,11 @@ func writeCompanions(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !sameRows(companionSourceRows(back.Joins), after) {
+	again, err := companionSourceRows(back.Joins)
+	if err != nil {
+		return nil, err
+	}
+	if !sameRows(again, after) {
 		return nil, fmt.Errorf("%s: the written rows do not read back as the rows given", rel)
 	}
 	return out, nil
@@ -32,7 +43,7 @@ func writeCompanions(rel string, source []byte, d Data) ([]byte, error) {
 
 // companionSourceRows is the conditions as the row writer sees them: a kept
 // condition is matched by its line, and writes the keys its record sets.
-func companionSourceRows(joins []CompanionJoin) []sourceRow {
+func companionSourceRows(joins []CompanionJoin) ([]sourceRow, error) {
 	rows, lines := make([]sourceRow, len(joins)), make([]int, len(joins))
 	for i, j := range joins {
 		pairs := []missionPair{{"companion", strconv.Itoa(j.Companion)}, {"chapter", strconv.Itoa(j.Chapter)}}
@@ -43,10 +54,18 @@ func companionSourceRows(joins []CompanionJoin) []sourceRow {
 				return slices.ContainsFunc(j.PatchFields(), func(f PatchField) bool { return f.Name == name })
 			}
 			if set("key") {
-				pairs = append(pairs, missionPair{"key", strconv.Quote(j.Key)})
+				q, err := writeString(j.Key)
+				if err != nil {
+					return nil, fmt.Errorf("key: %w", err)
+				}
+				pairs = append(pairs, missionPair{"key", q})
 			}
 			if set("building") {
-				pairs = append(pairs, missionPair{"building", strconv.Quote(j.Building)})
+				q, err := writeString(j.Building)
+				if err != nil {
+					return nil, fmt.Errorf("building: %w", err)
+				}
+				pairs = append(pairs, missionPair{"building", q})
 			}
 			if set("talk") {
 				pairs = append(pairs, missionPair{"talk", strconv.Itoa(j.Talk)})
@@ -55,5 +74,5 @@ func companionSourceRows(joins []CompanionJoin) []sourceRow {
 		rows[i], lines[i] = sourceRow{table: "join", pairs: pairs}, j.Line
 	}
 	numberRows(rows, lines)
-	return rows
+	return rows, nil
 }

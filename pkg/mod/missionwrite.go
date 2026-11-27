@@ -12,13 +12,29 @@ import (
 
 type missionPair struct{ key, value string }
 
-func missionPairs(m Mission) []missionPair {
-	p := []missionPair{{"key", strconv.Quote(m.Key)}, {"number", strconv.Itoa(m.Number)}, {"map", strconv.Quote(m.declared(m.Map, m.mapTemplate))}}
+func missionPairs(m Mission) ([]missionPair, error) {
+	var firstErr error
+	str := func(key, value string) string {
+		if firstErr != nil {
+			return ""
+		}
+		q, err := writeString(value)
+		if err != nil {
+			firstErr = fmt.Errorf("%s: %w", key, err)
+			return ""
+		}
+		return q
+	}
+	if m.Off {
+		p := []missionPair{{"number", strconv.Itoa(m.Number)}, {"off", "true"}, {"kind", str("kind", m.Kind)}}
+		return p, firstErr
+	}
+	p := []missionPair{{"key", str("key", m.Key)}, {"number", strconv.Itoa(m.Number)}, {"map", str("map", m.declared(m.Map, m.mapTemplate))}}
 	if m.Kind == MissionReplace {
-		p = append([]missionPair{{"kind", strconv.Quote(m.Kind)}}, p...)
+		p = append([]missionPair{{"kind", str("kind", m.Kind)}}, p...)
 	}
 	if m.Kind == MissionCampaign {
-		p = append([]missionPair{{"kind", strconv.Quote(m.Kind)}}, p...)
+		p = append([]missionPair{{"kind", str("kind", m.Kind)}}, p...)
 		if m.Map == "" {
 			p = p[:len(p)-1]
 		}
@@ -29,12 +45,9 @@ func missionPairs(m Mission) []missionPair {
 	if m.Payment != nil {
 		p = append(p, missionPair{"Payment", strconv.Itoa(*m.Payment)})
 	}
-	if m.Off {
-		return []missionPair{{"number", strconv.Itoa(m.Number)}, {"off", "true"}, {"kind", strconv.Quote(m.Kind)}}
-	}
 	for _, v := range []missionPair{{"texts", m.declared(m.Texts, m.textsTemplate)}, {"title", m.TitleKey}, {"briefing", m.BriefKey}} {
 		if v.value != "" {
-			p = append(p, missionPair{v.key, writeString(v.value)})
+			p = append(p, missionPair{v.key, str(v.key, v.value)})
 		}
 	}
 	if !m.Campaign() || m.GuestParty() || m.MainParty {
@@ -43,17 +56,19 @@ func missionPairs(m Mission) []missionPair {
 		}
 		for _, v := range []missionPair{{"class", m.Class}, {"sex", m.Sex}} {
 			if v.value != "" {
-				p = append(p, missionPair{v.key, strconv.Quote(v.value)})
+				p = append(p, missionPair{v.key, str(v.key, v.value)})
 			}
 		}
 		if m.MainParty {
-			p = append(p, missionPair{"party", strconv.Quote("main")})
+			p = append(p, missionPair{"party", str("party", "main")})
 		} else if len(m.Party) != 0 {
 			var members []string
 			for _, g := range m.Party {
-				fields := []string{"character = " + strconv.Quote(g.Character)}
+				var fields []string
 				if g.Hero {
 					fields = []string{"hero = true"}
+				} else {
+					fields = []string{"character = " + str("party.character", g.Character)}
 				}
 				if g.Level != 0 {
 					fields = append(fields, "level = "+strconv.Itoa(g.Level))
@@ -63,21 +78,21 @@ func missionPairs(m Mission) []missionPair {
 					value *string
 				}{{"weapon", g.Weapon}, {"shield", g.Shield}} {
 					if f.value != nil {
-						fields = append(fields, f.key+" = "+strconv.Quote(*f.value))
+						fields = append(fields, f.key+" = "+str("party."+f.key, *f.value))
 					}
 				}
 				if g.Armour != nil {
-					var a []string
-					for _, item := range g.Armour {
-						a = append(a, strconv.Quote(item))
+					q, err := writeStringList(g.Armour)
+					if err != nil && firstErr == nil {
+						firstErr = fmt.Errorf("party.armour: %w", err)
 					}
-					fields = append(fields, "armour = ["+strings.Join(a, ", ")+"]")
+					fields = append(fields, "armour = "+q)
 				}
 				if g.Skills != 0 {
 					fields = append(fields, "skills = "+strconv.Itoa(g.Skills))
 				}
 				if g.Spells != "" {
-					fields = append(fields, "spells = "+strconv.Quote(g.Spells))
+					fields = append(fields, "spells = "+str("party.spells", g.Spells))
 				}
 				members = append(members, "{ "+strings.Join(fields, ", ")+" }")
 			}
@@ -85,14 +100,14 @@ func missionPairs(m Mission) []missionPair {
 		} else {
 			p = append(p, missionPair{"guest", strconv.Itoa(m.Guest)}, missionPair{"chapter", strconv.Itoa(m.Chapter)})
 			if m.Carry != "" && m.Carry != CarryJoin {
-				p = append(p, missionPair{"carry", strconv.Quote(m.Carry)})
+				p = append(p, missionPair{"carry", str("carry", m.Carry)})
 			}
 		}
 		if m.Gold != 0 {
 			p = append(p, missionPair{"gold", strconv.Itoa(m.Gold)})
 		}
 	}
-	return p
+	return p, firstErr
 }
 
 // declared is the path a row writes for value: its declared template when
@@ -117,14 +132,26 @@ func missionIdentity(m Mission) string {
 // takes no row, so it is left out of both.
 func WriteMissions(source []byte, before, after []Mission) ([]byte, error) {
 	before, after = missionRows(before), missionRows(after)
-	sourced := func(list []Mission) []sourceRow {
+	sourced := func(list []Mission) ([]sourceRow, error) {
 		out := make([]sourceRow, len(list))
 		for i, m := range list {
-			out[i] = sourceRow{table: "mission", identity: missionIdentity(m), pairs: missionPairs(m)}
+			pairs, err := missionPairs(m)
+			if err != nil {
+				return nil, err
+			}
+			out[i] = sourceRow{table: "mission", identity: missionIdentity(m), pairs: pairs}
 		}
-		return out
+		return out, nil
 	}
-	return writeRows(source, sourced(before), sourced(after), func(key string) string {
+	was, err := sourced(before)
+	if err != nil {
+		return nil, err
+	}
+	next, err := sourced(after)
+	if err != nil {
+		return nil, err
+	}
+	return writeRows(source, was, next, func(key string) string {
 		if strings.Contains("|key|number|map|texts|after|guest|chapter|", "|"+key+"|") {
 			key += strings.Repeat(" ", 7-len(key))
 		}
@@ -292,7 +319,11 @@ func RewriteValues(source []byte, edits []ValueEdit) ([]byte, error) {
 		if e.Line < 1 || e.Line > len(lines) {
 			return nil, fmt.Errorf("line %d is not in the file", e.Line)
 		}
-		if _, err := rewritePair(lines, e.Line-1, 0, writeString(e.Value)); err != nil {
+		q, err := writeString(e.Value)
+		if err != nil {
+			return nil, fmt.Errorf("line %d: %w", e.Line, err)
+		}
+		if _, err := rewritePair(lines, e.Line-1, 0, q); err != nil {
 			return nil, fmt.Errorf("line %d: %w", e.Line, err)
 		}
 	}

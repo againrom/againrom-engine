@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"againrom/pkg/town"
 )
@@ -51,7 +50,7 @@ type townKey struct {
 	name  string
 	read  func(file string, p tomlPair, e *town.Entry) error
 	copy  func(dst *town.Entry, src town.Entry)
-	write func(e town.Entry) (string, bool)
+	write func(e town.Entry) (string, bool, error)
 }
 
 // townKeys are the catalog entry's fields a [[town]] table sets, in the
@@ -67,8 +66,11 @@ var townKeys = []townKey{
 			e.MapPoint, err = townMapPoint(file, p)
 			return err
 		},
-		copy:  func(dst *town.Entry, src town.Entry) { dst.MapPoint = src.MapPoint },
-		write: func(e town.Entry) (string, bool) { return writeTownMapPoint(e.MapPoint) },
+		copy: func(dst *town.Entry, src town.Entry) { dst.MapPoint = src.MapPoint },
+		write: func(e town.Entry) (string, bool, error) {
+			v, ok := writeTownMapPoint(e.MapPoint)
+			return v, ok, nil
+		},
 	},
 	townStringKey("name", func(e *town.Entry) *string { return &e.Name }),
 	{
@@ -78,7 +80,7 @@ var townKeys = []townKey{
 			return err
 		},
 		copy:  func(dst *town.Entry, src town.Entry) { dst.OpensAfter = src.OpensAfter },
-		write: func(e town.Entry) (string, bool) { return strconv.Itoa(e.OpensAfter), e.OpensAfter >= 0 },
+		write: func(e town.Entry) (string, bool, error) { return strconv.Itoa(e.OpensAfter), e.OpensAfter >= 0, nil },
 	},
 	{
 		name: "missions",
@@ -87,8 +89,8 @@ var townKeys = []townKey{
 			return err
 		},
 		copy: func(dst *town.Entry, src town.Entry) { dst.Missions = src.Missions },
-		write: func(e town.Entry) (string, bool) {
-			return writeIntList(e.Missions), !slices.ContainsFunc(e.Missions, func(n int) bool { return n < 1 })
+		write: func(e town.Entry) (string, bool, error) {
+			return writeIntList(e.Missions), !slices.ContainsFunc(e.Missions, func(n int) bool { return n < 1 }), nil
 		},
 	},
 	{
@@ -97,8 +99,11 @@ var townKeys = []townKey{
 			e.Cite, err = stringList(file, p)
 			return err
 		},
-		copy:  func(dst *town.Entry, src town.Entry) { dst.Cite = src.Cite },
-		write: func(e town.Entry) (string, bool) { return writeStringList(e.Cite) },
+		copy: func(dst *town.Entry, src town.Entry) { dst.Cite = src.Cite },
+		write: func(e town.Entry) (string, bool, error) {
+			v, err := writeStringList(e.Cite)
+			return v, err == nil, err
+		},
 	},
 }
 
@@ -129,12 +134,13 @@ func townStringKey(name string, field func(*town.Entry) *string) townKey {
 			return err
 		},
 		copy: func(dst *town.Entry, src town.Entry) { *field(dst) = *field(&src) },
-		write: func(e town.Entry) (string, bool) {
+		write: func(e town.Entry) (string, bool, error) {
 			s := *field(&e)
 			if strings.TrimSpace(s) == "" {
-				return "", false
+				return "", false, nil
 			}
-			return writeTOMLString(s)
+			v, err := writeString(s)
+			return v, err == nil, err
 		},
 	}
 }
@@ -659,7 +665,11 @@ func WriteTowns(head []string, entries []town.Entry, rows ...town.OfferRow) ([]b
 		}
 		fmt.Fprintf(&b, "[[town]]\n%-11s = %d\n", "id", e.ID)
 		for _, k := range townKeys {
-			if v, ok := k.write(e); ok {
+			v, ok, err := k.write(e)
+			if err != nil {
+				return nil, fmt.Errorf("town %d: %s: %w", e.ID, k.name, err)
+			}
+			if ok {
 				fmt.Fprintf(&b, "%-11s = %s\n", k.name, v)
 			}
 		}
@@ -770,7 +780,10 @@ func townPairs(r TownRecord) ([]missionPair, error) {
 		if !slices.ContainsFunc(r.Fields, func(f PatchField) bool { return f.Name == k.name }) {
 			continue
 		}
-		v, ok := k.write(r.Entry)
+		v, ok, err := k.write(r.Entry)
+		if err != nil {
+			return nil, fmt.Errorf("town %d: %s: %w", r.Entry.ID, k.name, err)
+		}
 		if !ok {
 			return nil, fmt.Errorf("town %d: %s holds no value %s can write", r.Entry.ID, k.name, TownsFile)
 		}
@@ -862,49 +875,12 @@ func WriteTownData(source []byte, before, after TownData) ([]byte, error) {
 // the one column of the offer rows of a towns file.
 func offerRowsPad(key string) string { return fmt.Sprintf("%-7s", key) }
 
-// writeTOMLString is s as a basic string readString reads back; false for
-// text that is not UTF-8 or holds a control character other than tab.
-func writeTOMLString(s string) (string, bool) {
-	if !utf8.ValidString(s) {
-		return "", false
-	}
-	var b strings.Builder
-	b.WriteByte('"')
-	for _, r := range s {
-		switch {
-		case r == '"' || r == '\\':
-			b.WriteByte('\\')
-			b.WriteRune(r)
-		case r == '\t':
-			b.WriteString(`\t`)
-		case r < 0x20 || r == 0x7f:
-			return "", false
-		default:
-			b.WriteRune(r)
-		}
-	}
-	b.WriteByte('"')
-	return b.String(), true
-}
-
 func writeIntList(list []int) string {
 	parts := make([]string, len(list))
 	for i, n := range list {
 		parts[i] = strconv.Itoa(n)
 	}
 	return "[" + strings.Join(parts, ", ") + "]"
-}
-
-func writeStringList(list []string) (string, bool) {
-	parts := make([]string, len(list))
-	for i, s := range list {
-		q, ok := writeTOMLString(s)
-		if !ok {
-			return "", false
-		}
-		parts[i] = q
-	}
-	return "[" + strings.Join(parts, ", ") + "]", true
 }
 
 // writeTownMapPoint is p as the inline table townMapPoint reads; false when

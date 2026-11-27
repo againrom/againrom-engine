@@ -161,22 +161,42 @@ func writeTerrain(_ string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows := func(groups []TerrainGroup) []sourceRow {
+	rows := func(groups []TerrainGroup) ([]sourceRow, error) {
 		out := make([]sourceRow, len(groups))
 		for i, g := range groups {
 			kind := ""
 			if g.Class >= 1 && int(g.Class) <= len(TerrainKinds) {
 				kind = TerrainKinds[g.Class-1]
 			}
-			pairs := []missionPair{{"group", strconv.Itoa(g.Group)}, {"kind", strconv.Quote(kind)}, {"name", strconv.Quote(g.Name)}}
+			qKind, err := writeString(kind)
+			if err != nil {
+				return nil, fmt.Errorf("group %d: kind: %w", g.Group, err)
+			}
+			qName, err := writeString(g.Name)
+			if err != nil {
+				return nil, fmt.Errorf("group %d: name: %w", g.Group, err)
+			}
+			pairs := []missionPair{{"group", strconv.Itoa(g.Group)}, {"kind", qKind}, {"name", qName}}
 			if g.HasMinimap {
-				pairs = append(pairs, missionPair{"minimap", strconv.Quote(TerrainColour(g.Minimap))})
+				qMinimap, err := writeString(TerrainColour(g.Minimap))
+				if err != nil {
+					return nil, fmt.Errorf("group %d: minimap: %w", g.Group, err)
+				}
+				pairs = append(pairs, missionPair{"minimap", qMinimap})
 			}
 			out[i] = sourceRow{table: "group", identity: strconv.Itoa(g.Group), pairs: pairs}
 		}
-		return out
+		return out, nil
 	}
-	out, err := writeRows(source, rows(before.Groups), rows(d.Terrain.Groups), func(key string) string { return key })
+	was, err := rows(before.Groups)
+	if err != nil {
+		return nil, err
+	}
+	next, err := rows(d.Terrain.Groups)
+	if err != nil {
+		return nil, err
+	}
+	out, err := writeRows(source, was, next, func(key string) string { return key })
 	if err != nil {
 		return nil, err
 	}

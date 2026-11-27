@@ -174,8 +174,15 @@ func writeGlobals(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	after := globalSourceRows(d.Globals.Globals)
-	out, err := writeRows(source, globalSourceRows(before.Globals), after, func(key string) string { return key })
+	was, err := globalSourceRows(before.Globals)
+	if err != nil {
+		return nil, err
+	}
+	after, err := globalSourceRows(d.Globals.Globals)
+	if err != nil {
+		return nil, err
+	}
+	out, err := writeRows(source, was, after, func(key string) string { return key })
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +190,11 @@ func writeGlobals(rel string, source []byte, d Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !sameRows(globalSourceRows(back.Globals), after) {
+	again, err := globalSourceRows(back.Globals)
+	if err != nil {
+		return nil, err
+	}
+	if !sameRows(again, after) {
 		return nil, fmt.Errorf("%s: the written rows do not read back as the rows given", rel)
 	}
 	return out, nil
@@ -191,19 +202,27 @@ func writeGlobals(rel string, source []byte, d Data) ([]byte, error) {
 
 // globalSourceRows is the globals as the row writer sees them: a global is
 // named by its id and writes its name, a non-zero initial and its notes.
-func globalSourceRows(list []Global) []sourceRow {
+func globalSourceRows(list []Global) ([]sourceRow, error) {
 	rows := make([]sourceRow, len(list))
 	for i, g := range list {
-		pairs := []missionPair{{"id", strconv.Itoa(int(g.ID))}, {"name", writeString(g.Name)}}
+		name, err := writeString(g.Name)
+		if err != nil {
+			return nil, fmt.Errorf("global %d: name: %w", g.ID, err)
+		}
+		pairs := []missionPair{{"id", strconv.Itoa(int(g.ID))}, {"name", name}}
 		if g.Initial != 0 {
 			pairs = append(pairs, missionPair{"initial", strconv.Itoa(int(g.Initial))})
 		}
 		for _, l := range locale.All() {
 			if v, ok := g.Notes[l.Code]; ok {
-				pairs = append(pairs, missionPair{l.Code, writeString(v)})
+				q, err := writeString(v)
+				if err != nil {
+					return nil, fmt.Errorf("global %d: %s: %w", g.ID, l.Code, err)
+				}
+				pairs = append(pairs, missionPair{l.Code, q})
 			}
 		}
 		rows[i] = sourceRow{table: "global", identity: strconv.Itoa(int(g.ID)), pairs: pairs}
 	}
-	return rows
+	return rows, nil
 }
