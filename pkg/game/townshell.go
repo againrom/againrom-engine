@@ -514,19 +514,6 @@ func (t *townScreen) trainHeroSkillValues(slot int) string {
 	if handled, message := t.trainOriginalCityFighter(slot, m); handled {
 		return message
 	}
-	if mapload.HasSourceActor(*m) {
-		next, price, err := mapload.TrainSourceParty(*m, slot, mapload.TableRules(t.in.Table))
-		if err != nil {
-			return "cannot train that skill"
-		}
-		if !t.sess.Town.spend(int(price)) {
-			return fmt.Sprintf("training costs %d", price)
-		}
-		*m = next
-		refreshDerivedPartyBook(m, t.in.Table)
-		t.composeShopFaces()
-		return fmt.Sprintf("trained %s to %d for %d", schoolSkillName(m.Mage, slot), m.Hero.Skill[slot], price)
-	}
 	price := schoolPrice(m.Hero.Skill[slot])
 	xp, err := rules.SchoolTrainedXP(m.Hero.Skill[slot] + 1)
 	if price <= 0 || err != nil {
