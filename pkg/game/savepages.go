@@ -221,27 +221,11 @@ func saveFileBase(label string) string {
 	if s == "" {
 		return ""
 	}
-	stem := s
-	if i := strings.IndexByte(stem, '.'); i >= 0 {
-		stem = stem[:i]
-	}
-	if isDeviceName(strings.TrimRight(stem, " ")) {
+	if namefold.WindowsReserved(s) {
+		stem, _, _ := strings.Cut(s, ".")
 		s = stem + "_" + s[len(stem):]
 	}
 	return s
-}
-
-// isDeviceName reports a Windows reserved device name in any case.
-func isDeviceName(stem string) bool {
-	switch up := namefold.HostUpper(stem); up {
-	case "CON", "PRN", "AUX", "NUL":
-		return true
-	default:
-		if len(up) == 4 && (strings.HasPrefix(up, "COM") || strings.HasPrefix(up, "LPT")) {
-			return up[3] >= '1' && up[3] <= '9'
-		}
-	}
-	return false
 }
 
 // saveSlotNumber reads name characters 4..7 as four decimal digits.

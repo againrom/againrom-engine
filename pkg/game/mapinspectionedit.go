@@ -1370,24 +1370,7 @@ func editorOrdinaryFilename(name string) bool {
 	if !filepath.IsLocal(name) || strings.Contains(name, ":") {
 		return false
 	}
-	stem, _, _ := strings.Cut(name, ".")
-	stem = namefold.HostUpper(strings.TrimRight(stem, " "))
-	switch stem {
-	case "CON", "PRN", "AUX", "NUL", "CLOCK$", "CONIN$", "CONOUT$":
-		return false
-	}
-	for _, prefix := range []string{"COM", "LPT"} {
-		if strings.HasPrefix(stem, prefix) {
-			tail := []rune(strings.TrimPrefix(stem, prefix))
-			if len(tail) == 1 {
-				r := tail[0]
-				if r >= '0' && r <= '9' || r == 0xb9 || r == 0xb2 || r == 0xb3 {
-					return false
-				}
-			}
-		}
-	}
-	return true
+	return !namefold.WindowsReserved(name)
 }
 
 // preservedPairRoots are the sibling installs, one per locale code, of an

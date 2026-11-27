@@ -38,17 +38,9 @@ func (x *MapInspector) profileFolder(name string) (string, *runtimeProfileAccess
 }
 
 // hostFolderName reports whether every host keeps a folder named id: Windows
-// keeps none that ends in a dot or whose name before its first dot is a device.
+// keeps none that ends in a dot or is a reserved device name.
 func hostFolderName(id string) bool {
-	stem, _, _ := strings.Cut(id, ".")
-	switch stem {
-	case "con", "prn", "aux", "nul":
-		return false
-	}
-	if len(stem) == 4 && (stem[:3] == "com" || stem[:3] == "lpt") && stem[3] >= '0' && stem[3] <= '9' {
-		return false
-	}
-	return !strings.HasSuffix(id, ".")
+	return !strings.HasSuffix(id, ".") && !namefold.WindowsReserved(id)
 }
 
 // proposedModFolder is the working folder the mod window proposes for a mod

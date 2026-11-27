@@ -53,9 +53,7 @@ func namedSaveBase(name string) (validatedSaveName, error) {
 			return "", fmt.Errorf("save name contains a control character")
 		}
 	}
-	device := namefold.HostUpper(strings.SplitN(name, ".", 2)[0])
-	if device == "CON" || device == "PRN" || device == "AUX" || device == "NUL" ||
-		len(device) == 4 && (strings.HasPrefix(device, "COM") || strings.HasPrefix(device, "LPT")) && device[3] >= '0' && device[3] <= '9' {
+	if namefold.WindowsReserved(name) {
 		return "", fmt.Errorf("save name is reserved by the operating system")
 	}
 	return validatedSaveName(name), nil

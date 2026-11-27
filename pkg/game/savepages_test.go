@@ -66,7 +66,7 @@ func TestSecondSaveSlotNamesTheFileByTheTypedLabel(t *testing.T) {
 		{"NUL", "NUL_.sav"},
 		{"Com1", "Com1_.sav"},
 		{"lpt9.x", "lpt9_.x.sav"},
-		{"com0", "com0.sav"},
+		{"com0", "com0_.sav"},
 		{"console", "console.sav"},
 		{"", "game0000.sav"},
 		{"...", "game0000.sav"},
