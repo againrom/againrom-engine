@@ -19,7 +19,7 @@ import (
 // guestRow is the default guest row of mod id among the rows of d: Add and Make
 // mission both build their guest from it, and name the map themselves.
 func (s *mapInspectionEdits) guestRow(d *editorModDocument, id string) (mod.Mission, error) {
-	c, err := LoadCampaign(s.inspector.archives.Containers)
+	c, err := s.inspector.loadCampaign()
 	if err != nil {
 		return mod.Mission{}, err
 	}

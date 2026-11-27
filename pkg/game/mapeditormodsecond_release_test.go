@@ -154,3 +154,21 @@ func TestReleaseSecondGameModListsTheInstallMissions(t *testing.T) {
 	}
 	t.Fatalf("no replace button among %+v", actions)
 }
+
+func TestReleaseEditorCampaignReadFollowsTheInstallGame(t *testing.T) {
+	x := installedInspector(t)
+	want, wantErr := campaignOf(x.archives.Game()).loadCampaign(x.archives.Containers)
+	got, gotErr := x.loadCampaign()
+	if (wantErr == nil) != (gotErr == nil) || len(want.Main) != len(got.Main) || len(want.Chapters) != len(got.Chapters) {
+		t.Fatalf("editor read %d missions %d chapters, err %v; game reader %d, %d, err %v",
+			len(got.Main), len(got.Chapters), gotErr, len(want.Main), len(want.Chapters), wantErr)
+	}
+	if !x.installGame().Edition().HasRegistry() {
+		if gotErr != nil {
+			t.Fatalf("a game with no registry read an error: %v", gotErr)
+		}
+		if c, err := x.installCampaign(); err != nil || len(c.Main) == 0 {
+			t.Fatalf("install missions %v: %v", c.Main, err)
+		}
+	}
+}

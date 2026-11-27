@@ -41,7 +41,7 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 			if x.archives == nil || x.archives.Containers == nil {
 				break
 			}
-			c, e := LoadCampaign(x.archives.Containers)
+			c, e := x.loadCampaign()
 			if e == nil {
 				for _, n := range c.Main {
 					if _, _, ok := c.opensTown(n); ok {
@@ -61,7 +61,7 @@ func (s *mapInspectionEdits) modFields(out []ui.InspectionField) []ui.Inspection
 				if x.archives == nil || x.archives.Containers == nil {
 					break
 				}
-				c, e := LoadCampaign(x.archives.Containers)
+				c, e := x.loadCampaign()
 				if e == nil {
 					if chapter, ok := c.Chapters[p.Chapter]; ok {
 						for _, id := range chapter.AddHero {
@@ -341,7 +341,7 @@ func (x *MapInspector) modFieldLabel(key string) string {
 }
 
 func (s *mapInspectionEdits) modDestination(w *editorWorkspaceState) (int, bool) {
-	c, err := LoadCampaign(s.inspector.archives.Containers)
+	c, err := s.inspector.loadCampaign()
 	if err != nil {
 		return 0, false
 	}

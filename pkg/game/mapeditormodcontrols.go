@@ -120,7 +120,7 @@ func (s *mapInspectionEdits) editModControl(w *editorWorkspaceState, key, value 
 			if len(p.Party) == 0 {
 				n := p.Guest
 				if n == 0 {
-					c, e := LoadCampaign(s.inspector.archives.Containers)
+					c, e := s.inspector.loadCampaign()
 					if e != nil {
 						return e
 					}
@@ -135,7 +135,7 @@ func (s *mapInspectionEdits) editModControl(w *editorWorkspaceState, key, value 
 			p.Guest, p.Chapter = 0, 0
 		} else if value == "0" {
 			p.Party = nil
-			c, e := LoadCampaign(s.inspector.archives.Containers)
+			c, e := s.inspector.loadCampaign()
 			if e != nil {
 				return e
 			}

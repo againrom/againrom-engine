@@ -264,12 +264,16 @@ func (s *mapInspectionEdits) draftModContext(w *editorWorkspaceState) error {
 	return nil
 }
 
+func (x *MapInspector) loadCampaign() (Campaign, error) {
+	return campaignOf(x.installGame()).loadCampaign(x.archives.Containers)
+}
+
 // installCampaign is the install's campaign as the editor reads it: the
 // registry's, or for a game whose campaign is a scenario bank with no
 // registry file, the missions its archive holds maps of.
 func (x *MapInspector) installCampaign() (Campaign, error) {
-	c, err := LoadCampaign(x.archives.Containers)
-	if err == nil || x.installGame().Edition().HasRegistry() {
+	c, err := x.loadCampaign()
+	if x.installGame().Edition().HasRegistry() {
 		return c, err
 	}
 	for _, e := range x.Maps {
