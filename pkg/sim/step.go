@@ -414,6 +414,7 @@ type Report struct {
 	ItemGrants       []ItemGrant
 	// ShopUses names each first-game Shop structure use completed this step.
 	ShopUses []StructureUse
+	Visits   []BuildingVisit
 }
 
 // StepReported is Step with all observations reported. StepObserved is this
@@ -424,7 +425,7 @@ func StepReported(w *World, cmds []Command) Report {
 	return Report{Tick: w.Tick(), ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
 		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, CreatedActors: obs.createdActors,
 		FlightStarts: obs.flightStarts, ProjectilePhases: obs.projectilePhases, ProjectileMarks: obs.projectileMarks, PurseCredits: obs.purseCredits,
-		ItemGrants: obs.itemGrants, ShopUses: obs.shopUses}
+		ItemGrants: obs.itemGrants, ShopUses: obs.shopUses, Visits: obs.visits}
 }
 
 // StepWithdrawalTraced is Step with the successful phase-6 withdrawal
@@ -807,6 +808,8 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			}
 		case KindReturnHero:
 			w.returnHero(i, CellPoint{X: c.X, Y: c.Y})
+		case KindLeaveBuilding:
+			w.leaveBuilding(i)
 		}
 		// A kind this build does not define reaches no arm and is ignored,
 		// exactly as an absent entity is. A default that errored would make the

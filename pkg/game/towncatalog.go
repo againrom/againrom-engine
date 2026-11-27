@@ -294,6 +294,19 @@ func TownCatalog(p base.Profile) *town.Catalog { return townBookOf(p).entries() 
 // when it names none.
 func townBookOf(p base.Profile) *townBook { return townBooks[p.Edition().Towns] }
 
+func (b *townBook) hasBank() bool {
+	c := b.entries()
+	if c == nil {
+		return false
+	}
+	for _, e := range c.Towns {
+		if e.Offers == townOffersScenarioBank {
+			return true
+		}
+	}
+	return false
+}
+
 func (b *townBook) entries() *town.Catalog {
 	if b == nil {
 		return nil

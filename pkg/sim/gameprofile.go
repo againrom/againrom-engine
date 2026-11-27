@@ -88,7 +88,8 @@ type gameProfile struct {
 	nativeTargetOrders bool
 	// shopUse: a shop structure takes the ordinary use, not the
 	// recorded shop use.
-	shopUse shopUseRule
+	shopUse   shopUseRule
+	buildings buildingKinds
 
 	// nativeWalkRefusal keeps near-search give-up separate from a known
 	// empty-route result (R2-ENGINE-1108).
@@ -316,6 +317,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		return gameProfile{
 			dialect:             ScriptROM1,
 			sessionReturn:       sessionReturnPasses,
+			buildings:           firstGameBuildings,
 			dropsEmptyScript:    true,
 			scoreEffectSpell:    20,
 			blow:                firstGameBlow,
@@ -339,6 +341,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		buildingCasters:            buildingCastersBuilt,
 		outposts:                   true,
 		sessionReturn:              sessionReturnPasses,
+		buildings:                  secondGameBuildings,
 		scriptRows:                 secondGameRows,
 		dialect:                    ScriptROM2,
 		holdsScriptState:           true,

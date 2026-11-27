@@ -32,12 +32,13 @@ type missionRequest struct {
 // The entry reads it and never asks which filler wrote it.
 type mapEntry struct {
 	// admit names the map and its difficulty.
-	admit    func(rules campaignService, r missionRequest) (string, mapload.Difficulty, error)
-	hire     hireRule
-	mapFile  mapFileRule
-	fall     fallRule
-	exit     ui.GameMenuExit
-	outposts func(w *sim.World) sim.OutpostMap
+	admit     func(rules campaignService, r missionRequest) (string, mapload.Difficulty, error)
+	hire      hireRule
+	mapFile   mapFileRule
+	fall      fallRule
+	buildings buildingRule
+	exit      ui.GameMenuExit
+	outposts  func(w *sim.World) sim.OutpostMap
 	// advance wraps the driver's notices with what the map's end does next.
 	advance func(ports missionPorts, n int, ms *Mission, driver ui.MapAdvance) ui.MapAdvance
 	// seatCandidate seats a new game's candidate before the entry builds over it.
@@ -66,6 +67,11 @@ const (
 	fallDefeats fallRule = iota
 	fallReturns
 )
+
+type buildingRule struct {
+	visits bool
+	dealt  func(mw *mapWorld)
+}
 
 // fresh is a mission started rather than resumed.
 func (r missionRequest) fresh() bool { return r.snap == nil && r.prepare == nil }
@@ -96,17 +102,23 @@ func sessionEntry(s *mapSession) mapEntry {
 			diff, err := campaignDifficulty(int64(r.difficulty))
 			return s.entry.Source, diff, err
 		},
-		mapFile: mapLooseFile,
-		fall:    fallReturns,
-		exit:    ui.GameMenuExitLeavesMap,
+		mapFile:   mapLooseFile,
+		fall:      fallReturns,
+		buildings: buildingRule{visits: true, dealt: s.dealt},
+		exit:      ui.GameMenuExitLeavesMap,
 		outposts: func(w *sim.World) sim.OutpostMap {
 			return sim.OutpostMap{IgnoresGate: true, AnyOwner: true, KeepsID: true, ProfileReturn: true}
 		},
 		advance: func(_ missionPorts, _ int, ms *Mission, driver ui.MapAdvance) ui.MapAdvance {
 			return s.advance(ms, driver)
 		},
-		seatCandidate: func(*restoreCandidate, *missionRequest) error { return nil },
-		seatParty:     func(*missionRequest) error { return nil },
+		seatCandidate: func(c *restoreCandidate, _ *missionRequest) error {
+			if s.bank {
+				c.town.second = newSecondCampaign()
+			}
+			return nil
+		},
+		seatParty: func(*missionRequest) error { return nil },
 	}
 }
 
@@ -227,6 +239,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	if r.fill.outposts != nil && r.fresh() {
 		ms.World.DeclareOutposts(r.fill.outposts(ms.World))
 	}
+	ms.World.SetBuildingVisits(r.fill.buildings.visits, ms.Start.IDs)
 	err = seatWorld(r, ports.rules(), ports.install.missionTable(), ms, mv.Viewer)
 	if err != nil {
 		return preparedMap{}, err
@@ -258,6 +271,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	mw.cheats.difficulty = diff
 	mw.cheats.campaign = ports.rules().chatCampaign(r.town)
 	mw.mission.fall = r.fill.fall
+	mw.mission.buildings = r.fill.buildings
 	mv.Viewer.SetGameMenuContext(func() ui.GameMenuContext {
 		ctx := gameMenuContext(mw, true, ports.install.missionBriefing(r.n))
 		ctx.Exit = r.fill.exit

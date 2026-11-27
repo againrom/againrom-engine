@@ -891,6 +891,7 @@ type missionNotices struct {
 	departed map[sim.EntityID]bool
 
 	fall          fallRule
+	buildings     buildingRule
 	returnCell    mapload.Cell
 	hasReturnCell bool
 	returnOffered bool
@@ -1241,6 +1242,9 @@ func (mw *mapWorld) syncJoinedHeroes() {
 	}
 	first := len(mw.mission.party)
 	mw.mission.party, mw.mission.ids = party, ids
+	if mw.mission.buildings.visits {
+		mw.world.SetBuildingVisits(true, ids)
+	}
 	mw.mission.state.Party = party
 	mw.mission.state.Start.IDs = ids
 	for i := first; i < len(party) && i < len(ids); i++ {
@@ -4264,6 +4268,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.observeScriptMessages(report.ScriptMessages)
 	mw.observeGrants(report.PurseCredits, report.ItemGrants)
 	mw.observeShopUses(report.ShopUses)
+	mw.observeVisits(report.Visits)
 	for _, observe := range reportSink {
 		observe(report)
 	}
@@ -4297,6 +4302,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.redressEquipped(equipped)
 	mw.redressLifeChanges(lives)
 	mw.settleHeroReturn()
+	mw.settleVisits()
 	mw.observeWeapons()
 	mw.skillRises()
 	// THE NOTICES ARE SETTLED HERE, once per step and immediately after it.
@@ -4864,9 +4870,13 @@ func (mw *mapWorld) structureDraws() []ui.MapStructure {
 	out := mw.structureStateScratch[:0]
 	owners := mw.structureOwnerSlots()
 	for _, s := range structures {
+		admit := interface{ Usable() bool }(s)
+		if mw.world.VisitsBuildings() {
+			admit = worldAdmission{mw.world, s}
+		}
 		out = append(out, ui.MapStructure{ID: uint32(s.ID), Health: s.Field42,
 			MaxHealth: s.MaxHealth, Cell: image.Pt(int(s.Col), int(s.Row)),
-			Kind: s.Kind, Owner: owners[s.ID], Size: image.Pt(int(s.Width), int(s.Height)), UseAdmission: s})
+			Kind: s.Kind, Owner: owners[s.ID], Size: image.Pt(int(s.Width), int(s.Height)), UseAdmission: admit})
 	}
 	mw.structureStateScratch = out
 	return out

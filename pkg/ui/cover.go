@@ -13,7 +13,7 @@ type CoverKind uint8
 const (
 	// CoverDocuments is the campaign documents panel.
 	CoverDocuments CoverKind = iota
-	// CoverShop is the town's Shop page opened by a Shop structure use.
+	// CoverShop is the town's page opened by a Shop or Inn use.
 	CoverShop
 	coverKinds
 )
@@ -139,6 +139,10 @@ func (v *Viewer) RaiseCover(kind CoverKind) {
 	if v != nil && kind < coverKinds {
 		v.coverRequests |= 1 << kind
 	}
+}
+
+func (v *Viewer) CoverRaised(kind CoverKind) bool {
+	return v != nil && kind < coverKinds && v.coverRequests&(1<<kind) != 0
 }
 
 // TakeCoverRequest reads the lowest-numbered standing request and clears it in

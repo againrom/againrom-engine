@@ -1,6 +1,7 @@
 package game
 
 import (
+	"slices"
 	"time"
 
 	"againrom/pkg/mapload"
@@ -15,7 +16,50 @@ import (
 type missionShopState struct {
 	customer sim.EntityID
 	waiting  bool
+	class    sim.VisitClass
+	town     int
 	stock    *Shop
+	open     bool
+	inside   []sim.EntityID
+}
+
+type worldAdmission struct {
+	w *sim.World
+	s sim.Structure
+}
+
+func (a worldAdmission) Usable() bool { return a.w.StructureUsable(a.s) }
+
+func (mw *mapWorld) observeVisits(visits []sim.BuildingVisit) {
+	if mw == nil || mw.mission == nil {
+		return
+	}
+	for _, v := range visits {
+		mw.shop.inside = append(mw.shop.inside, v.Entity)
+		if mw.managedMember(v.Entity) < 0 {
+			continue
+		}
+		mw.noteReturnCell(v.Entity)
+		if mw.view != nil {
+			mw.shop.customer, mw.shop.waiting, mw.shop.class, mw.shop.town = v.Entity, true, v.Class, v.Town
+			mw.view.RaiseCover(ui.CoverShop)
+		}
+	}
+}
+
+func (mw *mapWorld) settleVisits() {
+	s := &mw.shop
+	if len(s.inside) == 0 {
+		return
+	}
+	coming := s.waiting && mw.view != nil && mw.view.CoverRaised(ui.CoverShop)
+	if !s.open && !coming {
+		s.waiting = false
+		for _, id := range s.inside {
+			mw.pending = append(mw.pending, sim.LeaveBuilding(id))
+		}
+		s.inside = nil
+	}
 }
 
 // observeShopUses raises the Shop page for a Shop structure use by a member
@@ -27,7 +71,7 @@ func (mw *mapWorld) observeShopUses(uses []sim.StructureUse) {
 	for _, u := range uses {
 		if mw.managedMember(u.Entity) >= 0 {
 			mw.noteReturnCell(u.Entity)
-			mw.shop.customer, mw.shop.waiting = u.Entity, true
+			mw.shop.customer, mw.shop.waiting, mw.shop.class = u.Entity, true, sim.VisitShop
 			mw.view.RaiseCover(ui.CoverShop)
 		}
 	}
@@ -41,7 +85,60 @@ type missionShopVisit struct {
 	live  *mapWorld
 	hero  sim.EntityID
 	owner uint32
-	bag   []sim.ItemInstance
+	room  string
+	rule  *visitRule
+	pack  *[]sim.ItemInstance
+	end   func()
+}
+
+type visitRule struct {
+	rooms    map[sim.VisitClass]string
+	campaign bool
+	stock    func(t *townScreen) *Shop
+	seat     func(n *CampaignSession, stock *Shop, town int, pack []sim.ItemInstance) (*[]sim.ItemInstance, func())
+	view     func(table *mapload.Table, unit sim.ItemInstance) (sim.ItemInstance, bool)
+	world    func(table *mapload.Table, unit sim.ItemInstance) sim.ItemInstance
+	table    func(s *Shop, p ShopPlace) []sim.ItemInstance
+}
+
+func (r *visitRule) viewOf(table *mapload.Table, u sim.ItemInstance) (sim.ItemInstance, bool) {
+	if r.view == nil {
+		return u, true
+	}
+	return r.view(table, u)
+}
+
+func (r *visitRule) worldOf(table *mapload.Table, u sim.ItemInstance) sim.ItemInstance {
+	if r.world == nil {
+		return u
+	}
+	return r.world(table, u)
+}
+
+func (r *visitRule) placeUnits(s *Shop, p ShopPlace) []sim.ItemInstance {
+	if r.table != nil {
+		return r.table(s, p)
+	}
+	var out []sim.ItemInstance
+	for n := int32(0); n < p.ShopItem.Count; n++ {
+		out = append(out, p.ShopItem.Instance())
+	}
+	return out
+}
+
+var chapterVisits = visitRule{
+	rooms:    map[sim.VisitClass]string{sim.VisitShop: "shop"},
+	campaign: true,
+	stock: func(t *townScreen) *Shop {
+		if t.sess.Shop != nil {
+			return cloneShopMutation(t.sess.Shop)
+		}
+		return t.sess.Town.newShop(t.switches.townInstall(t.in))
+	},
+	seat: func(n *CampaignSession, stock *Shop, _ int, pack []sim.ItemInstance) (*[]sim.ItemInstance, func()) {
+		n.Shop = stock
+		return &pack, func() {}
+	},
 }
 
 // OpenMissionShop shows the town's Shop room for the waiting customer. The
@@ -50,14 +147,18 @@ type missionShopVisit struct {
 // its deal. The town is not open in it, so no offer speaks and no save is
 // admitted while the page shows.
 func (t *townScreen) OpenMissionShop() bool {
-	if t == nil || t.visit != nil || t.sess == nil || t.sess.Town == nil || !t.townShopProfile().missionVisits {
-		return false
-	}
-	if d := t.townDescription(); d == nil || d.Room("shop") == nil {
+	if t == nil || t.visit != nil || t.sess == nil || t.sess.live == nil {
 		return false
 	}
 	mw := t.sess.live
-	if mw == nil || mw.world == nil || mw.mission == nil || !mw.shop.waiting {
+	if t.sess.Town == nil {
+		mw.shop.waiting = false
+		return false
+	}
+	rule := &t.townShopProfile().visits
+	room := rule.rooms[mw.shop.class]
+	if room == "" || mw.world == nil || mw.mission == nil || !mw.shop.waiting ||
+		!rule.campaign && !mw.mission.buildings.visits {
 		return false
 	}
 	mw.shop.waiting = false
@@ -69,34 +170,42 @@ func (t *townScreen) OpenMissionShop() bool {
 		return false
 	}
 	if mw.shop.stock == nil {
-		if t.sess.Shop != nil {
-			mw.shop.stock = cloneShopMutation(t.sess.Shop)
-		} else {
-			mw.shop.stock = t.sess.Town.newShop(t.switches.townInstall(t.in))
+		if mw.shop.stock = rule.stock(t); mw.shop.stock == nil {
+			return false
 		}
 		mw.shop.stock.inputEpoch = new(byte)
 	}
 	owner := uint32(e.Owner)
-	v := &missionShopVisit{saved: *t, live: mw, hero: hero, owner: owner, bag: items}
+	v := &missionShopVisit{saved: *t, live: mw, hero: hero, owner: owner, room: room, rule: rule}
 	n := *t.sess
 	town := *t.sess.Town
 	town.cityObjects, town.open, town.gold = nil, false, int(mw.world.Purse(owner))
 	n.Town = &town
 	n.Carried = mapload.CarryParty(mw.mission.party[k:k+1], mw.world, []sim.EntityID{hero})
 	n.originalCity = nil
-	n.Shop = mw.shop.stock
+	var pack []sim.ItemInstance
+	for _, it := range items {
+		if u, ok := rule.viewOf(t.in.Table, it); ok {
+			pack = append(pack, u.Clone())
+		}
+	}
+	v.pack, v.end = rule.seat(&n, mw.shop.stock, mw.shop.town, pack)
 	t.visit, t.sess = v, &n
 	row := t.hostShopRow()
-	row.bag = func(*CampaignSession, int) *[]sim.ItemInstance { return &v.bag }
+	row.bag = func(*CampaignSession, int) *[]sim.ItemInstance { return v.pack }
 	row.settle = t.settleMissionDeal
 	row.wornFixed = true
+	row.host.leave = t.Back
 	t.bindShop(row)
 	t.shopMember = 0
-	t.squareView().EnterRoom("shop")
-	if t.room != roomShop {
+	if sv := t.squareView(); sv != nil {
+		sv.EnterRoom(room)
+	}
+	if t.roomName() != room {
 		t.dropMissionShop()
 		return false
 	}
+	mw.shop.open = true
 	return true
 }
 
@@ -108,7 +217,7 @@ func (t *townScreen) MissionShopOpen() bool { return t != nil && t.visit != nil 
 // before. The mission's pace restarts from the frame it resumes on.
 func (t *townScreen) closeMissionShop() bool {
 	v := t.visit
-	t.squareView().ExitRoom("shop")
+	t.squareView().ExitRoom(v.room)
 	t.commitMissionDeal(v)
 	t.dropMissionShop()
 	v.live.last = time.Time{}
@@ -121,7 +230,13 @@ func (t *townScreen) dropMissionShop() {
 	if v == nil {
 		return
 	}
-	v.live.shop.stock = t.sess.Shop
+	if t.row.dealOf != nil {
+		v.live.shop.stock = t.deal()
+	}
+	v.live.shop.open = false
+	if v.end != nil {
+		v.end()
+	}
 	t.destroyRoomAudio()
 	*t = v.saved
 	t.roomAudio, t.audioRoom = nil, ""
@@ -131,14 +246,14 @@ func (t *townScreen) dropMissionShop() {
 // mission's world. A deal the world refuses leaves the page as it stood.
 func (t *townScreen) settleMissionDeal(act func() ui.TownAction) ui.TownAction {
 	v := t.visit
-	shop, bag, gold := cloneShopMutation(t.sess.Shop), cloneItemInstances(v.bag), t.sess.Town.gold
+	shop, bag, gold := cloneShopMutation(t.deal()), cloneItemInstances(*v.pack), t.sess.Town.gold
 	a := act()
 	if t.visit != v {
 		return a
 	}
 	if !t.commitMissionDeal(v) {
-		t.sess.Shop, v.bag, t.sess.Town.gold = shop, bag, gold
-		v.live.shop.stock = shop
+		*t.deal(), *v.pack, t.sess.Town.gold = *shop, bag, gold
+		v.live.shop.stock = t.deal()
 		return ui.TownAction{}
 	}
 	return a
@@ -149,18 +264,19 @@ func (t *townScreen) settleMissionDeal(act func() ui.TownAction) ui.TownAction {
 // TradeCarried call, or none when nothing changed.
 func (t *townScreen) commitMissionDeal(v *missionShopVisit) bool {
 	mw := v.live
-	mw.shop.stock = t.sess.Shop
-	held := cloneItemInstances(v.bag)
-	for _, p := range t.sess.Shop.Table() {
-		for n := int32(0); p.Mine && n < p.ShopItem.Count; n++ {
-			held = append(held, p.ShopItem.Instance())
+	deal := t.deal()
+	mw.shop.stock = deal
+	held := cloneItemInstances(*v.pack)
+	for _, p := range deal.Table() {
+		if p.Mine {
+			held = append(held, v.rule.placeUnits(deal, p)...)
 		}
 	}
 	stacks, ok := mw.world.CarriedStacks(v.hero)
 	if !ok {
 		return false
 	}
-	sold, bought := shopDealDiff(stacks, held)
+	sold, bought := shopDealDiff(stacks, held, v.rule, t.in.Table)
 	purse := uint32(max(t.sess.Town.gold, 0))
 	if len(sold) == 0 && len(bought) == 0 && purse == mw.world.Purse(v.owner) {
 		return true
@@ -168,8 +284,15 @@ func (t *townScreen) commitMissionDeal(v *missionShopVisit) bool {
 	if !mw.world.TradeCarried(v.hero, sold, bought, purse) {
 		return false
 	}
+	*v.pack = slices.DeleteFunc(*v.pack, func(u sim.ItemInstance) bool {
+		_, shown := v.rule.viewOf(t.in.Table, v.rule.worldOf(t.in.Table, u))
+		return !shown
+	})
 	mw.refreshPack()
 	mw.push()
+	if dealt := mw.mission.buildings.dealt; dealt != nil {
+		dealt(mw)
+	}
 	return true
 }
 
@@ -178,10 +301,13 @@ func (t *townScreen) commitMissionDeal(v *missionShopVisit) bool {
 // unmatched held unit is bought. A unit matches by every field the pack
 // merges on but its saved object and its price, which the page's table does
 // not keep.
-func shopDealDiff(stacks []sim.ItemStack, held []sim.ItemInstance) (sold []int, bought []sim.ItemStack) {
+func shopDealDiff(stacks []sim.ItemStack, held []sim.ItemInstance, rule *visitRule, table *mapload.Table) (sold []int, bought []sim.ItemStack) {
 	used := make([]bool, len(held))
 	for e, s := range stacks {
-		unit := s.Instance()
+		unit, shown := rule.viewOf(table, s.Instance())
+		if !shown {
+			continue
+		}
 		for range s.Count {
 			j := 0
 			for j < len(held) && (used[j] || !sim.SameUnit(unit, held[j], sim.UnitDeal)) {
@@ -196,6 +322,7 @@ func shopDealDiff(stacks []sim.ItemStack, held []sim.ItemInstance) (sold []int, 
 	}
 	for j, h := range held {
 		if !used[j] {
+			h = rule.worldOf(table, h)
 			h.ObjectID = 0
 			bought = append(bought, sim.StackItem(h, 1))
 		}

@@ -19,6 +19,8 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] Multiplayer: a hero who uses a Shop leaves the map while the Shop page shows and comes back on his own cell, or on a free cell within three; each deal saves the character, at most once every 15 seconds.
+- [ROM2] Multiplayer: a hero who uses a Shop or an Inn opens that building's town page with the single-player stock or offers, trades with his own pack and purse, and comes back on his own cell.
 - [ROM1] [ROM2] Multiplayer: a hero who dies no longer ends the map; press Space to return him near the last shop used or the drop point, with a tenth of his skill experience lost and full health and mana
 - [BASE] On a multiplayer map, a monster group whose members are all dead comes back 60 seconds later on its own cells, with full health and mana.
 - [BASE] Map editor: the trigger condition is now "Unit changes its cell" and asks only for the unit; it holds each time that unit stands on a different cell than a moment before, so a trigger can fire on the unit's first step.

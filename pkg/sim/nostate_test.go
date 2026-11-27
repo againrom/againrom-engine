@@ -163,6 +163,8 @@ var nstPinned = []struct {
 		{"outposts", "[]sim.Outpost"},
 		{"scorchedCells", "[]uint16"},
 		{"structureUses", "[]sim.StructureUse"},
+		{"visits", "bool"},
+		{"visitors", "[]sim.EntityID"},
 		{"areaCosts", "[]sim.areaCostEntry"},
 		{"areaCostLive", "bool"},
 		{"costWindow", "*sim.savedCostWindow"},

@@ -36,6 +36,7 @@ type CharacterStore struct {
 	Dir string
 	// profile admits deletion beneath a profile that sits inside an install.
 	profile *runtimeProfileAccess
+	Now     func() time.Time
 }
 
 // characterStoreRow is one game's row of the character store.
@@ -183,6 +184,13 @@ func recordStats(res ui.ChargenResult) ([4]uint32, error) {
 		stats[i] = uint32(v)
 	}
 	return stats, nil
+}
+
+func (s CharacterStore) now() time.Time {
+	if s.Now == nil {
+		return time.Now()
+	}
+	return s.Now()
 }
 
 // path is the game's folder of the store.

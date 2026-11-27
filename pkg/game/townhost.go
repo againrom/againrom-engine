@@ -282,7 +282,7 @@ func (t *townScreen) chooseFallback(i int) ui.TownAction {
 }
 
 func (t *townScreen) Back() bool {
-	if t.visit != nil {
+	if t.visit != nil && !t.campaignTown().talking() {
 		return t.closeMissionShop()
 	}
 	if t.campaignTown().talking() {

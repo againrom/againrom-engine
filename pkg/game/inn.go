@@ -386,7 +386,7 @@ func (t *townScreen) innAction(p innProfile, seat *innSeat, verb innVerb) ui.Tow
 	case innSleep:
 		t.sleep()
 	case innExit:
-		if p.leaveScene {
+		if p.leaveScene && t.visit == nil {
 			t.raiseShownRoomEvent(roomEventLeave)
 			t.squareView().LeaveRoom(t.roomName())
 		} else {

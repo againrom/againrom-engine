@@ -10,7 +10,7 @@ import (
 
 type shopProfile struct {
 	shown                                              func(*townScreen) bool
-	missionVisits                                      bool
+	visits                                             visitRule
 	fillOnArrival                                      bool
 	arrivalRefill                                      func(*Shop, shopArrival) bool
 	resetCategoryOnFill                                bool
@@ -30,7 +30,7 @@ type shopProfile struct {
 }
 
 var chapterShopProfile = shopProfile{
-	shown: func(t *townScreen) bool { return t.displayRoom() == "shop" }, missionVisits: true,
+	shown:         func(t *townScreen) bool { return t.displayRoom() == "shop" },
 	fillOnArrival: true,
 	binding:       (*townScreen).chapterShopRow,
 	wholeBasket:   true, fallback: ShelfMagic,
@@ -57,10 +57,12 @@ var chapterShopProfile = shopProfile{
 	},
 }
 
+func init() { chapterShopProfile.visits = chapterVisits }
+
 var bankShopProfile = shopProfile{
 	shown:         (*townScreen).bankShopShown,
-	arrivalRefill: (*Shop).refill,
-	blockRestock:  true, resetCategoryOnFill: true,
+	arrivalRefill: (*Shop).refill, visits: bankVisits,
+	blockRestock: true, resetCategoryOnFill: true,
 	binding:      (*townScreen).bankShopRow,
 	wholeBasket:  true,
 	unpricedBack: true, keepEmptied: true, fallback: ShelfBooks,

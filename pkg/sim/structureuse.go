@@ -63,7 +63,7 @@ func switchKind(kind uint16) bool { return kind == 28 || kind == 29 || kind == 7
 func (w *World) pruneStructureUses() {
 	w.structureUses = slices.DeleteFunc(w.structureUses, func(u StructureUse) bool {
 		i, si := indexOfEntity(w.entities, u.Entity), indexOfStructure(w.structures, u.Structure)
-		return i < 0 || si < 0 || !w.entities[i].Alive() || w.entities[i].OffMap || !w.structures[si].Usable()
+		return i < 0 || si < 0 || !w.entities[i].Alive() || w.entities[i].OffMap || !w.StructureUsable(w.structures[si])
 	})
 }
 
@@ -87,7 +87,7 @@ func (w *World) cancelStructureUse(id EntityID) {
 
 func (w *World) validStructureUse(i int, id StructureID) bool {
 	si := indexOfStructure(w.structures, id)
-	return i >= 0 && i < len(w.entities) && si >= 0 && w.structures[si].Usable() && w.entities[i].Alive() && !w.entities[i].OffMap && !w.stoneCursed(i)
+	return i >= 0 && i < len(w.entities) && si >= 0 && w.StructureUsable(w.structures[si]) && w.entities[i].Alive() && !w.entities[i].OffMap && !w.stoneCursed(i)
 }
 
 // usingStructure reports whether the actor has a structure use pending.
@@ -163,7 +163,7 @@ func (w *World) advanceStructureUse(scratch *routeScratch, i int) bool {
 		return false
 	}
 	si := indexOfStructure(w.structures, w.structureUses[at].Structure)
-	if si < 0 || !w.structures[si].Usable() {
+	if si < 0 || !w.StructureUsable(w.structures[si]) {
 		w.finishStructureUse(i)
 		return false
 	}
@@ -198,7 +198,13 @@ func (w *World) applyStructureUse(i, si int) {
 		w.runStructureAction(slot)
 		return
 	}
-	if (s.Kind == 34 || s.Kind == 35) && shopUseBodies[w.game.shopUse](w, i, s) {
+	if class := w.visitClass(s.Kind); class != VisitNone {
+		if slices.Contains(w.visitors, w.entities[i].ID) {
+			w.enterBuilding(i, s, class)
+		}
+		return
+	}
+	if w.game.buildings.class(s.Kind) == VisitShop && shopUseBodies[w.game.shopUse](w, i, s) {
 		return
 	}
 	if switchKind(s.Kind) {

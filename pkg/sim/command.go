@@ -237,6 +237,10 @@ func SetVariable(register, value int32) Command {
 	return Command{Kind: KindSetVariable, X: register, Y: value}
 }
 
+func LeaveBuilding(visitor EntityID) Command {
+	return Command{Kind: KindLeaveBuilding, Entity: visitor}
+}
+
 func ReturnHero(hero EntityID, at CellPoint) Command {
 	return Command{Kind: KindReturnHero, Entity: hero, X: at.X, Y: at.Y}
 }

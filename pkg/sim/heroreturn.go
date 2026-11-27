@@ -2,6 +2,8 @@ package sim
 
 const KindReturnHero uint8 = 0x49
 
+const KindLeaveBuilding uint8 = 0x4a
+
 const returnPenaltyTenths = 9
 
 func returnedExperience(xp int32) int32 {

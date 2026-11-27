@@ -106,6 +106,7 @@ type castObs struct {
 	purseCredits     []PurseCredit
 	itemGrants       []ItemGrant
 	shopUses         []StructureUse
+	visits           []BuildingVisit
 }
 
 // recordShopUse notes one completed use of a first-game Shop structure. The

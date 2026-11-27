@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"time"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/a2c"
@@ -121,7 +122,11 @@ type mapSession struct {
 	file      sessionFile
 	// end writes the gains of the map's party back to the file (DIV-5258)
 	// and answers the line the character list shows.
-	end func(ms *Mission) string
+	end     func(ms *Mission) string
+	write   func(ms *Mission) string
+	wrote   bool
+	wroteAt time.Time
+	bank    bool
 }
 
 // newMapSession reads file and pairs it with source, which must be a map of
@@ -152,6 +157,8 @@ func (f *FrontEnd) newMapSession(file sessionFile, source string) (*mapSession, 
 	}
 	s := &mapSession{character: c, party: party, purse: purse, entry: kept[at], file: file}
 	s.end = func(ms *Mission) string { return f.endSession(s, ms) }
+	s.write = func(ms *Mission) string { return f.writeSession(s, ms) }
+	s.bank = townBookOf(f.Base().Profile).hasBank()
 	return s, nil
 }
 
@@ -211,6 +218,10 @@ func (f *FrontEnd) endSession(s *mapSession, ms *Mission) string {
 	if err := ms.World.NormalizeMissionSurvivors(sim.SelfSlot); err != nil {
 		return fmt.Sprintf("the character was not written: %v", err)
 	}
+	return f.writeSession(s, ms)
+}
+
+func (f *FrontEnd) writeSession(s *mapSession, ms *Mission) string {
 	party := carriedParty(ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster)
 	if len(party) == 0 || party[0].Carry == nil || len(ms.Start.IDs) == 0 {
 		return ""
@@ -230,8 +241,24 @@ func (f *FrontEnd) endSession(s *mapSession, ms *Mission) string {
 	if err != nil {
 		return fmt.Sprintf("the character was not written: %v", err)
 	}
+	s.character.doc = doc
 	if s.file.carried != nil {
 		s.file.carried[s.file.name] = sessionCarry{doc: doc, party: mapload.CloneParty(party), purse: gains.purse}
 	}
 	return ""
+}
+
+const dealWriteGap = 15 * time.Second
+
+func (s *mapSession) dealt(mw *mapWorld) {
+	if s.write == nil || mw == nil || mw.mission == nil || mw.mission.state == nil {
+		return
+	}
+	now := s.file.store.now()
+	if s.wrote && now.Sub(s.wroteAt) <= dealWriteGap {
+		return
+	}
+	if s.write(mw.mission.state) == "" {
+		s.wrote, s.wroteAt = true, now
+	}
 }

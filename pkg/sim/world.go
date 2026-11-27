@@ -2074,6 +2074,8 @@ type World struct {
 	outposts      []Outpost
 	scorchedCells []uint16
 	structureUses []StructureUse
+	visits        bool
+	visitors      []EntityID
 
 	// areaCosts is the stored movement-cost byte of every cell holding an
 	// applied area layer, in cell-key order (areacost.go). areaCostLive is

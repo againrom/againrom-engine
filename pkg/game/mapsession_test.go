@@ -107,7 +107,7 @@ func sessionApp(t *testing.T, c sessionCase) (*FrontEnd, *ui.App, string) {
 		t.Fatal(err)
 	}
 	f.Archives.Loose, f.Maps = loose, BuildMapList(dm, nil)
-	store := CharacterStore{Dir: filepath.Join(t.TempDir(), "characters")}
+	store := CharacterStore{Dir: filepath.Join(t.TempDir(), "characters"), Now: sessionNow}
 	if err := os.MkdirAll(filepath.Join(store.Dir, c.dir), 0o700); err != nil {
 		t.Fatal(err)
 	}
