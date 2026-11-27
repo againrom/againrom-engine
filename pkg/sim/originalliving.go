@@ -112,17 +112,7 @@ func (w *World) importLivingActors(batch []OriginalLivingActor, current map[Enti
 		return err
 	}
 	var checked World
-	checked.ghost = w.ghost
-	checked.spellCreatures = w.spellCreatures
-	checked.sourceDerive = w.sourceDerive
-	checked.mergeOperands = w.mergeOperands
-	checked.deathItems = w.deathItems
-	checked.straightCone = w.straightCone
-	checked.build = w.build
-	checked.burst.phases = w.burst.phases
-	checked.rules = w.rules
-	checked.diary = w.diary
-	checked.loadedRecord = w.loadedRecord
+	checked.CopyCarriedInputs(w)
 	// STORIES 1131..1135 primed this staging round trip's fresh checked
 	// receiver by hand for savedCellRecords, savedSpellEffects,
 	// savedProjectiles and savedDiaries: UnmarshalBinary's own composite

@@ -2421,6 +2421,25 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 	return w.encodeInto(dst), nil
 }
 
+// CopyCarriedInputs copies the non-serialized inputs a decode carries from src.
+func (w *World) CopyCarriedInputs(src *World) {
+	if w == nil || src == nil {
+		return
+	}
+	w.ghost = src.ghost
+	w.spellCreatures = src.spellCreatures
+	w.sourceDerive = src.sourceDerive
+	w.mergeOperands = src.mergeOperands
+	w.deathItems = src.deathItems
+	w.straightCone = src.straightCone
+	w.build = src.build
+	w.burst.phases = src.burst.phases
+	w.flightInputs = src.flightInputs
+	w.rules = src.rules
+	w.diary = src.diary
+	w.loadedRecord = src.loadedRecord
+}
+
 // UnmarshalBinary replaces the whole of w with the world encoded in data.
 //
 // It is MarshalBinary's inverse and not a field writer: it is the one exported
@@ -3410,18 +3429,6 @@ func (w *World) unmarshalBinary(data []byte) error {
 		// rawSessionHead, rawSessionMid, savedCellRecords, savedSpellEffects,
 		// savedProjectiles and savedDiaries used to be carried the same way, with
 		// no rebuild rule of their own.
-		ghost:             w.ghost,
-		spellCreatures:    w.spellCreatures,
-		sourceDerive:      w.sourceDerive,
-		mergeOperands:     w.mergeOperands,
-		deathItems:        w.deathItems,
-		straightCone:      w.straightCone,
-		build:             w.build,
-		burst:             burstState{phases: w.burst.phases},
-		flightInputs:      w.flightInputs,
-		rules:             w.rules,
-		diary:             w.diary,
-		loadedRecord:      w.loadedRecord,
 		rawSessionHead:    carriedResume.head,
 		rawSessionMid:     carriedResume.mid,
 		savedCellRecords:  carriedResume.cellRecords,
@@ -3449,6 +3456,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		structures:   structures,
 		originalDead: dead,
 	}
+	candidate.CopyCarriedInputs(w)
 	candidate.rebuildStructureSlots()
 	if err := candidate.pendingAttackFault(); err != nil {
 		return err

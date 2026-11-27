@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] Resizing the game window no longer makes the game use more and more memory.
+- [ROM1] After loading a saved game, Control Spirit raises a Ghost from bones again.
 
 ### For map makers and modders
 

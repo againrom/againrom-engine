@@ -213,19 +213,8 @@ func restoreOriginalActorStock(ms *Mission, source []sav.ActorHoldings, table *m
 		return err
 	}
 	var staged sim.World
+	staged.CopyCarriedInputs(ms.World)
 	mapload.BindSourceDerive(&staged)
-	staged.SetRules(ms.World.Rules())
-	staged.SetDeathItemDraw(ms.World.DeathItemDraw())
-	staged.SetStraightCone(ms.World.StraightCone())
-	staged.SetBuildRules(ms.World.BuildRules())
-	staged.CopyDiaryUnits(ms.World)
-	staged.DeclareSpellCreatures(ms.World.SpellCreatures())
-	// STORIES 1130..1135 primed this staging round trip's fresh receiver by
-	// hand for every carried-not-wire-form field (two raw session spans, cell-
-	// record residue, the SpellEffect graph, the Projectiles store, Diaries):
-	// UnmarshalBinary's own composite literal used to carry each one across a
-	// decode from the RECEIVER's prior value, so a fresh receiver like staged
-	// always decoded to zero regardless of what ms.World already held.
 	if err := staged.UnmarshalBinary(encoded); err != nil {
 		return err
 	}
