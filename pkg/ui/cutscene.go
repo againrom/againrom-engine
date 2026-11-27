@@ -208,10 +208,7 @@ func (a *App) closeCutscene() {
 	a.cutsceneFinalPresented = false
 	a.cutsceneName = ""
 	a.cutsceneDrain = true
-	if a.cutsceneCanvas != nil {
-		a.cutsceneCanvas.Deallocate()
-		a.cutsceneCanvas = nil
-	}
+	ensureLayerImage(&a.cutsceneCanvas, image.Point{})
 	// Discard presentation wall time at the map's existing cadence seam.
 	// This preserves the selected rung and stop bit, including a prior pause.
 	a.flow.syncCadence(true)
@@ -302,14 +299,7 @@ func (a *App) drawCutscene(screen *ebiten.Image) {
 	screen.Fill(color.Black)
 	pic := a.composeCutscene()
 	size := pic.Rect.Size()
-	if a.cutsceneCanvas != nil && a.cutsceneCanvas.Bounds().Size() != size {
-		a.cutsceneCanvas.Deallocate()
-		a.cutsceneCanvas = nil
-	}
-	if a.cutsceneCanvas == nil {
-		a.cutsceneCanvas = ebiten.NewImage(size.X, size.Y)
-	}
-	a.cutsceneCanvas.WritePixels(pic.Pix)
+	ensureLayerImage(&a.cutsceneCanvas, size).WritePixels(pic.Pix)
 	place := a.place
 	if size != image.Pt(frame.W, frame.H) {
 		place = frame.Fit(size.X, size.Y, a.winW, a.winH)

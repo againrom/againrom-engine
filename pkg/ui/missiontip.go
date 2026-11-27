@@ -41,7 +41,8 @@ type MissionTipDress struct {
 
 // SetMissionTipDress dresses the mission popup.
 func (v *Viewer) SetMissionTipDress(d MissionTipDress) {
-	v.mtip.dress, v.mtip.pic = d, nil
+	ensureLayerImage(&v.mtip.pic, image.Point{})
+	v.mtip.dress = d
 }
 
 // ShowMissionTip shows text in the mission popup, replacing an open one.
@@ -141,10 +142,7 @@ func (v *Viewer) paintMissionTip(screen *ebiten.Image) {
 		local.Pointer = view.Pointer.Sub(r.Min)
 		pic := image.NewRGBA(local.Rect)
 		v.mtip.glyphs = text.Record(func() { ComposeTipPanel(pic, local) })
-		if v.mtip.pic == nil {
-			v.mtip.pic = ebiten.NewImage(r.Dx(), r.Dy())
-		}
-		v.mtip.pic.WritePixels(pic.Pix)
+		ensureLayerImage(&v.mtip.pic, r.Size()).WritePixels(pic.Pix)
 		v.mtip.rgba = pic
 		v.mtip.composedFor = view
 	}

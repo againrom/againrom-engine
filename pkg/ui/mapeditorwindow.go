@@ -2055,12 +2055,7 @@ func (e *MapEditor) drawChrome(screen *ebiten.Image) []text.DrawCall {
 	log.end()
 	e.textLayers = append(e.textLayers, textLayer{calls, screen.Bounds(), log})
 	e.textCaptured, e.textKept = len(calls), len(kept)
-	if e.chromeImage == nil || e.chromeImage.Bounds().Size() != pic.Bounds().Size() {
-		if e.chromeImage != nil {
-			e.chromeImage.Dispose()
-		}
-		e.chromeImage = ebiten.NewImage(pic.Bounds().Dx(), pic.Bounds().Dy())
-	}
+	ensureLayerImage(&e.chromeImage, pic.Bounds().Size())
 	if e.chromeUploaded != blit || e.chromeUploadedTo != e.chromeImage {
 		e.chromeImage.WritePixels(blit.Pix)
 		e.chromeUploaded, e.chromeUploadedTo = blit, e.chromeImage

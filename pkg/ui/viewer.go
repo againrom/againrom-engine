@@ -3538,12 +3538,7 @@ func (v *Viewer) layerNumerals(screen *ebiten.Image, f *windowPass) {
 			pic = p.Blit
 			text.Append(p.Calls, p.At.X, p.At.Y)
 		}
-		b := pic.Bounds()
-		if v.numeralImgs[i] == nil ||
-			v.numeralImgs[i].Bounds().Dx() != b.Dx() || v.numeralImgs[i].Bounds().Dy() != b.Dy() {
-			v.numeralImgs[i] = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.numeralImgs[i].WritePixels(pic.Pix)
+		ensureLayerImage(&v.numeralImgs[i], pic.Bounds().Size()).WritePixels(pic.Pix)
 		var op ebiten.DrawImageOptions
 		op.Filter = ebiten.FilterNearest
 		op.GeoM.Translate(float64(p.At.X), float64(p.At.Y))
@@ -3593,11 +3588,7 @@ func (v *Viewer) layerPanel(screen *ebiten.Image, f *windowPass) {
 	endTextCapture(panelCapture, at)
 	if ok {
 		if v.panelFresh {
-			b := pic.Bounds()
-			if v.panelImg == nil || v.panelImg.Bounds().Dx() != b.Dx() || v.panelImg.Bounds().Dy() != b.Dy() {
-				v.panelImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.panelImg.WritePixels(pic.Pix)
+			ensureLayerImage(&v.panelImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 			v.panelFresh = false
 		}
 		var op ebiten.DrawImageOptions
@@ -3628,11 +3619,7 @@ func (v *Viewer) layerSpellbook(screen *ebiten.Image, f *windowPass) {
 	pic, at, ok := v.spellbookPresent()
 	endTextCapture(bookCapture, at)
 	if ok {
-		b := pic.Bounds()
-		if v.spellbookImg == nil || v.spellbookImg.Bounds().Dx() != b.Dx() || v.spellbookImg.Bounds().Dy() != b.Dy() {
-			v.spellbookImg = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.spellbookImg.WritePixels(pic.Pix)
+		ensureLayerImage(&v.spellbookImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 		var op ebiten.DrawImageOptions
 		op.Filter = ebiten.FilterNearest
 		op.GeoM.Translate(float64(at.X), float64(at.Y))
@@ -3657,11 +3644,7 @@ func (v *Viewer) layerReadout(screen *ebiten.Image, f *windowPass) {
 	endTextCapture(readoutCapture, at)
 	if ok {
 		if v.readoutFresh {
-			b := pic.Bounds()
-			if v.readoutImg == nil || v.readoutImg.Bounds().Dx() != b.Dx() || v.readoutImg.Bounds().Dy() != b.Dy() {
-				v.readoutImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.readoutImg.WritePixels(pic.Pix)
+			ensureLayerImage(&v.readoutImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 			v.readoutFresh = false
 		}
 		var op ebiten.DrawImageOptions
@@ -3676,11 +3659,7 @@ func (v *Viewer) layerFrameRate(screen *ebiten.Image, f *windowPass) {
 	_, pic, at, ok := v.FPSReadout(time.Now().UnixMilli())
 	if ok {
 		if v.fpsFresh {
-			b := pic.Bounds()
-			if v.fpsImg == nil || v.fpsImg.Bounds().Dx() != b.Dx() || v.fpsImg.Bounds().Dy() != b.Dy() {
-				v.fpsImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.fpsImg.WritePixels(pic.Pix)
+			ensureLayerImage(&v.fpsImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 			v.fpsFresh = false
 		}
 		var op ebiten.DrawImageOptions
@@ -3711,11 +3690,7 @@ func (v *Viewer) layerMinimap(screen *ebiten.Image, f *windowPass) {
 	// popup already darkens along with everything else, not an exception carved
 	// out for it.
 	if pic, at, ok := v.minimapPresent(); ok {
-		b := pic.Bounds()
-		if v.minimapImg == nil || v.minimapImg.Bounds().Dx() != b.Dx() || v.minimapImg.Bounds().Dy() != b.Dy() {
-			v.minimapImg = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.minimapImg.WritePixels(pic.Pix)
+		ensureLayerImage(&v.minimapImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 		var op ebiten.DrawImageOptions
 		op.Filter = ebiten.FilterNearest
 		op.GeoM.Translate(float64(at.X), float64(at.Y))
@@ -3768,11 +3743,7 @@ func (v *Viewer) layerMissionCard(screen *ebiten.Image, f *windowPass) {
 	endTextCapture(missionCardCapture, at)
 	if ok {
 		if v.missionCardFresh {
-			b := pic.Bounds()
-			if v.missionCardImg == nil || v.missionCardImg.Bounds().Dx() != b.Dx() || v.missionCardImg.Bounds().Dy() != b.Dy() {
-				v.missionCardImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.missionCardImg.WritePixels(pic.Pix)
+			ensureLayerImage(&v.missionCardImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 			v.missionCardFresh = false
 		}
 		var op ebiten.DrawImageOptions
@@ -3787,11 +3758,7 @@ func (v *Viewer) layerStructureReadout(screen *ebiten.Image, f *windowPass) {
 	if f.readoutShown {
 		pic, at := f.readoutPic, f.readoutAt
 		if v.structFresh {
-			b := pic.Bounds()
-			if v.structImg == nil || v.structImg.Bounds().Dx() != b.Dx() || v.structImg.Bounds().Dy() != b.Dy() {
-				v.structImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.structImg.WritePixels(pic.Pix)
+			ensureLayerImage(&v.structImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 			v.structFresh = false
 		}
 		var op ebiten.DrawImageOptions
@@ -3811,11 +3778,7 @@ func (v *Viewer) layerWorn(screen *ebiten.Image, f *windowPass) {
 	// assertion was about, not agreeing with it.
 	if pic, at, ok := v.wornPresent(); ok {
 		if v.invFresh {
-			b := pic.Bounds()
-			if v.invImg == nil || v.invImg.Bounds().Dx() != b.Dx() || v.invImg.Bounds().Dy() != b.Dy() {
-				v.invImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.invImg.WritePixels(pic.Pix)
+			ensureLayerImage(&v.invImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 			v.invFresh = false
 		}
 		var op ebiten.DrawImageOptions
@@ -3833,11 +3796,7 @@ func (v *Viewer) layerPackBar(screen *ebiten.Image, f *windowPass) {
 	pic, at, ok := v.packBarPresent()
 	endTextCapture(packCapture, at)
 	if ok {
-		b := pic.Bounds()
-		if v.packImg == nil || v.packImg.Bounds().Dx() != b.Dx() || v.packImg.Bounds().Dy() != b.Dy() {
-			v.packImg = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.packImg.WritePixels(pic.Pix)
+		ensureLayerImage(&v.packImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 		var op ebiten.DrawImageOptions
 		op.Filter = ebiten.FilterNearest
 		op.GeoM.Translate(float64(at.X), float64(at.Y))
@@ -3854,11 +3813,7 @@ func (v *Viewer) layerCommandPanel(screen *ebiten.Image, f *windowPass) {
 	// order costs nothing today and is what keeps the guarantee true if a later
 	// box lands on the same pixels.
 	if pic, at, ok := v.commandPanelPresent(); ok {
-		b := pic.Bounds()
-		if v.commandPanelImg == nil || v.commandPanelImg.Bounds().Dx() != b.Dx() || v.commandPanelImg.Bounds().Dy() != b.Dy() {
-			v.commandPanelImg = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.commandPanelImg.WritePixels(pic.Pix)
+		ensureLayerImage(&v.commandPanelImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 		var op ebiten.DrawImageOptions
 		op.Filter = ebiten.FilterNearest
 		op.GeoM.Translate(float64(at.X), float64(at.Y))
@@ -3874,11 +3829,7 @@ func (v *Viewer) layerGold(screen *ebiten.Image, f *windowPass) {
 	pic, at, ok := v.goldModalPresent()
 	endTextCapture(goldCapture, at)
 	if ok {
-		b := pic.Bounds()
-		if v.goldImg == nil || v.goldImg.Bounds().Dx() != b.Dx() || v.goldImg.Bounds().Dy() != b.Dy() {
-			v.goldImg = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.goldImg.WritePixels(pic.Pix)
+		ensureLayerImage(&v.goldImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 		var op ebiten.DrawImageOptions
 		op.Filter = ebiten.FilterNearest
 		op.GeoM.Translate(float64(at.X), float64(at.Y))
@@ -3903,11 +3854,7 @@ func (v *Viewer) layerMessage(screen *ebiten.Image, f *windowPass) {
 	if ok {
 		blit := v.messageBlitOf(pic)
 		if v.messageFresh {
-			b := blit.Bounds()
-			if v.messageImg == nil || v.messageImg.Bounds().Dx() != b.Dx() || v.messageImg.Bounds().Dy() != b.Dy() {
-				v.messageImg = ebiten.NewImage(b.Dx(), b.Dy())
-			}
-			v.messageImg.WritePixels(blit.Pix)
+			ensureLayerImage(&v.messageImg, blit.Bounds().Size()).WritePixels(blit.Pix)
 			v.messageFresh = false
 		}
 		var op ebiten.DrawImageOptions
@@ -3926,14 +3873,7 @@ func (v *Viewer) layerTooltip(screen *ebiten.Image, f *windowPass) {
 	pic, at, ok := v.tooltipPresent()
 	endTextCapture(tooltipCapture, at)
 	if ok {
-		b := pic.Bounds()
-		if v.itemPopupImg == nil || v.itemPopupImg.Bounds().Size() != b.Size() {
-			if v.itemPopupImg != nil {
-				v.itemPopupImg.Dispose()
-			}
-			v.itemPopupImg = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.itemPopupImg.WritePixels(pic.Pix)
+		ensureLayerImage(&v.itemPopupImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 		var op ebiten.DrawImageOptions
 		op.GeoM.Translate(float64(at.X), float64(at.Y))
 		screen.DrawImage(v.itemPopupImg, &op)
@@ -4015,11 +3955,7 @@ func (v *Viewer) drawPointer(dst *ebiten.Image, scale, originX, originY float64)
 	// drag in progress is the one thing on this screen the player is actively
 	// moving. It is the one of the three that already stood over the boxes.
 	if pic, at, ok := v.dragItemPresent(); ok {
-		b := pic.Bounds()
-		if v.dragImg == nil || v.dragImg.Bounds().Dx() != b.Dx() || v.dragImg.Bounds().Dy() != b.Dy() {
-			v.dragImg = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.dragImg.WritePixels(pic.Pix)
+		ensureLayerImage(&v.dragImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 		blit(v.dragImg, at, "heldItem")
 	}
 }
@@ -4438,11 +4374,7 @@ func (v *Viewer) paintNotice(screen *ebiten.Image) {
 		v.dialogueBackdrop.drawFrameShadows(screen, &v.canvasLog, l.Frame, body, at, scale, text.Captured()[:max(0, noticeCapture)])
 	}
 	if v.noticeFresh {
-		b := pic.Bounds()
-		if v.noticeImg == nil || v.noticeImg.Bounds().Dx() != b.Dx() || v.noticeImg.Bounds().Dy() != b.Dy() {
-			v.noticeImg = ebiten.NewImage(b.Dx(), b.Dy())
-		}
-		v.noticeImg.WritePixels(pic.Pix)
+		ensureLayerImage(&v.noticeImg, pic.Bounds().Size()).WritePixels(pic.Pix)
 		v.noticeFresh = false
 	}
 	var op ebiten.DrawImageOptions

@@ -43,11 +43,7 @@ func (t *cursorTexture) upload(src *image.RGBA) *ebiten.Image {
 	if !t.stale(src) {
 		return t.img
 	}
-	b := src.Bounds()
-	if t.img == nil || t.img.Bounds().Dx() != b.Dx() || t.img.Bounds().Dy() != b.Dy() {
-		t.img = ebiten.NewImage(b.Dx(), b.Dy())
-	}
-	t.img.WritePixels(src.Pix)
+	ensureLayerImage(&t.img, src.Bounds().Size()).WritePixels(src.Pix)
 	t.src = src
 	return t.img
 }

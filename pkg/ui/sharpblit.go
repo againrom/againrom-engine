@@ -1,6 +1,10 @@
 package ui
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"image"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // drawSharpBilinear realizes op — a uniform Scale(s, s) then Translate(ox,
 // oy), the one shape every caller here builds and the geometry tests
@@ -50,12 +54,9 @@ func drawSharpBilinear(dst, src *ebiten.Image, op *ebiten.DrawImageOptions, buf 
 	if iw <= 0 || ih <= 0 {
 		return
 	}
-	if *buf == nil || (*buf).Bounds().Dx() != iw || (*buf).Bounds().Dy() != ih {
-		if *buf != nil {
-			(*buf).Dispose()
-		}
-		*buf = ebiten.NewImage(iw, ih)
-	} else {
+	prev := *buf
+	ensureLayerImage(buf, image.Pt(iw, ih))
+	if *buf == prev {
 		(*buf).Clear()
 	}
 

@@ -65,9 +65,8 @@ func (v *Viewer) drawStatusBarHalfRect(target *ebiten.Image, r screenRect, c col
 		if v.statusBarScratch != nil {
 			size.X = max(size.X, v.statusBarScratch.Bounds().Dx())
 			size.Y = max(size.Y, v.statusBarScratch.Bounds().Dy())
-			v.statusBarScratch.Dispose()
 		}
-		v.statusBarScratch = ebiten.NewImage(size.X, size.Y)
+		ensureLayerImage(&v.statusBarScratch, size)
 	}
 	copyStatusBarSnapshot(v.statusBarScratch, target, region)
 	x, y, w, h := float32(region.Min.X), float32(region.Min.Y), float32(region.Dx()), float32(region.Dy())

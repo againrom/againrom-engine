@@ -15,12 +15,7 @@ func (v *Viewer) drawShroud(dst *ebiten.Image) {
 		return
 	}
 	size := image.Pt(v.cam.ViewW, v.cam.ViewH)
-	if v.fogCanvas == nil || v.fogCanvas.Bounds().Size() != size {
-		if v.fogCanvas != nil {
-			v.fogCanvas.Deallocate()
-		}
-		v.fogCanvas = ebiten.NewImage(size.X, size.Y)
-	}
+	ensureLayerImage(&v.fogCanvas, size)
 	if v.fogInk == nil {
 		v.fogInk = ebiten.NewImage(1, 1)
 		v.fogInk.Fill(color.Black)

@@ -158,13 +158,7 @@ func (a *App) drawTooltip(dst *ebiten.Image) {
 		return
 	}
 	shiftCapture(start, at)
-	if a.tooltipTexture == nil || a.tooltipTexture.Bounds().Size() != pic.Bounds().Size() {
-		if a.tooltipTexture != nil {
-			a.tooltipTexture.Dispose()
-		}
-		a.tooltipTexture = ebiten.NewImage(pic.Bounds().Dx(), pic.Bounds().Dy())
-	}
-	a.tooltipTexture.WritePixels(pic.Pix)
+	ensureLayerImage(&a.tooltipTexture, pic.Bounds().Size()).WritePixels(pic.Pix)
 	var op ebiten.DrawImageOptions
 	op.GeoM.Translate(float64(at.X), float64(at.Y))
 	dst.DrawImage(a.tooltipTexture, &op)

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image"
 	"image/color"
 	"math"
 
@@ -64,12 +65,9 @@ func (v *Viewer) drawMap(dst *ebiten.Image) {
 // drawSmoothMap is drawMap's smooth branch. op is its own copy, so only this
 // branch moves it to the heap for blitSmoothMap.
 func (v *Viewer) drawSmoothMap(dst *ebiten.Image, unit camera.Camera, op ebiten.DrawImageOptions) {
-	if v.smoothMap == nil || v.smoothMap.Bounds().Dx() != unit.ViewW || v.smoothMap.Bounds().Dy() != unit.ViewH {
-		if v.smoothMap != nil {
-			v.smoothMap.Dispose()
-		}
-		v.smoothMap = ebiten.NewImage(unit.ViewW, unit.ViewH)
-	} else {
+	prev := v.smoothMap
+	ensureLayerImage(&v.smoothMap, image.Pt(unit.ViewW, unit.ViewH))
+	if v.smoothMap == prev {
 		v.smoothMap.Clear()
 	}
 	v.underCamera(unit, func() {

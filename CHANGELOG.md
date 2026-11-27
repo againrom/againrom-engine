@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [BASE] Resizing the game window no longer makes the game use more and more memory.
+
 ### For map makers and modders
 
 - [BASE] A mod saved from the editor with a line break or a control character in a town, mission, item or other text now opens again instead of failing to load.

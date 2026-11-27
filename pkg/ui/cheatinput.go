@@ -210,16 +210,10 @@ func (a *App) drawCheatChat(screen *ebiten.Image) {
 		return
 	}
 	c := &a.cheatInput
-	if c.image == nil || c.image.Bounds().Size() != pic.Bounds().Size() {
-		if c.image != nil {
-			c.image.Dispose()
-		}
-		c.image = ebiten.NewImage(pic.Bounds().Dx(), pic.Bounds().Dy())
-	}
 	if !v.textSmoothingEnabled {
 		blit, calls = pic, nil
 	}
-	c.image.WritePixels(blit.Pix)
+	ensureLayerImage(&c.image, pic.Bounds().Size()).WritePixels(blit.Pix)
 	ox, oy := v.place.Origin()
 	var op ebiten.DrawImageOptions
 	op.GeoM.Scale(v.place.Scale(), v.place.Scale())

@@ -176,12 +176,7 @@ func (s *dialogueBackdropState) drawShadowPlan(dst *ebiten.Image, log *pixelLog,
 	}
 	s.shadowMask = mask
 	b := dst.Bounds()
-	if s.scratch == nil || s.scratch.Bounds().Size() != b.Size() {
-		if s.scratch != nil {
-			s.scratch.Dispose()
-		}
-		s.scratch = ebiten.NewImage(b.Dx(), b.Dy())
-	}
+	ensureLayerImage(&s.scratch, b.Size())
 	var copyOp ebiten.DrawImageOptions
 	copyOp.Blend = ebiten.BlendCopy
 	s.scratch.DrawImage(dst, &copyOp)
@@ -384,12 +379,7 @@ func (s *dialogueBackdropState) drawWithCalls(dst *ebiten.Image, log *pixelLog, 
 		s.texture = ebiten.NewImageFromImage(l.Texture())
 	}
 	b := dst.Bounds()
-	if s.scratch == nil || s.scratch.Bounds().Size() != b.Size() {
-		if s.scratch != nil {
-			s.scratch.Dispose()
-		}
-		s.scratch = ebiten.NewImage(b.Dx(), b.Dy())
-	}
+	ensureLayerImage(&s.scratch, b.Size())
 	bits := float32(6)
 	if s.policy.Layout == backdrop.RGB555 {
 		bits = 5

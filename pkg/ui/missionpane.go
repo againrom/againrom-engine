@@ -60,8 +60,9 @@ func (v *Viewer) SetCharacterPaneArt(figure, stats TownPane, corners *CharacterP
 }
 
 func (v *Viewer) SetCharacterPaneFillerArt(art TownPane) {
+	ensureLayerImage(&v.fillerImg, image.Point{})
 	if art.Body == nil {
-		v.paneFillerArt, v.fillerImg = nil, nil
+		v.paneFillerArt = nil
 		return
 	}
 	bodySize := art.Body.Bounds().Size()
@@ -73,7 +74,7 @@ func (v *Viewer) SetCharacterPaneFillerArt(art TownPane) {
 	drawTownPane(pic, art,
 		image.Rect(seamW, 0, seamW+bodySize.X, bodySize.Y),
 		image.Rect(0, 0, seamW, bodySize.Y))
-	v.paneFillerArt, v.fillerImg = pic, nil
+	v.paneFillerArt = pic
 }
 
 // characterPaneRect is where the mission's pane stands in WINDOW PIXELS, and

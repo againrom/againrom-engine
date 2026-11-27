@@ -115,12 +115,7 @@ func (p displayRow) present(screen *ebiten.Image, s float64, size image.Point, f
 	if r.Empty() {
 		return
 	}
-	if *frame == nil || (*frame).Bounds() != r {
-		if *frame != nil {
-			(*frame).Dispose()
-		}
-		*frame = ebiten.NewImage(r.Dx(), r.Dy())
-	}
+	ensureLayerImage(frame, r.Size())
 	draw(*frame)
 	screen.Fill(p.ink)
 	var op ebiten.DrawImageOptions

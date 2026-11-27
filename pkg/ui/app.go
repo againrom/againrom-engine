@@ -4105,12 +4105,7 @@ func (a *App) Draw(screen *ebiten.Image) {
 // witnesses use one set of source and destination rectangles.
 func (a *App) prepareWideCanvas(layout wideFrameLayout) *ebiten.Image {
 	bounds := layout.bounds()
-	if a.wideCanvas == nil || a.wideCanvas.Bounds().Size() != bounds.Size() {
-		if a.wideCanvas != nil {
-			a.wideCanvas.Dispose()
-		}
-		a.wideCanvas = ebiten.NewImage(bounds.Dx(), bounds.Dy())
-	}
+	ensureLayerImage(&a.wideCanvas, bounds.Size())
 	a.wideCanvas.Fill(wideFrameFill)
 	plan := layout.plan()
 	blitNativeIntoWide(a.wideCanvas, a.canvas, plan)

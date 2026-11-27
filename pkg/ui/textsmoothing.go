@@ -105,10 +105,7 @@ func (o *textOverlay) draw(screen *ebiten.Image, calls []text.DrawCall, scale, o
 	}
 	if full := image.Rect(0, 0, w, h); o.buf == nil || o.buf.Rect != full {
 		o.buf = image.NewRGBA(full)
-		if o.tex != nil {
-			o.tex.Dispose()
-		}
-		o.tex = ebiten.NewImage(w, h)
+		ensureLayerImage(&o.tex, full.Size())
 		o.dirty, o.valid = image.Rectangle{}, false
 	}
 	if !o.valid || o.scale != scale || o.origin != [2]float64{originX, originY} || !sameCalls(o.calls, calls, false) {
@@ -139,10 +136,7 @@ func (e *textEraser) apply(frame *ebiten.Image, kept []text.DrawCall) {
 	b := frame.Bounds()
 	if e.buf == nil || e.buf.Rect != b {
 		e.buf = image.NewRGBA(b)
-		if e.tex != nil {
-			e.tex.Dispose()
-		}
-		e.tex = ebiten.NewImage(b.Dx(), b.Dy())
+		ensureLayerImage(&e.tex, b.Size())
 		e.kept, e.dirty = nil, image.Rectangle{}
 	}
 	if !sameCalls(e.kept, kept, true) {
@@ -307,13 +301,7 @@ func settleTextFrame(frame *ebiten.Image, calls []text.DrawCall, buf **image.RGB
 	if len(kept) == 0 {
 		return frame, nil
 	}
-	if *tex == nil || (*tex).Bounds().Dx() != w || (*tex).Bounds().Dy() != h {
-		if *tex != nil {
-			(*tex).Dispose()
-		}
-		*tex = ebiten.NewImage(w, h)
-	}
-	(*tex).WritePixels((*buf).Pix)
+	ensureLayerImage(tex, image.Pt(w, h)).WritePixels((*buf).Pix)
 	return *tex, kept
 }
 
