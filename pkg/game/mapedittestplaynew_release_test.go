@@ -54,6 +54,7 @@ func TestReleaseTestPlayOfANewMapStartsAtOnce(t *testing.T) {
 	r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPromptButton, N: 0})
 	c.click(e, r, ok, "the mode button")
 	endless := strings.Join(strings.Fields(x.inspectionUTF8(x.word("editor.panel.victory")+" "+x.word("editor.panel.victory.none"))), " ")
+	openedPrefix, _, _ := strings.Cut(x.word("editor.testplay.opened"), "%s")
 	check := func(when string) {
 		t.Helper()
 		_ = e.Key("testplay")
@@ -61,7 +62,7 @@ func TestReleaseTestPlayOfANewMapStartsAtOnce(t *testing.T) {
 			t.Fatalf("%s: party window %v, notes %q, launches %d", when, e.TestPartyOpen(), e.PromptNotes(), len(*started))
 		}
 		_ = e.Key("enter")
-		if e.NoticeOpen() || e.TestPartyOpen() || len(*started) != 1 || !strings.HasPrefix(e.Message(), "Test play: ") {
+		if e.NoticeOpen() || e.TestPartyOpen() || len(*started) != 1 || !strings.HasPrefix(e.Message(), openedPrefix) {
 			t.Fatalf("%s: notice %v, launches %d, message %q", when, e.NoticeOpen(), len(*started), e.Message())
 		}
 		if rows, open := e.ReportOpen(); open || len(rows) > 0 {

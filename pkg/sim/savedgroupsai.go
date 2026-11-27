@@ -300,7 +300,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 		// The stance decision leaves a victim a player's attack order named
 		// alone, and takes a unit whose ordered victim is gone back at guard.
 		ordered := &w.entities[i]
-		if holdsOrderedVictim(*ordered) {
+		if holdsOrderedVictim(*ordered) || holdsOrderedStructure(*ordered) {
 			return
 		}
 		if ordered.Owner == SelfSlot && ordered.ActorState == actorStateEngage && !ordered.HasAttackTarget {

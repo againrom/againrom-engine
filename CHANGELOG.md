@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] Resizing the game window no longer makes the game use more and more memory.
 - [ROM1] After loading a saved game, Control Spirit raises a Ghost from bones again.
+- [ROM1] A unit ordered to attack a building keeps attacking it when an enemy comes near.
 
 ### For map makers and modders
 

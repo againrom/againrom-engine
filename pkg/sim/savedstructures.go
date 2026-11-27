@@ -251,6 +251,7 @@ func (w *World) ImportOriginalStructures(structures []Structure, source []SavedS
 	if err := validateSavedStructures(cs, ss, cc); err != nil {
 		return err
 	}
+	w.dropUnkeptStructureOwners(cs)
 	w.structures, w.savedStructures, w.savedStructureCells = cs, ss, cc
 	w.hasSavedStructures = true
 	w.grid = slices.Clone(grid)

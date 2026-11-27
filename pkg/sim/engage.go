@@ -214,6 +214,11 @@ func underCommand(e Entity) bool {
 	return (e.HasTarget && !e.HasAttackTarget) || (e.HasAttackTarget && e.AttackTargetKind == AttackTargetStructure) || (e.HasPendingAttackTarget && e.PendingAttackTargetKind == AttackTargetStructure)
 }
 
+func holdsOrderedStructure(e Entity) bool {
+	return e.Owner == SelfSlot && e.ActorState == actorStateEngage &&
+		(e.HasAttackTarget && e.AttackTargetKind == AttackTargetStructure || e.HasPendingAttackTarget && e.PendingAttackTargetKind == AttackTargetStructure)
+}
+
 // holdsOrderedVictim keeps a human unit's ordered victim out of stance scoring
 // until its engage state ends (AI-CMD-054, AI-RETAL-056).
 func holdsOrderedVictim(e Entity) bool {

@@ -5,6 +5,7 @@ package sim
 // cannot refuse: there is nothing to compare fresh against.
 func (w *World) DeclareStructures(fresh []Structure) {
 	w.structures = append([]Structure(nil), fresh...)
+	w.dropUnkeptStructureOwners(w.structures)
 	w.rebuildStructureSlots()
 }
 

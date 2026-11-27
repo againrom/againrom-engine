@@ -11,6 +11,15 @@ const structureOwnerFormVersion byte = 143
 
 const structureOwnerRecordLen = 8
 
+func (w *World) dropUnkeptStructureOwners(list []Structure) {
+	if w.game.structureOwners {
+		return
+	}
+	for i := range list {
+		list[i].Owner = 0
+	}
+}
+
 func (w *World) appendStructureOwners(b []byte) []byte {
 	if !w.game.structureOwners {
 		return b
