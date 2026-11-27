@@ -2,9 +2,11 @@ package game
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
+	"io/fs"
 	"strings"
 
 	"againrom/pkg/data"
@@ -47,17 +49,9 @@ type ProjectileArtEvidence struct {
 // InspectProjectileArt resolves one picture through the production registry,
 // loader and archive path. It is read-only and opens no window.
 func InspectProjectileArt(src terrain.EntrySource, picture int) (ProjectileArtEvidence, error) {
-	stream, err := src.ReadFile(ProjectileRegistry)
+	records, err := loadProjectileRecords(src)
 	if err != nil {
 		return ProjectileArtEvidence{}, err
-	}
-	r, err := reg.Parse(stream)
-	if err != nil {
-		return ProjectileArtEvidence{}, fmt.Errorf("%s: %w", ProjectileRegistry, err)
-	}
-	records, err := data.LoadProjectiles(r)
-	if err != nil {
-		return ProjectileArtEvidence{}, fmt.Errorf("%s: %w", ProjectileRegistry, err)
 	}
 	record, ok := records.ByID(int32(picture))
 	if !ok || record.SpritePath() == "" {
@@ -68,10 +62,7 @@ func InspectProjectileArt(src terrain.EntrySource, picture int) (ProjectileArtEv
 	if err != nil {
 		return ProjectileArtEvidence{}, err
 	}
-	set, err := LoadProjectiles(src)
-	if err != nil {
-		return ProjectileArtEvidence{}, err
-	}
+	set := projectileSet(src, records, rules.SpellGameFirst)
 	sheet := set.Sheet(picture)
 	if sheet == nil {
 		return ProjectileArtEvidence{}, fmt.Errorf("projectile picture %d sheet did not decode", picture)
@@ -229,6 +220,14 @@ func loadProjectileRecords(src terrain.EntrySource) (*data.Projectiles, error) {
 	}
 
 	return records, nil
+}
+
+func loadProjectileRecordsOrAbsent(src terrain.EntrySource) (*data.Projectiles, error) {
+	records, err := loadProjectileRecords(src)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	return records, err
 }
 
 func projectileSet(src terrain.EntrySource, records *data.Projectiles, game rules.SpellGame) *terrain.EffectSet {

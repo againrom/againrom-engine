@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"againrom/pkg/data"
-	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/mapload"
 	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
@@ -42,13 +42,13 @@ const detachedProjectileTarget = sim.EntityID(math.MaxUint32)
 // reads the World and writes it only in its two closing imports, so the
 // drivers the first import armed are put back when the second refuses, and a
 // refused bind leaves the World as it was.
-func importOriginalWorldEffects(ms *Mission, src entrySource, held *heldDocument, report *OriginalSaveResume) error {
+func importOriginalWorldEffects(ms *Mission, table *mapload.Table, src entrySource, held *heldDocument, report *OriginalSaveResume) error {
 	state := ms.savedDocument
 	if state == nil || state.Document != nil || held == nil || held.doc.World == nil {
-		return bindOriginalWorldEffects(ms, src, state)
+		return bindOriginalWorldEffects(ms, table, src, state)
 	}
 	before := ms.World.SavedWorldEffectDrivers()
-	view, err := bindHeldWorldEffects(ms, src, state, held)
+	view, err := bindHeldWorldEffects(ms, table, src, state, held)
 	if err != nil {
 		report.WorldEffectsRefusal = err.Error()
 		if restore := ms.World.ImportOriginalWorldEffectDrivers(before); restore != nil {
@@ -60,7 +60,7 @@ func importOriginalWorldEffects(ms *Mission, src entrySource, held *heldDocument
 	return err
 }
 
-func bindHeldWorldEffects(ms *Mission, src entrySource, state *SnapshotSAVDocument, held *heldDocument) (*SnapshotSAVDocument, error) {
+func bindHeldWorldEffects(ms *Mission, table *mapload.Table, src entrySource, state *SnapshotSAVDocument, held *heldDocument) (*SnapshotSAVDocument, error) {
 	actors, _, err := savedActorBindings(ms.World, held.origins)
 	if err != nil {
 		return nil, err
@@ -73,13 +73,13 @@ func bindHeldWorldEffects(ms *Mission, src entrySource, state *SnapshotSAVDocume
 	if err := importSavedActorMotions(ms, &SnapshotSAVDocument{Version: state.Version, Document: held.doc}, true); err != nil {
 		return nil, err
 	}
-	if err := bindOriginalWorldEffects(ms, src, view); err != nil {
+	if err := bindOriginalWorldEffects(ms, table, src, view); err != nil {
 		return nil, err
 	}
 	return view, nil
 }
 
-func bindOriginalWorldEffects(ms *Mission, src entrySource, state *SnapshotSAVDocument) error {
+func bindOriginalWorldEffects(ms *Mission, table *mapload.Table, src entrySource, state *SnapshotSAVDocument) error {
 	if state == nil || state.Document == nil {
 		return nil
 	}
@@ -231,11 +231,13 @@ func bindOriginalWorldEffects(ms *Mission, src entrySource, state *SnapshotSAVDo
 			}
 			if !registryTried {
 				registryTried = true
-				raw, err := src.ReadFile(ProjectileRegistry)
-				if err == nil {
-					registry, parseErr := reg.Parse(raw)
-					if parseErr == nil {
-						definitions, _ = data.LoadProjectiles(registry)
+				if table != nil && table.Projectiles != nil {
+					definitions = table.Projectiles
+				} else {
+					var err error
+					definitions, err = loadProjectileRecordsOrAbsent(src)
+					if err != nil {
+						return err
 					}
 				}
 			}

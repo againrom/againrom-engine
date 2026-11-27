@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"io/fs"
 	"path"
 	"strings"
 
@@ -98,8 +97,8 @@ func (f *FrontEnd) setModSpellPictures(d mod.SpellData) error {
 		return nil
 	}
 	src := f.Archives.Containers
-	records, err := loadProjectileRecords(src)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	records, err := loadProjectileRecordsOrAbsent(src)
+	if err != nil {
 		return err
 	}
 	shared := sharedProjectileTable(src)
@@ -118,6 +117,7 @@ func (f *FrontEnd) setModSpellPictures(d mod.SpellData) error {
 		rows = append(rows, row)
 	}
 	records = records.With(rows...)
+	f.Table.Projectiles = records
 	g := f.Archives.Game()
 	presentation := data.SpellPresentationNamed(g.Edition().Spells)
 	if f.Projectiles != nil {

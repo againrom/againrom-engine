@@ -528,7 +528,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := importOriginalActorEffects(ms); err != nil {
 				return err
 			}
-			if err := importOriginalWorldEffects(ms, in.archives.Containers, src.heldDocument, &r); err != nil {
+			if err := importOriginalWorldEffects(ms, in.table, in.archives.Containers, src.heldDocument, &r); err != nil {
 				return err
 			}
 			if err := restoreOriginalActions(ms, in.table); err != nil {

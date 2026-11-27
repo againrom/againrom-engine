@@ -26,8 +26,8 @@ func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation, p
 	if !profile.registryRows {
 		return nil, nil
 	}
-	pictures, err := loadProjectileRecords(src)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	pictures, err := loadProjectileRecordsOrAbsent(src)
+	if err != nil {
 		return nil, err
 	}
 	return flightInputsWith(src, spells, profile, pictures)

@@ -127,8 +127,13 @@ func loadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	// Not fatal, and reported by nothing beyond the field itself — see
 	// Definitions.Bodies.
 	d.Bodies, _ = ReadBodyList(fsys)
-	if d.Table.FlightInputs, err = loadFlightInputs(fsys, data.SpellPresentationNamed(g.Edition().Spells), filesOf(g).flight); err != nil {
-		return nil, err
+	if filesOf(g).flight.registryRows {
+		if d.Table.Projectiles, err = loadProjectileRecordsOrAbsent(fsys); err != nil {
+			return nil, err
+		}
+		if d.Table.FlightInputs, err = flightInputsWith(fsys, data.SpellPresentationNamed(g.Edition().Spells), filesOf(g).flight, d.Table.Projectiles); err != nil {
+			return nil, err
+		}
 	}
 	// NOT FATAL, for the same reason: a missing item-name table narrows what
 	// itemName (world.go) can show a code by, it does not stop a mission

@@ -121,6 +121,7 @@ type Table struct {
 
 	// FlightInputs are installed release rules and geometry, independent of art.
 	FlightInputs *sim.FlightInputs
+	Projectiles  *data.Projectiles
 
 	// DeathItems is the game's death item draw. A table with one gives each
 	// Units actor its row's death item columns and binds the draw to the
