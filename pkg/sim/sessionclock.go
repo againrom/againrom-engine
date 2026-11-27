@@ -144,6 +144,7 @@ func (w *World) beginSessionTick(tr *ScriptTrace, obs *castObs, withdrawals *wit
 			w.regenerateActors(c.healthDue())
 		}
 		w.decaySessionActors(c)
+		w.outpostPass()
 	}
 	c.advanceSubTick()
 	w.tick = uint64(c.SubTick)

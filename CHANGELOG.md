@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM1] [ROM2] Multiplayer: a hero who dies no longer ends the map; press Space to return him near the last shop used or the drop point, with a tenth of his skill experience lost and full health and mana
+- [BASE] On a multiplayer map, a monster group whose members are all dead comes back 60 seconds later on its own cells, with full health and mana.
 
 ## 0.161.0
 

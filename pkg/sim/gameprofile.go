@@ -30,7 +30,8 @@ type gameProfile struct {
 	// buildingCasters: the map's type-9 mode-4 records build casters.
 	buildingCasters buildingCasterRule
 	// outposts: the map's type-10 pass builds Outposts (DeclareOutposts).
-	outposts bool
+	outposts      bool
+	sessionReturn int32
 	// scriptRows: the second game's script op bodies, added to the shared ones;
 	// a dialect without rows runs the shared bodies only.
 	scriptRows scriptOpRows
@@ -314,6 +315,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 	if d != ScriptROM2 {
 		return gameProfile{
 			dialect:             ScriptROM1,
+			sessionReturn:       sessionReturnPasses,
 			dropsEmptyScript:    true,
 			scoreEffectSpell:    20,
 			blow:                firstGameBlow,
@@ -336,6 +338,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		tickClock:                  nativeTickClock,
 		buildingCasters:            buildingCastersBuilt,
 		outposts:                   true,
+		sessionReturn:              sessionReturnPasses,
 		scriptRows:                 secondGameRows,
 		dialect:                    ScriptROM2,
 		holdsScriptState:           true,

@@ -198,6 +198,9 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	if err != nil {
 		return preparedMap{}, err
 	}
+	if r.fill.heroReturn && r.fresh() {
+		ms.World.DeclareOutposts(sim.OutpostMap{Session: true})
+	}
 	err = seatWorld(r, ports.rules(), ports.install.missionTable(), ms, mv.Viewer)
 	if err != nil {
 		return preparedMap{}, err

@@ -28,6 +28,7 @@ type Outpost struct {
 type OutpostMap struct {
 	Runs, Spread bool
 	Entries      []OutpostEntry
+	Session      bool
 }
 
 // OutpostEntry is the part of a type-10 entry the pass carries: the group
@@ -47,6 +48,7 @@ const (
 	outpostKeepsSpread = 2
 	// outpostLoadedReload is the reload a loaded Outpost holds (R2-SESSION-503).
 	outpostLoadedReload = 120
+	sessionReturnPasses = 60
 )
 
 // DeclareOutposts runs the type-10 pass over the World's Group registry: one
@@ -55,13 +57,14 @@ const (
 // in file order (R2-ENGINE-510, R2-ENGINE-1816). A game without Outposts and
 // a map whose gate is shut build none.
 func (w *World) DeclareOutposts(in OutpostMap) {
-	w.outposts = nil
-	if !w.game.outposts || !in.Runs {
+	w.outposts, w.sessionOutposts = nil, in.Session
+	session := in.Session
+	if !session && (!w.game.outposts || !in.Runs) {
 		return
 	}
 	for _, g := range w.savedGroups.Groups {
 		owner := g.Owner.Owner
-		if owned, human := w.slotControl(owner); g.Owner.Class != 1 || !owned || human {
+		if owned, human := w.slotControl(owner); g.Owner.Class != 1 || !(owned || session) || human {
 			continue
 		}
 		var members []int
@@ -75,10 +78,16 @@ func (w *World) DeclareOutposts(in OutpostMap) {
 		}
 		o := Outpost{Owner: owner, Group: g.Selector, Reload: outpostPercent * outpostScale / 100}
 		o.X, o.Y = groupCentroid(w.entities, members, subCellMean)
+		if session {
+			o.Reload = w.game.sessionReturn
+		}
 		if in.Spread {
 			o.Radius = memberExtent(w.entities, members)
 		}
 		for _, e := range in.Entries {
+			if session {
+				break
+			}
 			if e.Group != o.Group {
 				continue
 			}
@@ -239,7 +248,7 @@ func (w *World) recreateOutpostMember(o Outpost, m PassiveBody) (EntityID, bool)
 		x, y, r = o.X, o.Y, int32(o.Radius)
 	}
 	id, err := w.createActor(body, t.Carried, t.Worn, x, y, outpostPlacement(x, y, r), true,
-		actorCreationProfile{reuse: m.ID, ungrouped: true})
+		actorCreationProfile{reuse: m.ID, keepsID: w.sessionOutposts, ungrouped: true})
 	return id, err == nil
 }
 

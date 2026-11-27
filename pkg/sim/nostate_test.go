@@ -160,6 +160,7 @@ var nstPinned = []struct {
 		{"buildingCasters", "[]sim.BuildingCaster"},
 		{"authoredBuildingCasters", "[]sim.BuildingCaster"},
 		{"outposts", "[]sim.Outpost"},
+		{"sessionOutposts", "bool"},
 		{"scorchedCells", "[]uint16"},
 		{"structureUses", "[]sim.StructureUse"},
 		{"areaCosts", "[]sim.areaCostEntry"},
