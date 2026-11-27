@@ -141,7 +141,7 @@ func census(a *game.Archives, out io.Writer) error {
 // archive's own convention rather than a guess — the two preserved roots spell
 // their container names differently — and it costs nothing to be right about.
 func isEventText(addr string) bool {
-	a := namefold.ArchiveText(addr)
+	a := namefold.Archive(addr)
 	if !strings.HasPrefix(a, eventPrefix) || !strings.HasSuffix(a, ".txt") {
 		return false
 	}

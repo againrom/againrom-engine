@@ -204,7 +204,7 @@ func CutsceneArchive(fourX, eightX bool) string {
 }
 
 func cutsceneMember(name string) (string, error) {
-	name = namefold.ArchiveText(strings.ReplaceAll(name, `\`, "/"))
+	name = namefold.Archive(strings.ReplaceAll(name, `\`, "/"))
 	if len(name) == 0 || len(name) > 240 || !strings.HasSuffix(name, ".smk") || strings.ContainsAny(name, ":\x00") {
 		return "", fmt.Errorf("video: invalid member name")
 	}

@@ -653,7 +653,7 @@ func nativeCityMarkerPicture(f *FrontEnd, mission int) (string, bool) {
 		return "", false
 	}
 	row := assets.data.Objects[object]
-	if !row.Valid || row.Picture == "" || namefold.ArchiveTextEqual(row.Picture, "nothing") {
+	if !row.Valid || row.Picture == "" || namefold.ArchiveEqual(row.Picture, "nothing") {
 		return "", false
 	}
 	return originalCityMarkerPath(row.Picture), true

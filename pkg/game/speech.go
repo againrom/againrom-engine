@@ -110,14 +110,14 @@ func townSpeechTagPath(names townSpeechNames, source, tag string, part int, audi
 	}
 	var n townSpeechName
 	if names.families == nil {
-		textPath := namefold.ArchiveText(strings.ReplaceAll(source, `\`, "/"))
+		textPath := namefold.Archive(strings.ReplaceAll(source, `\`, "/"))
 		relative, ok := strings.CutPrefix(textPath, "main/text/")
 		if !ok || path.Clean(textPath) != textPath || !slices.ContainsFunc(names.leafDirs, func(d string) bool { return strings.HasPrefix(relative, d+"/") }) {
 			return "", false
 		}
 		n = townSpeechName{dir: path.Dir(relative) + "/", stem: strings.TrimSuffix(path.Base(relative), ".txt"), width: 1, leaf: true}
 	} else {
-		n = names.sectionName(namefold.ArchiveText(source), tag, audience)
+		n = names.sectionName(namefold.Archive(source), tag, audience)
 	}
 	return n.path(tag, part)
 }
@@ -128,7 +128,7 @@ func (n townSpeechName) path(tag string, part int) (string, bool) {
 		name = fmt.Sprintf("%sp%0*d", n.stem, n.width, part)
 	}
 	if value := townSpeechOverride(tag); value != "" {
-		name = namefold.ArchiveText(strings.ReplaceAll(value, `\`, "/"))
+		name = namefold.Archive(strings.ReplaceAll(value, `\`, "/"))
 		if !n.leaf {
 			dir = ""
 		}

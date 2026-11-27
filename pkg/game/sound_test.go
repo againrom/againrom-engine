@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/formats/res"
 	"againrom/pkg/game"
 )
 
@@ -149,6 +150,24 @@ func TestOpenSounds(t *testing.T) {
 			t.Errorf("(*SoundBank)(nil).Sample(1) = true, want false")
 		}
 	})
+}
+
+func TestNamedSampleMatchesArchiveFoldedCyrillicEntry(t *testing.T) {
+	archive, err := res.Write([]res.WriteEntry{
+		{Path: "sfx.reg", Data: sfxRegBytes()},
+		{Path: "Папка/Звук.WAV", Data: tinyWAV()},
+	})
+	if err != nil {
+		t.Fatalf("res.Write: %v", err)
+	}
+	dir := installDir(t, map[string][]byte{game.SfxArchive: archive})
+	bank := game.OpenSounds(dir)
+	if bank == nil {
+		t.Fatalf("OpenSounds(%s) = nil", dir)
+	}
+	if _, ok := bank.NamedSample(`Папка\Звук.WAV`); !ok {
+		t.Fatalf("NamedSample missed CP866 Cyrillic entry stored under archive fold")
+	}
 }
 
 // unitSoundClass is one [UnitN] section's keys for LoadUnitSounds' own two

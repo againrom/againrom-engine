@@ -376,7 +376,7 @@ func ArchiveMaps(containers *vfs.FS) NamedReader {
 			continue
 		}
 		name := strings.TrimPrefix(e.Address, scenarioPrefix)
-		if !isMapExt(filepath.Ext(name), namefold.ArchiveTextEqual) {
+		if !isMapExt(filepath.Ext(name), namefold.ArchiveEqual) {
 			continue
 		}
 		m.names = append(m.names, name)

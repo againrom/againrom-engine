@@ -220,7 +220,7 @@ func missionNames(archives *game.Archives) ([]struct {
 		Name   string
 	}
 	for _, name := range reader.Names() {
-		base := strings.TrimSuffix(namefold.ArchiveText(name), filepath.Ext(name))
+		base := strings.TrimSuffix(namefold.Archive(name), filepath.Ext(name))
 		n, err := strconv.Atoi(base)
 		if err != nil {
 			return nil, fmt.Errorf("campaign map %q has no numeric mission identity", name)

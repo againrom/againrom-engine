@@ -139,7 +139,7 @@ func (c *campaign) sources(root string) ([]source, error) {
 			continue
 		}
 		name := strings.TrimPrefix(e.Address, c.scenarioPrefix)
-		if !namefold.ArchiveTextEqual(filepath.Ext(name), mapExtension) {
+		if !namefold.ArchiveEqual(filepath.Ext(name), mapExtension) {
 			continue
 		}
 		addr := e.Address

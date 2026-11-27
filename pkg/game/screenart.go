@@ -157,7 +157,7 @@ func (s screenArtSource) Sprites(key string) []image.Image {
 	if s.src == nil {
 		return nil
 	}
-	if strings.HasSuffix(namefold.ArchiveText(key), ".256") {
+	if strings.HasSuffix(namefold.Archive(key), ".256") {
 		raw, err := s.src.ReadFile(key)
 		if err != nil {
 			return nil

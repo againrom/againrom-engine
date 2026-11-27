@@ -113,7 +113,7 @@ func doSweep(dir string) error {
 			return nil
 		}
 		for _, e := range a.Entries() {
-			if !namefold.ArchiveTextEqual(filepath.Ext(e.Path), ".reg") {
+			if !namefold.ArchiveEqual(filepath.Ext(e.Path), ".reg") {
 				continue
 			}
 			total++

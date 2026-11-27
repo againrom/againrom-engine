@@ -9,7 +9,7 @@ import (
 
 // SAV-HEAD-025: the original LOAD door prepends Scenario to this name.
 func originalMapName(address string) string {
-	if len(address) >= 9 && namefold.ArchiveTextEqual(address[:8], "scenario") && (address[8] == '/' || address[8] == '\\') {
+	if len(address) >= 9 && namefold.ArchiveEqual(address[:8], "scenario") && (address[8] == '/' || address[8] == '\\') {
 		return address[9:]
 	}
 	return address

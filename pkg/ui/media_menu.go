@@ -82,7 +82,7 @@ func (a *App) seenCutscenes() []CutsceneEntry {
 // Logos and failed opens cannot unlock an entry. A multipart group replays its
 // complete numbered sequence in the selected archive family.
 func (a *App) encounterCutscene(name string) {
-	directory, _, ok := strings.Cut(namefold.ArchiveText(strings.ReplaceAll(name, `\`, "/")), "/")
+	directory, _, ok := strings.Cut(namefold.Archive(strings.ReplaceAll(name, `\`, "/")), "/")
 	if !ok {
 		return
 	}
@@ -380,7 +380,7 @@ func (a *App) creditsPitch() int {
 // starts with a quote names a picture file (R2-ENGINE-442), read without its
 // quotes and extension, and never draws as text.
 func CreditsLogoName(line string) (name string, picture bool) {
-	name = namefold.ArchiveText(strings.TrimSpace(line))
+	name = namefold.Archive(strings.TrimSpace(line))
 	if picture = strings.HasPrefix(name, `"`); picture {
 		name = strings.Trim(name, `"`)
 		name = strings.TrimSuffix(name, path.Ext(name))

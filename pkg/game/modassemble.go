@@ -115,7 +115,7 @@ func installedPages(src *vfs.FS, n int) (map[string][]byte, error) {
 	}
 	prefix := dir.path
 	for _, e := range src.Entries() {
-		name, ok := strings.CutPrefix(namefold.ArchiveText(e.Address), prefix)
+		name, ok := strings.CutPrefix(namefold.Archive(e.Address), prefix)
 		if !ok || !missionPageName(name) {
 			continue
 		}

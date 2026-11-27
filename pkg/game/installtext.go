@@ -5,7 +5,6 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/locale"
-	"againrom/pkg/namefold"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
@@ -997,8 +996,8 @@ func (t lineText) editedSection(key string) string {
 	return strings.ReplaceAll(t.section(key), "\r\n", "\n")
 }
 
-// sectionKeys lists the text's "#" section keys in order, each key once under
-// the archive text fold (the first spelling stays); nil when absent.
+// sectionKeys lists the text's "#" section keys in order, each key once in
+// lower case (the first spelling stays); nil when absent.
 func (t lineText) sectionKeys() []string {
 	t.must(keySections)
 	if !t.ok {
@@ -1008,10 +1007,10 @@ func (t lineText) sectionKeys() []string {
 	seen := map[string]bool{}
 	for _, line := range strings.Split(string(t.body), "\n") {
 		key, ok := strings.CutPrefix(strings.TrimSpace(line), "#")
-		if !ok || key == "" || seen[namefold.ArchiveText(key)] {
+		if !ok || key == "" || seen[strings.ToLower(key)] {
 			continue
 		}
-		seen[namefold.ArchiveText(key)] = true
+		seen[strings.ToLower(key)] = true
 		keys = append(keys, key)
 	}
 	return keys

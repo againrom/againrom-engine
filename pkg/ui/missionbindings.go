@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"againrom/pkg/namefold"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -249,7 +248,7 @@ func missionBindings(p missionKeyAction) []missionKeyBinding {
 	}
 	for slot := range len(ShortcutSlots{}) {
 		key := shortcutKey(slot)
-		name := namefold.ArchiveText(key.String())
+		name := strings.ToLower(key.String())
 		ordinal := policy.shortcuts.Ordinal(slot)
 		table = append(table,
 			missionKeyBinding{name: name, key: key, ctrl: modFree, shift: modFree, alt: modFree, action: missionKeyShortcut, arg: ordinal, index: slot},
@@ -415,7 +414,7 @@ func namedMissionKey(p missionKeyAction, name string) (func(ebiten.Key) bool, bo
 // missionKeyNamed presses the key a row is named by, as a scenario names it:
 // "ctrl-" and "shift-" hold those modifiers for the press.
 func (in *appInput) missionKeyNamed(p missionKeyAction, name string) bool {
-	name = namefold.ArchiveText(strings.TrimSpace(name))
+	name = strings.ToLower(strings.TrimSpace(name))
 	ctrl, shift := in.Viewer.Ctrl, in.Viewer.Shift
 	if strings.HasPrefix(name, "ctrl-") {
 		ctrl, name = true, strings.TrimPrefix(name, "ctrl-")

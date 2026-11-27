@@ -79,7 +79,7 @@ func (f *FrontEnd) movieCatalog() []ui.CutsceneEntry {
 			break
 		}
 		title, ok := titles.At(i)
-		path = namefold.ArchiveText(strings.TrimSpace(path))
+		path = namefold.Archive(strings.TrimSpace(path))
 		if ok && title != "" && validMovieDirectory(path) {
 			out = append(out, ui.CutsceneEntry{Directory: path, Title: title})
 		}

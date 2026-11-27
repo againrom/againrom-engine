@@ -203,7 +203,7 @@ func sweepDir(dir string, c *classes, w io.Writer) error {
 				return skip(path, err)
 			}
 			for _, e := range a.Entries() {
-				if !namefold.ArchiveTextEqual(filepath.Ext(e.Path), almExt) {
+				if !namefold.ArchiveEqual(filepath.Ext(e.Path), almExt) {
 					continue
 				}
 				// The source identity of an archived map is the pair that

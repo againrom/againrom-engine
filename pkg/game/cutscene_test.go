@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/formats/res"
 )
 
 func cutsceneFixture(t *testing.T) string {
@@ -76,5 +77,26 @@ func TestCutsceneArchiveFourXOverridesEightX(t *testing.T) {
 		if got := CutsceneArchive(tc.four, tc.eight); got != tc.want {
 			t.Fatalf("%+v got=%s", tc, got)
 		}
+	}
+}
+
+func TestCutsceneBankMatchesArchiveFoldedCyrillicEntry(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "ALLods"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	archive, err := res.Write([]res.WriteEntry{
+		{Path: "Ролик/Фильм.SMK", Data: []byte("SMK-PAYLOAD")},
+	})
+	if err != nil {
+		t.Fatalf("res.Write: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "ALLods", "VIDEO4.RES"), archive, 0600); err != nil {
+		t.Fatal(err)
+	}
+	bank := OpenCutscenes(dir, "video4")
+	got, err := bank.Media(`Ролик\Фильм.SMK`)
+	if err != nil || !bytes.Equal(got, []byte("SMK-PAYLOAD")) {
+		t.Fatalf("Media missed CP866 Cyrillic entry stored under archive fold: got=%q err=%v", got, err)
 	}
 }

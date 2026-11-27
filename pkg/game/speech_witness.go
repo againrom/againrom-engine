@@ -12,7 +12,6 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/herokind"
-	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -384,7 +383,7 @@ func SecondTownSpeechCensus(root string, report io.Writer) error {
 	profile := townTalkRules[town.TalkSection]
 	rows, names, sections := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	for _, key := range body.sectionKeys() {
-		folded := namefold.ArchiveText(key)
+		folded := strings.ToLower(key)
 		payload := []byte(body.section(key))
 		for _, present := range []bool{false, true} {
 			for kind := herokind.MaleFighter; herokind.Every.Holds(kind); kind++ {
