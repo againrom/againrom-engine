@@ -15,7 +15,7 @@ func (mw *mapWorld) waitingHero() (sim.EntityID, bool) {
 		return 0, false
 	}
 	for _, id := range mw.mission.guarded {
-		if e, ok := mw.entity(id); ok && e.Owner == sim.SelfSlot && !e.Alive() && e.CorpseDecayed {
+		if e, ok := mw.entity(id); ok && e.Owner == sim.SelfSlot && !e.Alive() && e.CorpseRemoved() {
 			return id, true
 		}
 	}

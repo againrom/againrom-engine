@@ -2529,9 +2529,7 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 			if cp[i].Decay == DecayNone {
 				cp[i].Decay, cp[i].Dwell, cp[i].CorpseDecayed = DecayFallen, dwellOf(cp[i]), false
 			}
-			if cp[i].Decay >= DecayBones {
-				cp[i].CorpseDecayed = true
-			}
+			cp[i].settleCorpse()
 		} else {
 			// And a LIVING unit carries neither, which is the other half of the
 			// same rule: a stage on one is residue in exactly the sense a target

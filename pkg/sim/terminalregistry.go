@@ -2,9 +2,13 @@ package sim
 
 import "encoding/binary"
 
+// CorpseRemoved: the mark, or stage DecayBones on.
+func (e *Entity) CorpseRemoved() bool { return e.CorpseDecayed || e.Decay >= DecayBones }
+
+func (e *Entity) settleCorpse() { e.CorpseDecayed = e.CorpseRemoved() }
+
 func terminalRegistryActor(e *Entity) bool {
-	// A standalone Entity from an older caller can supply only its stage.
-	return (e.CorpseDecayed || e.Decay >= DecayBones) && !e.Alive()
+	return e.CorpseRemoved() && !e.Alive()
 }
 
 func (w *World) detachTerminalRegistry(id EntityID, removed bool) {

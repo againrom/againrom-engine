@@ -138,7 +138,7 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 		if a.Retired || a.ObjectIndex == 0 || int(a.ObjectIndex) > len(state.Document.Objects) {
 			continue
 		}
-		if e, ok := world.Entity(a.EntityID); ok && e.CorpseDecayed && e.Decay == sim.DecayFallen {
+		if e, ok := world.Entity(a.EntityID); ok && e.CorpseRemoved() && e.Decay == sim.DecayFallen {
 			key, _ := savedStructureValue(&state.Document.Objects[a.ObjectIndex-1], "Identity")
 			removed[key] = true
 		}
@@ -403,7 +403,7 @@ func projectDeadActors(state *SnapshotSAVDocument, world *sim.World, loaded *Sna
 func rootDeadActors(state *SnapshotSAVDocument, world *sim.World) error {
 	awaitingTeardown := map[sim.EntityID]bool{}
 	for _, e := range world.Entities() {
-		if !e.Alive() && !e.CorpseDecayed {
+		if !e.Alive() && !e.CorpseRemoved() {
 			awaitingTeardown[e.ID] = true
 		}
 	}

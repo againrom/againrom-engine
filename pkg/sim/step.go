@@ -2008,7 +2008,7 @@ const (
 )
 
 func (e *Entity) readyForTeardown() bool {
-	return !e.CorpseDecayed && e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable()
+	return !e.CorpseRemoved() && e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable()
 }
 
 // Keep the existing spent-loot columns for a body that remains fallen.
@@ -2044,7 +2044,7 @@ var decayWalks = [...]decayWalk{
 }
 
 func sessionDecayBefore(*World)        {}
-func sessionDecayBody(e *Entity) bool  { return e.Decay == DecayFallen && !e.CorpseDecayed }
+func sessionDecayBody(e *Entity) bool  { return e.Decay == DecayFallen && !e.CorpseRemoved() }
 func sessionDecayStep(*World, *Entity) {}
 
 // sessionDecayTeardown calls the dead ladder once at teardown, independently of
@@ -2147,7 +2147,7 @@ func (w *World) decayPass() {
 			if s > e.Decay {
 				e.Decay = s
 			}
-			if !wasDecayed && e.CorpseDecayed {
+			if !wasDecayed && e.CorpseRemoved() {
 				w.releaseAtTeardown(i)
 				expiring = append(expiring, e.ID)
 				w.detachSavedMember(e.ID)

@@ -336,7 +336,8 @@ func (e *Entity) restoreValues(v ActorValues) error {
 	if v.CorpseDecayed && (e.Alive() || e.Decay == DecayNone || e.Decay > decayLast || e.Dwell != 0) {
 		return fmt.Errorf("sim: decayed corpse state disagrees with living or dwelling actor")
 	}
-	e.CorpseDecayed = v.CorpseDecayed || e.Decay >= DecayBones || e.legacySpentCorpse()
+	e.CorpseDecayed = v.CorpseDecayed || e.legacySpentCorpse()
+	e.settleCorpse()
 	e.attackNotice = attackNotice{Cell: v.AttackNoticeCell, Scans: v.AttackNoticeScans}
 	// A SAV without the split operand whose derived word differs from the
 	// speed word predates the split: its mover byte follows the former

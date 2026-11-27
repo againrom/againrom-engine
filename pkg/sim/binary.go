@@ -2452,10 +2452,10 @@ func (w *World) UnmarshalBinary(data []byte) error {
 	var legacySpent []int
 	for i := range next.entities {
 		e := &next.entities[i]
-		if e.deadRank != 0 && !e.CorpseDecayed {
+		if e.deadRank != 0 && !e.CorpseRemoved() {
 			return fmt.Errorf("sim: dead rank on an undecayed body")
 		}
-		if !e.CorpseDecayed && e.legacySpentCorpse() {
+		if !e.CorpseRemoved() && e.legacySpentCorpse() {
 			e.CorpseDecayed = true
 			legacySpent = append(legacySpent, i)
 		}
@@ -3108,7 +3108,8 @@ func (w *World) unmarshalBinary(data []byte) error {
 			return fmt.Errorf("sim: entity record %d: a dwell of %d at decay stage %d, which owes none",
 				i, e.Dwell, e.Decay)
 		}
-		e.CorpseDecayed = e.Decay >= DecayBones
+		e.CorpseDecayed = false
+		e.settleCorpse()
 		// THE ACTOR STATE, THE RING AND THE LEG: the same check the
 		// constructor calls to learn what to normalise, called here to
 		// refuse instead — patrolFault's four shapes are residue and
