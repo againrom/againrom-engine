@@ -48,14 +48,13 @@ const (
 // check is compared with does). At is the one-based slot in the left or
 // right node of the pair.
 type wizParam struct {
-	kind       wizParamKind
-	labelWord  string
-	def        int64
-	inNode     bool
-	right      bool
-	at         int
-	slot       uint32
-	placedCell bool // a unit choice whose next cell field a placed unit sets from its authored cell; a hero takes the field's cell
+	kind      wizParamKind
+	labelWord string
+	def       int64
+	inNode    bool
+	right     bool
+	at        int
+	slot      uint32
 }
 
 // wizPin is one node slot an item holds at a fixed value.
@@ -122,7 +121,6 @@ var presetFields = map[string]wizParam{
 	"from":           {kind: wpCell, labelWord: "editor.wizard.p.from"},
 	"teleportsource": {kind: wpCell, labelWord: "editor.cast.teleportsource"},
 	"teleporttarget": {kind: wpCell, labelWord: "editor.cast.teleporttarget"},
-	"placement":      {kind: wpUnit, placedCell: true, labelWord: "editor.wizard.p.unit"},
 	"receiver":       {kind: wpUnit, labelWord: "editor.wizard.p.receiver"},
 	"message":        {kind: wpMessage, labelWord: "editor.wizard.p.message"},
 	"relation":       {kind: wpRelation, labelWord: "editor.wizard.p.relation"},
@@ -767,22 +765,14 @@ func (e *MapEditor) wizardDefaults(condition bool, i int) []string {
 	it := e.wizItems(condition)[i]
 	out := []string{strconv.Itoa(i)}
 	mid := image.Pt(min(e.doc.Width, 256)/2, min(e.doc.Height, 256)/2)
-	for k, p := range it.params {
+	for _, p := range it.params {
 		switch p.kind {
 		case wpUnit:
-			out = append(out, strconv.FormatInt(e.defaultUnit(p.placedCell), 10))
+			out = append(out, strconv.FormatInt(e.defaultUnit(), 10))
 		case wpGroup:
 			out = append(out, strconv.FormatInt(e.firstTarget(scriptGroup, 0), 10))
 		case wpCell:
-			cell := mid
-			if k > 0 && it.params[k-1].placedCell {
-				if n, err := strconv.ParseInt(out[len(out)-1], 10, 64); err == nil {
-					if c, ok := e.placedUnitCell(n); ok {
-						cell = c
-					}
-				}
-			}
-			out = append(out, fmt.Sprintf("%d,%d", cell.X, cell.Y))
+			out = append(out, fmt.Sprintf("%d,%d", mid.X, mid.Y))
 		case wpBox:
 			out = append(out, fmt.Sprintf("%d,%d,%d,%d", max(0, mid.X-2), max(0, mid.Y-2), mid.X+2, mid.Y+2))
 		case wpVariable, wpItem, wpStructure, wpSpell, wpProperty:
@@ -816,9 +806,9 @@ func (e *MapEditor) multiplayer() bool {
 	return ok && p.MapFacts().Mode > 1
 }
 
-// A placement takes the first target on the map. Other single-player rows default to hero 1.
-func (e *MapEditor) defaultUnit(placedFirst bool) int64 {
-	if placedFirst || e.multiplayer() {
+// Single-player rows default to hero 1, others to the first target on the map.
+func (e *MapEditor) defaultUnit() int64 {
+	if e.multiplayer() {
 		for _, t := range e.doc.Script.Targets[scriptUnit] {
 			if t.Record >= 0 {
 				return int64(t.Value)
@@ -1082,9 +1072,6 @@ func (e *MapEditor) wizardChoices(p wizParam, value int64) []InspectionChoice {
 		for h := int64(1); h <= 8; h++ {
 			out = append(out, InspectionChoice{10000 + h, e.heroLabel(h)})
 		}
-	}
-	if p.placedCell {
-		return out
 	}
 	for _, c := range out {
 		if c.Value == value {
@@ -1558,8 +1545,6 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 	_, at, fixed := it.itemSlots(false)
 	_, rat, _ := it.itemSlots(true)
 	right := it.right
-	var unitCell image.Point
-	placed := false
 	for k, p := range it.params {
 		switch p.kind {
 		case wpSource:
@@ -1572,17 +1557,9 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 			n.Label = name
 			continue
 		}
-		var nums []int64
-		if k > 0 && it.params[k-1].placedCell && placed {
-			nums = []int64{int64(unitCell.X), int64(unitCell.Y)}
-		} else {
-			var err error
-			if nums, err = e.wizardParam(it, k, row.vals[k+1]); err != nil {
-				return n, rn, 0, err
-			}
-		}
-		if p.placedCell {
-			unitCell, placed = e.placedUnitCell(nums[0])
+		nums, err := e.wizardParam(it, k, row.vals[k+1])
+		if err != nil {
+			return n, rn, 0, err
 		}
 		switch {
 		case p.right:
@@ -1629,16 +1606,6 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 	return n, rn, cmp, nil
 }
 
-func (e *MapEditor) placedUnitCell(id int64) (image.Point, bool) {
-	if id > 0 && id <= math.MaxUint16 {
-		t := e.doc.Script.OpenTarget(scriptUnit, uint32(id))
-		if t != nil && t.Record >= 0 && t.Record < len(e.doc.Records) {
-			return e.doc.Records[t.Record].Cell, true
-		}
-	}
-	return image.Point{}, false
-}
-
 // wizardParam is the numbers text gives parameter k of item it, or why the
 // parameter refuses it: a number out of range, a cell or box off the map, an
 // unset unit or player.
@@ -1656,14 +1623,6 @@ func (e *MapEditor) wizardParam(it wizItem, k int, text string) ([]int64, error)
 			return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.wizard.range"))
 		}
 		nums = append(nums, x)
-	}
-	if p.placedCell {
-		if len(nums) == 1 {
-			if _, ok := e.placedUnitCell(nums[0]); ok || nums[0] > 10000 && nums[0] <= 10008 {
-				return nums, nil
-			}
-		}
-		return nil, fmt.Errorf("%s: %s", label, e.plainWord("editor.wizard.placedunit"))
 	}
 	if len(nums) != len(p.types()) {
 		switch p.kind {

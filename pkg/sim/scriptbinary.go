@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"slices"
 )
 
 // The script section's fixed widths.
@@ -491,6 +492,9 @@ const extendedScriptFormVersion byte = 133
 //	the latch count past 1000, then those latches, a byte each
 const extendedScriptHeadLen = 16
 
+// cellsMarker opens the form's closing remembered cells.
+const cellsMarker = 0xFFFFFFFF
+
 func (w *World) appendExtendedScript(b []byte) []byte {
 	s := w.script
 	if !s.Extended() {
@@ -537,6 +541,18 @@ func (w *World) appendExtendedScript(b []byte) []byte {
 		b = le.AppendUint32(b, uint32(len(late)))
 		for _, i := range late {
 			b = le.AppendUint32(b, uint32(i))
+		}
+	}
+	if slices.ContainsFunc(w.scriptCells, func(c ScriptCell) bool { return c.Seen }) {
+		b = le.AppendUint32(b, cellsMarker)
+		for _, c := range w.scriptCells {
+			seen := uint32(0)
+			if c.Seen {
+				seen = 1
+			}
+			b = le.AppendUint32(b, uint32(c.X))
+			b = le.AppendUint32(b, uint32(c.Y))
+			b = le.AppendUint32(b, seen)
 		}
 	}
 	return endWrapper(b, ws, extendedScriptFormVersion)
@@ -623,9 +639,26 @@ func (w *World) unmarshalExtendedScript(data []byte, proof formProof) error {
 	if !ok {
 		return fail()
 	}
-	if off != int64(len(s)) {
+	var cells []ScriptCell
+	for pass := 0; off != int64(len(s)); pass++ {
 		n, okN := word()
-		if !okN || n == 0 || n > nc {
+		if !okN || pass > 1 {
+			return fail()
+		}
+		if n == cellsMarker {
+			trio, okC := words(3 * int64(nc))
+			if !okC || off != int64(len(s)) {
+				return fail()
+			}
+			for k := 0; k < len(trio); k += 3 {
+				if trio[k+2] > 1 {
+					return fail()
+				}
+				cells = append(cells, ScriptCell{X: trio[k], Y: trio[k+1], Seen: trio[k+2] == 1})
+			}
+			break
+		}
+		if pass != 0 || n == 0 || n > nc {
 			return fail()
 		}
 		prev := int64(-1)
@@ -636,9 +669,6 @@ func (w *World) unmarshalExtendedScript(data []byte, proof formProof) error {
 			}
 			prev = int64(i)
 			recs.checks[i].Late = true
-		}
-		if off != int64(len(s)) {
-			return fail()
 		}
 	}
 	next := *w
@@ -659,9 +689,9 @@ func (w *World) unmarshalExtendedScript(data []byte, proof formProof) error {
 		return err
 	}
 	next.script = program
-	next.scriptVars, next.scriptResults, next.latchTail = nil, nil, nil
+	next.scriptVars, next.scriptResults, next.latchTail, next.scriptCells = nil, nil, nil, nil
 	next.fitScriptState()
-	state := ScriptExtendedState{Variables: tail, Results: results}
+	state := ScriptExtendedState{Variables: tail, Results: results, Cells: cells}
 	if len(latches) != 0 {
 		state.Latches = bytes.Clone(latches)
 	}

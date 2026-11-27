@@ -1440,8 +1440,12 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	switch c.Op {
 	case scriptprofile.UnitLeftCellOp:
 		v := int32(0)
-		if e.X != c.Args[0] || e.Y != c.Args[1] {
-			v = 1
+		if int(i) < len(w.scriptCells) {
+			m := &w.scriptCells[i]
+			if m.Seen && (m.X != e.X || m.Y != e.Y) {
+				v = 1
+			}
+			*m = ScriptCell{X: e.X, Y: e.Y, Seen: true}
 		}
 		write(v)
 
@@ -2651,6 +2655,13 @@ func (w *World) fitScriptState() {
 	w.scriptVars = fitSlice(w.scriptVars, vars)
 	w.scriptResults = fitSlice(w.scriptResults, results)
 	w.latchTail = fitSlice(w.latchTail, tail)
+	w.scriptCells = fitSlice(w.scriptCells, results)
+}
+
+// ScriptCell is the cell a check last saw its unit on.
+type ScriptCell struct {
+	X, Y int32
+	Seen bool
 }
 
 // seedScriptRegisters writes the profile's session-start register value
@@ -2800,6 +2811,7 @@ type ScriptExtendedState struct {
 	Variables []int32        `json:",omitempty"`
 	Results   []int32        `json:",omitempty"`
 	Latches   []byte         `json:",omitempty"`
+	Cells     []ScriptCell   `json:",omitempty"`
 	Globals   []ScriptGlobal `json:"-"`
 }
 
@@ -2809,6 +2821,9 @@ func (w *World) ScriptExtendedState() ScriptExtendedState {
 	s := ScriptExtendedState{Globals: w.ScriptGlobals()}
 	if w.script.Extended() {
 		s.Variables, s.Results, s.Latches = slices.Clone(w.scriptVars), slices.Clone(w.scriptResults), slices.Clone(w.latchTail)
+		if slices.ContainsFunc(w.scriptCells, func(c ScriptCell) bool { return c.Seen }) {
+			s.Cells = slices.Clone(w.scriptCells)
+		}
 	}
 	return s
 }
@@ -2824,6 +2839,9 @@ func (w *World) RestoreScriptExtendedState(s ScriptExtendedState) error {
 	if len(s.Variables) != vars || len(s.Results) != results || len(s.Latches) != latches {
 		return fmt.Errorf("sim: extended script state holds %d variables, %d results and %d latches, the program %d, %d and %d",
 			len(s.Variables), len(s.Results), len(s.Latches), vars, results, latches)
+	}
+	if len(s.Cells) != 0 && len(s.Cells) != results {
+		return fmt.Errorf("sim: extended script state holds %d remembered cells, the program %d", len(s.Cells), results)
 	}
 	if slices.ContainsFunc(s.Latches, func(b byte) bool { return b > 1 }) {
 		return fmt.Errorf("sim: an extended script latch is neither 0 nor 1")
@@ -2841,6 +2859,11 @@ func (w *World) RestoreScriptExtendedState(s ScriptExtendedState) error {
 	w.scriptVars = fitSlice(slices.Clone(s.Variables), vars)
 	w.scriptResults = fitSlice(slices.Clone(s.Results), results)
 	w.latchTail = fitSlice(slices.Clone(s.Latches), latches)
+	w.scriptCells = nil
+	if len(s.Cells) != 0 {
+		w.scriptCells = slices.Clone(s.Cells)
+	}
+	w.scriptCells = fitSlice(w.scriptCells, results)
 	return nil
 }
 

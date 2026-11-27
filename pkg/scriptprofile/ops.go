@@ -479,8 +479,8 @@ var firstChecks = []Op{
 	{Condition: true, ID: constantOp, Name: "Constant / variable preset", Word: "editor.check.op65538", Decoded: true, Offered: true, Signature: sig(number("value")), // TRIG-COND-003
 		Presets: []WizardPreset{{Order: 9, Word: "editor.wizard.c.always", Right: 1, Fixed: []uint32{1}, Holds: true}}},
 	{Condition: true, ID: healthBelow, Name: "Health below (Againrom)", Word: "editor.check.op16641", Decoded: true, Offered: true, Again: true, Signature: sig(unit("unit"), number("health"))}, // DIV-4009
-	{Condition: true, ID: UnitLeftCellOp, Name: "Unit left its cell", Word: "editor.check.op16645", Decoded: true, Again: true, Signature: sig(unit("unit"), cell("cell")),
-		Presets: []WizardPreset{{Order: 25, Word: "editor.wizard.c.leftcell", Fields: map[string]string{"unit": "placement"}, Right: 1}}},
+	{Condition: true, ID: UnitLeftCellOp, Name: "Unit changed its cell", Word: "editor.check.op16645", Decoded: true, Again: true, Signature: sig(unit("unit")),
+		Presets: []WizardPreset{{Order: 25, Word: "editor.wizard.c.leftcell", Right: 1}}},
 	{Condition: true, ID: ReadGlobalOp, Name: "Read global (Againrom)", Word: "editor.check.op16642", Decoded: true, Again: true, Signature: sig(number("global")), // DIV-5108
 		Presets: []WizardPreset{{Order: 24, Word: "editor.wizard.c.global", Fields: map[string]string{"global": "global"}, ChooseCmp: true, Compared: "count"}}},
 }
@@ -597,8 +597,8 @@ var secondChecks = []Op{
 	{Ops: OpsSecond, Condition: true, ID: 26, Name: "Unit effect active", Word: "editor.second.check.26", Decoded: true, Offered: true, Signature: sig(unit("unit"), number(""))},
 	{Ops: OpsSecond, Condition: true, ID: 27, Name: "Unit tile position", Word: "editor.second.check.27", Decoded: true, Offered: true},
 	// The engine's condition, on the extended machine alone (DIV-5204).
-	{Ops: OpsSecond, Condition: true, ID: UnitLeftCellOp, Name: "Unit left its cell", Word: "editor.check.op16645", Decoded: true, Again: true, Signature: sig(unit("unit"), cell("cell")),
-		Presets: []WizardPreset{{Word: "editor.wizard.c.leftcell", Fields: map[string]string{"unit": "placement"}, Right: 1}}},
+	{Ops: OpsSecond, Condition: true, ID: UnitLeftCellOp, Name: "Unit changed its cell", Word: "editor.check.op16645", Decoded: true, Again: true, Signature: sig(unit("unit")),
+		Presets: []WizardPreset{{Word: "editor.wizard.c.leftcell", Right: 1}}},
 	{Ops: OpsSecond, Condition: true, ID: constantOp, Name: "Compiler parameter", Word: "editor.second.check.65538", Decoded: true, Offered: true},
 }
 

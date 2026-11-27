@@ -231,19 +231,6 @@ func (e *MapEditor) wizardItemScope(r int, at map[string]int, heroes *bool, drop
 			if p.kind == wpUnit || p.kind == wpGroup || p.kind == wpStructure {
 				param.flag("onmap")
 			}
-			if p.placedCell && wr.item == wr.origItem && k+1 < len(wr.orig) && wr.orig[k+1] == o.buf[i] {
-				id := wr.left
-				if wr.swapped {
-					id = wr.right
-				}
-				if n, ok := e.nodeByID(true, id); ok {
-					x, y := n.Values[p.at], n.Values[p.at+1]
-					cell, placed := e.placedUnitCell(int64(n.Values[p.at-1]))
-					if !placed || int(x) != cell.X || int(y) != cell.Y {
-						param.Values["value"] += fmt.Sprintf(e.word("editor.wizard.startcell"), x, y)
-					}
-				}
-			}
 			if p.kind == wpUnit {
 				if n, err := strconv.ParseInt(strings.TrimSpace(o.buf[i]), 10, 64); err == nil && n > 10000 {
 					*heroes = true

@@ -51,14 +51,14 @@ func TestWizardPresetsJoinOperationRows(t *testing.T) {
 	}
 }
 
-func TestUnitLeftCellIsOfferedForBothGames(t *testing.T) {
+func TestUnitChangesItsCellIsOfferedForBothGames(t *testing.T) {
 	for _, ops := range []scriptprofile.Ops{scriptprofile.OpsFirst, scriptprofile.OpsSecond} {
 		at := slices.IndexFunc(wizardTables[ops][1], func(it wizItem) bool { return it.opcode == 0x4105 })
 		if at < 0 {
 			t.Fatalf("operation vocabulary %v does not offer departure", ops)
 		}
 		it := wizardTables[ops][1][at]
-		if it.labelWord != "editor.wizard.c.leftcell" || len(it.params) != 2 || !it.params[0].placedCell || it.params[1].kind != wpCell {
+		if it.labelWord != "editor.wizard.c.leftcell" || len(it.params) != 1 || it.params[0].kind != wpUnit {
 			t.Errorf("operation vocabulary %v departure row %q, %d fields", ops, it.labelWord, len(it.params))
 		}
 		teleport := slices.ContainsFunc(wizardTables[ops][0], func(it wizItem) bool { return it.opcode == 0x4106 })

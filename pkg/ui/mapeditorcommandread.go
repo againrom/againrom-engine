@@ -430,7 +430,7 @@ func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 			for k, p := range it.params {
 				param := map[string]any{"kind": wizParamNames[p.kind], "label": e.mcpDisplay(e.word(p.labelWord)), "default": defaults[k+1]}
 				switch {
-				case p.placedCell || (p.kind == wpUnit || p.kind == wpGroup) && verbose:
+				case (p.kind == wpUnit || p.kind == wpGroup) && verbose:
 					param["choices"] = choices(p)
 				case p.kind == wpUnit:
 					param["choices"] = "units"

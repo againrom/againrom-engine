@@ -2022,6 +2022,7 @@ type World struct {
 	scriptVars    []int32
 	scriptResults []int32
 	latchTail     []byte
+	scriptCells   []ScriptCell
 
 	// globals are the mod's global variables the mission was seated with,
 	// sorted by id (scriptglobal.go); nil outside a mod that declares one.

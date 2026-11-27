@@ -6,6 +6,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -15,7 +16,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-func TestUnitLeftCellEditorRoundTrip(t *testing.T) {
+func TestUnitChangesItsCellEditorRoundTrip(t *testing.T) {
 	for _, lang := range scriptAddLangs {
 		t.Run(lang.name, func(t *testing.T) {
 			e, _, word := scriptAddEditor(t, lang, triggerMap(t))
@@ -25,12 +26,15 @@ func TestUnitLeftCellEditorRoundTrip(t *testing.T) {
 			trigChoose(t, e, wizField(t, e, "c0.item"), word("editor.wizard.c.leftcell"))
 			trigChoose(t, e, wizField(t, e, "c0.p0"), "15,14")
 			if got := trigLines(e); !strings.Contains(got, "15,14") {
-				t.Fatal("the list choice has no starting cell", got)
+				t.Fatal("the list choice names no unit", got)
+			}
+			if e.WizardField("c0.p1") >= 0 {
+				t.Fatal("the row asks for a cell")
 			}
 			wizPress(t, e, "c0.p0", 0)
 			clickCell(e, image.Pt(12, 14))
 			if got := trigLines(e); !strings.Contains(got, "12,14") {
-				t.Fatal("the map pick has no starting cell", got)
+				t.Fatal("the map pick names no unit", got)
 			}
 			wizPress(t, e, "+action", 0)
 			trigChoose(t, e, wizField(t, e, "a0.item"), word("editor.wizard.a.win"))
@@ -50,7 +54,7 @@ func TestUnitLeftCellEditorRoundTrip(t *testing.T) {
 			sc := wizScript(t, b)
 			tr := sc.Triggers[len(sc.Triggers)-1]
 			n := wizNode(t, sc.Conditions, tr.Left[0])
-			if !sc.Extended || n.Opcode != 0x4105 || n.Type != [10]uint32{4, 5, 6} || n.Value != [10]uint32{10, 12, 14} ||
+			if !sc.Extended || n.Opcode != 0x4105 || n.Type != [10]uint32{4} || n.Value != [10]uint32{10} ||
 				tr.Cmp[0] != uint32(sim.ScriptCmpEQ) || wizNode(t, sc.Conditions, tr.Right[0]).Value[0] != 1 {
 				t.Fatalf("saved departure: %+v, %+v", tr, n)
 			}
@@ -68,14 +72,14 @@ func TestUnitLeftCellEditorRoundTrip(t *testing.T) {
 			}
 			reopened, _, _ = scriptAddEditor(t, lang, moved.SourceBytes)
 			reopened.Select(trigRecord(t, reopened, "Trigger", len(sc.Triggers)-1), true)
-			if lines := trigLines(reopened); !strings.Contains(lines, "13,14") || !strings.Contains(lines, word("editor.wizard.startcell", 12, 14)) {
-				t.Fatal("the row lost its recorded cell after a placement edit", lines)
+			if lines := trigLines(reopened); !strings.Contains(lines, "13,14") {
+				t.Fatal("the row lost its unit after a placement edit", lines)
 			}
 		})
 	}
 }
 
-func TestUnitLeftCellInAPlainMapRequiresConversion(t *testing.T) {
+func TestUnitChangesItsCellInAPlainMapRequiresConversion(t *testing.T) {
 	n := scriptNode{label: "Departure", opcode: 0x4105, id: 1, values: []uint32{91, 15, 16}, tags: []uint32{4, 5, 6}}
 	plain := synth.ALM(synth.ALMOptions{Width: 40, Height: 40, Units: extendedUnits, Type7Payload: scriptPayload(nil, []scriptNode{n})})
 	e, _ := openGoalMap(t, plain)
@@ -89,7 +93,7 @@ func TestUnitLeftCellInAPlainMapRequiresConversion(t *testing.T) {
 	}
 }
 
-func TestUnitLeftCellMissionSave(t *testing.T) {
+func TestUnitChangesItsCellMissionSave(t *testing.T) {
 	actions := []scriptNode{{label: "Drop", opcode: dropActionOpcode, id: 1, values: []uint32{16, 16}, tags: []uint32{5, 6}},
 		{label: "Count", opcode: 8, id: 2, values: []uint32{7}, tags: []uint32{1}}}
 	conditions := []scriptNode{{label: "Departure", opcode: 0x4105, id: 1, values: []uint32{91, 15, 16}, tags: []uint32{4, 5, 6}},
@@ -121,6 +125,9 @@ func TestUnitLeftCellMissionSave(t *testing.T) {
 		if err != nil || town || back.live.world.Hash() != w.Hash() {
 			t.Fatal("cold LOAD lost the mission state", town, err)
 		}
+		if got, want := back.live.world.ScriptExtendedState().Cells, w.ScriptExtendedState().Cells; len(want) == 0 || !slices.Equal(got, want) {
+			t.Fatalf("cold LOAD lost the remembered cells: %v, want %v", got, want)
+		}
 		return back
 	}
 	back := roundTrip()
@@ -145,7 +152,7 @@ func TestUnitLeftCellMissionSave(t *testing.T) {
 	}
 }
 
-func TestUnitLeftCellOffersHeroesAndPlacedUnits(t *testing.T) {
+func TestUnitChangesItsCellOffersHeroesAndPlacedUnits(t *testing.T) {
 	for _, lang := range scriptAddLangs {
 		t.Run(lang.name, func(t *testing.T) {
 			e, _, word := scriptAddEditor(t, lang, triggerMap(t))
@@ -179,7 +186,7 @@ func heroChoice(t *testing.T, lang scriptAddLang) string {
 	return e.DropdownChoices()[4]
 }
 
-func TestUnitLeftCellHeroEditorRoundTrip(t *testing.T) {
+func TestUnitChangesItsCellHeroEditorRoundTrip(t *testing.T) {
 	for _, lang := range scriptAddLangs {
 		t.Run(lang.name, func(t *testing.T) {
 			e, _, word := scriptAddEditor(t, lang, triggerMap(t))
@@ -189,7 +196,6 @@ func TestUnitLeftCellHeroEditorRoundTrip(t *testing.T) {
 			trigChoose(t, e, wizField(t, e, "c0.item"), word("editor.wizard.c.leftcell"))
 			hero, _, _ := strings.Cut(heroChoice(t, lang), ":")
 			trigChoose(t, e, wizField(t, e, "c0.p0"), hero)
-			wizType(t, e, "c0.p1", "7,9")
 			wizPress(t, e, "+action", 0)
 			trigChoose(t, e, wizField(t, e, "a0.item"), word("editor.wizard.a.win"))
 			r, ok := e.FindControl(ui.ControlQuery{Role: ui.ControlPopupButton, N: 0})
@@ -208,12 +214,12 @@ func TestUnitLeftCellHeroEditorRoundTrip(t *testing.T) {
 			sc := wizScript(t, b)
 			tr := sc.Triggers[len(sc.Triggers)-1]
 			n := wizNode(t, sc.Conditions, tr.Left[0])
-			if !sc.Extended || n.Opcode != 0x4105 || n.Type != [10]uint32{4, 5, 6} || n.Value != [10]uint32{10001, 7, 9} {
+			if !sc.Extended || n.Opcode != 0x4105 || n.Type != [10]uint32{4} || n.Value != [10]uint32{10001} {
 				t.Fatalf("saved hero departure: %+v, %+v", tr, n)
 			}
 			reopened, _, _ := scriptAddEditor(t, lang, b)
 			reopened.Select(trigRecord(t, reopened, "Trigger", len(sc.Triggers)-1), true)
-			if lines := trigLines(reopened); !strings.Contains(lines, hero) || !strings.Contains(lines, "7,9") {
+			if lines := trigLines(reopened); !strings.Contains(lines, hero) {
 				t.Fatal("reopened row", lines)
 			}
 		})

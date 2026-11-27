@@ -140,6 +140,7 @@ var nstPinned = []struct {
 		{"scriptVars", "[]int32"},
 		{"scriptResults", "[]int32"},
 		{"latchTail", "[]uint8"},
+		{"scriptCells", "[]sim.ScriptCell"},
 		// A mod's global variables; the outermost form wrapper carries them.
 		{"globals", "[]sim.ScriptGlobal"},
 		{"rawSessionHead", "[48]uint8"},
