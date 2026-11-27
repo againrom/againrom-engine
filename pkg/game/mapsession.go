@@ -164,9 +164,10 @@ func (f *FrontEnd) storedParty(c storedCharacter) []mapload.PartyMember {
 		return party
 	}
 	p := mapload.MaterializePartyCarry(party[0], f.Table)
+	r, dialect := mapload.TableRules(f.Table), tableFiles(f.Table).scriptDialect
 	for s := data.SkillBlade; s < data.SkillSlots; s++ {
 		p.Carry.SkillXP[s] = c.skillXP[s]
-		p.Hero.Skill[s] = data.SkillLevelFor(c.skillXP[s])
+		p.Hero.Skill[s] = sim.HeldSkillLevel(dialect, r, c.skillXP[s])
 	}
 	party[0] = p
 	return party
