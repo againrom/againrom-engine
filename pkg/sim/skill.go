@@ -212,6 +212,19 @@ func (p skillAwardProfile) heldLevel(r Rules, xp int32) int32 {
 	return level
 }
 
+func (w *World) writeTrainedSkill(i int, e *Entity, slot, level int32) {
+	if !e.NativeTraining.Present {
+		e.NativeTraining = NativeTraining{Present: true, Levels: e.TrainedSkills(w.nativeSkillBonuses(i))}
+	}
+	e.NativeTraining.Levels[slot] = level
+	if slot > 0 && e.NativeBasis.BasePresent {
+		at, word := 2+2*slot, uint16(level)
+		e.NativeBasis.Base[at], e.NativeBasis.Base[at+1] = byte(word), byte(word>>8)
+		e.NativeBasis.BaseKnown |= uint32(3) << at
+	}
+	e.Skill[slot] = w.rules.EffectiveSkill(level, w.wornSkillBonus(i, slot))
+}
+
 func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 	a := &w.entities[ai]
 	if !a.GainsXP || !InPersistBand(a.TypeID) {
@@ -291,16 +304,7 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 	if !w.raisesSkill(a.SkillXP[slot], before) {
 		return false
 	}
-	if !a.NativeTraining.Present {
-		a.NativeTraining = NativeTraining{Present: true, Levels: a.TrainedSkills(w.nativeSkillBonuses(ai))}
-	}
-	a.NativeTraining.Levels[slot] = before + 1
-	if slot > 0 && a.NativeBasis.BasePresent {
-		at, level := 2+2*slot, uint16(before+1)
-		a.NativeBasis.Base[at], a.NativeBasis.Base[at+1] = byte(level), byte(level>>8)
-		a.NativeBasis.BaseKnown |= uint32(3) << at
-	}
-	a.Skill[slot] = w.rules.EffectiveSkill(before+1, w.wornSkillBonus(ai, slot))
+	w.writeTrainedSkill(ai, a, slot, before+1)
 	RefreshBook(w.rules, a, w.spells)
 	w.refreshSavedBookRoots(ai)
 	return true

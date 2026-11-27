@@ -36,24 +36,15 @@ func (w *World) returnHero(i int, at CellPoint) {
 	hero.HeldOrder = HeldOrder{}
 	hero.CommandGroup = 0
 	hero.setCurrentDefence(hero.Defence << 1)
-	trained := hero.TrainedSkills(w.nativeSkillBonuses(i))
 	sum := uint32(0)
 	for slot := int32(1); slot < skillSlots; slot++ {
 		hero.SkillXP[slot] = returnedExperience(hero.SkillXP[slot])
 		sum += uint32(hero.SkillXP[slot])
-		level := w.game.skillAward.heldLevel(w.rules, hero.SkillXP[slot])
-		trained[slot] = level
-		hero.Skill[slot] = w.rules.EffectiveSkill(level, w.wornSkillBonus(i, slot))
-		if hero.NativeBasis.BasePresent {
-			at := 2 + 2*slot
-			hero.NativeBasis.Base[at], hero.NativeBasis.Base[at+1] = byte(level), byte(level>>8)
-			hero.NativeBasis.BaseKnown |= uint32(3) << at
-		}
+		w.writeTrainedSkill(i, &hero, slot, w.game.skillAward.heldLevel(w.rules, hero.SkillXP[slot]))
 	}
 	if hero.NativeBasis.ScalarIsKnown(ScalarU130) {
 		hero.NativeBasis.Scalars[ScalarU130] = sum
 	}
-	hero.NativeTraining = NativeTraining{Present: true, Levels: trained}
 	RefreshBook(w.rules, &hero, w.spells)
 	hero.fillPools()
 	pack, worn := cloneStacks(w.carried[i]), cloneEquipment(w.equipment[i])
