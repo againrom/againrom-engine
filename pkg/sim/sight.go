@@ -29,15 +29,11 @@ import "againrom/pkg/rules"
 // budget, every step cost and every accumulator value is in units of 1/(1<<k) of
 // a cell.
 //
-// It is a FILE-CARRIED customisation limit, and one with a trap in it
-// (TERR-FOG-088). The law reads it from `[Scanning] ScanShift` in
-// `World\Data\map.reg`, which ships as 7 in both roots, against a compiled
-// default of the same 7 — so the two agree today only because the shipped value
-// equals the code's. Editing that key moves THIS predicate's precision and
-// leaves the drawn fog untouched, because the fog is a second implementation of
-// the same algorithm with its own copy of the constant.
-//
-// This tree reads no registry, so it is written here. The seam is this constant.
+// The law reads it from `[Scanning] ScanShift` in map.reg, which ships as 7 in
+// both roots. Editing the key moves the AI predicate's precision and leaves the
+// fog untouched: the fog has its own copy of the constant (TERR-FOG-088). This
+// constant is that default and the fog's shift; the AI reader runs the world's
+// ScanShift (World.scanShift).
 const sightShift = 7
 
 // sightStep is 1<<sightShift: what one axis step costs, and the unit the whole
@@ -89,11 +85,18 @@ type sightWindowTables struct {
 	cost  [sightArea]int32
 }
 
-// sightTables is the built pair, at sightShift. It is a package-level value
-// and not a field of a world, because it depends on nothing a world carries:
-// were it a field it would be hashed state no world could vary, and the
-// field-set pin exists to refuse exactly that.
-var sightTables = buildSightTables(sightShift)
+// sightTables is the built pair at sightShift. Tables depend on geometry and
+// the shift alone, so they are package values and not a field of a world.
+var sightTables = sightTablesAt[sightShift]
+
+// sightTablesAt holds the pair built at each shift the build rules admit
+// (MinScanShift..MaxScanShift); the index is the shift.
+var sightTablesAt = func() (at [MaxScanShift + 1]*sightWindowTables) {
+	for s := int32(MinScanShift); s <= MaxScanShift; s++ {
+		at[s] = buildSightTables(s)
+	}
+	return at
+}()
 
 // buildSightTables fills the window from geometry and shift alone — the
 // SAME shift the seed and the cost table read their units in, which is what
@@ -239,16 +242,17 @@ type sightReader struct {
 	tables *sightWindowTables
 	shift  int32
 	inset  func(w *World, i int, c cell) bool
+	// ruled: the shift and tables are the world's (World.scanShift), not the
+	// fields above.
+	ruled bool
 }
 
-// aiSight is the AI reader: the group-acquisition sweep's own march
-// (candidates, groupSight's default caller), its answers unchanged by this
-// story except through the seed identity sightSeed asserts.
-var aiSight = sightReader{tables: sightTables, shift: sightShift, inset: aiInset}
+// aiSight is the AI reader: the group-acquisition sweep's own march. It runs
+// the world's shift.
+var aiSight = sightReader{tables: sightTables, shift: sightShift, inset: aiInset, ruled: true}
 
-// fogSight is the fog reader this story adds: the same tables and the same
-// shift as aiSight — nothing here varies either — differing only in the
-// rectangle a ring cell is tested against.
+// fogSight is the fog reader: the compiled shift, and the rectangle a ring cell
+// is tested against.
 var fogSight = sightReader{tables: sightTables, shift: sightShift, inset: fogInset}
 
 // aiInset is the AI reader's rectangle, read off the grid rather than
@@ -299,6 +303,10 @@ func (w *World) marchSight(reader sightReader, stamp []byte, from cell, scanRang
 // marchInto is marchSight's walk into a caller's accumulator from a sight in
 // 1/256 cell. A nil stamp marks no cell: the fog stamp reads the accumulator.
 func (w *World) marchInto(reader sightReader, stamp []byte, acc *[sightArea]int32, from cell, sight256 int32) {
+	if reader.ruled {
+		reader.shift = w.scanShift()
+		reader.tables = sightTablesAt[reader.shift]
+	}
 	acc[sightOffset(0, 0)] = sightSeed(sight256, reader.shift)
 
 	// The observer's own cell is marked before any ring and outside the inset

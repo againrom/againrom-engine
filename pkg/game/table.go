@@ -121,7 +121,7 @@ func loadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 		if filesOf(g).terrainCosts != "" {
 			d.Table.TerrainCosts = &registry.Costs
 		}
-		d.Table.Build.Path = &registry.Path
+		d.Table.Build.Path, d.Table.Build.Scan = &registry.Path, &registry.Scan
 	}
 	d.StartWeapon, d.StartWeaponErr = resolveStartingWeapon(f, PartySkillSlot())
 	// Not fatal, and reported by nothing beyond the field itself — see

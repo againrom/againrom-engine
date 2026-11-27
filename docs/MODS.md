@@ -436,12 +436,18 @@ or another base is refused as below.
 A mod sets how far computer units search routes by carrying
 `files/<layer>/world/data/map.reg`, for the first and the second game alike. The file
 replaces the install's `map.reg`; no other `.reg` file is taken. The game reads
-`[Path Finding]` (`StaticScanAhead`, `DynamicScanAhead`, `StaticRefreshRate`,
-`DynamicRefreshRate`, `DynamicByStaticLookup`, `StaticIsntNeeded`, whole
-numbers; key names are cut to 15 characters) and `[Terrain]` (`CostLand` to
-`CostRoad`). A key the file lacks keeps the value the original ships. A
-refresh rate above 255 means never and below 0 means always; the original's
-values stay inside that range. A mod without the file changes nothing.
+`[Path Finding]` (`SpeedMultiplier`, `StaticScanAhead`, `DynamicScanAhead`,
+`StaticRefreshRate`, `DynamicRefreshRate`, `DynamicByStaticLookup`,
+`StaticIsntNeeded`, whole numbers; key names are cut to 15 characters),
+`[Scanning]` (`ScanShift`) and `[Terrain]` (`CostLand` to `CostRoad`). A key the
+file lacks keeps the value the original ships (`SpeedMultiplier` 8, `ScanShift`
+7). A refresh rate above 255 means never and below 0 means always; the
+original's values stay inside that range. `SpeedMultiplier` multiplies a ground
+unit's speed in its step rate; `ScanShift` is the fixed-point precision of the
+computer units' sight, not of the player's fog. A `SpeedMultiplier` outside 1 to
+255 or a `ScanShift` outside 1 to 8 is refused when the registry loads (the mod
+is refused by name, the install fails to open), never clamped. A mod without
+the file changes nothing.
 
 The mark names each mod item and clothing layer the save holds by its mod's
 id and its key (`"mod"` and `"key"`). Item codes are handed out in load order,

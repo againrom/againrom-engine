@@ -1862,15 +1862,8 @@ func (w *World) Route(id EntityID) [][2]int32 {
 // the law's arms, because the two arms read the same two sources in the same
 // order and differ only in what they do with the number afterwards.
 //
-// IT IS NOT THE WHOLE PUBLISHED LAW, and the term it does not carry is
-// named here because this is the site a reader reaches when asking what the
-// number is made of: the MULTIPLIER'S SOURCE. rateOf applies it at the shipped default, written
-// as a constant; the original reads it per map from `data/map.reg [Path
-// Finding]`, and this tree has no reader for that key. Every shipped map
-// carries the default, so the arithmetic is right today and a CUSTOMISED map
-// would be rated as though it had not customised it.
-//
-// It is not folded into the result to make it look complete.
+// The multiplier is the world's own: the build rules' [Path Finding]
+// SpeedMultiplier. Whether a map file overrides it is Unknown (DIV-5051).
 //
 // The cost accessor's write-back is carried by readCost: a ground mover's read
 // of a layered cell divides the stored byte by four and keeps the quotient,
@@ -1888,7 +1881,7 @@ func (w *World) stepRate(e Entity, from, to cell, commit bool) (rate, transit in
 		}
 		hSrc, hDst = w.heightAt(from), w.heightAt(to)
 	}
-	v := w.game.rateOf(e.Domain, moverSpeed(e), costSrc, costDst, hSrc, hDst)
+	v := w.game.rateOf(e.Domain, w.pathFinding().SpeedMultiplier, moverSpeed(e), costSrc, costDst, hSrc, hDst)
 	return v, transitOf(v, from.x != to.x && from.y != to.y)
 }
 

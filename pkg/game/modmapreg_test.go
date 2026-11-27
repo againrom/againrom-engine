@@ -61,6 +61,33 @@ func TestModMapRegistryReachesBothGames(t *testing.T) {
 	}
 }
 
+func TestMapRegistryCarriesSpeedMultiplierAndScanShiftInBothGames(t *testing.T) {
+	custom := synth.Reg(0, []synth.RegNode{
+		{Name: "Path Finding", Kind: 1, Children: []synth.RegNode{{Name: "SpeedMultiplier", Kind: 2, Int: 4}}},
+		{Name: "Scanning", Kind: 1, Children: []synth.RegNode{{Name: "ScanShift", Kind: 2, Int: 6}}},
+	})
+	for _, g := range []base.Game{base.GameROM1, base.GameROM2} {
+		for _, tc := range []struct {
+			name        string
+			reg         []byte
+			speed, shft int32
+		}{{"custom", custom, 4, 6}, {"keys missing", pathFindingReg(1), 8, 7}} {
+			fs := worldFS(t, synth.File{Path: "data/map.reg", Data: tc.reg})
+			registry, ok, err := mapRegistry(fs, filesOf(g).planeCosts)
+			if err != nil || !ok {
+				t.Fatalf("%v %s: registry %v %v", g, tc.name, ok, err)
+			}
+			if registry.Path.SpeedMultiplier != tc.speed || registry.Scan.ScanShift != tc.shft {
+				t.Errorf("%v %s: %d and %d, want %d and %d", g, tc.name, registry.Path.SpeedMultiplier, registry.Scan.ScanShift, tc.speed, tc.shft)
+			}
+		}
+		fs := worldFS(t)
+		if _, ok, err := mapRegistry(fs, filesOf(g).planeCosts); err != nil || ok {
+			t.Errorf("%v: a missing file gave %v %v", g, ok, err)
+		}
+	}
+}
+
 func TestModMapRegistryRefusals(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -69,6 +96,8 @@ func TestModMapRegistryRefusals(t *testing.T) {
 		want  string
 	}{
 		{"garbage", "files/common/world/data/map.reg", []byte("not a registry"), "cannot read this registry"},
+		{"zero multiplier", "files/common/world/data/map.reg", synth.Reg(0, []synth.RegNode{{Name: "Path Finding", Kind: 1, Children: []synth.RegNode{{Name: "SpeedMultiplier", Kind: 2, Int: 0}}}}), "SpeedMultiplier 0"},
+		{"shift past the tables", "files/common/world/data/map.reg", synth.Reg(0, []synth.RegNode{{Name: "Scanning", Kind: 1, Children: []synth.RegNode{{Name: "ScanShift", Kind: 2, Int: 12}}}}), "ScanShift 12"},
 		{"elsewhere", "files/common/main/data/map.reg", pathFindingReg(5), "holds no file"},
 	} {
 		dir := routeValuesMod(t, tc.bytes, tc.rel)

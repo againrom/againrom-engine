@@ -10,7 +10,7 @@ func generationBudget(start, target cell, rule budgetRule, goalOpen bool) int64 
 
 func TestAWorldWithNoPathFindingRunsTheShippedValues(t *testing.T) {
 	w := pursuitLine(t, 8)
-	if got, want := w.pathFinding(), (PathFinding{StaticScanAhead: 5, DynamicScanAhead: 3, StaticRefreshRate: 16, DynamicRefreshRate: 32, DynamicByStaticLookup: 3, StaticIsntNeeded: 5}); got != want {
+	if got, want := w.pathFinding(), (PathFinding{StaticScanAhead: 5, DynamicScanAhead: 3, StaticRefreshRate: 16, DynamicRefreshRate: 32, SpeedMultiplier: 8, DynamicByStaticLookup: 3, StaticIsntNeeded: 5}); got != want {
 		t.Fatalf("path finding %+v, want %+v", got, want)
 	}
 	custom := ShippedPathFinding()

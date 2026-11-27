@@ -255,8 +255,8 @@ func TestTheGroupTermIsTheMinimumInTheOriginalsOwnWidths(t *testing.T) {
 func TestAFormationCrossesAtItsSlowestMembersRate(t *testing.T) {
 	const slow, fast = 8, 40
 
-	slowTransit := transitOf((gameProfile{}).rateOf(DomainGround, slow, 0, 0, 0, 0), false)
-	fastTransit := transitOf((gameProfile{}).rateOf(DomainGround, fast, 0, 0, 0, 0), false)
+	slowTransit := transitOf((gameProfile{}).rateOf(DomainGround, shippedSpeedMultiplier, slow, 0, 0, 0, 0), false)
+	fastTransit := transitOf((gameProfile{}).rateOf(DomainGround, shippedSpeedMultiplier, fast, 0, 0, 0, 0), false)
 	if slowTransit == fastTransit {
 		t.Fatalf("the two speeds give the same transit of %d — the fixture separates nothing", slowTransit)
 	}
@@ -324,8 +324,8 @@ func TestTheSurvivorsKeepADeadMembersRate(t *testing.T) {
 			"and it is the group's byte that survives", dead.GroupSpeed)
 	}
 
-	slowTransit := transitOf((gameProfile{}).rateOf(DomainGround, slow, 0, 0, 0, 0), false)
-	fastTransit := transitOf((gameProfile{}).rateOf(DomainGround, fast, 0, 0, 0, 0), false)
+	slowTransit := transitOf((gameProfile{}).rateOf(DomainGround, shippedSpeedMultiplier, slow, 0, 0, 0, 0), false)
+	fastTransit := transitOf((gameProfile{}).rateOf(DomainGround, shippedSpeedMultiplier, fast, 0, 0, 0, 0), false)
 	for tick := 0; tick < 4*int(slowTransit); tick++ {
 		Step(w, nil)
 		e := w.Entities()[1]

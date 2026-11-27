@@ -6,10 +6,10 @@ package sim
 // at the one place it is used so that a reader can set the arithmetic beside
 // the law rather than beside a number nobody can source.
 //
-// speedMultiplier is a MAP PARAMETER in the original, read from a registry key
-// this tree has no reader for. The shipped file carries the code default in both
-// releases, so the constant and the file agree today; when a reader arrives it
-// replaces this one name and nothing else.
+// The speed multiplier is a MAP PARAMETER in the original, read from the
+// registry key [Path Finding] SpeedMultiplier (R2-ENGINE-1472). The shipped file
+// carries the code default shippedSpeedMultiplier in both releases; a world
+// runs the value of its build rules (PathFinding.SpeedMultiplier).
 //
 // slopeLimit and slopeShift are the height tilt: the two cells' height
 // difference saturates at plus or minus slopeLimit. The slope term shifts its
@@ -38,7 +38,7 @@ package sim
 // and the ratio reproduces that truncation EXACTLY for every rate the law admits
 // — see diagonalStep.
 const (
-	speedMultiplier = 8
+	shippedSpeedMultiplier = 8
 
 	slopeLimit = 32
 	slopeShift = 6
@@ -63,12 +63,9 @@ const maxTransit = subCell / rateFloor
 // rateOf is the mover's per-tick displacement, in 1/subCell of a cell along
 // its dominant axis, for one cell transit.
 //
-// It takes the two cells' COST and HEIGHT bytes as parameters rather than
-// reading them from a world, and that is the whole shape of this file: a world
-// in the signature would make the law untestable except through a world. When
-// the planes arrived in 0076 that shape was worth exactly what it was written
-// for — the change was to this function's ONE CALLER and not a line of this
-// function.
+// It takes the multiplier and the two cells' COST and HEIGHT bytes as
+// parameters rather than reading them from a world, so the law is testable
+// without a world.
 //
 // The two arms are the original's own fork on the movement domain, and they are
 // not two spellings of one rule:
@@ -93,10 +90,10 @@ const maxTransit = subCell / rateFloor
 // Both byte-width behaviours the law depends on are the PARAMETER TYPES' own
 // arithmetic rather than masking written out: the cost add wraps in a uint8, and
 // the height difference is a uint8 subtraction read back as a signed byte.
-func (g gameProfile) rateOf(d Domain, speed int32, costSrc, costDst, hSrc, hDst uint8) int32 {
+func (g gameProfile) rateOf(d Domain, multiplier, speed int32, costSrc, costDst, hSrc, hDst uint8) int32 {
 	v := int64(speed)
 	if d == DomainGround {
-		v *= speedMultiplier
+		v *= int64(multiplier)
 
 		// The difference is taken in the plane's own byte width and read back
 		// signed, so a drop of more than 127 wraps exactly as it does there, and

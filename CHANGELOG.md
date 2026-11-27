@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] A mod saved from the editor with a line break or a control character in a town, mission, item or other text now opens again instead of failing to load.
+- [BASE] In both games the `map.reg` of the install or of a mod now sets how fast ground units step (`SpeedMultiplier`, 8 by default) and the precision of the computer units' sight (`ScanShift`, 7 by default); a value outside 1 to 255 or 1 to 8 is refused when the file loads.
 
 ## 0.162.0
 
