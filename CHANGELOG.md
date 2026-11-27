@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.162.0
+
 ### For players
 
 - [ROM1] Multiplayer: a hero who uses a Shop leaves the map while the Shop page shows and comes back on his own cell, or on a free cell within three; each deal saves the character, at most once every 15 seconds.
