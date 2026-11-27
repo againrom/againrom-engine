@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/pkg/base"
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/herokind"
 	"againrom/pkg/mod"
 	"againrom/pkg/town"
@@ -46,5 +47,15 @@ func TestSecondEditorTablesHoldOnlyWhatIsNamed(t *testing.T) {
 	}
 	if want := []ui.RecordKind{ui.KindEnchantment, ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindPlayer}; !reflect.DeepEqual(got.addKinds, want) {
 		t.Errorf("second-game add kinds %v, want %v", got.addKinds, want)
+	}
+}
+
+func TestPaletteKindsAreAddableInTheirFormat(t *testing.T) {
+	for game, format := range map[base.Game]alm.Format{base.GameROM1: alm.FirstFormat, base.GameROM2: alm.SecondFormat} {
+		for _, k := range filesOf(game).editorTables.addKinds {
+			if !editRows[format].adds.has(k) {
+				t.Errorf("game %v offers kind %v that its row refuses", game, k)
+			}
+		}
 	}
 }
