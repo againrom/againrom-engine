@@ -1,0 +1,7 @@
+id          = "route-values"
+title       = "Route values"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Carries a map.reg with one changed route value. The file is written by the tests that use this mod."
+api         = 1
+applies-to  = ["rom1", "rom2"]

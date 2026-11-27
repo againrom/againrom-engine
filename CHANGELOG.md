@@ -25,6 +25,10 @@ modder or developer can notice gets no entry.
 - [BASE] On a multiplayer map, a monster group whose members are all dead comes back 60 seconds later on its own cells, with full health and mana.
 - [BASE] Map editor: the trigger condition is now "Unit changes its cell" and asks only for the unit; it holds each time that unit stands on a different cell than a moment before, so a trigger can fire on the unit's first step.
 
+### For map makers and modders
+
+- [BASE] A mod can now carry its own `map.reg` (`files/<layer>/world/data/map.reg`) to set how far computer units search routes in both games; a route refresh value above 255 means never and below 0 means always.
+
 ## 0.161.0
 
 ### For players

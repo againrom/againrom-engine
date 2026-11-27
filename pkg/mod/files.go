@@ -17,15 +17,17 @@ import (
 // MaxInstallFileBytes bounds one install file a mod carries.
 const MaxInstallFileBytes = 16 << 20
 
-// FileKind is what an install file is to the game: a picture, a sound or a
-// text, by its extension.
+// FileKind is what an install file is to the game, by its extension.
 type FileKind string
 
 const (
-	FilePicture FileKind = "picture"
-	FileSound   FileKind = "sound"
-	FileText    FileKind = "text"
+	FilePicture  FileKind = "picture"
+	FileSound    FileKind = "sound"
+	FileText     FileKind = "text"
+	FileRegistry FileKind = "registry"
 )
+
+const registryFile = "map.reg"
 
 // installFileKind reads extension admission from the tree table.
 func installFileKind(ext string) (FileKind, bool) {
@@ -44,14 +46,18 @@ func installFileKind(ext string) (FileKind, bool) {
 // InstallFileKind is the kind of install file at address by its extension;
 // false for a file the game takes no install file of.
 func InstallFileKind(address string) (FileKind, bool) {
-	return installFileKind(namefold.Host(path.Ext(address)))
+	kind, ok := installFileKind(namefold.Host(path.Ext(address)))
+	if ok && kind == FileRegistry && namefold.Host(path.Base(address)) != registryFile {
+		return "", false
+	}
+	return kind, ok
 }
 
 // ChangesState reports whether a file of this kind can change game state.
 // A text feeds the definitions the game builds its World from (the body list,
-// item names, class and spell tables), so it does. A picture and a sound are
-// only drawn and played: no reader on the World-hash or SAV path reads one.
-func (k FileKind) ChangesState() bool { return k == FileText }
+// item names, class and spell tables), and so does the map registry. A
+// picture and a sound are only drawn and played: no reader on the World-hash or SAV path reads one.
+func (k FileKind) ChangesState() bool { return k == FileText || k == FileRegistry }
 
 // FilesChangeState reports whether any of the files can change game state.
 func FilesChangeState(files []InstallFile) bool {
@@ -149,7 +155,7 @@ func installFileAt(id, rel string, size int64, read func() ([]byte, error)) (Ins
 	}
 	kind, ok := InstallFileKind(rel)
 	if !ok {
-		return bad("the game takes no install file of this kind; a mod carries .bmp pictures, .wav sounds and .txt texts")
+		return bad("the game takes no install file of this kind; a mod carries .bmp pictures, .wav sounds, .txt texts and the map.reg registry")
 	}
 	if size > MaxInstallFileBytes {
 		return bad("is larger than %d bytes", MaxInstallFileBytes)

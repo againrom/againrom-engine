@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/data"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mod"
 	"againrom/pkg/render/terrain"
@@ -133,26 +134,32 @@ func (b *modFiles) serveInstallFiles(a *Archives, files []mod.InstallFile) error
 		if err != nil {
 			return file.Errorf("the install's file %s: %v", file.Address, err)
 		}
-		data := file.Bytes
+		body := file.Bytes
 		switch file.Kind {
 		case mod.FilePicture:
-			err = checkModPicture(installed, data)
+			err = checkModPicture(installed, body)
 		case mod.FileSound:
-			if _, derr := audio.DecodeWAV(data, audio.DeviceRate); derr != nil {
+			if _, derr := audio.DecodeWAV(body, audio.DeviceRate); derr != nil {
 				err = fmt.Errorf("the game cannot decode this sound: %v", derr)
 			}
 		case mod.FileText:
-			if r, dropped := ModTextDropped(data, selector); dropped {
+			if r, dropped := ModTextDropped(body, selector); dropped {
 				err = fmt.Errorf("the install's alphabet has no %q (%U)", r, r)
 			}
-			data = code.modTextFile(data, selector)
+			body = code.modTextFile(body, selector)
+		case mod.FileRegistry:
+			if mod.FoldAddress(file.Address) != terrainCostsAddress {
+				err = fmt.Errorf("the game reads the map registry at %s only", terrainCostsAddress)
+			} else if _, rerr := data.OriginalMapRegistry(file.Bytes); rerr != nil {
+				err = fmt.Errorf("the game cannot read this registry: %v", rerr)
+			}
 		default:
 			err = fmt.Errorf("the game takes no install file of kind %q", file.Kind)
 		}
 		if err != nil {
 			return file.Errorf("%v", err)
 		}
-		if err := b.serveBytes(file.Mod, file.File, file.Address, data); err != nil {
+		if err := b.serveBytes(file.Mod, file.File, file.Address, body); err != nil {
 			return err
 		}
 	}

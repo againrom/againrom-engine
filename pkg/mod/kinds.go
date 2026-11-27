@@ -397,6 +397,7 @@ var dataKinds = []DataKind{
 	{Name: "install pictures", Paths: []string{"files/{layer}/**/*.bmp"}, Format: "BMP", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FilePicture, Draft: installDrafts},
 	{Name: "install sounds", Paths: []string{"files/{layer}/**/*.wav"}, Format: "PCM or Microsoft ADPCM WAV", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileSound, Draft: installDrafts},
 	{Name: "install texts", Paths: []string{"files/{layer}/**/*.txt"}, Format: "UTF-8 TXT", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileText, Draft: installDrafts},
+	{Name: "install map registry", Paths: []string{"files/{layer}/**/map.reg"}, Format: "REG registry", Language: CommonFiles + " or " + treeLanguages("/"), Found: "install path", install: FileRegistry, Draft: installDrafts},
 	{Name: "map by number", Paths: []string{"<N>.alm", "<N>.almx", "maps/<N>.alm", "maps/<N>.almx"}, Format: "ALM or ALMX", Language: "shared", Found: "campaign mission number"},
 	{Name: "read-me", Files: []string{ReadmeName}, Format: "Markdown", Language: "shared", Found: "fixed path; for people", NoDigest: true},
 }

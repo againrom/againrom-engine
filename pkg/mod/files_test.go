@@ -193,14 +193,28 @@ func TestInstallFilesTakeALanguageFolderInAnyCase(t *testing.T) {
 	}
 }
 
-// Only a text can change game state: a picture and a sound do not.
-func TestOnlyATextChangesState(t *testing.T) {
+// A text and the map registry change game state; a picture and a sound do not.
+func TestOnlyATextAndTheRegistryChangeState(t *testing.T) {
 	art := []InstallFile{{Kind: FilePicture}, {Kind: FileSound}}
 	if FilesChangeState(art) || FilesChangeState(nil) {
 		t.Fatal("a picture or a sound changes state")
 	}
-	if !FilesChangeState(append(art, InstallFile{Kind: FileText})) {
-		t.Fatal("a text does not change state")
+	for _, k := range []FileKind{FileText, FileRegistry} {
+		if !FilesChangeState(append(slices.Clone(art), InstallFile{Kind: k})) {
+			t.Fatalf("a %s does not change state", k)
+		}
+	}
+}
+
+func TestInstallFilesAdmitOnlyTheMapRegistry(t *testing.T) {
+	dir := writeFiles(t, map[string]string{"files/common/world/data/Map.REG": "\xff\x00\xfe"})
+	files, err := ReadInstallFiles("m", dir, "en")
+	if err != nil || len(files) != 1 || files[0].Kind != FileRegistry || files[0].Address != "world/data/Map.REG" {
+		t.Fatalf("the registry: %+v %v", files, err)
+	}
+	_, err = ReadInstallFiles("m", writeFiles(t, map[string]string{"files/common/scenario/npc.reg": "x"}), "en")
+	if err == nil || !strings.Contains(err.Error(), "the game takes no install file of this kind") {
+		t.Fatalf("npc.reg: %v", err)
 	}
 }
 

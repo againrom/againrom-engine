@@ -45,6 +45,7 @@ mission number. Only the manifest is required.
 | install pictures | `files/{layer}/**/*.bmp` | BMP | install path | common or en/ru |
 | install sounds | `files/{layer}/**/*.wav` | PCM or Microsoft ADPCM WAV | install path | common or en/ru |
 | install texts | `files/{layer}/**/*.txt` | UTF-8 TXT | install path | common or en/ru |
+| install map registry | `files/{layer}/**/map.reg` | REG registry | install path | common or en/ru |
 | map by number | `<N>.alm`, `<N>.almx`, `maps/<N>.alm`, `maps/<N>.almx` | ALM or ALMX | campaign mission number | shared |
 | read-me | `README.md` | Markdown | fixed path; for people | shared |
 <!-- fixed-tree:end -->
@@ -389,6 +390,7 @@ mod reader takes a path with such a component (see "Packed mods").
 | picture | `.bmp` | the bit depth (8 or 24) and the size of the install's picture at that path |
 | sound | `.wav` | 8-bit or 16-bit PCM, or 4-bit Microsoft ADPCM; mono or stereo |
 | text | `.txt` | UTF-8; the game writes it into the install's bytes, so one file reads right on English and Russian. A character the install's alphabet has no byte for is refused |
+| registry | `map.reg` | the registry format; only `world/data/map.reg` (see "Route values") |
 
 Each file is at most 16 MiB. `againrom -check` and the launch refuse, naming
 the mod and the file: a file outside a language folder, a folder that is not
@@ -404,10 +406,10 @@ or `load-after`). The later mod's file is read and the check prints
 (<file>)`. Without an order the launch is refused naming both mods.
 
 A mod that sets no rule, holds no state data file and serves no text file
-(`.txt`) changes no game state: it is listed after `state-free=`. A text
-feeds the definitions the game builds its state from (the body list, item
-names, class and spell tables), so a mod that serves any text is marked even
-when that text changes nothing. A picture or a sound is only drawn and
+(`.txt`) or `map.reg` changes no game state: it is listed after `state-free=`.
+A text feeds the definitions the game builds its state from (the body list,
+item names, class and spell tables), so a mod that serves any text is marked
+even when that text changes nothing; `map.reg` is marked the same way. A picture or a sound is only drawn and
 played. A state-free mod is not written into a save's mod mark, so a save
 made with a mod of pictures and sounds loads without it. A mod that changes
 game state is marked, and its save is refused without it. A save whose mark
@@ -428,6 +430,18 @@ changed mods", naming a removed item by its key and mod, and the town opens
 when it closes; a quick load opens the same window. The next save carries the
 active mods' mark. A save made inside a mission, another mod, another order
 or another base is refused as below.
+
+### Route values
+
+A mod sets how far computer units search routes by carrying
+`files/<layer>/world/data/map.reg`, for the first and the second game alike. The file
+replaces the install's `map.reg`; no other `.reg` file is taken. The game reads
+`[Path Finding]` (`StaticScanAhead`, `DynamicScanAhead`, `StaticRefreshRate`,
+`DynamicRefreshRate`, `DynamicByStaticLookup`, `StaticIsntNeeded`, whole
+numbers; key names are cut to 15 characters) and `[Terrain]` (`CostLand` to
+`CostRoad`). A key the file lacks keeps the value the original ships. A
+refresh rate above 255 means never and below 0 means always; the original's
+values stay inside that range. A mod without the file changes nothing.
 
 The mark names each mod item and clothing layer the save holds by its mod's
 id and its key (`"mod"` and `"key"`). Item codes are handed out in load order,
