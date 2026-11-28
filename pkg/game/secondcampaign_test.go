@@ -239,7 +239,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	if app.Screen() != ui.ScreenTown || !strings.Contains(app.HeadlessMessage(), "scenario/10.alm") || f.live != nil {
 		t.Fatalf("failed entry lost the map: %v %q", app.Screen(), app.HeadlessMessage())
 	}
-	if c.bank != beforeBank || c.current != beforeCurrent || !reflect.DeepEqual(c.available, beforeAvailable) || !reflect.DeepEqual(f.Carried, beforeParty) {
+	if c.bank != beforeBank || c.current != beforeCurrent || !reflect.DeepEqual(c.available, beforeAvailable) || !reflect.DeepEqual(mapload.CloneParty(f.Carried), beforeParty) {
 		t.Fatal("failed entry mutated campaign state")
 	}
 	if err := app.HeadlessActivate("mission 10"); err != nil {

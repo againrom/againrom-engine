@@ -1589,3 +1589,4 @@ pkg/game.TestReleaseSecondOriginalBookPageListsNoSlow
 pkg/game.TestReleaseInstalledFirstMapTeleportTrapCensus
 pkg/game.TestReleaseModdedPathFindingReachesTheDefinitions
 pkg/game.TestReleaseShippedPathFindingKeepsTheMissionHash
+pkg/game.TestReleaseSecondGameStartKitByRoute

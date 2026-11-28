@@ -8,6 +8,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/town"
+	"againrom/pkg/ui"
 )
 
 type secondTownRoom uint8
@@ -194,7 +195,20 @@ func (c *secondCampaign) completeBank(bank [1024]int32, fallen ...int) int {
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
-	f.startSecondCampaignWith(MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table))
+	class, female := defaultChargenAxes()
+	choices := make([]int, chargenChoiceCount)
+	choices[chargenChoiceSex] = int(boolInt32(female))
+	choices[chargenChoiceClass] = int(boolInt32(class))
+	choices[chargenChoiceSkill] = int(PartySkillSlot() - data.SkillBlade)
+	spread := PartySpread()
+	stats := make([]int, chargenStatCount)
+	stats[chargenStatBody], stats[chargenStatReaction] = int(spread.Body), int(spread.Reaction)
+	stats[chargenStatMind], stats[chargenStatSpirit] = int(spread.Mind), int(spread.Spirit)
+	party := f.generatorParty(ui.ChargenResult{Name: defaultHeroName(f.Table, class, female), Choices: choices, Stats: stats})
+	if len(party) == 0 {
+		return fmt.Errorf("second campaign start: no hero for the default row")
+	}
+	f.startSecondCampaignWith(party)
 	return nil
 }
 

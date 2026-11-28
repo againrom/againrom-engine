@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [BASE] Resizing the game window no longer makes the game use more and more memory.
 - [ROM1] After loading a saved game, Control Spirit raises a Ghost from bones again.
 - [ROM1] A unit ordered to attack a building keeps attacking it when an enemy comes near.
+- [ROM2] If hero creation does not open, a new game starts with the default hero carrying the weapon and armour hero creation gives that class, not a short sword and a teleport scroll.
 
 ### For map makers and modders
 
