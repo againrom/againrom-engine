@@ -223,18 +223,28 @@ var refusedFleeAnswers = [...]func(*World, int){
 	refusedFleeStops:      (*World).stopAfterRefusedFlee,
 }
 
-// reacquireAfterRefusedFlee is the first game's answer: it reacquires within
-// reach between cycles and leaves patrols to their own arm (AI-ROUTE-045,
-// AI-327, DIV-1555, DIV-1565).
+// reacquireAfterRefusedFlee is the first game's answer: an unlatched Move stands
+// down, any other unit reacquires within reach (AI-ROUTE-045, AI-327, AI-929).
 func (w *World) reacquireAfterRefusedFlee(i int) {
 	e := &w.entities[i]
 	if e.ActorState == actorStatePatrol || !w.fleeRefused(i) {
 		return
 	}
 	w.clearOrder(i)
-	if e.AttackPhase == AttackReady {
-		w.reacquireWithinReach(i)
+	if e.AttackPhase != AttackReady {
+		return
 	}
+	if e.ActorState != actorStateRetreat && w.walksAtStateOne(i) && !w.walkLatched(i) {
+		w.stopWalkOrder(i, false)
+		return
+	}
+	w.reacquireWithinReach(i)
+}
+
+// walkLatched reports the saved order's command latch (AI-658).
+func (w *World) walkLatched(i int) bool {
+	o := w.savedOrder(w.entities[i].ID)
+	return o != nil && (o.Raw[0x50]|o.Raw[0x51]|o.Raw[0x52]|o.Raw[0x53]) != 0
 }
 
 // stopAfterRefusedFlee is the second game's answer: the unit stops at its
@@ -493,9 +503,9 @@ func (w *World) withdrawFromAny(i int, hostile []int) bool {
 
 // withdrawalHidden reports a hostile the withdrawal list drops for being
 // invisible: it is kept while a living member of the unit's Group detects it,
-// with no terrain sight asked.
+// with no terrain sight asked (AI-815, R2-ENGINE-1879).
 func (w *World) withdrawalHidden(i, target int) bool {
 	self := &w.entities[i]
 	members := w.groupLivingMembers(self.Owner, effectiveGroup(self))
-	return !w.perceives(perception{purpose: perceiveGroup, members: members, target: target, detect: w.game.listDetect})
+	return !w.perceives(perception{purpose: perceiveGroup, members: members, target: target, detect: detectEdge})
 }

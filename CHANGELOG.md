@@ -19,6 +19,8 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] A wounded computer unit walking a Move order whose escape route is blocked now stands still for one pass before it picks a fight, instead of attacking at once.
+- [ROM2] A wounded computer unit and a defender now notice an invisible enemy when a group member can see invisible as far as that enemy's nearest edge, so a wide invisible enemy is noticed from farther.
 - [ROM1] A computer unit whose route is blocked with no enemy in reach now idles in guard state and occasionally turns in place instead of staying frozen facing one way.
 - [BASE] Computer mages no longer include flying allies in their area heal or buff list; a wounded flying caster still heals itself.
 - [BASE] A caster standing inside its own Darkness cloud now receives the same blow reaction as any other unit hit by the cloud.

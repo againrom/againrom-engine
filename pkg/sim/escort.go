@@ -194,7 +194,7 @@ func (w *World) coverEngage(i, ti int) {
 			continue
 		}
 		if lawDomain(c.Domain) == 3 && w.attackRange(ti) < 2 ||
-			!w.perceives(perception{purpose: perceiveGroup, members: group, target: ci, detect: w.game.listDetect}) {
+			!w.perceives(perception{purpose: perceiveGroup, members: group, target: ci, detect: detectEdge}) {
 			continue
 		}
 		if !c.OrdinaryTargetable() {

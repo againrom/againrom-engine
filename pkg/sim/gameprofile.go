@@ -160,9 +160,6 @@ type gameProfile struct {
 	// fleeTeleports: a unit that books Teleport and can pay it casts it
 	// to flee or back off, and walks otherwise (R2-ENGINE-1418).
 	fleeTeleports bool
-	// listDetect: the distance a Group member's See invisible byte is held
-	// against in the withdrawal and cover lists (AI-815).
-	listDetect detectMeasure
 	// keepsSuppressedAcquirer: the engage refuses no suppressed acquirer
 	// (AI-GUARD-007).
 	keepsSuppressedAcquirer bool
@@ -326,7 +323,6 @@ func newGameProfile(d ScriptDialect) gameProfile {
 			cellEvent:           cellEventRelocating,
 			cellMoveStand:       scriptedOrderReset{state: actorStateAcquire, destination: clearOrderDestination},
 			cellMoveSkipsOrigin: true,
-			listDetect:          detectEdge,
 		}
 	}
 	return gameProfile{
