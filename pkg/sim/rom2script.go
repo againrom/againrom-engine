@@ -234,7 +234,10 @@ func (w *World) SetROM2ScenarioState(bank [1024]int32) bool {
 
 func (w *World) initializeROM2Script() {
 	w.rom2, w.game = nil, newGameProfile(w.script.Dialect())
-	w.dropUnkeptStructureOwners(w.structures)
+	// A World with no program has no game yet; the loader rebuilds it.
+	if w.script != nil {
+		w.dropUnkeptStructureOwners(w.structures)
+	}
 	w.settleBuildingCasters()
 	if !w.game.holdsScriptState {
 		return

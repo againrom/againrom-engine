@@ -79,10 +79,12 @@ func requireAreaClock(t *testing.T, f *FrontEnd, want sim.CellEffect, tick int) 
 	alive := tick <= int(want.Remaining)
 	timer, stage := int(want.Remaining)-tick, 0
 	if want.Mode == sim.AreaModeRing {
+		// The first stage runs one area update after the cast (MAGIC-463).
 		limits := map[uint16]int{4: 2, 9: 6, 21: 32}
-		phase := int(want.Phase) + tick
-		alive = phase < 3*(limits[want.Spell]-1)
-		timer, stage = 2-phase%3, phase/3+1
+		const firstStageDelay = 1
+		phase := int(want.Phase) + tick + 3 - firstStageDelay
+		alive = phase < 3*limits[want.Spell]
+		timer, stage = 2-phase%3, phase/3
 	}
 	if drivers == nil || len(drivers.Areas) == 0 {
 		// A current SAV may retire the ordinary AreaEffect graph on LOAD and

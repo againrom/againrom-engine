@@ -191,10 +191,11 @@ func spellSAVContinuation(t *testing.T, spell uint16) {
 			if e.ID == target.ID || e.Owner != target.Owner || !e.Alive() || e.HP <= 30 || e.SourceBinding.RuntimeID == 0 {
 				continue
 			}
-			// Caster at (x-1, y), primary at (x, y), both candidates at edge
-			// distance 2: the first behind, the second ahead. The turn term
-			// picks the second; list order picked the first.
-			at := [2][2]int32{{x - 1, y + 2}, {x - 3, y + 1}}[count]
+			// Caster at (x-1, y), both candidates at edge distance 2: the
+			// first due south, the second due north. The primary walks back
+			// to its post before the cast (MOVE-STEP-010), north of east of
+			// the caster, so the turn term picks the second.
+			at := [2][2]int32{{x - 1, y + 2}, {x - 1, y - 2}}[count]
 			sprayRowWalk(t, f.live, e.ID, at[0], at[1])
 			if e, _ := f.live.entity(e.ID); e.X != at[0] || e.Y != at[1] {
 				t.Fatal("fan secondary did not reach its cell", e.ID, e.X, e.Y)

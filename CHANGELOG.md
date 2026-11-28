@@ -32,6 +32,7 @@ modder or developer can notice gets no entry.
 - [ROM1] After loading a saved game, Control Spirit raises a Ghost from bones again.
 - [ROM1] A unit ordered to attack a building keeps attacking it when an enemy comes near.
 - [ROM2] If hero creation does not open, a new game starts with the default hero carrying the weapon and armour hero creation gives that class, not a short sword and a teleport scroll.
+- [ROM2] A mission now starts with the owner the map gives each structure, so a script that asks who owns a structure answers as the map says, and a saved mission loads with the same owners it was saved with.
 
 ### For map makers and modders
 

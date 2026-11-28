@@ -47,7 +47,8 @@ func victimKindKill(t *testing.T, f *FrontEnd, hero sim.EntityID, id uint16) {
 }
 
 // victimKindKillActor places the victim beside the hero and has the hero
-// strike it until it falls.
+// strike it until it is dead: the kill counts at the death, not at zero health
+// (AI-866 moves the draws, so the first blow may only down it).
 func victimKindKillActor(t *testing.T, f *FrontEnd, hero, victim sim.EntityID) {
 	t.Helper()
 	w := f.live.world
@@ -58,7 +59,7 @@ func victimKindKillActor(t *testing.T, f *FrontEnd, hero, victim sim.EntityID) {
 	f.live.strike(uint32(hero), uint32(victim))
 	for range 3000 {
 		f.live.tick()
-		if v, _ := w.Entity(victim); !v.Alive() {
+		if v, _ := w.Entity(victim); v.Dead() {
 			return
 		}
 	}
