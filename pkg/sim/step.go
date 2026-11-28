@@ -2003,7 +2003,7 @@ func sessionDecayTeardown(w *World, e *Entity) {
 	}
 }
 
-func nativeDecayBefore(w *World)     { w.decayHeldDead(w.tick%decayCycle == decayPhase) }
+func nativeDecayBefore(w *World)     { w.decayHeldDead(decayDue(w.tick)) }
 func nativeDecayBody(e *Entity) bool { return e.Decay != DecayNone }
 
 // nativeDecayStep takes one health on the walk tick; it saturates at the
@@ -2014,7 +2014,7 @@ func nativeDecayStep(w *World, e *Entity) {
 	if hero && w.build.HeroBodyRaise && heroBelowFloor(e.HP) && !e.InLife(LifeConsumed) {
 		e.setCurrentHealth(decayHeroHP)
 	}
-	if w.tick%decayCycle == decayPhase && decayAges(e.HP) && e.InLife(LifeDecayWalk) && (!hero || !heroHeld(e.HP)) {
+	if decayDue(w.tick) && decayAges(e.HP) && e.InLife(LifeDecayWalk) && (!hero || !heroHeld(e.HP)) {
 		e.setCurrentHealth(e.HP - 1)
 	}
 }
@@ -2080,40 +2080,25 @@ func (w *World) decayPass() {
 			rule.atTeardown(w, e)
 			w.markCorpseDecayed(i)
 		}
-		if s := w.game.decay.stage(e.HP); s > decayLast {
-			// A downed body whose walk crosses below zero and leaves in the same
-			// pass is never seen by the kill scan after the ladder.
-			if LifeNonNegative.Holds(int64(beforeHP), 0, false) {
-				w.recordDiaryKill(i)
-			}
-			if !wasDecayed {
-				w.releaseAtTeardown(i)
-			}
+		// A downed body whose walk crosses below zero and leaves in the same
+		// pass is never seen by the kill scan after the ladder.
+		out := w.settleDecay(decayCall{
+			Index: i, HP: e.HP, Stage: e.Decay, BeforeHP: beforeHP, Fresh: !wasDecayed,
+			OnGone: decayTeardown{Kill: true, Release: true, Expire: true},
+			OnLeft: decayTeardown{Release: true, Detach: true, Rank: true, Expire: true},
+		})
+		if out.Gone {
 			gone = append(gone, e.ID)
+		}
+		if out.Expire {
 			expiring = append(expiring, e.ID)
-		} else {
-			if s > e.Decay {
-				e.Decay = s
-			}
-			if !wasDecayed && e.CorpseRemoved() {
-				w.releaseAtTeardown(i)
-				expiring = append(expiring, e.ID)
-				w.detachSavedMember(e.ID)
-				w.joinDeadList(i)
-			}
 		}
 		if wasTargetable && !e.OrdinaryTargetable() {
 			w.clearInvalidTargetReferences(e.ID)
 		}
 		w.syncOriginalDeadState(*e, beforeHP, beforeStage)
 	}
-	// Expiry may copy the world, so it runs after the walk over its entities.
-	for _, id := range expiring {
-		w.expireBodyAttachments(id)
-	}
-	if len(gone) > 0 {
-		w.remove(gone)
-	}
+	w.closeDecay(gone, expiring)
 }
 
 // remove takes the named entities out of the world: their records, their

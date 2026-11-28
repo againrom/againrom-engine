@@ -85,16 +85,16 @@ func (e *Entity) legacySpentCorpse() bool {
 }
 
 // The old drop at -10 could leave the body in its group until the next stage.
-// The load completes the teardown decayPass makes at the same point: the
+// The load completes the teardown the decay ladder makes at the same point: the
 // footprint release, the group and dead list, and the attachments' expiry.
 func (w *World) finishLegacyTeardown(i int) {
-	id := w.entities[i].ID
-	w.releaseAtTeardown(i)
-	w.detachSavedMember(id)
-	if w.entities[i].deadRank == 0 {
-		w.joinDeadList(i)
+	out := w.settleDecay(decayCall{
+		Index: i, Settled: true, Fresh: true,
+		OnLeft: decayTeardown{Release: true, Detach: true, Rank: true, RankNew: true, Expire: true},
+	})
+	if out.Expire {
+		w.closeDecay(nil, []EntityID{w.entities[i].ID})
 	}
-	w.expireBodyAttachments(id)
 }
 
 func (w *World) hasTerminalLoot(i int) bool {

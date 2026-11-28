@@ -199,16 +199,12 @@ func (w *World) decaySessionActors(c SessionClock) {
 		if c.deadDecayDue() {
 			decaySessionHealth(e)
 		}
-		if stage := w.game.decay.stage(e.HP); stage > decayLast {
+		if w.settleDecay(decayCall{Index: i, HP: e.HP, Stage: e.Decay}).Gone {
 			gone = append(gone, e.ID)
-		} else if stage > e.Decay {
-			e.Decay = stage
 		}
 		w.syncOriginalDeadState(*e, beforeHP, beforeStage)
 	}
-	if len(gone) != 0 {
-		w.remove(gone)
-	}
+	w.closeDecay(gone, nil)
 }
 
 func decaySessionHealth(e *Entity) {

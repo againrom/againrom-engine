@@ -274,11 +274,10 @@ func (w *World) decayHeldDead(decrement bool) {
 		if decrement {
 			s.HP--
 		}
-		stage := w.game.decay.stage(int32(s.HP))
-		if stage > decayLast {
+		if out := w.settleDecay(decayCall{Index: -1, HP: int32(s.HP), Stage: DecayStage(s.Stage)}); out.Gone {
 			s.Stage, s.HP, s.RuntimeID = 5, -10001, 0
-		} else if uint8(stage) > s.Stage {
-			s.Stage = uint8(stage)
+		} else {
+			s.Stage = uint8(out.Stage)
 		}
 		if beforeHP != s.HP || beforeStage != s.Stage {
 			r.Source.State.HP, r.Source.State.Stage, r.Source.State.RuntimeID = s.HP, s.Stage, s.RuntimeID
