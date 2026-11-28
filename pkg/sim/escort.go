@@ -16,15 +16,30 @@ func (w *World) clearEscort(i int) {
 	}
 }
 
+func (w *World) standDownTerminalEscort(i, ti int) bool {
+	if ti < 0 || w.entities[ti].OrdinaryTargetable() {
+		return false
+	}
+	w.clearEscort(i)
+	e := &w.entities[i]
+	e.ActorState, e.PostX, e.PostY = actorStateAcquire, e.X, e.Y
+	w.stopTargetOrder(i)
+	w.savedAcquire(i, w.savedOrder(e.ID))
+	return true
+}
+
 func (w *World) armDefend(i int) {
 	if w.entities[i].OffMap || w.castHolds(i, waitCastAction) || w.stoneCursed(i) {
 		return
 	}
-	if defendStepBodies[w.game.orders.defendStep].holds(w.entities[i]) {
-		return
-	}
 	ti, stop, dist, ok := w.escortSubject(i)
 	if !ok {
+		return
+	}
+	if w.standDownTerminalEscort(i, ti) {
+		return
+	}
+	if defendStepBodies[w.game.orders.defendStep].holds(w.entities[i]) {
 		return
 	}
 	rangeLimit := defendStepBodies[w.game.orders.defendStep].rangeLimit(w.entities[i], stop)
@@ -52,6 +67,9 @@ func (w *World) armFollow(i int) {
 	}
 	ti, stop, dist, ok := w.escortSubject(i)
 	if !ok {
+		return
+	}
+	if w.standDownTerminalEscort(i, ti) {
 		return
 	}
 	if dist > stop {

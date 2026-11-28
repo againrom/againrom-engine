@@ -60,6 +60,13 @@ func (w *World) savedEngage(i int, o *SavedActorOrder) {
 		w.stopTargetOrder(i)
 		return
 	}
+	if ok {
+		if ti := indexOfEntity(w.entities, id); ti >= 0 && !w.entities[ti].OrdinaryTargetable() {
+			w.stopTargetOrder(i)
+			w.savedAcquire(i, o)
+			return
+		}
+	}
 	if !ok || !w.orderAttack(i, id) {
 		return
 	}

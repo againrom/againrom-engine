@@ -602,8 +602,8 @@ func TestSavedGroupsIncomingEscortAlreadyAdmittedDeadExactKey(t *testing.T) {
 			t.Fatal("corpse escort changed across SAVE")
 		}
 	}
-	if e := w.entities[0]; !e.HasEscortTarget || e.EscortTarget != 30 || stepX(e) == 8 && e.Y == 8 {
-		t.Fatal("exact corpse target did not drive movement", e)
+	if e := w.entities[0]; e.HasEscortTarget || e.ActorState != actorStateAcquire {
+		t.Fatal("exact corpse target did not stand the escort down", e)
 	}
 	// A second materialized actor claiming that source key is not first-wins.
 	w.entities[1].SourceBinding.Identity = 130

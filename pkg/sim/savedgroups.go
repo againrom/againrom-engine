@@ -552,6 +552,9 @@ func (w *World) savedActorDispatch(i int) {
 		if ti < 0 || ti == i {
 			return
 		}
+		if w.standDownTerminalEscort(i, ti) {
+			return
+		}
 		// The branch compares the stored byte, including zero. Its stop
 		// operand alone falls back to ScanRange (AI-DEFEND-111/FOLLOW-112).
 		closing := cellOf(&w.entities[i]).chebyshevTo(cellOf(&w.entities[ti])) > int64(o.Raw[0x70])

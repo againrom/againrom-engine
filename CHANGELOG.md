@@ -19,6 +19,8 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A unit defending or following an ally that dies now stands down and engages nearby enemies instead of staying stuck on the corpse.
+- [BASE] A unit whose attack target dies outright now acquires another enemy in reach on the same pass instead of waiting a full cycle.
 - [BASE] Resizing the game window no longer makes the game use more and more memory.
 - [ROM1] After loading a saved game, Control Spirit raises a Ghost from bones again.
 - [ROM1] A unit ordered to attack a building keeps attacking it when an enemy comes near.
