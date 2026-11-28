@@ -19,6 +19,11 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] A computer unit whose route is blocked with no enemy in reach now idles in guard state and occasionally turns in place instead of staying frozen facing one way.
+- [BASE] Computer mages no longer include flying allies in their area heal or buff list; a wounded flying caster still heals itself.
+- [BASE] A caster standing inside its own Darkness cloud now receives the same blow reaction as any other unit hit by the cloud.
+- [BASE] A defender guarding an ally now engages a closer downed enemy ahead of a farther standing enemy instead of holding downed enemies back.
+- [ROM2] An area spell that downs a neutral unit at zero health no longer turns that unit's side hostile on the first hit as if the unit were already dead.
 - [BASE] A unit defending or following an ally that dies now stands down and engages nearby enemies instead of staying stuck on the corpse.
 - [BASE] A unit whose attack target dies outright now acquires another enemy in reach on the same pass instead of waiting a full cycle.
 - [BASE] Resizing the game window no longer makes the game use more and more memory.

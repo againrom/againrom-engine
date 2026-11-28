@@ -368,16 +368,21 @@ func TestSecondGameAreaHitFlipsReverseBelowHalfHealth(t *testing.T) {
 
 func TestSecondGameAreaHitFlipsReverseInDeadState(t *testing.T) {
 	t.Parallel()
-	// MaxHP=1, HP=1: a 1-damage Fireball drops HP to 0 (downed / !Alive), while
-	// 0 < trunc(1/2) is 0 < 0 (false) and counter is 0 (<= 10). Only state 0x10 holds.
+	// R2-ENGINE-1943: downed HP=0 holds state 0; state 0x10 needs HP <= -10.
 	w, _, fire := areaHostilityWorld(t, true, 1, 1, Relations{})
 	pulseAreaAtVictim(w, fire, areaModeBlast)
 	if w.entities[1].Alive() || w.entities[1].HP != 0 {
 		t.Fatalf("fixture: victim hp=%d alive=%v, want 0 and false", w.entities[1].HP, w.entities[1].Alive())
 	}
-	if !w.relations.Hostile(2, SelfSlot) || w.entities[1].AreaHitCount != 1 {
-		t.Fatalf("dead state condition: hostile=%v count=%d, want true and 1",
+	if w.relations.Hostile(2, SelfSlot) || w.entities[1].AreaHitCount != 1 {
+		t.Fatalf("downed state condition: hostile=%v count=%d, want false and 1",
 			w.relations.Hostile(2, SelfSlot), w.entities[1].AreaHitCount)
+	}
+	dead, _, _ := areaHostilityWorld(t, true, -10, -20, Relations{})
+	dead.flipOnBlow(0, 1, blowArea)
+	if !dead.relations.Hostile(2, SelfSlot) || dead.entities[1].AreaHitCount != 1 {
+		t.Fatalf("dead state condition: hostile=%v count=%d, want true and 1",
+			dead.relations.Hostile(2, SelfSlot), dead.entities[1].AreaHitCount)
 	}
 }
 

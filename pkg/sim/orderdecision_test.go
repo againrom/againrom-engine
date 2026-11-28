@@ -164,7 +164,7 @@ func TestFirstGameOrderCellsKeepTheirBytes(t *testing.T) {
 				"joined score": 8019895757929327814, "cover preference": 2199002247402380554,
 				"idle escort": 16410490491839632455, "computer support": 4450317173693816472,
 				"empty guard": 522980333038066288, "empty pursuit": 9994414873249793888,
-				"empty none": 11314713690971926999, "repick range": 16341346082256859235,
+				"empty none": 1262141673627626766, "repick range": 16341346082256859235,
 			}[kind]
 			if got := w.Hash(); got != want {
 				t.Fatalf("first-game %s hash=%d, want recorded %d", kind, got, want)

@@ -2855,7 +2855,7 @@ func (w *World) reverseHostileOnAreaGate(ai, ti int) {
 		return
 	}
 	counter := w.entities[ti].AreaHitCount
-	if counter > areaGateCounterLimit || t.HP < t.MaxHP/areaGateHealthDivisor || !t.Alive() {
+	if counter > areaGateCounterLimit || t.HP < t.MaxHP/areaGateHealthDivisor || !t.OrdinaryTargetable() {
 		w.relations.turnHostile(t.Owner, a.Owner)
 	}
 	w.entities[ti].AreaHitCount = counter + 1

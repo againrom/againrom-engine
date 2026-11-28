@@ -365,7 +365,7 @@ func (w *World) applySavedAreaPayload(d SavedAreaDriver, e SavedSpellEffect, cel
 				}
 				if applied {
 					w.markSpellEffect(at, rule.ID)
-					if w.areaHitCountsAsBlow(rule) && len(caster) != 0 && caster[0] != w.entities[at].ID {
+					if w.areaHitCountsAsBlow(rule) && len(caster) != 0 {
 						w.answerAreaBlow(indexOfEntity(w.entities, caster[0]), at)
 					}
 				}

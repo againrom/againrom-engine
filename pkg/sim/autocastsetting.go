@@ -151,6 +151,7 @@ type supportCastPolicy struct {
 	// yieldsToWithdrawal: a unit whose withdrawal step walks or casts it now
 	// prepares no heal, since the step overwrites it on the pass (R2-ENGINE-1442).
 	yieldsToWithdrawal bool
+	groundSlotOnly     bool // AI-866, R2-ENGINE-2003
 	shield             supportShield
 }
 
@@ -229,7 +230,7 @@ func (w *World) supportCast(ci int) {
 		return
 	}
 	pick := supportPicks[policy.pick]
-	candidates := pick.candidates(w, ci, s, healRule)
+	candidates := pick.candidates(w, ci, s, healRule, policy)
 	for _, ti := range candidates {
 		if t := w.entities[ti]; t.MaxHP > 0 && t.HP/t.MaxHP < 1 {
 			if w.autoCastAt(ci, ti, heal, false) {
@@ -252,14 +253,14 @@ const (
 
 // supportPick holds a supportPickRule's candidate list and its cast past Heal.
 type supportPick struct {
-	candidates func(w *World, ci int, s AutoCastSetting, heal SpellRule) []int
+	candidates func(w *World, ci int, s AutoCastSetting, heal SpellRule, policy supportCastPolicy) []int
 	finish     func(w *World, ci int, s AutoCastSetting, candidates []int, policy supportCastPolicy)
 }
 
 // supportPicks holds the body each supportPickRule runs.
 var supportPicks = [...]supportPick{
 	supportPicksAll: {
-		candidates: func(w *World, ci int, s AutoCastSetting, _ SpellRule) []int {
+		candidates: func(w *World, ci int, s AutoCastSetting, _ SpellRule, _ supportCastPolicy) []int {
 			return w.autoCastCandidates(ci, s, false)
 		},
 		finish: func(w *World, ci int, s AutoCastSetting, candidates []int, _ supportCastPolicy) {
@@ -282,8 +283,8 @@ var supportPicks = [...]supportPick{
 		},
 	},
 	supportPicksDrawn: {
-		candidates: func(w *World, ci int, s AutoCastSetting, heal SpellRule) []int {
-			return w.areaListOrder(ci, w.autoCastCandidates(ci, s, heal.HealHostile), int64(heal.MaxRange))
+		candidates: func(w *World, ci int, s AutoCastSetting, heal SpellRule, policy supportCastPolicy) []int {
+			return w.areaListOrder(ci, w.autoCastCandidates(ci, s, heal.HealHostile), int64(heal.MaxRange), policy.groundSlotOnly)
 		},
 		finish: func(w *World, ci int, _ AutoCastSetting, candidates []int, policy supportCastPolicy) {
 			if policy.shield == shieldAfterCandidateHeal && w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
@@ -352,11 +353,14 @@ func (w *World) supportDraw(ci int, candidates []int, policy supportCastPolicy) 
 
 // areaListOrder keeps the candidates within reach cells of the caster in the
 // order Heal's area list visits them: the caster's cell, then each ring
-// outward (AI-336, R2-ENGINE-1245).
-func (w *World) areaListOrder(ci int, candidates []int, reach int64) []int {
+// outward (AI-336, AI-866, R2-ENGINE-1245).
+func (w *World) areaListOrder(ci int, candidates []int, reach int64, groundSlotOnly bool) []int {
 	centre := cellOf(&w.entities[ci])
 	at := map[cell][]int{}
 	for _, ti := range candidates {
+		if groundSlotOnly && lawDomain(w.entities[ti].Domain) == 3 {
+			continue
+		}
 		if c := cellOf(&w.entities[ti]); centre.chebyshevTo(c) <= reach {
 			at[c] = append(at[c], ti)
 		}

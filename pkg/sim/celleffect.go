@@ -907,7 +907,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				w.markSpellEffect(i, rule.ID)
 				// NO CAST AWARD IS PAID HERE (DIV-238): castSpell and castBookAt
 				// pay the cast's own single award.
-				if w.areaHitCountsAsBlow(rule) && ci >= 0 && ci != i {
+				if w.areaHitCountsAsBlow(rule) && ci >= 0 {
 					w.answerAreaBlow(ci, i)
 				}
 			}

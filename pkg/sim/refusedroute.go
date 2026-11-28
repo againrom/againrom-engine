@@ -147,6 +147,15 @@ func (w *World) answerRefusedNoneByRow(i int, none refusedNone) {
 		w.clearOrder(i)
 		e.clearAttack()
 	}
+	if o := w.savedOrder(e.ID); o != nil {
+		o.Raw[8] = 0
+		if w.computerControlledUnit(*e) {
+			o.Raw[8] = 0xb
+		}
+	}
+	if w.computerControlledUnit(*e) && !e.Turning() {
+		w.stepIdleTurn(i)
+	}
 }
 
 func (w *World) answerRefusedNoneRepick(i int, _ refusedNone) {

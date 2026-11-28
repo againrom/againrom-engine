@@ -180,7 +180,7 @@ func (w *World) escortClose(i, ti int) {
 func (w *World) coverEngage(i, ti int) {
 	subject := w.entities[ti]
 	radius := w.fleeRadius(ti)
-	var live, dead []int
+	var cands []int
 	group := w.groupLivingMembers(subject.Owner, effectiveGroup(&subject))
 	for ci := range w.entities {
 		c := w.entities[ci]
@@ -200,23 +200,16 @@ func (w *World) coverEngage(i, ti int) {
 		if !c.OrdinaryTargetable() {
 			continue
 		}
-		if c.InLife(LifeDecaying) {
-			dead = append(dead, ci)
-			continue
-		}
-		live = append(live, ci)
+		cands = append(cands, ci)
 	}
-	if len(live) == 0 {
-		live = dead
-	}
-	if len(live) == 0 {
+	if len(cands) == 0 {
 		w.acquireStanding(i)
 		return
 	}
 	if w.engageRefused(i, false) {
 		return
 	}
-	at := w.chooseTarget(i, live, orderNone, targetCover)
+	at := w.chooseTarget(i, cands, orderNone, targetCover)
 	if at < 0 {
 		w.acquireStanding(i)
 		return
