@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A walk can end without a route when a zero-cost cell leads back to itself (Russian game, High for the tie rule).
 - [ROM2] A unit whose step has no movement can take a new order after one advance (Russian game, Medium). A loaded step checks both position fractions (High).
 - [ROM2] A computer unit answers a blocked walk when its local search finds no step to the final destination (Russian game, High for the branch).
+- [ROM2] A save made in the middle of a fight no longer fails to load in rare cases.
 
 ## 0.163.0
 

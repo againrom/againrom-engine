@@ -263,12 +263,14 @@ func rangedExtraDistance(distance int32) int64 {
 	return (d*256 + 128) / 200
 }
 
-func maxRangedExtra(e Entity) int64 {
-	d := int64(e.Reach)
-	if d <= 1 {
+// maxRangedExtra is the longest flight term a countdown can carry: the strike
+// distance may exceed the admitted edge distance by one (R2-ENGINE-1106), so
+// Reach does not bound it, the range byte's top does. A cast has none.
+func maxRangedExtra(p AttackPhase) int64 {
+	if p == AttackCasting {
 		return 0
 	}
-	return (d*256 + 128) / 200
+	return rangedExtraDistance(255 + 1)
 }
 
 // humanoidPenalty is the equipped-Humanoid recovery addend. Go integer
@@ -326,7 +328,7 @@ func attackFault(e Entity) error {
 	case e.AttackCountdown < 0:
 		return fmt.Errorf("attack countdown is %d, which no tick can leave", e.AttackCountdown)
 	case (e.AttackPhase == AttackCharging || e.AttackPhase == AttackCasting) &&
-		int64(e.AttackCountdown) >= chargeCeiling(e)+maxRangedExtra(e):
+		int64(e.AttackCountdown) >= chargeCeiling(e)+maxRangedExtra(e.AttackPhase):
 		return fmt.Errorf("%d tick(s) owed on a charge of %d plus its ranged bound, which no tick can leave",
 			e.AttackCountdown, chargeCeiling(e))
 	case e.AttackPhase == AttackRelaxing && int64(e.AttackCountdown) > relaxTicks(e)+relaxJitter+12:
