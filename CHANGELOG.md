@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.163.0
+
 ### For players
 
 - [ROM1] A wounded computer unit walking a Move order whose escape route is blocked now stands still for one pass before it picks a fight, instead of attacking at once.
