@@ -38,7 +38,7 @@ func TestRouteEndGoalFollowsThePathFindingValues(t *testing.T) {
 		{"shipped, head far", func(*PathFinding) {}, cell{x: 4, y: 0}, 0, false, "head 6 off exceeds DynamicByStaticLookup 3"},
 		{"longer static allowance", func(p *PathFinding) { p.StaticIsntNeeded = 6 }, cell{x: 4, y: 0}, 5, true, "six cells are within StaticIsntNeeded 6"},
 		{"shorter head lookup", func(p *PathFinding) { p.DynamicByStaticLookup = 1 }, cell{x: 8, y: 0}, 0, false, "head 2 off exceeds DynamicByStaticLookup 1"},
-		{"longer head lookup", func(p *PathFinding) { p.DynamicByStaticLookup = 9 }, cell{x: 4, y: 0}, lookAhead, false, "head 6 off is within 9"},
+		{"longer head lookup", func(p *PathFinding) { p.DynamicByStaticLookup = 9 }, cell{x: 4, y: 0}, 5, false, "head 6 off is within 9; the list ends at index 5"},
 	} {
 		p := ShippedPathFinding()
 		c.edit(&p)

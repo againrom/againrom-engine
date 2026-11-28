@@ -16,6 +16,8 @@ type SavedActorPosition struct {
 	TerrainKey       uint32
 }
 
+func (p SavedActorPosition) centred() bool { return p.FineX == 128 && p.FineY == 128 }
+
 // SavedActorMotion owns the current imported Position and mover, not a second
 // renderer position. The two route lists are distinct from World.Route.
 // Active executes only an admitted crossing to its first center. A centered
@@ -296,7 +298,7 @@ func (w *World) motionAdmissionIssue(m SavedActorMotion, e Entity) string {
 			prevX, prevY, has = x, y, true
 		}
 	}
-	if m.Position.FineX == 128 && m.Position.FineY == 128 {
+	if m.Position.centred() {
 		if binary.LittleEndian.Uint16(m.Mover[0xaa:]) != 0 || binary.LittleEndian.Uint16(m.Mover[0xac:]) != 0 {
 			return "centered mover has unsupported pending operands"
 		}
@@ -357,7 +359,7 @@ func (w *World) savedMotionFault() error {
 		if m.Active && w.entities[at].OffMap {
 			return fmt.Errorf("off-map actor has an active saved crossing")
 		}
-		if m.Active && (!w.entities[at].Alive() || m.Position.Cell != m.Position.PackedCell || m.Position.FineX == 128 && m.Position.FineY == 128 || binary.LittleEndian.Uint16(m.Mover[0xaa:]) == 0 || binary.LittleEndian.Uint16(m.Mover[0xac:]) >= binary.LittleEndian.Uint16(m.Mover[0xaa:]) || binary.LittleEndian.Uint16(m.Mover[0xae:]) > 7 || m.Mover[0xb0] == 0 && m.Mover[0xb1] == 0 || w.entities[at].Transit != 0 || w.entities[at].Stride.Present) {
+		if m.Active && (!w.entities[at].Alive() || m.Position.Cell != m.Position.PackedCell || m.Position.centred() || binary.LittleEndian.Uint16(m.Mover[0xaa:]) == 0 || binary.LittleEndian.Uint16(m.Mover[0xac:]) >= binary.LittleEndian.Uint16(m.Mover[0xaa:]) || binary.LittleEndian.Uint16(m.Mover[0xae:]) > 7 || m.Mover[0xb0] == 0 && m.Mover[0xb1] == 0 || w.entities[at].Transit != 0 || w.entities[at].Stride.Present) {
 			return fmt.Errorf("invalid active saved crossing")
 		}
 	}
@@ -584,6 +586,7 @@ func (w *World) advanceSavedMotion(i int, scratch *routeScratch) bool {
 	if arrives {
 		next.FineX, next.FineY = 128, 128
 	}
+	arrives = standingBodies[w.game.standing].arrived(next, arrives)
 	if next.Cell != p.Cell {
 		if issue := w.motionBoundaryIssue(i, next.Cell); issue != "" {
 			m.Active, m.Issue = false, issue

@@ -79,10 +79,6 @@ func TestTheSubGoalIsTheCellAtIndexThreeUntilFewerRemain(t *testing.T) {
 // visibly different: the unit at (0,0) is ordered to (5,0), which a far search
 // answers with the straight line, and the route it is GIVEN loops south. If a
 // far search ran, the loop would be gone.
-//
-// It also carries the second half of the consumption rule. The near search aims
-// at the sub-goal (3,2) and steps to (1,1), which is on no cell of the route, so
-// the mover keeps every cell of it and makes its way back.
 func TestAStoredRouteThatServesIsAskedForNoFarSearch(t *testing.T) {
 	loop := []cell{{0, 1}, {1, 2}, {2, 2}, {3, 2}, {4, 1}, {5, 0}}
 	w := sgWorld(t, []Entity{{ID: 1, X: 0, Y: 0, TargetX: 5, TargetY: 0, HasTarget: true}}, loop)
@@ -100,31 +96,7 @@ func TestAStoredRouteThatServesIsAskedForNoFarSearch(t *testing.T) {
 	if got := w.Entities()[0]; got.X != 1 || got.Y != 1 {
 		t.Fatalf("the mover is at (%d,%d), want (1,1) — the near search's own first cell", got.X, got.Y)
 	}
-	checkRoute(t, "a route whose mover stepped off it", w.routes[0], true, loop)
-}
-
-// TestAMoverThatLandsOnItsRoutesThirdCellDropsThatCellAndEveryCellBefore is the
-// consumption rule's other half, read on a route small enough to check by eye. A
-// mover reaches cell 2 in one step when its route doubles back beside it, so the
-// landing is put there directly rather than contrived out of a grid.
-func TestAMoverThatLandsOnItsRoutesThirdCellDropsThatCellAndEveryCellBefore(t *testing.T) {
-	route := []cell{{0, 1}, {1, 2}, {1, 1}, {2, 1}, {3, 1}, {4, 1}}
-	for _, tc := range []struct {
-		what string
-		at   cell
-		want []cell
-	}{
-		{"the head", cell{0, 1}, route[1:]},
-		{"cell 2", cell{1, 1}, route[3:]},
-		{"cell 3, the last that may be consumed", cell{2, 1}, route[4:]},
-		{"cell 4, one past it", cell{3, 1}, route},
-		{"a cell of no route", cell{9, 9}, route},
-	} {
-		w := sgWorld(t, []Entity{{ID: 1, X: 0, Y: 0, TargetX: 4, TargetY: 1, HasTarget: true}},
-			append([]cell(nil), route...))
-		w.consume(0, tc.at)
-		checkRoute(t, "landing on "+tc.what, w.routes[0], true, tc.want)
-	}
+	checkRoute(t, "a near search unlinks the nearby head", w.routes[0], true, loop[1:])
 }
 
 // ------------------------------------------------- the three staleness tests
@@ -214,7 +186,7 @@ func TestAMoverThatFailedToMoveRunsNoFarSearchOnTheTickAfter(t *testing.T) {
 
 	for tick := 1; tick <= 3; tick++ {
 		if got := sgFar(w); got != 0 {
-			t.Errorf("tick %d: %d far search(es) due, want none — nothing about the route changed", tick, got)
+			t.Errorf("tick %d: %d far search(es) due, want none — the remaining route still serves", tick, got)
 		}
 		Step(w, nil)
 
@@ -225,7 +197,7 @@ func TestAMoverThatFailedToMoveRunsNoFarSearchOnTheTickAfter(t *testing.T) {
 		if e.Stall != uint8(tick) {
 			t.Errorf("tick %d: the stall count is %d, want %d", tick, e.Stall, tick)
 		}
-		checkRoute(t, "the route of a mover that could not move", w.routes[0], true, route)
+		checkRoute(t, "local search drops one nearby head on refusal", w.routes[0], true, route[tick:])
 	}
 }
 

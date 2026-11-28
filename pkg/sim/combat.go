@@ -399,7 +399,7 @@ func (w *World) pursuitRefused(s *routeScratch, i int) bool {
 		return false
 	}
 	t := w.entities[ti]
-	route, ok := w.searchRoute(s, i, unitRelation, noWindow, w.farBudgetFor(i), settleOrdered, t.X, t.Y)
+	route, ok := w.searchRoute(s, i, footprintRelation, noWindow, w.farBudgetFor(i), settleOrdered, t.X, t.Y)
 	if !ok {
 		return true
 	}
@@ -416,27 +416,6 @@ func (w *World) pursuitRefused(s *routeScratch, i int) bool {
 func (w *World) attackerRefusable(i int) bool {
 	e := w.entities[i]
 	return e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit && !e.AcquirePursuit && e.AttackPhase == AttackReady
-}
-
-// aimsAtDestination reports whether the near search of actor i toward sub is
-// aimed at the final cell of its stored route, the branch of the original's
-// dynamic search that raises the route-failure flag when it comes back empty.
-func (w *World) aimsAtDestination(i int, sub cell) bool {
-	route := w.routes[i]
-	if len(route) == 0 {
-		return false
-	}
-	last := route[len(route)-1]
-	return last.x == sub.x && last.y == sub.y
-}
-
-// refusesWalkAtOnce reports whether an empty near search toward sub refuses
-// actor i's walk on its first answer: a first-game walk with no victim, owned
-// by no human participant, aimed at the last cell of its route. A human
-// participant's walk and a search aimed at a waypoint keep the stall count.
-func (w *World) refusesWalkAtOnce(i int, sub cell) bool {
-	e := w.entities[i]
-	return !w.game.nativeWalkRefusal && !e.HasAttackTarget && w.computerControlledUnit(e) && w.aimsAtDestination(i, sub)
 }
 
 // answerRefusedPursuit sends a between-cycle unit pursuit to the shared

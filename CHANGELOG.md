@@ -20,6 +20,14 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] A computer unit in a Swarm group that already stands on its group's cell now lets go of an enemy its group no longer scores, instead of fighting it to the death.
+- [ROM1] A wide unit can plan past an occupied corner and still needs room for its whole body to step (English game, Medium).
+- [ROM1] Ground units avoid cells that an earlier save still marks as held, even when nobody stands there (English game, Medium).
+- [BASE] Walkers use the map's lookup distance to pick a waypoint and drop a nearby waypoint when they search again (first game EN and second game RU, Medium for the waypoint).
+- [ROM1] A pursuer can keep its next step while turning and checks again after enough calls at a cell centre (English game, Medium in play).
+- [BASE] A route traced beyond a thousand steps ends empty (first game EN, Medium, and second game RU, High).
+- [ROM2] A walk can end without a route when a zero-cost cell leads back to itself (Russian game, High for the tie rule).
+- [ROM2] A unit whose step has no movement can take a new order after one advance (Russian game, Medium). A loaded step checks both position fractions (High).
+- [ROM2] A computer unit answers a blocked walk when its local search finds no step to the final destination (Russian game, High for the branch).
 
 ## 0.163.0
 

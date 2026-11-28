@@ -293,7 +293,7 @@ func (w *World) rom2Centered(e Entity) bool {
 	if w.savedMotion != nil {
 		for _, m := range w.savedMotion.Motions {
 			if m.Entity == e.ID && m.Current {
-				return m.Position.FineX == 128 && m.Position.FineY == 128
+				return m.Position.centred()
 			}
 		}
 	}

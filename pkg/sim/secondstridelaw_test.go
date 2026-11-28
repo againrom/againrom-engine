@@ -12,8 +12,7 @@ func strideLawWorld(t *testing.T, d ScriptDialect, speed int32) *World {
 }
 
 // R2-ENGINE-1213 and R2-ENGINE-1470: a step takes one off x in octant 1 or 5
-// when both sub bytes reach 0, and a rate-1 diagonal strides 0 for 256 calls,
-// in both games.
+// when both sub bytes reach 0. A rate-1 diagonal has no displacement.
 func TestEveryGameStepsByTheSameStrideLaw(t *testing.T) {
 	t.Parallel()
 	for _, d := range []ScriptDialect{ScriptROM1, ScriptROM2} {
@@ -37,7 +36,11 @@ func TestEveryGameStepsByTheSameStrideLaw(t *testing.T) {
 		w = strideLawWorld(t, d, 1)
 		Step(w, []Command{MoveTo(7, CellPoint{X: 9, Y: 9})})
 		e := w.Entities()[0]
-		if e.Stride.StepX != 0 || e.Stride.StepY != 0 || e.TransitTotal != 256 || strideFault(e) != nil {
+		wantTotal := uint16(256)
+		if d == ScriptROM2 {
+			wantTotal = 0
+		}
+		if e.Stride.StepX != 0 || e.Stride.StepY != 0 || e.TransitTotal != wantTotal || strideFault(e) != nil {
 			t.Fatalf("dialect %v rate-1 diagonal: stride %+v over %d calls, fault %v", d, e.Stride, e.TransitTotal, strideFault(e))
 		}
 	}

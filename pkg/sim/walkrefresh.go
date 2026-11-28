@@ -6,11 +6,10 @@ import (
 )
 
 // WalkRefresh is a walking mover's dynamic route state between passes
-// (MOVE-REFRESH-012, MOVE-130). Age is Mover +0x78: one per centred walk
-// pass while a near route is listed, zeroed by a near search. Searches is
+// (MOVE-REFRESH-012, AI-885). Age counts centred calls and a search resets it. Searches is
 // +0x09: near searches since the last far one. Listed says the head of the
 // last near route, NextX/NextY (+0x06), is still owed a step; the step taking
-// it ends the list and zeroes Age and the cell. Waited is the pending byte a
+// it ends the list and clears the cell. Waited is the pending byte a
 // blocked-cell wait leaves in place of the walk's. Every field is zero while
 // the mover holds no walk.
 type WalkRefresh struct {
@@ -24,7 +23,31 @@ type WalkRefresh struct {
 func (w *World) walkNext(i int) (cell, bool) {
 	e := &w.entities[i]
 	next := cell{x: e.Walk.NextX, y: e.Walk.NextY}
-	return next, e.Walk.Listed && (cell{x: e.X, y: e.Y}).chebyshevTo(next) == 1
+	return next, e.Walk.Listed && int32(e.Walk.Age) <= w.pathFinding().DynamicRefreshRate &&
+		(cell{x: e.X, y: e.Y}).chebyshevTo(next) == 1
+}
+
+func (w *World) nearStep(s *routeScratch, i int, goal cell, settle settleRule) (cell, bool) {
+	r := &w.entities[i].Walk
+	search := func(r relation) ([]cell, bool) {
+		return w.searchRoute(s, i, r, dynamicWindow, scaledBudget, settle, goal.x, goal.y)
+	}
+	step, ok := search(unitRelation)
+	size := w.entities[i].TokenSize
+	if ok && len(step) != 0 && size > 1 && !w.game.nearSearchFootprint &&
+		!w.cellsOpen(s, i, step[0].x, step[0].y, size, true) {
+		step, ok = search(footprintRelation)
+	}
+	e := &w.entities[i]
+	if route := w.routes[i]; len(route) > 0 && (cell{e.X, e.Y}).chebyshevTo(route[0]) <= int64(w.pathFinding().DynamicByStaticLookup) {
+		w.routes[i] = route[1:]
+	}
+	*r = WalkRefresh{Searches: r.Searches}
+	if !ok || len(step) == 0 {
+		return cell{}, false
+	}
+	r.Listed, r.NextX, r.NextY = true, step[0].x, step[0].y
+	return step[0], true
 }
 
 // waitsBehind is the walk's admission gate (MOVE-WAIT-008, MOVE-130): with
@@ -38,7 +61,7 @@ func (w *World) waitsBehind(s *routeScratch, i int) bool {
 		return false
 	}
 	c := route[0]
-	if (cell{x: e.X, y: e.Y}).chebyshevTo(c) != 1 || w.occupancyOpenFootprint(s, i, c.x, c.y) || w.blockedVerdict(i, c) == 0 {
+	if (cell{x: e.X, y: e.Y}).chebyshevTo(c) != 1 || w.cellsOpen(s, i, c.x, c.y, e.TokenSize, true) || w.blockedVerdict(i, c) == 0 {
 		return false
 	}
 	w.turnToStep(i, c.x, c.y)

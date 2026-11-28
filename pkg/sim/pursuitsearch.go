@@ -27,16 +27,17 @@ type PursuitSearch struct {
 // A full search that misses the victim's cell stamps (stampMissedApproach).
 // Standing on the route end with the victim where the last full search found
 // it forgets the victim (AI-415). The near search aims at the route end, the
-// head or the node three after it and settles by picker B; empty and aimed at
-// the route end, it cancels (AI-373, MOVE-100). A pass ending in a turn is not
-// counted, since the original turns on the list it already holds (DIV-2556).
+// head or the configured lookup node. An empty search aimed at the end cancels
+// (AI-373, MOVE-100). A listed step survives a turn until its age expires (AI-885).
 func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 	e := &w.entities[i]
 	t := w.entities[ti]
 	victim := cell{x: t.X, y: t.Y}
 	p := &e.Pursuit
+	e.Walk.Age++
 	if !p.Held || p.Victim != t.ID {
 		*p = PursuitSearch{Count: 0xff, Passes: 0xff, EndX: victim.x, EndY: victim.y, AimX: victim.x, AimY: victim.y}
+		e.Walk = WalkRefresh{Age: e.Walk.Age}
 		w.routes[i] = nil
 	}
 	if int(p.Passes) > len(w.routes[i])/3+1 {
@@ -49,6 +50,7 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 				route = nil
 			}
 			w.routes[i] = route
+			e.Walk = WalkRefresh{Age: e.Walk.Age}
 			if len(route) > 0 {
 				end := route[len(route)-1]
 				p.EndX, p.EndY = end.x, end.y
@@ -78,10 +80,12 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 	if !aimsAtEnd {
 		goal = route[goalAt]
 	}
-	from := cell{x: e.X, y: e.Y}
-	step, ok := w.searchRoute(s, i, unitRelation, dynamicWindow, scaledBudget, settleVictim, goal.x, goal.y)
-	if !ok || len(step) == 0 {
-		w.countPursuitPass(i, from)
+	next, listed := w.walkNext(i)
+	if !listed {
+		next, listed = w.nearStep(s, i, goal, settleVictim)
+		p.Passes++
+	}
+	if !listed {
 		// A human participant's order takes the stall count and the whole-map
 		// check instead of the cancel, so a passing ally cannot end it, and
 		// forgets a route end that served nothing, so its next pass searches
@@ -104,19 +108,8 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 		}
 		return
 	}
-	if w.advanceStep(s, i, step[0], heldFirstCall) != stepTurned {
-		w.countPursuitPass(i, from)
-	}
-}
-
-// countPursuitPass counts one near search of pursuer i and removes the head
-// node of its static list when the head lay within DynamicByStaticLookup of
-// the cell the search started from, before any step (AI-373, AI-384, AI-417).
-func (w *World) countPursuitPass(i int, from cell) {
-	e := &w.entities[i]
-	e.Pursuit.Passes++
-	if route := w.routes[i]; len(route) > 0 && from.chebyshevTo(route[0]) <= int64(w.pathFinding().DynamicByStaticLookup) {
-		w.routes[i] = route[1:]
+	if w.advanceStep(s, i, next, heldFirstCall) == stepTaken {
+		e.Walk = WalkRefresh{Age: e.Walk.Age}
 	}
 }
 
@@ -134,7 +127,7 @@ func (w *World) cancelPursuit(s *routeScratch, i int) {
 // routeEndGoal is where a near search aims along a stored route from the cell
 // from: the route end while at most p.StaticIsntNeeded cells remain
 // (aimsAtEnd, index of the last cell), else the head when from lies more than
-// p.DynamicByStaticLookup off it, else the cell lookAhead along. It is the one
+// p.DynamicByStaticLookup off it, else the cell at that index. It is the one
 // builder of this rule for the pursuit and for a walk that applies it. The
 // index never leaves the route, whatever the file says: an empty route aims
 // at its end (index -1, as the shipped value does) and the look-ahead stops
@@ -146,5 +139,5 @@ func routeEndGoal(p PathFinding, route []cell, from cell) (index int, aimsAtEnd 
 	case from.chebyshevTo(route[0]) > int64(p.DynamicByStaticLookup):
 		return 0, false
 	}
-	return min(lookAhead, len(route)-1), false
+	return min(max(0, int(p.DynamicByStaticLookup)), len(route)-1), false
 }

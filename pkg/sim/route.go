@@ -285,32 +285,15 @@ func (w *World) cellIndex(x, y int32) (int, bool) {
 	return int(y)*int(w.bounds.Width) + int(x), true
 }
 
-// relation is which of the two passability relations a search runs over. It is
-// what tells the two searches apart in KIND — the mode still says which route is
-// taken, and the cost model and the neighbour set are the same under both.
-//
-// It is no longer the only thing that differs. The two searches also run under
-// different budget RULES, and the two parameters are deliberately separate: a
-// relation is about which cells exist for a search, a rule about how long it may
-// look for them, and folding them into one flag would make either impossible to
-// move without moving the other.
-//
-// terrainRelation reads the MAP alone: in bounds, the asking mover's own domain
-// bits clear, whatever units stand where. Both of the things it reads are
-// immutable while a world is advanced, so a route over it does not depend on
-// where in a tick it was asked for. unitRelation adds occupancy as it stands
-// when the question is put, which is the relation every shipped search has run
-// over.
-//
-// It arrives as a PARAMETER and is read at the offer, where a neighbour is
-// tested. A second copy of each search would be two contracts to keep in
-// agreement; a relation chosen per cell inside one search would be neither
-// relation, so the corner test asks the same one the cell test asks.
-type relation bool
+// A terrain search reads the whole footprint without units. A local search
+// reads dynamic occupancy at the cells selected by the game profile. The
+// full-footprint check uses the same search to test a wide mover's passage.
+type relation uint8
 
 const (
-	terrainRelation relation = false
-	unitRelation    relation = true
+	terrainRelation relation = iota
+	unitRelation
+	footprintRelation
 )
 
 // dynamicWindow is the near search's half-width: it may label the cells within
@@ -599,8 +582,13 @@ func (w *World) placementOpen(self int, x, y int32) bool {
 // The asker's own current footprint is subtracted cell by cell so an adjacent
 // step may keep the cells shared by its old and new footprints.
 func (w *World) occupancyOpenFootprint(s *routeScratch, self int, x, y int32) bool {
+	return w.cellsOpen(s, self, x, y, w.entities[self].TokenSize, false)
+}
+
+// cellsOpen tests occupancy and, on a route, the dynamic plane at each probed cell.
+func (w *World) cellsOpen(s *routeScratch, self int, x, y int32, size uint8, route bool) bool {
 	e := &w.entities[self]
-	n := footprintSide(e.TokenSize)
+	n := footprintSide(size)
 	layer := e.Domain.layer()
 	m := w.motionFor(e.ID)
 	for dy := int32(0); dy < n; dy++ {
@@ -611,10 +599,27 @@ func (w *World) occupancyOpenFootprint(s *routeScratch, self int, x, y int32) bo
 				return false
 			}
 			occupants := s.at(layer, i)
-			if m != nil && m.Current && w.motionOwnsCell(e.ID, layer, cx, cy) || (m == nil || !m.Current) && counted(e) && entityCoversCell(e, cx, cy) {
+			own := (m == nil || !m.Current) && counted(e) && entityCoversCell(e, cx, cy)
+			if m != nil && m.Current {
+				own = w.motionOwnsCell(e.ID, layer, cx, cy)
+			}
+			if own {
 				occupants--
 			}
-			if c, held := e.heldCell(); held && (m == nil || !m.Current) && counted(e) && footprintsOverlap(cx, cy, 0, c.x, c.y, e.TokenSize) {
+			if route {
+				if key, ok := savedPlaneKey(cx, cy); ok && w.savedCellPlanes != nil {
+					mask := savedStaticMask(e.Domain)
+					if !own {
+						mask |= 0x40 << layer
+					}
+					if w.savedCellPlanes.Dynamic[key]&mask != 0 || e.Domain != DomainAir && w.grid[i]&blockMagicWall != 0 {
+						return false
+					}
+				} else if !w.terrainOpen(e.Domain, cx, cy) {
+					return false
+				}
+			}
+			if c, held := e.heldCell(); held && !route && (m == nil || !m.Current) && counted(e) && footprintsOverlap(cx, cy, 0, c.x, c.y, e.TokenSize) {
 				occupants--
 			}
 			if occupants != 0 {
@@ -650,19 +655,17 @@ func (w *World) enterable(s *routeScratch, self int, x, y int32) bool {
 	return w.terrainOpenSize(e.Domain, e.TokenSize, x, y) && w.occupancyOpenFootprint(s, self, x, y)
 }
 
-// open is the offer both searches make about a cell: may a route over r put the
-// entity at index self on (x, y)?
-//
-// This is the ONE place a relation is turned into an answer, so the two searches
-// cannot come to read it differently, and the two relations are nested rather
-// than parallel — the unit-aware one is the terrain one plus a count, so a cell
-// the terrain refuses is refused under both.
+// open applies the search relation to a candidate anchor.
 func (w *World) open(s *routeScratch, r relation, self int, x, y int32) bool {
+	e := &w.entities[self]
 	if r == terrainRelation {
-		e := &w.entities[self]
 		return w.terrainOpenSize(e.Domain, e.TokenSize, x, y)
 	}
-	return w.enterable(s, self, x, y)
+	size := uint8(1)
+	if w.game.nearSearchFootprint || r == footprintRelation {
+		size = e.TokenSize
+	}
+	return w.cellsOpen(s, self, x, y, size, true)
 }
 
 // label is (x, y)'s label as it stands, and whether it has one.
@@ -894,37 +897,13 @@ func (w *World) canonicalRoute(s *routeScratch, self int, r relation, half int32
 	return w.walkBack(s, dom, win, start, target)
 }
 
-// walkBack reads the route out of the labels, backwards from the target.
-//
-// At each cell it takes, among that cell's eight labelled neighbours, the one
-// minimising the neighbour's label plus the cost of the step from it into the
-// current cell. The scan is dx = -1, 0, +1 outer and dy = -1, 0, +1 inner, and
-// the accept is ASYMMETRIC: an orthogonal candidate displaces the best on less
-// than or equal, a diagonal one only on strictly less. So which of two equal
-// candidates is taken depends on where each sits in that scan, and the order is
-// as much of the contract as the comparison is.
-//
-// The centre is not scanned. Nine neighbours would make a cell its own
-// predecessor reachable, and a self-step needs a step cap to terminate; eight
-// removes the loop instead of bounding it.
-//
-// It ends by comparing coordinates with the start rather than by reading a zero
-// out of the plane. An out-of-bounds start has no slot to read, and leaning on
-// "no label can fall below the start's 0" would make a stated rule a consequence
-// of arithmetic that a cost plane could falsify.
+// walkBack traces the labels from the target to the seed. A straight candidate
+// wins ties in x-major order, a diagonal needs a strictly lower total.
 func (w *World) walkBack(s *routeScratch, dom Domain, win window, start, target cell) ([]cell, bool) {
 	var route []cell
-	// The walk is BOUNDED, and the bound is the world's own cell count. It
-	// cannot fire while every cost on the walk is positive: the label then
-	// falls strictly at each step, so the walk visits a strictly decreasing
-	// sequence and cannot outlast the cells. A cost byte of ZERO breaks that
-	// — every candidate ties, the accept below picks by scan order alone, and
-	// a labelled region of three cells cycles forever. No derivation produces a
-	// zero, a caller may pass one and a decoder must take one, and a hang is a
-	// worse failure than a wrong route.
-	limit := gridCells(w.bounds)
+	limit := min(gridCells(w.bounds)+1, int64(1000))
 	for cur := target; cur != start; {
-		if int64(len(route)) > limit {
+		if int64(len(route)) >= limit {
 			return nil, false
 		}
 		route = append(route, cur)
@@ -934,7 +913,7 @@ func (w *World) walkBack(s *routeScratch, dom Domain, win window, start, target 
 		found := false
 		for dx := int32(-1); dx <= 1; dx++ {
 			for dy := int32(-1); dy <= 1; dy++ {
-				if dx == 0 && dy == 0 {
+				if dx == 0 && dy == 0 && !w.game.traceIncludesCentre {
 					continue
 				}
 				nx, ny := cur.x+dx, cur.y+dy
@@ -963,7 +942,7 @@ func (w *World) walkBack(s *routeScratch, dom Domain, win window, start, target 
 				best, bestCost, found = cell{x: nx, y: ny}, c, true
 			}
 		}
-		if !found {
+		if !found || best == cur {
 			return nil, false
 		}
 		cur = best

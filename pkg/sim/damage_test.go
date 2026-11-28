@@ -93,9 +93,10 @@ func TestTheDamageLadderIsWalkedRungByRung(t *testing.T) {
 		}
 		// Its order survives every rung above the floor and is gone from the
 		// floor down. The tenth blow is where it goes, and the eleventh may not
-		// bring it back.
+		// bring it back. The route is not checked: each failed near search
+		// of the boxed-in unit unlinks a head (AI-373, MOVE-208).
 		if k < 9 {
-			if !e.HasTarget || e.Stall == 0 || len(w.routes[0]) == 0 {
+			if !e.HasTarget || e.Stall == 0 {
 				t.Errorf("after blow %d the unit is %+v holding the route %s — a blow that left it "+
 					"alive takes nothing of its order", k+1, e, fmtRoute(w.routes[0]))
 			}

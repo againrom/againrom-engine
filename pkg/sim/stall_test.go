@@ -6,9 +6,8 @@ package sim
 // tick. When the count reaches the limit the target is cleared inside that same
 // tick, so the count a stored world carries is always below the limit — which is
 // what makes the byte form's refusal of one at or above it a check on corruption
-// rather than on this package's own output. That last sentence is asserted over
-// the run below rather than argued: every tick's world is marshalled and read
-// back, and a count the decoder would refuse shows up as an error there.
+// rather than on this package's own output. Every tick's world is marshalled
+// and read back below.
 //
 // The fixture is a unit boxed in BY OTHER UNITS, and it has to be. A wall of
 // terrain no longer produces a stall at all: the far search reads terrain, it
@@ -127,7 +126,12 @@ func TestAStalledTickWritesTheCountAndNothingElse(t *testing.T) {
 		}
 		after := w.Entities()[0]
 		if tick > 1 {
-			checkRoute(t, "the route across a stalled tick", w.routes[0], true, beforeRoute)
+			// A failed near search unlinks a near head (AI-373, MOVE-208).
+			want := beforeRoute
+			if len(want) > 0 && (cell{before.X, before.Y}).chebyshevTo(want[0]) <= int64(w.pathFinding().DynamicByStaticLookup) {
+				want = want[1:]
+			}
+			checkRoute(t, "the route across a stalled tick", w.routes[0], true, want)
 		}
 
 		if after.Stall != before.Stall+1 {

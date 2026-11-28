@@ -124,7 +124,10 @@ type gameProfile struct {
 	// frontier and its budget once per pair of generations, so the second
 	// generation of a pair runs after the goal first holds a label
 	// (R2-ENGINE-1876).
-	searchStop searchStopRule
+	searchStop          searchStopRule
+	nearSearchFootprint bool
+	standing            standingRule
+	traceIncludesCentre bool
 	// postKeepsDying: a dying body stands on the guard post (AI-704).
 	postKeepsDying bool
 	// projectileAim: the point a projectile aims at a unit
@@ -376,6 +379,9 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		chargeZero:                 chargeZeroWraps,
 		bookWalkNoFallback:         true,
 		searchStop:                 searchStopPairs,
+		nearSearchFootprint:        true,
+		standing:                   standingAtCentreBytes,
+		traceIncludesCentre:        true,
 		postKeepsDying:             true,
 		projectileAim:              aimAtSavedPoint,
 		areaHeading:                areaHeadingCells,

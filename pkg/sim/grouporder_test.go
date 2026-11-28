@@ -539,8 +539,7 @@ func TestTheTerrainSealedFixtureIsUnreachableAndItsMoversWalkToTheSeal(t *testin
 // orders it to (side-3, side-3), so a mover on the block's own corner walks 251
 // cells on a 256x256 map, and nothing shorter is the worst case.
 //
-// It runs one tick, because a route exists from the tick the order is taken and
-// shortens from the next one.
+// It runs one tick, whose near search unlinks the head (MOVE-208).
 func TestAFullMapGroupOrderHoldsARouteOfTheMapsDiagonal(t *testing.T) {
 	const side, units = 256, 40
 	w, cmds, err := gopGroup(side, units)
@@ -564,7 +563,7 @@ func TestAFullMapGroupOrderHoldsARouteOfTheMapsDiagonal(t *testing.T) {
 	if holding != units {
 		t.Fatalf("%d of %d movers hold a route; the overlay's cost is measured over all of them", holding, units)
 	}
-	if want := side - 5; longest != want {
+	if want := side - 6; longest != want {
 		t.Errorf("the longest route is %d cells, want %d — the diagonal from (2,2) to (%d,%d)",
 			longest, want, side-3, side-3)
 	}

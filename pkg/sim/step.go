@@ -256,8 +256,7 @@ const killHP = -1
 //     its movement domain, the two cells' terrain and whether the step was
 //     diagonal, turned into a whole number of ticks. A mover whose speed is zero
 //     or less has no rate and owes nothing, which is a cell a tick;
-//   - and if the cell it landed on is one of the first four cells of its stored
-//     route, that cell and every cell before it are dropped.
+//   - each near search unlinks a static head within the configured lookup distance.
 //
 // The two searches read different relations and carry different bounds, and
 // between them that is the whole of the arrangement. The far search reads
@@ -972,6 +971,11 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		// stall counts consecutive ticks on which a NEAR SEARCH found nothing,
 		// and a mover that made no attempt has not been held up by anything.
 		if e.Transit > 0 {
+			if standingBodies[w.game.standing].endsStill(e) {
+				e.clearTransit()
+				scratch.occupy(w)
+				continue
+			}
 			e.Transit--
 			if e.Stride.Present {
 				w.payStride(scratch, i)
@@ -1164,43 +1168,22 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		// search until the step takes it or the dynamic counter passes 32
 		// (MOVE-REFRESH-012). Admission without one first asks the wait gate.
 		next, listed := w.walkNext(i)
-		if !listed || int32(e.Walk.Age) > w.pathFinding().DynamicRefreshRate {
+		if !listed {
 			if w.waitsBehind(scratch, i) {
 				continue
 			}
-			step, ok := w.searchRoute(scratch, i, unitRelation, dynamicWindow, scaledBudget, settleStep, sub.x, sub.y)
-			e.Walk.Age, e.Walk.Waited, e.Walk.Listed = 0, false, false
+			_, atEnd := routeEndGoal(w.pathFinding(), w.routes[i], cell{e.X, e.Y})
+			next, listed = w.nearStep(scratch, i, sub, settleStep)
 			e.Walk.Searches++
-			if !ok || len(step) == 0 {
-				e.Walk.NextX, e.Walk.NextY = 0, 0
+			if !listed {
 				// A player's walk to a cell an enemy has taken ends beside it in
 				// the stand order, which strikes what is in reach.
 				if w.walkGoalHeldByEnemy(i) {
 					w.commandStance([]int{i}, OrderStandGround)
 					continue
 				}
-				// The count is the ONLY field written on this path. The position, the
-				// three target fields and the whole stored route are not restored —
-				// they are never touched, so there is no window in which a
-				// half-applied move exists.
-				//
-				// A pursuit whose near search aims at the victim itself and finds
-				// nothing is refused at once: the original's search raises its
-				// route-failure flag when the search toward the final destination
-				// comes back empty (DIV-1316). Aimed at a waypoint short of it, the
-				// stall count runs on. A human participant's order always takes
-				// the stall count and the whole-map check, so a friendly body that
-				// passes for a few ticks cannot end it.
-				if e.Owner != SelfSlot && w.aimsAtDestination(i, sub) && w.attackerRefusable(i) {
-					if w.restAt(scratch, i) {
-						w.answerRefusedPursuit(i, searchNear)
-					}
-					continue
-				}
-				// A first-game AI-owned walk with no victim is refused the same
-				// way when its search aims at its own destination (AI-709); its
-				// Group's next pass sends it again.
-				if w.refusesWalkAtOnce(i, sub) {
+				refusable := e.Owner != SelfSlot && w.attackerRefusable(i) || !e.HasAttackTarget && w.computerControlledUnit(*e)
+				if atEnd && refusable {
 					if w.restAt(scratch, i) {
 						w.answerRefusedPursuit(i, searchNear)
 					}
@@ -1218,8 +1201,6 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				}
 				continue
 			}
-			next = step[0]
-			e.Walk.Listed, e.Walk.NextX, e.Walk.NextY = true, next.x, next.y
 		}
 		if w.advanceStep(scratch, i, next, heldFirstCall) != stepTaken {
 			continue
@@ -1230,7 +1211,6 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			w.restAt(scratch, i)
 			continue
 		}
-		w.consume(i, next)
 	}
 
 	// PHASE 3, and the reason it is its own loop and not part of the one above:
@@ -1352,14 +1332,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	w.produceFlights(obs)
 }
 
-// lookAhead is how far along a stored route the near search aims: the sub-goal
-// is the route's cell at index min(lookAhead, len-1), so up to four cells along
-// it, and the target itself once four or fewer remain.
-//
-// It is one number in one place, and the consumption rule reads the same one:
-// the cells a mover may land on and drop are exactly the cells a sub-goal may be
-// chosen from. Were the two allowed to differ, a mover could land on its own
-// sub-goal and be asked to search from a cell to itself.
+// lookAhead is the minimum prefix checked when validating a stored route (DIV-2048).
 const lookAhead = 3
 
 // subGoalIndex is min(lookAhead, n-1) for a route of n cells: the last cell the
@@ -1382,52 +1355,27 @@ func subGoalIndex(n int) int {
 // (MOVE-REFRESH-012).
 func (w *World) subGoal(s *routeScratch, i int) (cell, bool) {
 	route := w.routes[i]
-	if len(route) == 0 {
-		return cell{}, false
-	}
 	e := &w.entities[i]
+	if len(route) == 0 {
+		return cell{e.TargetX, e.TargetY}, e.HasTarget && (e.Walk.Listed || e.Walk.Searches != 0)
+	}
 	last := route[len(route)-1]
 	if last.x != e.TargetX || last.y != e.TargetY {
 		return cell{}, false
 	}
-	// A stored route is not retired when a cell of it closes, and the byte form
-	// holds one. It is tested here only over the cells the near search may aim
-	// at, the first four: a cell closed among them cannot be consumed, so the
-	// mover would circle it, and the route is replaced by one far search.
-	// A closed cell further along stays in the route until it comes within that
-	// reach. DIV-2048.
-	for k := 0; k <= max(w.walkGoalIndex(e, route), subGoalIndex(len(route))); k++ {
+	// Validate the stored prefix through the chosen waypoint and at least the shipped look-ahead.
+	index := w.walkGoalIndex(e, route)
+	for k := 0; k <= max(index, subGoalIndex(len(route))); k++ {
 		if !w.terrainOpenFootprint(*e, route[k].x, route[k].y) {
 			return cell{}, false
 		}
 	}
-	sub := route[w.walkGoalIndex(e, route)]
+	sub := route[index]
 	win := window{centre: cell{x: e.X, y: e.Y}, half: dynamicWindow}
 	if !win.holds(sub.x, sub.y) {
 		return cell{}, false
 	}
 	return sub, true
-}
-
-// consume drops the cells of entity i's stored route up to and including the
-// cell its step has just taken, when that cell is among the first four.
-//
-// A mover that stepped somewhere else keeps its WHOLE route and makes its way
-// back to it — that is the case a "drop the head" rule would get wrong, and it is
-// ordinary: a near search routes round a unit standing in the way, and the cell
-// it takes need not be on the route at all.
-func (w *World) consume(i int, to cell) {
-	route := w.routes[i]
-	n := len(route)
-	if n > lookAhead+1 {
-		n = lookAhead + 1
-	}
-	for k := 0; k < n; k++ {
-		if route[k] == to {
-			w.routes[i] = route[k+1:]
-			return
-		}
-	}
 }
 
 // attachMoveOrder writes a walk to (x, y) for entity i: the destination, the
@@ -1804,7 +1752,7 @@ func (w *World) searchRoute(s *routeScratch, self int, r relation, half int32, r
 // through an advance yet.
 //
 // IT IS A READ AND IT IS NOT A SEARCH. The route a mover walks is already state
-// here: the far search stores one, the advance consumes its walked head, and the
+// here: the far search stores one, the near search removes a nearby head, and the
 // three staleness tests replace it when it stops serving. So the question "where
 // is this unit going" is answered by reading what the tick already computed, not
 // by running a second search beside it — which is why there is no cache in front
@@ -1882,7 +1830,11 @@ func (w *World) stepRate(e Entity, from, to cell, commit bool) (rate, transit in
 		hSrc, hDst = w.heightAt(from), w.heightAt(to)
 	}
 	v := w.game.rateOf(e.Domain, w.pathFinding().SpeedMultiplier, moverSpeed(e), costSrc, costDst, hSrc, hDst)
-	return v, transitOf(v, from.x != to.x && from.y != to.y)
+	diagonal := from.x != to.x && from.y != to.y
+	if standingBodies[w.game.standing].noMotion(v, diagonal) {
+		return v, 1
+	}
+	return v, transitOf(v, diagonal)
 }
 
 // StepRate is what one step onto (x, y) would cost the entity id stands for:
@@ -2341,45 +2293,19 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 		return stepTurned
 	}
 	// A held cell still fires its trap, on the refused attempt (DIV-4527).
-	if !w.occupancyOpenFootprint(scratch, i, next.x, next.y) {
+	if !w.cellsOpen(scratch, i, next.x, next.y, e.TokenSize, true) {
 		w.requestFootprintCasts(i, next.x, next.y)
 		return stepBlocked
 	}
 	w.invalidateActorMotion(e.ID, "native cell step supersedes original movement")
 	e.replaceDrawnTurn()
 	e.clearStride()
-	// A MOVER FACES THE CELL IT STEPPED TO, written from the step's own delta
-	// — the cell taken less the cell left — and here rather than anywhere
-	// else, because this is the one site a cell changes at. So a mover that is
-	// blocked, that gives up or that arrives keeps the facing its last step
-	// left, by there being no assignment on any of those paths rather than by
-	// a rule.
-	//
-	// It is written on the step's FIRST tick, the tick the cell is
-	// claimed, and the ticks that pay for the crossing leave it alone —
-	// which is what keeps a rated mover pointing along the stride it is
-	// drawn sliding down for the whole of it.
-	//
-	// The engine derives the same facing from the same NEXT CELL, and the one
-	// thing it does with it that this does not is WAIT: a step there is taken
-	// only once the two facing bytes agree, and an arc above one direction
-	// costs ticks and destroys the route. Both are named divergences, and
-	// neither changes the facing this arrives at. THE RATE IS TAKEN HERE,
-	// once, from the two cells this step joins, and held until the next one
-	// — so "once per cell transit" is a position in this function rather
-	// than a rule someone keeps elsewhere. WHAT it is composed of is
-	// stepRate's, and the composition lives there rather than here so that the
-	// read which reports this number to a front-end cannot come to compose it
-	// differently.
-	//
-	// The transit's own tick is its FIRST, so the owed count is one short of
-	// the length and the cadence is exactly that length of ticks per cell.
-	// Only a rated mover writes either: an unrated one owes nothing, and keeps
-	// the cell-a-tick cadence every mover here had before — and that gate is
-	// why stepRate's OTHER caller must refuse an unrated mover rather than let
-	// the law's total arithmetic answer for one.
 	if rated(w.groupRateEntity(*e)) {
 		rate, t := w.stepRate(*e, from, next, true)
+		if t == 1 {
+			e.clearTransit()
+			return stepBlocked
+		}
 		e.TransitTotal = uint16(t)
 		e.Transit = uint16(t - 1)
 		e.retainStride(from, next, rate)

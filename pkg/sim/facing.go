@@ -250,6 +250,7 @@ func (w *World) cancelTurnForTargetChange(i int, x, y int32) {
 	if e.HasTarget && e.TargetX == x && e.TargetY == y {
 		return
 	}
+	e.Walk = WalkRefresh{Age: e.Walk.Age}
 	w.clearTurnUnlessCasting(i)
 }
 
