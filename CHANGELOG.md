@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [BASE] A computer unit in a Swarm group that already stands on its group's cell now lets go of an enemy its group no longer scores, instead of fighting it to the death.
+
 ## 0.163.0
 
 ### For players

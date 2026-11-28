@@ -343,6 +343,12 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 				e.clearAttackBetweenCycles()
 				e.TargetX, e.TargetY, e.HasTarget = x, y, true
 				w.syncSavedDestination(i)
+			} else if !human {
+				// On its cell with nothing assigned the order byte is idle (AI-910).
+				w.releaseAttack(i)
+				if o != nil {
+					o.Raw[8] = 0xb
+				}
 			}
 		} else if order == orderStandGround && human && !underCommand(w.entities[i]) {
 			// A participant's member idles with the pending order 0, not the idle
